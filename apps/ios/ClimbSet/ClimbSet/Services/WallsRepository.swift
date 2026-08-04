@@ -128,7 +128,7 @@ struct SupabaseWallsRepository: WallsRepository {
         if let imageData, let userId {
             finalImageUrl = try await uploadWallImage(data: imageData, userId: userId, wallId: id, client: client)
         }
-        var payload: [String: AnyEncodable] = ["name": AnyEncodable(trimmedName), "image_url": AnyEncodable(finalImageUrl), "updated_at": AnyEncodable(ISO8601DateFormatter().string(from: Date()))]
+        var payload: [String: AnyEncodable] = ["name": AnyEncodable(trimmedName), "image_url": AnyEncodable(finalImageUrl), "updated_at": AnyEncodable(iso8601Timestamp())]
         if let imageDimensions {
             payload["image_width"] = AnyEncodable(imageDimensions.width)
             payload["image_height"] = AnyEncodable(imageDimensions.height)

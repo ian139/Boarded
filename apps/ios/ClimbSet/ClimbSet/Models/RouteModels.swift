@@ -263,14 +263,19 @@ extension Hold {
     }
 }
 
+private let fractionalISO8601Style = Date.ISO8601FormatStyle(includingFractionalSeconds: true, timeZone: TimeZone(secondsFromGMT: 0)!)
+private let standardISO8601Style = Date.ISO8601FormatStyle(timeZone: TimeZone(secondsFromGMT: 0)!)
+
 func parseISO8601Date(_ value: String?) -> Date? {
     guard let value else { return nil }
-    let fractional = ISO8601DateFormatter()
-    fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-    if let date = fractional.date(from: value) { return date }
-    let standard = ISO8601DateFormatter()
-    standard.formatOptions = [.withInternetDateTime]
-    return standard.date(from: value)
+    if let date = try? fractionalISO8601Style.parse(value) {
+        return date
+    }
+    return try? standardISO8601Style.parse(value)
+}
+
+func iso8601Timestamp(_ date: Date = Date()) -> String {
+    date.formatted(fractionalISO8601Style)
 }
 
 func normalizedRemoteImageURLString(_ value: String?) -> String? {

@@ -69,8 +69,8 @@ struct MockRoutesRepository: RoutesRepository {
                 isPublic: true,
                 viewCount: 32,
                 shareToken: nil,
-                createdAt: ISO8601DateFormatter().string(from: Date()),
-                updatedAt: ISO8601DateFormatter().string(from: Date()),
+                createdAt: iso8601Timestamp(),
+                updatedAt: iso8601Timestamp(),
                 userName: "Ian",
                 wallImageUrl: nil,
                 wallImageWidth: nil,
@@ -97,8 +97,8 @@ struct MockRoutesRepository: RoutesRepository {
                 isPublic: true,
                 viewCount: 18,
                 shareToken: nil,
-                createdAt: ISO8601DateFormatter().string(from: Date().addingTimeInterval(-86000)),
-                updatedAt: ISO8601DateFormatter().string(from: Date().addingTimeInterval(-86000)),
+                createdAt: iso8601Timestamp(),
+                updatedAt: iso8601Timestamp(),
                 userName: "Boarded",
                 wallImageUrl: nil,
                 wallImageWidth: nil,
@@ -173,7 +173,7 @@ struct MockRoutesRepository: RoutesRepository {
             id: UUID().uuidString,
             draft: draft,
             shareToken: generateShareToken(),
-            timestamp: isoTimestamp()
+            timestamp: iso8601Timestamp()
         )
         storage.routes.append(route)
         return route
@@ -199,7 +199,7 @@ struct MockRoutesRepository: RoutesRepository {
             viewCount: current.viewCount,
             shareToken: current.shareToken,
             createdAt: current.createdAt,
-            updatedAt: isoTimestamp(),
+            updatedAt: iso8601Timestamp(),
             userName: current.userName,
             wallImageUrl: snapshot.map(\.wallImageUrl) ?? current.wallImageUrl,
             wallImageWidth: snapshot.map(\.wallImageWidth) ?? current.wallImageWidth,
@@ -237,7 +237,7 @@ struct MockRoutesRepository: RoutesRepository {
             viewCount: current.viewCount,
             shareToken: authoritativeToken,
             createdAt: current.createdAt,
-            updatedAt: isoTimestamp(),
+            updatedAt: iso8601Timestamp(),
             userName: current.userName,
             wallImageUrl: current.wallImageUrl,
             wallImageWidth: current.wallImageWidth,
@@ -364,7 +364,7 @@ struct SupabaseRoutesRepository: RoutesRepository {
         }
 
         let routeId = UUID().uuidString
-        let timestamp = isoTimestamp()
+        let timestamp = iso8601Timestamp()
         let shareToken = generateShareToken()
         let payload: [String: AnyEncodable] = [
             "id": AnyEncodable(routeId),
@@ -427,7 +427,7 @@ struct SupabaseRoutesRepository: RoutesRepository {
         let publishPayload: [String: AnyEncodable] = [
             "is_public": AnyEncodable(true),
             "share_token": AnyEncodable(shareToken),
-            "updated_at": AnyEncodable(isoTimestamp())
+            "updated_at": AnyEncodable(iso8601Timestamp())
         ]
         let conditionalRoutes: [Route] = try await client.from("routes")
             .update(publishPayload)
@@ -459,7 +459,7 @@ struct SupabaseRoutesRepository: RoutesRepository {
         let existingTokenPayload: [String: AnyEncodable] = [
             "is_public": AnyEncodable(true),
             "share_token": AnyEncodable(authoritativeToken),
-            "updated_at": AnyEncodable(isoTimestamp())
+            "updated_at": AnyEncodable(iso8601Timestamp())
         ]
         let publishedRoutes: [Route] = try await client.from("routes")
             .update(existingTokenPayload)
@@ -693,11 +693,6 @@ private func buildRoute(id: String, draft: RouteDraft, shareToken: String, times
     )
 }
 
-private func isoTimestamp() -> String {
-    let formatter = ISO8601DateFormatter()
-    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-    return formatter.string(from: Date())
-}
 
 private func generateShareToken(length: Int = 10) -> String {
     let characters = Array("ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789")
@@ -710,7 +705,7 @@ private func isUUID(_ value: String) -> Bool {
 
 func patchPayload(from patch: RoutePatch) -> [String: AnyEncodable] {
     var payload: [String: AnyEncodable] = [
-        "updated_at": AnyEncodable(isoTimestamp())
+        "updated_at": AnyEncodable(iso8601Timestamp())
     ]
 
     if let snapshot = patch.wallSnapshot {

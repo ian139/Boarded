@@ -68,7 +68,7 @@ struct RoutesView: View {
                     rating: rating,
                     notes: notes,
                     flashed: flashed,
-                    createdAt: ISO8601DateFormatter().string(from: Date())
+                    createdAt: iso8601Timestamp()
                 )
                 try await viewModel.addAscent(routeId: route.id, ascent: ascent)
                 loggingRoute = nil

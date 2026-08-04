@@ -1066,7 +1066,7 @@ struct RouteDetailView: View {
             rating: rating,
             notes: notes,
             flashed: flashed,
-            createdAt: ISO8601DateFormatter().string(from: Date())
+            createdAt: iso8601Timestamp()
         )
         try await routesViewModel.addAscent(routeId: route.id, ascent: ascent)
 
@@ -1333,9 +1333,7 @@ private struct CommentRow: View {
     }
 
     private func formatTime(_ value: String) -> String {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let date = formatter.date(from: value) ?? Date()
+        let date = parseISO8601Date(value) ?? Date()
         let diff = Date().timeIntervalSince(date)
         let mins = Int(diff / 60)
         if mins < 60 { return "\(mins)m" }
