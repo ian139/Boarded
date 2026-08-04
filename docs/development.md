@@ -86,7 +86,7 @@ For a device build or run, select a development team/signing destination in Xcod
 <a id="supabase"></a>
 ## Supabase migrations and local harness
 
-The complete checked-in migration history is `supabase/migrations/001_initial_schema.sql` through `015_repair_route_snapshot_dimensions.sql`. Apply every migration **once, in numeric order** (001, 002, …, 015) using the Supabase Dashboard SQL Editor, or use a separately linked Supabase CLI workflow that you maintain for the target project. Do not skip earlier migrations or apply files alphabetically by title.
+The complete checked-in migration history runs from `supabase/migrations/001_initial_schema.sql` through `012_api_role_table_grants.sql`. Apply every migration **once, in numeric order** using the Supabase Dashboard SQL Editor, or use a separately linked Supabase CLI workflow that you maintain for the target project.
 
 This repository does **not** contain `supabase/config.toml`. Consequently, do not claim that this checkout can run `supabase start`, and do not assume a local CLI workflow is configured here. A separately linked CLI may be used only when its project configuration and credentials are maintained outside this repository.
 
@@ -134,7 +134,7 @@ For native behavior changes, select an installed iOS simulator in Xcode and choo
 - `apps/ios/ClimbSet/ClimbSet.xcodeproj/` — Xcode project and schemes.
 - `apps/ios/ClimbSet/ClimbSetTests/` — native unit/contract tests.
 - `apps/ios/ClimbSet/ClimbSetUITests/` — native UI tests.
-- `supabase/migrations/` — ordered SQL schema, policy, RPC, and storage migrations (001–015).
+- `supabase/migrations/` — ordered SQL schema, policy, RPC, and storage migrations (001–012).
 - `supabase/tests/` — local-only security harnesses; currently the RLS ownership harness.
 - `.env.local.example` — safe variable-name/template file; `.env.local` is local-only.
 

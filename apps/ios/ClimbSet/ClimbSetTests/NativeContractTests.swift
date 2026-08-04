@@ -7,59 +7,44 @@ import Supabase
 #endif
 @MainActor
 final class NativeContractTests: XCTestCase {
-    func testLegacyRouteDecodingDefaultsOptionalFieldsAndFullRouteCarriesSnapshotDimensions() throws {
-        let legacy = try decodeRoute(Self.routeJSON())
-        XCTAssertEqual(legacy.gradeV, "V4")
-        XCTAssertTrue(legacy.isPublic)
-        XCTAssertEqual(legacy.viewCount, 0)
-        XCTAssertNil(legacy.wallImageWidth)
-        XCTAssertNil(legacy.wallImageHeight)
-        XCTAssertEqual(legacy.ascents.count, 1)
-        XCTAssertEqual(legacy.ascents[0].gradeV, "V0")
+    func testRouteDecodingUsesCanonicalFieldsAndStringGrades() throws {
+        let route = try decodeRoute(Self.routeJSON())
+        XCTAssertEqual(route.id, "route-1")
+        XCTAssertEqual(route.userId, "user-1")
+        XCTAssertEqual(route.wallId, "wall-1")
+        XCTAssertEqual(route.name, "Canonical Route")
+        XCTAssertNil(route.description)
+        XCTAssertEqual(route.gradeV, "V4")
+        XCTAssertNil(route.gradeFont)
+        XCTAssertEqual(route.holds.count, 1)
+        XCTAssertTrue(route.isPublic)
+        XCTAssertEqual(route.viewCount, 12)
+        XCTAssertEqual(route.shareToken, "share-token")
+        XCTAssertEqual(route.userName, "Setter")
+        XCTAssertEqual(route.wallImageUrl, "https://cdn/wall.jpg")
+        XCTAssertEqual(route.wallImageWidth, 1600)
+        XCTAssertEqual(route.wallImageHeight, 900)
+        XCTAssertEqual(route.likeCount, 4)
+        XCTAssertEqual(route.isLiked, true)
+        XCTAssertEqual(route.ascents.count, 1)
+        XCTAssertEqual(route.ascents[0].gradeV, "V0")
+        XCTAssertEqual(route.comments, [])
 
-        let full = try decodeRoute(Self.routeJSON(extra: #"""
-            ,"wall_image_width":1600,"wall_image_height":900,"like_count":4,"is_liked":true
-            """#))
-        XCTAssertEqual(full.wallImageWidth, 1600)
-        XCTAssertEqual(full.wallImageHeight, 900)
-        XCTAssertEqual(full.likeCount, 4)
-        XCTAssertEqual(full.isLiked, true)
-
-        let encoded = try JSONEncoder().encode(full)
+        let encoded = try JSONEncoder().encode(route)
         let object = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        XCTAssertEqual(object["grade_v"] as? String, "V4")
         XCTAssertEqual(object["wall_image_width"] as? Int, 1600)
         XCTAssertEqual(object["wall_image_height"] as? Int, 900)
     }
 
-    func testFlexibleGradeAcceptsOnlyIntegralRankedNumbers() throws {
-        for (wire, expected) in [("-1", "VB"), ("0", "V0"), ("17", "V17")] {
-            let grade = try JSONDecoder().decode(FlexibleGrade.self, from: Data(wire.utf8))
-            XCTAssertEqual(grade.value, expected, "wire value \(wire)")
-        }
-        for wire in ["1.5", "18", "-2"] {
-            let grade = try JSONDecoder().decode(FlexibleGrade.self, from: Data(wire.utf8))
-            XCTAssertNil(grade.value, "wire value \(wire) is unranked")
-        }
-        let stringGrade = try JSONDecoder().decode(FlexibleGrade.self, from: Data(#" " v7 " "#.replacingOccurrences(of: " ", with: "").utf8))
-        XCTAssertEqual(stringGrade.value, "V7")
+
+    func testCanonicalGradeLookup() {
+        XCTAssertEqual(VGradeOption.value(for: "VB"), -1)
+        XCTAssertEqual(VGradeOption.value(for: " v7 "), 7)
+        XCTAssertEqual(VGradeOption.label(for: -1), "VB")
+        XCTAssertEqual(VGradeOption.label(for: 7), "V7")
     }
 
-    func testFallbackProjectionsPreserveSnapshotDimensionsAndAscents() throws {
-        let data = Data(Self.routeJSON(extra: #"""
-            ,"is_public":true,"view_count":0,"share_token":null,"user_name":"Climber","wall_image_width":1200,"wall_image_height":800
-            """#).utf8)
-        let withoutComments = try JSONDecoder().decode(RouteWithoutComments.self, from: data).asRoute()
-        XCTAssertEqual(withoutComments.wallImageWidth, 1200)
-        XCTAssertEqual(withoutComments.wallImageHeight, 800)
-        XCTAssertEqual(withoutComments.ascents.count, 1)
-        XCTAssertTrue(withoutComments.comments.isEmpty)
-
-        let plain = try JSONDecoder().decode(RoutePlainRecord.self, from: data).asRoute()
-        XCTAssertEqual(plain.wallImageWidth, 1200)
-        XCTAssertEqual(plain.wallImageHeight, 800)
-        XCTAssertTrue(plain.ascents.isEmpty)
-        XCTAssertTrue(plain.comments.isEmpty)
-    }
 
     func testMockRouteSnapshotPatchClearsURLAndDimensionsAtomically() async throws {
         let repository = MockRoutesRepository(fixture: true)
@@ -80,7 +65,7 @@ final class NativeContractTests: XCTestCase {
         XCTAssertNil(updated.wallImageHeight)
     }
 
-    func testRouteDetailGeometryUsesOneAspectFitRectangleAndFallsBackForLegacyDimensions() {
+    func testRouteDetailGeometryUsesContainerForInvalidOrMissingDimensions() {
         let container = CGRect(x: 0, y: 0, width: 400, height: 300)
         let fitted = RouteDetailGeometry.imageRect(imageWidth: 1000, imageHeight: 500, in: container)
         XCTAssertEqual(fitted, CGRect(x: 0, y: 50, width: 400, height: 200))
@@ -260,15 +245,18 @@ final class NativeContractTests: XCTestCase {
         )
     }
 
-    private static func routeJSON(extra: String = "") -> String {
+    private static func routeJSON() -> String {
         """
         {
-          "id":"route-1","user_id":"user-1","wall_id":"wall-1","name":"Legacy Route",
+          "id":"route-1","user_id":"user-1","wall_id":"wall-1","name":"Canonical Route",
           "description":null,"grade_v":"V4","grade_font":null,
-          "holds":[{"id":"hold-1","x":20,"y":30,"type":"hand","color":"#FFFFFF","size":"medium","notes":null}],
+          "holds":[{"id":"hold-1","x":20,"y":30,"type":"hand","color":"#FFFFFF","size":"medium","radius":8,"notes":null}],
+          "is_public":true,"view_count":12,"share_token":"share-token",
           "created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z",
-          "wall_image_url":"https://cdn/wall.jpg",
-          "ascents":[{"id":"ascent-1","route_id":"route-1","user_id":"user-1","user_name":"Climber","grade_v":0,"rating":null,"notes":null,"flashed":true,"created_at":"2026-01-02T00:00:00Z"}]\(extra)
+          "user_name":"Setter","wall_image_url":"https://cdn/wall.jpg",
+          "wall_image_width":1600,"wall_image_height":900,"like_count":4,"is_liked":true,
+          "ascents":[{"id":"ascent-1","route_id":"route-1","user_id":"user-1","user_name":"Climber","grade_v":"V0","rating":null,"notes":null,"flashed":true,"created_at":"2026-01-02T00:00:00Z"}],
+          "comments":[]
         }
         """
     }

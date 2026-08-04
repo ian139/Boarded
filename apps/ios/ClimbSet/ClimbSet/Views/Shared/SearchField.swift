@@ -1,12 +1,11 @@
 import SwiftUI
 
 struct SearchField: View {
-    @Environment(\.colorScheme) private var colorScheme
     @Binding var text: String
     let placeholder: String
 
     var body: some View {
-        let theme = BoardedTheme(colorScheme: colorScheme)
+        let theme = BoardedTheme()
         let shape = RoundedRectangle(cornerRadius: theme.controlCornerRadius, style: .continuous)
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")

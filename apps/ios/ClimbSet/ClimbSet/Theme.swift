@@ -4,15 +4,9 @@ import UIKit
 #endif
 
 struct BoardedTheme {
-    // Kept in the initializer so existing views can continue to construct a theme
-    // from the environment while the visual system remains intentionally dark-first.
-    let colorScheme: ColorScheme
 
     var background: Color { AppColor.background }
 
-    // Compatibility for views that previously expected a gradient-backed page.
-    // The redesigned system uses one continuous background instead.
-    var backgroundGradient: some View { background }
 
     // Neutral panel roles derive from the active adaptive palette.
     var panelBackground: Color { AppColor.surface }
@@ -97,24 +91,22 @@ enum AppLayout {
 }
 
 private struct BoardedPageBackgroundModifier: ViewModifier {
-    @Environment(\.colorScheme) private var colorScheme
 
     func body(content: Content) -> some View {
-        let theme = BoardedTheme(colorScheme: colorScheme)
+        let theme = BoardedTheme()
         content.background(theme.background.ignoresSafeArea())
     }
 }
 
 private struct BoardedGlassSurfaceModifier<S: Shape>: ViewModifier {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-    @Environment(\.colorScheme) private var colorScheme
 
     let shape: S
     let interactive: Bool
 
     @ViewBuilder
     func body(content: Content) -> some View {
-        let theme = BoardedTheme(colorScheme: colorScheme)
+        let theme = BoardedTheme()
         if reduceTransparency {
             content
                 .background(theme.background, in: shape)
@@ -160,11 +152,10 @@ struct BoardedGlassContainer<Content: View>: View {
 }
 
 private struct BoardedPanelModifier: ViewModifier {
-    @Environment(\.colorScheme) private var colorScheme
     let elevated: Bool
 
     func body(content: Content) -> some View {
-        let theme = BoardedTheme(colorScheme: colorScheme)
+        let theme = BoardedTheme()
         let shape = RoundedRectangle(cornerRadius: theme.panelCornerRadius, style: .continuous)
         content
             .padding(theme.panelPadding)
@@ -187,12 +178,11 @@ extension View {
 }
 
 struct BoardedSectionHeading: View {
-    @Environment(\.colorScheme) private var colorScheme
     let title: String
     var subtitle: String?
 
     var body: some View {
-        let theme = BoardedTheme(colorScheme: colorScheme)
+        let theme = BoardedTheme()
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
                 .font(AppTypography.headline)
@@ -210,13 +200,12 @@ struct BoardedSectionHeading: View {
 }
 
 struct BoardedFilterControl: View {
-    @Environment(\.colorScheme) private var colorScheme
     let title: String
     let isSelected: Bool
     let action: () -> Void
 
     var body: some View {
-        let theme = BoardedTheme(colorScheme: colorScheme)
+        let theme = BoardedTheme()
         let shape = RoundedRectangle(cornerRadius: theme.controlCornerRadius, style: .continuous)
         Button(action: action) {
             Text(title)
@@ -246,7 +235,6 @@ struct BoardedButtonStyle: ButtonStyle {
         case secondary
     }
 
-    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let kind: Kind
 
@@ -255,7 +243,7 @@ struct BoardedButtonStyle: ButtonStyle {
     }
 
     func makeBody(configuration: Configuration) -> some View {
-        let theme = BoardedTheme(colorScheme: colorScheme)
+        let theme = BoardedTheme()
         configuration.label
             .font(AppTypography.headline)
             .foregroundStyle(kind == .primary ? theme.actionForeground : theme.primary)
@@ -329,7 +317,6 @@ extension UIColor {
 #endif
 
 extension Color {
-    // Retained for legacy hold data while callers migrate to semantic theme colors.
     static func hex(_ value: String) -> Color {
         let rgb = hexToRGB(value)
         return Color(red: rgb.r, green: rgb.g, blue: rgb.b)

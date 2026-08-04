@@ -91,7 +91,8 @@ export function RouteViewer({
   const gestureRef = useRef<Gesture | null>(null);
 
   const { routes, toggleLike, isLikedByUser, getLikeCount, updateRoute, syncLocalRoutes, fetchRouteById } = useRoutesStore();
-  const { userId, isModerator } = useUserStore();
+  const { user, isModerator } = useUserStore();
+  const currentUserId = user?.id;
 
   const updateViewportSize = useCallback(() => {
     const viewport = viewportRef.current;
@@ -432,7 +433,7 @@ export function RouteViewer({
   const visibleComments = currentRoute?.comments ?? comments;
   const likeCount = routeId ? getLikeCount(routeId) : routeForActions?.liked_by?.length || 0;
   const sendCount = routeForActions?.ascents?.length || 0;
-  const isLiked = Boolean(routeId && userId && isLikedByUser(routeId, userId));
+  const isLiked = Boolean(routeId && currentUserId && isLikedByUser(routeId, currentUserId));
 
   const handleLike = useCallback(async () => {
     if (!routeId) return;
@@ -440,14 +441,14 @@ export function RouteViewer({
       toast.error('Sync this route before liking it.');
       return;
     }
-    if (!userId) {
+    if (!currentUserId) {
       toast.error('Log in to like routes.');
       return;
     }
 
-    const saved = await toggleLike(routeId, userId);
+    const saved = await toggleLike(routeId, currentUserId);
     if (!saved) toast.error('Unable to update like. Please try again.');
-  }, [routeForActions, routeId, toggleLike, userId]);
+  }, [routeForActions, routeId, toggleLike, currentUserId]);
 
   const handleShare = useCallback(async () => {
     let shareRoute = routeForActions;
@@ -458,7 +459,7 @@ export function RouteViewer({
     const shareRouteId = shareRoute.id;
 
     if (shareRoute.user_id === 'local-user' || hasPendingCreate(shareRoute)) {
-      if (!userId) {
+      if (!currentUserId) {
         toast.error('Log in to share a route across devices.');
         return;
       }
@@ -480,14 +481,14 @@ export function RouteViewer({
         toast.error('Unable to verify this route before sharing');
         return;
       }
-      if (!verifiedRoute || verifiedRoute.user_id !== userId || hasPendingCreate(verifiedRoute)) {
+      if (!verifiedRoute || verifiedRoute.user_id !== currentUserId || hasPendingCreate(verifiedRoute)) {
         toast.error('Unable to verify this route before sharing');
         return;
       }
       shareRoute = verifiedRoute;
     }
 
-    const canManageSharing = isModerator || shareRoute.user_id === userId;
+    const canManageSharing = isModerator || shareRoute.user_id === currentUserId;
     if (!canManageSharing && !shareRoute.is_public) {
       toast.error('Only the route owner can enable sharing for this route');
       return;
@@ -534,7 +535,7 @@ export function RouteViewer({
     routeName,
     syncLocalRoutes,
     updateRoute,
-    userId,
+    currentUserId,
   ]);
 
 

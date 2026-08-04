@@ -1,28 +1,14 @@
 # Dependencies
 node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
 
 # Next.js
 /.next/
 /out/
-/.expo/
-/build
-/dist/
 next-env.d.ts
 
 # Environment variables (IMPORTANT - contains secrets)
 .env
 .env.*
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
 !.env.example
 !.env.local.example
 
@@ -37,9 +23,6 @@ next-env.d.ts
 
 # Debug logs
 npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
 
 # OS files
 .DS_Store
@@ -51,8 +34,6 @@ Thumbs.db
 *.swp
 *.swo
 *~
-**/xcuserdata/
-*.xcuserstate
 
 # Local tooling
 .claude/
@@ -64,21 +45,8 @@ Thumbs.db
 *.cert
 *.log
 
-# Legacy/empty dirs
-climbing-app-next/
-
 # Local Supabase
 .supabase/
-
-!.env.example
-
-# Allow Swift app under apps/ios
-!apps/ios/
-!apps/ios/**
-apps/ios/**/.git/
-apps/ios/**/.DS_Store
-apps/ios/**/xcuserdata/
-apps/ios/**/*.xcuserstate
 
 # Python
 __pycache__/

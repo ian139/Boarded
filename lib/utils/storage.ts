@@ -1,14 +1,5 @@
 const WALLS_PUBLIC_URL_MARKER = '/storage/v1/object/public/walls/';
 
-export type StoragePathLayout = 'legacy' | 'owner' | 'unknown';
-
-export interface ClassifiedStoragePath {
-  layout: StoragePathLayout;
-  path: string;
-  wallId: string | null;
-  fileName: string | null;
-  ownerId: string | null;
-}
 
 /**
  * Extract the storage object path from a public Supabase Storage URL for the
@@ -30,42 +21,6 @@ export function getWallStoragePathFromUrl(publicUrl: string | null | undefined):
   return path;
 }
 
-/**
- * Classify a `walls` storage object path as either the legacy layout
- * `<wall-id>/<file>` or the owner-prefixed layout `<user>/<wall-id>/<file>`.
- */
-export function classifyStoragePath(path: string): ClassifiedStoragePath {
-  const segments = path.split('/').filter(Boolean);
-  const fileName = segments.length > 0 ? segments[segments.length - 1] : null;
-
-  if (segments.length === 2) {
-    return {
-      layout: 'legacy',
-      path,
-      wallId: segments[0],
-      fileName,
-      ownerId: null,
-    };
-  }
-
-  if (segments.length === 3) {
-    return {
-      layout: 'owner',
-      path,
-      wallId: segments[1],
-      fileName,
-      ownerId: segments[0],
-    };
-  }
-
-  return {
-    layout: 'unknown',
-    path,
-    wallId: null,
-    fileName,
-    ownerId: null,
-  };
-}
 /**
  * Restrict a freshly computed deletion candidate list to the paths shown in
  * the moderator preview. Set membership keeps both lists deterministic and

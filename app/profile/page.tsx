@@ -11,7 +11,9 @@ import { gradeToNumber, calculateDisplayGrade } from '@climbset/shared/utils/gra
 import { toast } from 'sonner';
 
 export default function ProfilePage() {
-  const { user, displayName, userId, isAuthenticated, profile, syncProfile, uploadAvatar } = useUserStore();
+  const { user, isAuthenticated, profile, syncProfile, uploadAvatar } = useUserStore();
+  const currentUserId = user?.id || 'local-user';
+  const currentUserDisplayName = user?.displayName || 'Guest';
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const { routes, fetchRoutes } = useRoutesStore();
@@ -49,8 +51,6 @@ export default function ProfilePage() {
   };
 
   const stats = useMemo(() => {
-    const currentUserId = userId || 'local-user';
-
     const userRoutes = routes.filter(r => r.user_id === currentUserId);
     const userRouteStats = userRoutes.map((r) => {
       const ascents = r.ascents || [];
@@ -135,7 +135,7 @@ export default function ProfilePage() {
       topLikedRoute,
       topViewedRoute,
     };
-  }, [routes, userId]);
+  }, [routes, currentUserId]);
 
   if (!isClient) return null;
 
@@ -177,20 +177,20 @@ export default function ProfilePage() {
             {profile?.avatar_url ? (
               <Image
                 src={profile.avatar_url}
-                alt={displayName}
+                alt={currentUserDisplayName}
                 width={64}
                 height={64}
                 className="h-full w-full object-cover"
               />
             ) : (
               <span className="text-2xl font-bold text-primary">
-                {displayName.charAt(0).toUpperCase()}
+                {currentUserDisplayName.charAt(0).toUpperCase()}
               </span>
             )}
           </div>
 
           <div className="flex-1 min-w-0">
-            <h2 className="text-xl font-bold text-foreground truncate">{displayName}</h2>
+            <h2 className="text-xl font-bold text-foreground truncate">{currentUserDisplayName}</h2>
             <p className="text-xs text-muted-foreground truncate">
               {isAuthenticated ? user?.email : 'Guest climber'}
             </p>

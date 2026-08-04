@@ -5,7 +5,6 @@ import { Hold, HoldType, HoldSize } from '@climbset/shared/types';
 import {
 	addHold as addHoldUtil,
 	removeHold as removeHoldUtil,
-	clearHolds as clearHoldsUtil,
 	toggleSequencing,
 	findHoldNearPoint,
 	cycleHoldType as cycleHoldTypeUtil
@@ -110,7 +109,7 @@ export function useHolds(initialHolds: Hold[] = []) {
 			if (prev.length > 0) {
 				pushToHistory([]);
 			}
-			return clearHoldsUtil();
+			return [];
 		});
 	}, [pushToHistory]);
 

@@ -14,22 +14,12 @@ import { InstallPrompt } from '@/components/shared/InstallPrompt';
 import { ConfirmDialog } from '@/components/home/ConfirmDialog';
 import { LogClimbDialog } from '@/components/home/LogClimbDialog';
 import { RouteViewerDialog } from '@/components/home/RouteViewerDialog';
-import { SearchFilterBar } from '@/components/home/SearchFilterBar';
+import { SearchFilterBar, type SortOption } from '@/components/home/SearchFilterBar';
 import { WallPickerDialog } from '@/components/home/WallPickerDialog';
 import { RouteList } from '@/components/home/RouteList';
 import { toast } from 'sonner';
 import type { Route, Wall } from '@climbset/shared/types';
 
-type SortOption =
-  | 'newest'
-  | 'oldest'
-  | 'name'
-  | 'grade-asc'
-  | 'grade-desc'
-  | 'rating'
-  | 'most-liked'
-  | 'most-climbed'
-  | 'most-viewed';
 
 export default function Home() {
   const router = useRouter();

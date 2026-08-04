@@ -281,7 +281,13 @@ struct SupabaseRoutesRepository: RoutesRepository {
     func fetchRoutes(userId: UUID?) async throws -> [Route] {
         guard let client else { return [] }
         let currentUserId = userId?.uuidString ?? ""
-        let response = try await fetchRoutesWithFallback(client: client, currentUserId: currentUserId)
+        let visibility = currentUserId.isEmpty ? "is_public.eq.true" : "is_public.eq.true,user_id.eq.\(currentUserId)"
+        let response: [Route] = try await client.from("routes")
+            .select("*, ascents(*), comments(*)")
+            .or(visibility)
+            .order("created_at", ascending: false)
+            .execute()
+            .value
         if response.isEmpty {
             return response
         }
@@ -323,25 +329,13 @@ struct SupabaseRoutesRepository: RoutesRepository {
             throw RoutesRepositoryError.unavailable
         }
 
-        let routes: [Route]
-        do {
-            routes = try await client.from("routes")
-                .select("*, ascents(*), comments(*)")
-                .eq("share_token", value: token)
-                .eq("is_public", value: true)
-                .limit(1)
-                .execute()
-                .value
-        } catch {
-            let fallbackRoutes: [RouteWithoutComments] = try await client.from("routes")
-                .select("*, ascents(*)")
-                .eq("share_token", value: token)
-                .eq("is_public", value: true)
-                .limit(1)
-                .execute()
-                .value
-            routes = fallbackRoutes.map { $0.asRoute() }
-        }
+        let routes: [Route] = try await client.from("routes")
+            .select("*, ascents(*), comments(*)")
+            .eq("share_token", value: token)
+            .eq("is_public", value: true)
+            .limit(1)
+            .execute()
+            .value
 
         guard let route = routes.first else {
             throw RoutesRepositoryError.notFound
@@ -568,35 +562,6 @@ struct SupabaseRoutesRepository: RoutesRepository {
         )
     }
 
-    private func fetchRoutesWithFallback(client: SupabaseClient, currentUserId: String) async throws -> [Route] {
-        let visibility = currentUserId.isEmpty ? "is_public.eq.true" : "is_public.eq.true,user_id.eq.\(currentUserId)"
-        do {
-            return try await client.from("routes")
-                .select("*, ascents(*), comments(*)")
-                .or(visibility)
-                .order("created_at", ascending: false)
-                .execute()
-                .value
-        } catch {
-            do {
-                let routes: [RouteWithoutComments] = try await client.from("routes")
-                    .select("*, ascents(*)")
-                    .or(visibility)
-                    .order("created_at", ascending: false)
-                    .execute()
-                    .value
-                return routes.map { $0.asRoute() }
-            } catch {
-                let routes: [RoutePlainRecord] = try await client.from("routes")
-                    .select("*")
-                    .or(visibility)
-                    .order("created_at", ascending: false)
-                    .execute()
-                    .value
-                return routes.map { $0.asRoute() }
-            }
-        }
-    }
 }
 #endif
 
@@ -663,140 +628,6 @@ struct WallImageRecord: Codable {
         case imageUrl = "image_url"
         case imageWidth = "image_width"
         case imageHeight = "image_height"
-    }
-}
-
-struct RouteWithoutComments: Codable {
-    let id: String
-    let userId: String?
-    let wallId: String
-    let name: String
-    let description: String?
-    let gradeV: FlexibleGrade?
-    let gradeFont: String?
-    let holds: [Hold]
-    let isPublic: Bool
-    let viewCount: Int
-    let shareToken: String?
-    let createdAt: String
-    let updatedAt: String
-    let userName: String?
-    let wallImageUrl: String?
-    let wallImageWidth: Int?
-    let wallImageHeight: Int?
-    let ascents: [Ascent]
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case userId = "user_id"
-        case wallId = "wall_id"
-        case name
-        case description
-        case gradeV = "grade_v"
-        case gradeFont = "grade_font"
-        case holds
-        case isPublic = "is_public"
-        case viewCount = "view_count"
-        case shareToken = "share_token"
-        case createdAt = "created_at"
-        case updatedAt = "updated_at"
-        case userName = "user_name"
-        case wallImageUrl = "wall_image_url"
-        case wallImageWidth = "wall_image_width"
-        case wallImageHeight = "wall_image_height"
-        case ascents
-    }
-
-    func asRoute() -> Route {
-        Route(
-            id: id,
-            userId: userId,
-            wallId: wallId,
-            name: name,
-            description: description,
-            gradeV: gradeV?.value,
-            gradeFont: gradeFont,
-            holds: holds,
-            isPublic: isPublic,
-            viewCount: viewCount,
-            shareToken: shareToken,
-            createdAt: createdAt,
-            updatedAt: updatedAt,
-            userName: userName,
-            wallImageUrl: wallImageUrl,
-            wallImageWidth: wallImageWidth,
-            wallImageHeight: wallImageHeight,
-            likeCount: nil,
-            isLiked: nil,
-            ascents: ascents,
-            comments: []
-        )
-    }
-}
-
-struct RoutePlainRecord: Codable {
-    let id: String
-    let userId: String?
-    let wallId: String
-    let name: String
-    let description: String?
-    let gradeV: FlexibleGrade?
-    let gradeFont: String?
-    let holds: [Hold]
-    let isPublic: Bool
-    let viewCount: Int
-    let shareToken: String?
-    let createdAt: String
-    let updatedAt: String
-    let userName: String?
-    let wallImageUrl: String?
-    let wallImageWidth: Int?
-    let wallImageHeight: Int?
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case userId = "user_id"
-        case wallId = "wall_id"
-        case name
-        case description
-        case gradeV = "grade_v"
-        case gradeFont = "grade_font"
-        case holds
-        case isPublic = "is_public"
-        case viewCount = "view_count"
-        case shareToken = "share_token"
-        case createdAt = "created_at"
-        case updatedAt = "updated_at"
-        case userName = "user_name"
-        case wallImageUrl = "wall_image_url"
-        case wallImageWidth = "wall_image_width"
-        case wallImageHeight = "wall_image_height"
-    }
-
-    func asRoute() -> Route {
-        Route(
-            id: id,
-            userId: userId,
-            wallId: wallId,
-            name: name,
-            description: description,
-            gradeV: gradeV?.value,
-            gradeFont: gradeFont,
-            holds: holds,
-            isPublic: isPublic,
-            viewCount: viewCount,
-            shareToken: shareToken,
-            createdAt: createdAt,
-            updatedAt: updatedAt,
-            userName: userName,
-            wallImageUrl: wallImageUrl,
-            wallImageWidth: wallImageWidth,
-            wallImageHeight: wallImageHeight,
-            likeCount: nil,
-            isLiked: nil,
-            ascents: [],
-            comments: []
-        )
     }
 }
 

@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { classifyStoragePath, getWallStoragePathFromUrl, intersectStoragePaths } from './storage.ts';
+import { getWallStoragePathFromUrl, intersectStoragePaths } from './storage.ts';
 
 describe('getWallStoragePathFromUrl', () => {
   it('extracts the path and strips query strings and fragments', () => {
@@ -28,33 +28,6 @@ describe('getWallStoragePathFromUrl', () => {
   });
 });
 
-describe('classifyStoragePath', () => {
-  it('recognizes legacy <wall-id>/<file> layout', () => {
-    const c = classifyStoragePath('wall-abc/image.jpg');
-    assert.equal(c.layout, 'legacy');
-    assert.equal(c.wallId, 'wall-abc');
-    assert.equal(c.ownerId, null);
-    assert.equal(c.fileName, 'image.jpg');
-  });
-
-  it('recognizes owner <user>/<wall-id>/<file> layout', () => {
-    const c = classifyStoragePath('user-uuid/wall-abc/image.jpg');
-    assert.equal(c.layout, 'owner');
-    assert.equal(c.wallId, 'wall-abc');
-    assert.equal(c.ownerId, 'user-uuid');
-    assert.equal(c.fileName, 'image.jpg');
-  });
-
-  it('marks unexpectedly shallow or deep paths as unknown', () => {
-    const shallow = classifyStoragePath('image.jpg');
-    assert.equal(shallow.layout, 'unknown');
-    assert.equal(shallow.wallId, null);
-
-    const deep = classifyStoragePath('a/b/c/d/image.jpg');
-    assert.equal(deep.layout, 'unknown');
-    assert.equal(deep.wallId, null);
-  });
-});
 
 describe('intersectStoragePaths', () => {
   it('deletes only paths present in both fresh candidates and the preview', () => {

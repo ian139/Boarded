@@ -2,13 +2,12 @@ import SwiftUI
 import Foundation
 
 struct RouteRow: View {
-    @Environment(\.colorScheme) private var colorScheme
     let route: Route
     var onLike: (() -> Void)? = nil
     var onLogClimb: (() -> Void)? = nil
 
     private var theme: BoardedTheme {
-        BoardedTheme(colorScheme: colorScheme)
+        BoardedTheme()
     }
 
     var body: some View {

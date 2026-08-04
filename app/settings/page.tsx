@@ -22,7 +22,7 @@ import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { classifyStoragePath, getWallStoragePathFromUrl, intersectStoragePaths } from '@/lib/utils/storage';
+import { getWallStoragePathFromUrl, intersectStoragePaths } from '@/lib/utils/storage';
 
 interface StorageFolderSize {
   totalBytes: number;
@@ -34,7 +34,8 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const routes = useRoutesStore((state) => state.routes);
   const walls = useWallsStore((state) => state.walls);
-  const { user, isAuthenticated, logout, displayName, isModerator, login } = useUserStore();
+  const { user, isAuthenticated, logout, isModerator, login } = useUserStore();
+  const currentUserDisplayName = user?.displayName || 'Guest';
   const [storageBytes, setStorageBytes] = useState<number | null>(null);
   const [storageLoading, setStorageLoading] = useState(false);
   const [storageError, setStorageError] = useState<string | null>(null);
@@ -265,25 +266,13 @@ export default function SettingsPage() {
       const rootFolders = (await listStorageFolder('')).filter((item) => !item.metadata);
       for (const rootFolder of rootFolders) {
         const rootPrefix = rootFolder.name;
-        const rootItems = await listStorageFolder(rootPrefix);
-        const hasFiles = rootItems.some((item) => item.metadata);
-        if (hasFiles) {
-          // Legacy layout: <wall-id>/<file>
-          for (const item of rootItems) {
+        const wallFolders = (await listStorageFolder(rootPrefix)).filter((item) => !item.metadata);
+        for (const wallFolder of wallFolders) {
+          const wallPrefix = `${rootPrefix}/${wallFolder.name}`;
+          const wallItems = await listStorageFolder(wallPrefix);
+          for (const item of wallItems) {
             if (!item.metadata || !isOldEnough(item)) continue;
-            const classified = classifyStoragePath(`${rootPrefix}/${item.name}`);
-            if (classified.layout !== 'unknown') candidates.push(classified.path);
-          }
-        } else {
-          // Owner layout: <user>/<wall-id>/<file>
-          for (const wallFolder of rootItems.filter((item) => !item.metadata)) {
-            const wallPrefix = `${rootPrefix}/${wallFolder.name}`;
-            const wallItems = await listStorageFolder(wallPrefix);
-            for (const item of wallItems) {
-              if (!item.metadata || !isOldEnough(item)) continue;
-              const classified = classifyStoragePath(`${wallPrefix}/${item.name}`);
-              if (classified.layout !== 'unknown') candidates.push(classified.path);
-            }
+            candidates.push(`${wallPrefix}/${item.name}`);
           }
         }
       }
@@ -377,11 +366,11 @@ export default function SettingsPage() {
               <div className="flex items-center gap-3">
                 <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center">
                   <span className="text-lg font-semibold text-primary">
-                    {displayName.charAt(0).toUpperCase()}
+                    {currentUserDisplayName.charAt(0).toUpperCase()}
                   </span>
                 </div>
                 <div>
-                  <p className="font-medium">{displayName}</p>
+                  <p className="font-medium">{currentUserDisplayName}</p>
                   <p className="text-sm text-muted-foreground">{user.email}</p>
                 </div>
               </div>

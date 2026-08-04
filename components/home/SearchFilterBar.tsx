@@ -1,16 +1,19 @@
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-type SortOption =
-  | 'newest'
-  | 'oldest'
-  | 'name'
-  | 'grade-asc'
-  | 'grade-desc'
-  | 'rating'
-  | 'most-liked'
-  | 'most-climbed'
-  | 'most-viewed';
+const SORT_OPTIONS = [
+  ['newest', 'Sort: Newest'],
+  ['oldest', 'Sort: Oldest'],
+  ['name', 'Sort: Name'],
+  ['grade-asc', 'Sort: Easiest'],
+  ['grade-desc', 'Sort: Hardest'],
+  ['rating', 'Sort: Top Rated'],
+  ['most-liked', 'Sort: Most Liked'],
+  ['most-climbed', 'Sort: Most Climbed'],
+  ['most-viewed', 'Sort: Most Viewed'],
+] as const;
+
+export type SortOption = (typeof SORT_OPTIONS)[number][0];
 
 interface SearchFilterBarProps {
   searchQuery: string;
@@ -39,6 +42,19 @@ export function SearchFilterBar({
     onSearchChange('');
     onFilterGradeChange('all');
   };
+
+  const sortOptions = SORT_OPTIONS.map(([value, label]) => (
+    <SelectItem key={value} value={value}>
+      {label}
+    </SelectItem>
+  ));
+  const gradeOptions = availableGrades.map((grade) => (
+    <SelectItem key={grade} value={grade}>
+      {grade}
+    </SelectItem>
+  ));
+
+  const resultLabel = `${resultCount} route${resultCount !== 1 ? 's' : ''} found`;
 
   return (
     <>
@@ -75,15 +91,7 @@ export function SearchFilterBar({
                 <SelectValue placeholder="Sort" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="newest">Sort: Newest</SelectItem>
-                <SelectItem value="oldest">Sort: Oldest</SelectItem>
-                <SelectItem value="name">Sort: Name</SelectItem>
-                <SelectItem value="grade-asc">Sort: Easiest</SelectItem>
-                <SelectItem value="grade-desc">Sort: Hardest</SelectItem>
-                <SelectItem value="rating">Sort: Top Rated</SelectItem>
-                <SelectItem value="most-liked">Sort: Most Liked</SelectItem>
-                <SelectItem value="most-climbed">Sort: Most Climbed</SelectItem>
-                <SelectItem value="most-viewed">Sort: Most Viewed</SelectItem>
+                {sortOptions}
               </SelectContent>
             </Select>
 
@@ -95,11 +103,7 @@ export function SearchFilterBar({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Grades</SelectItem>
-                {availableGrades.map((grade) => (
-                  <SelectItem key={grade} value={grade}>
-                    {grade}
-                  </SelectItem>
-                ))}
+                {gradeOptions}
               </SelectContent>
             </Select>
 
@@ -119,7 +123,7 @@ export function SearchFilterBar({
 
         {hasFilters && (
           <p className="text-xs text-muted-foreground mt-2">
-            {resultCount} route{resultCount !== 1 ? 's' : ''} found
+            {resultLabel}
           </p>
         )}
       </div>
@@ -153,15 +157,7 @@ export function SearchFilterBar({
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="newest">Sort: Newest</SelectItem>
-              <SelectItem value="oldest">Sort: Oldest</SelectItem>
-              <SelectItem value="name">Sort: Name</SelectItem>
-              <SelectItem value="grade-asc">Sort: Easiest</SelectItem>
-              <SelectItem value="grade-desc">Sort: Hardest</SelectItem>
-              <SelectItem value="rating">Sort: Top Rated</SelectItem>
-              <SelectItem value="most-liked">Sort: Most Liked</SelectItem>
-              <SelectItem value="most-climbed">Sort: Most Climbed</SelectItem>
-              <SelectItem value="most-viewed">Sort: Most Viewed</SelectItem>
+              {sortOptions}
             </SelectContent>
           </Select>
 
@@ -173,11 +169,7 @@ export function SearchFilterBar({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Grades</SelectItem>
-              {availableGrades.map((grade) => (
-                <SelectItem key={grade} value={grade}>
-                  {grade}
-                </SelectItem>
-              ))}
+              {gradeOptions}
             </SelectContent>
           </Select>
 
@@ -196,7 +188,7 @@ export function SearchFilterBar({
 
         {hasFilters && (
           <p className="text-sm text-muted-foreground mt-2">
-            {resultCount} route{resultCount !== 1 ? 's' : ''} found
+            {resultLabel}
           </p>
         )}
       </div>

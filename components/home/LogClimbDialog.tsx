@@ -37,7 +37,9 @@ function LogClimbDialogContent({
   onOpenChange: (open: boolean) => void;
 }) {
   const { addAscent } = useRoutesStore();
-  const { userId, displayName } = useUserStore();
+  const { user } = useUserStore();
+  const currentUserId = user?.id;
+  const currentUserDisplayName = user?.displayName;
 
   const [logGrade, setLogGrade] = useState(route.grade_v || '');
   const [logRating, setLogRating] = useState(0);
@@ -46,7 +48,7 @@ function LogClimbDialogContent({
   const [isLogging, setIsLogging] = useState(false);
 
   const handleLogClimb = async () => {
-    if (!userId) {
+    if (!currentUserId) {
       toast.error('Log in to log a climb.');
       return;
     }
@@ -55,8 +57,8 @@ function LogClimbDialogContent({
     const ascent: Ascent = {
       id: crypto.randomUUID(),
       route_id: route.id,
-      user_id: userId,
-      user_name: displayName || 'Anonymous',
+      user_id: currentUserId,
+      user_name: currentUserDisplayName || 'Anonymous',
       grade_v: logGrade || undefined,
       rating: logRating > 0 ? logRating : undefined,
       notes: logNotes.trim() || undefined,

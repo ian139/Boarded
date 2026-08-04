@@ -15,15 +15,8 @@ describe('canonicalizeGrade', () => {
     assert.equal(canonicalizeGrade('v17\t'), 'V17');
   });
 
-  it('maps integral numeric wire values independently of rank indexes', () => {
-    assert.equal(canonicalizeGrade(-1), 'VB');
-    assert.equal(canonicalizeGrade(0), 'V0');
-    assert.equal(canonicalizeGrade(17), 'V17');
-    assert.equal(numberToGrade(0), 'VB');
-  });
-
-  it('rejects invalid, fractional, and out-of-range values', () => {
-    for (const value of [null, undefined, '', 'V18', 'not-a-grade', 0.5, -1.5, -2, 18, NaN, Infinity]) {
+  it('rejects non-string and invalid grades', () => {
+    for (const value of [null, undefined, '', 'V18', 'not-a-grade', -1, 0, 17, 0.5, NaN, Infinity]) {
       assert.equal(canonicalizeGrade(value), undefined, `expected ${String(value)} to be unranked`);
     }
   });
@@ -42,21 +35,22 @@ describe('grade calculations', () => {
   });
 
   it('ignores unranked ascents and still calculates ranked ascents', () => {
-    assert.equal(calculateDisplayGrade(undefined, [{ grade_v: 'V2' }, { grade_v: 0.5 }]), 'V2');
-    assert.equal(gradeToNumber(0), 1);
-    assert.equal(gradeToNumber(-1), 0);
-    assert.equal(gradeToNumber(17), 18);
+    assert.equal(calculateDisplayGrade(undefined, [{ grade_v: 'V2' }, { grade_v: 'V18' }]), 'V2');
+    assert.equal(gradeToNumber('VB'), 0);
+    assert.equal(gradeToNumber('V0'), 1);
+    assert.equal(gradeToNumber('V17'), 18);
+    assert.equal(numberToGrade(0), 'VB');
   });
 });
 
 describe('normalizeRouteGrades', () => {
-  it('normalizes route and nested ascent numeric/string grades at ingress', () => {
+  it('normalizes route and nested ascent string grades at ingress', () => {
     const route = {
       id: 'route-1',
       user_id: 'user-1',
       wall_id: 'wall-1',
       name: 'Numeric route',
-      grade_v: 0,
+      grade_v: ' v0 ',
       holds: [],
       is_public: true,
       view_count: 0,
@@ -67,7 +61,7 @@ describe('normalizeRouteGrades', () => {
           id: 'ascent-1',
           route_id: 'route-1',
           user_id: 'user-2',
-          grade_v: -1,
+          grade_v: ' vb ',
           created_at: '2026-01-01T00:00:00Z',
         },
         {
@@ -81,7 +75,7 @@ describe('normalizeRouteGrades', () => {
           id: 'ascent-3',
           route_id: 'route-1',
           user_id: 'user-4',
-          grade_v: 1.25,
+          grade_v: 'invalid',
           created_at: '2026-01-01T00:00:00Z',
         },
       ],

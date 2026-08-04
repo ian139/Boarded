@@ -25,7 +25,8 @@ const hasPendingCreate = (route: Route) =>
   Boolean((route as Route & { _createSyncPending?: boolean })._createSyncPending);
 
 export function RouteList({ routes, onViewRoute, onLogClimb, onDeleteRoute, onEditRoute }: RouteListProps) {
-  const { userId, isModerator } = useUserStore();
+  const { user, isModerator } = useUserStore();
+  const currentUserId = user?.id;
   const { toggleLike, isLikedByUser, getLikeCount, hasUserClimbed, updateRoute, syncLocalRoutes, fetchRouteById } = useRoutesStore();
   const { getWallById } = useWallsStore();
 
@@ -50,11 +51,11 @@ export function RouteList({ routes, onViewRoute, onLogClimb, onDeleteRoute, onEd
       toast.error('Sync this route before liking it.');
       return;
     }
-    if (!userId) {
+    if (!currentUserId) {
       toast.error('Log in to like routes.');
       return;
     }
-    toggleLike(route.id, userId);
+    toggleLike(route.id, currentUserId);
   };
 
   const getShareUrl = (token: string) => {
@@ -66,7 +67,7 @@ export function RouteList({ routes, onViewRoute, onLogClimb, onDeleteRoute, onEd
     e.stopPropagation();
     let shareRoute = route;
     if (shareRoute.user_id === 'local-user' || hasPendingCreate(shareRoute)) {
-      if (!userId) {
+      if (!currentUserId) {
         toast.error('Log in to share a route across devices.');
         return;
       }
@@ -77,13 +78,13 @@ export function RouteList({ routes, onViewRoute, onLogClimb, onDeleteRoute, onEd
         return;
       }
       const verifiedRoute = await fetchRouteById(shareRoute.id);
-      if (!verifiedRoute || verifiedRoute.user_id !== userId || hasPendingCreate(verifiedRoute)) {
+      if (!verifiedRoute || verifiedRoute.user_id !== currentUserId || hasPendingCreate(verifiedRoute)) {
         toast.error('Unable to verify this route before sharing');
         return;
       }
       shareRoute = verifiedRoute;
     }
-    const canManageSharing = isModerator || shareRoute.user_id === userId;
+    const canManageSharing = isModerator || shareRoute.user_id === currentUserId;
     if (!canManageSharing && !shareRoute.is_public) {
       toast.error('Only the route owner can enable sharing for this route');
       return;
@@ -112,542 +113,465 @@ export function RouteList({ routes, onViewRoute, onLogClimb, onDeleteRoute, onEd
   };
 
   const canDeleteRoute = (route: Route) => {
-    return isModerator || route.user_id === userId || route.user_id === 'local-user';
+    return isModerator || route.user_id === currentUserId || route.user_id === 'local-user';
   };
 
   const canEditRoute = canDeleteRoute;
 
   return (
-    <>
-      {/* Mobile Routes List */}
-      <div className="md:hidden -mx-4 bg-transparent divide-y divide-border/50">
-        {routes.map((route) => {
-          const ascents = route.ascents || [];
-          const avgRating = ascents.length > 0
-            ? ascents.reduce((sum, a) => sum + (a.rating || 0), 0) / ascents.filter(a => a.rating).length || route.rating || 0
-            : route.rating || 0;
-          const displayGrade = calculateDisplayGrade(route.grade_v, ascents);
-          const isExpanded = flippedCards.has(route.id);
+    <div className="-mx-4 divide-y divide-border/50 bg-transparent md:mx-0">
+      {routes.map((route) => {
+        const ascents = route.ascents || [];
+        const avgRating = ascents.length > 0
+          ? ascents.reduce((sum, a) => sum + (a.rating || 0), 0) / ascents.filter(a => a.rating).length || route.rating || 0
+          : route.rating || 0;
+        const displayGrade = calculateDisplayGrade(route.grade_v, ascents);
+        const isExpanded = flippedCards.has(route.id);
+        const wall = getWallById(route.wall_id);
+        const wallImage = route.wall_image_url || wall?.image_url || DEFAULT_WALL.image_url;
+        const wallName = wall?.name || 'Unknown wall';
 
-          const wall = getWallById(route.wall_id);
-          const wallImage = route.wall_image_url || wall?.image_url || DEFAULT_WALL.image_url;
-          const wallName = wall?.name || 'Unknown wall';
+        return (
+          <div key={route.id} className="group relative">
+            <div className={cn(
+              "absolute inset-0 transition-all duration-200 md:duration-300 md:ease-out",
+              isExpanded
+                ? "bg-muted/40 md:bg-muted/30"
+                : "bg-transparent active:bg-muted/30 md:bg-muted/0 md:group-hover:bg-muted/50"
+            )} />
 
-          return (
             <div
-              key={route.id}
-              className="relative"
+              onClick={() => onViewRoute(route)}
+              className="relative flex cursor-pointer items-center gap-3 px-4 py-4 md:gap-6 md:px-2"
             >
-              {/* Feathered active background */}
-              <div className={cn(
-                "absolute inset-0 transition-all duration-200",
-                isExpanded ? "bg-muted/40" : "bg-transparent active:bg-muted/30"
-              )} />
-
-              <div
-                onClick={() => onViewRoute(route)}
-                className="relative flex items-center gap-3 py-4 px-4 cursor-pointer"
-              >
-                {/* Grade */}
-                <div className="w-12 shrink-0">
-                  <span className={cn(
-                    "text-lg font-bold",
-                    displayGrade ? "text-primary" : "text-muted-foreground"
-                  )}>
-                    {displayGrade || '—'}
-                  </span>
-                </div>
-
-                {/* Wall thumbnail */}
-                <div className="relative size-12 shrink-0 overflow-hidden rounded-xl border border-border/60 bg-muted/40">
-                  <Image
-                    src={wallImage}
-                    alt={wallName}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-
-                {/* Route Info */}
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-[1.0625rem] leading-tight font-semibold text-foreground truncate">{route.name}</h3>
-                  <div className="flex items-center gap-3 mt-0.5 text-sm text-muted-foreground">
-                    <span className="truncate">{route.user_name || 'Anonymous'}</span>
-                    <span className="truncate text-xs">{wallName}</span>
-                    <span className="flex items-center gap-1 shrink-0">
-                      <div className="flex gap-0.5">
-                        {route.holds.slice(0, 3).map((hold, i) => (
-                          <div
-                            key={i}
-                            className="size-1.5 rounded-full"
-                            style={{ backgroundColor: HOLD_COLORS[hold.type] }}
-                          />
-                        ))}
-                      </div>
-                      {route.holds.length}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className={cn(
-                  "flex shrink-0 items-center gap-1",
-                  !isExpanded && "[&>button:not(:last-child)]:hidden"
+              <div className="w-12 shrink-0 md:w-14">
+                <span className={cn(
+                  "text-lg font-bold",
+                  displayGrade ? "text-primary" : "text-muted-foreground"
                 )}>
-                  <button
-                    onClick={(e) => handleToggleLike(route, e)}
-                    aria-label="Like route"
-                    className={cn(
-                      "size-9 rounded-lg flex items-center justify-center transition-colors",
-                      isLikedByUser(route.id, userId || 'local-user')
-                        ? "text-red-500"
-                        : "text-muted-foreground"
-                    )}
-                  >
-                    <svg
-                      className="w-5 h-5"
-                      fill={isLikedByUser(route.id, userId || 'local-user') ? "currentColor" : "none"}
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onLogClimb(route);
-                    }}
-                    aria-label="Log climb"
-                    className={cn(
-                      "size-9 rounded-lg flex items-center justify-center transition-colors",
-                      hasUserClimbed(route.id, userId || 'local-user')
-                        ? "text-secondary"
-                        : "text-muted-foreground"
-                    )}
-                  >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={(e) => handleShareRoute(route, e)}
-                    aria-label="Share route"
-                    className="size-9 rounded-lg flex items-center justify-center text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 12a2.25 2.25 0 114.5 0 2.25 2.25 0 01-4.5 0zm9-6.75a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm0 13.5a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-4.243-11.121l3.486 1.743m-3.486 5.006l3.486-1.743" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={(e) => toggleCardFlip(route.id, e)}
-                    aria-label={isExpanded ? "Hide actions" : "Show actions"}
-                    aria-expanded={isExpanded}
-                    className={cn(
-                      "h-9 rounded-lg px-2.5 flex items-center justify-center gap-1.5 text-xs font-semibold transition-colors",
-                      isExpanded
-                        ? "text-primary"
-                        : "text-muted-foreground"
-                    )}
-                  >
-                    <svg
-                      className={cn(
-                        "w-5 h-5 transition-transform duration-200",
-                        isExpanded && "rotate-180"
-                      )}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-                    </svg>
-                    <span>{isExpanded ? 'Close' : 'Actions'}</span>
-                  </button>
+                  {displayGrade || '—'}
+                </span>
+              </div>
+
+              <div className="relative size-12 shrink-0 overflow-hidden rounded-xl border border-border/60 bg-muted/40 md:border-border">
+                <Image
+                  src={wallImage}
+                  alt={wallName}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <h3 className="truncate text-[1.0625rem] font-semibold leading-tight text-foreground md:overflow-visible md:whitespace-normal md:group-hover:text-primary md:transition-colors">
+                  {route.name}
+                </h3>
+                <div className="mt-0.5 flex items-center gap-3 text-sm text-muted-foreground md:gap-4">
+                  <span className="truncate md:overflow-visible md:whitespace-normal">
+                    {route.user_name || 'Anonymous'}
+                  </span>
+                  <span className="truncate text-xs">{wallName}</span>
+                  <span className="flex shrink-0 items-center gap-1 md:hidden">
+                    <span className="flex gap-0.5">
+                      {route.holds.slice(0, 3).map((hold, i) => (
+                        <span
+                          key={i}
+                          className="size-1.5 rounded-full"
+                          style={{ backgroundColor: HOLD_COLORS[hold.type] }}
+                        />
+                      ))}
+                    </span>
+                    {route.holds.length}
+                  </span>
+                  <span className="hidden items-center gap-1 md:flex">
+                    <span className="flex gap-0.5">
+                      {route.holds.slice(0, 4).map((hold, i) => (
+                        <span
+                          key={i}
+                          className="size-1.5 rounded-full"
+                          style={{ backgroundColor: HOLD_COLORS[hold.type] }}
+                        />
+                      ))}
+                    </span>
+                    {route.holds.length}
+                  </span>
+                  {avgRating > 0 && (
+                    <span className="hidden md:block">
+                      <StarRating rating={Math.round(avgRating)} />
+                    </span>
+                  )}
+                  {ascents.length > 0 && (
+                    <span className="hidden md:inline">
+                      {ascents.length} ascent{ascents.length !== 1 ? 's' : ''}
+                    </span>
+                  )}
                 </div>
               </div>
 
-              {/* Expanded Info Panel */}
-              <AnimatePresence>
-                {isExpanded && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="relative overflow-hidden"
-                  >
-                    <div className="px-4 pb-4 space-y-3">
-                      {/* Stats Grid */}
-                      <div className="grid grid-cols-5 gap-2">
-                        <div className="text-center">
-                          <p className="text-muted-foreground text-xs">Grade</p>
-                          <p className="font-bold text-primary">{displayGrade || '—'}</p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-muted-foreground text-xs">Rating</p>
-                          <div className="flex justify-center">
-                            {avgRating > 0 ? (
-                              <span className="font-bold">{avgRating.toFixed(1)}</span>
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-muted-foreground text-xs">Sends</p>
-                          <p className="font-bold">{ascents.length}</p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-muted-foreground text-xs">Likes</p>
-                          <p className="font-bold">{getLikeCount(route.id)}</p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-muted-foreground text-xs">Views</p>
-                          <p className="font-bold">{route.view_count || 0}</p>
-                        </div>
-                      </div>
-
-                      {/* Rating Stars */}
-                      {avgRating > 0 && (
-                        <div className="flex justify-center">
-                          <StarRating rating={Math.round(avgRating)} />
-                        </div>
-                      )}
-
-                      {/* Recent Climbers */}
-                      {ascents.length > 0 && (
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-1.5 text-center">Recent climbers</p>
-                          <div className="flex flex-wrap justify-center gap-1.5">
-                            {ascents.slice(0, 4).map((a, i) => (
-                              <span key={i} className="text-xs bg-muted/60 px-2 py-0.5 rounded">
-                                {a.user_name || 'Anonymous'}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Action Buttons */}
-                      <div className="flex justify-center gap-2 pt-1">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onLogClimb(route);
-                          }}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary/10 text-secondary text-sm font-medium"
-                        >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          Log
-                        </button>
-                        <button
-                          onClick={(e) => handleShareRoute(route, e)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-sm font-medium"
-                        >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 12a2.25 2.25 0 114.5 0 2.25 2.25 0 01-4.5 0zm9-6.75a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm0 13.5a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-4.243-11.121l3.486 1.743m-3.486 5.006l3.486-1.743" />
-                          </svg>
-                          Share
-                        </button>
-                        {canEditRoute(route) && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onEditRoute(route);
-                            }}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-500 text-sm font-medium"
-                          >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-                            </svg>
-                            Edit
-                          </button>
-                        )}
-                        {canDeleteRoute(route) && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onDeleteRoute(route);
-                            }}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-destructive/10 text-destructive text-sm font-medium"
-                          >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                            </svg>
-                            Delete
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Desktop Routes List */}
-      <div className="hidden md:block">
-        <div className="divide-y divide-border/50 bg-transparent">
-          {routes.map((route) => {
-            const ascents = route.ascents || [];
-            const avgRating = ascents.length > 0
-              ? ascents.reduce((sum, a) => sum + (a.rating || 0), 0) / ascents.filter(a => a.rating).length || route.rating || 0
-              : route.rating || 0;
-            const displayGrade = calculateDisplayGrade(route.grade_v, ascents);
-            const isExpanded = flippedCards.has(route.id);
-
-            const wall = getWallById(route.wall_id);
-            const wallImage = route.wall_image_url || wall?.image_url || DEFAULT_WALL.image_url;
-            const wallName = wall?.name || 'Unknown wall';
-
-            return (
-              <div
-                key={route.id}
-                className="group relative"
-              >
-                {/* Feathered hover background */}
-                <div className={cn(
-                  "absolute inset-0 transition-all duration-300 ease-out",
-                  isExpanded ? "bg-muted/30" : "bg-muted/0 group-hover:bg-muted/50"
-                )} />
-
-                <div
-                  onClick={() => onViewRoute(route)}
-                  className="relative flex items-center gap-6 py-4 px-2 cursor-pointer"
+              <div className={cn(
+                "flex shrink-0 items-center gap-1 md:hidden",
+                !isExpanded && "[&>button:not(:last-child)]:hidden"
+              )}>
+                <button
+                  onClick={(e) => handleToggleLike(route, e)}
+                  aria-label="Like route"
+                  className={cn(
+                    "flex size-9 items-center justify-center rounded-lg transition-colors",
+                    isLikedByUser(route.id, currentUserId || 'local-user')
+                      ? "text-red-500"
+                      : "text-muted-foreground"
+                  )}
                 >
-                  {/* Grade */}
-                  <div className="w-14 shrink-0">
-                    <span className={cn(
-                      "text-lg font-bold",
-                      displayGrade ? "text-primary" : "text-muted-foreground"
-                    )}>
-                      {displayGrade || '—'}
-                    </span>
-                  </div>
-
-                  {/* Wall thumbnail */}
-                  <div className="relative size-12 shrink-0 overflow-hidden rounded-xl border border-border bg-muted/40">
-                    <Image
-                      src={wallImage}
-                      alt={wallName}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-
-                  {/* Route Info */}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-[1.0625rem] leading-tight font-semibold text-foreground group-hover:text-primary transition-colors">
-                      {route.name}
-                    </h3>
-                    <div className="flex items-center gap-4 mt-0.5 text-sm text-muted-foreground">
-                      <span>{route.user_name || 'Anonymous'}</span>
-                      <span className="truncate text-xs">{wallName}</span>
-                      <span className="flex items-center gap-1">
-                        <div className="flex gap-0.5">
-                          {route.holds.slice(0, 4).map((hold, i) => (
-                            <div
-                              key={i}
-                              className="size-1.5 rounded-full"
-                              style={{ backgroundColor: HOLD_COLORS[hold.type] }}
-                            />
-                          ))}
-                        </div>
-                        {route.holds.length}
-                      </span>
-                      {avgRating > 0 && <StarRating rating={Math.round(avgRating)} />}
-                      {ascents.length > 0 && (
-                        <span>{ascents.length} ascent{ascents.length !== 1 ? 's' : ''}</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={(e) => handleToggleLike(route, e)}
-                      aria-label="Like route"
-                      title="Like route"
-                      className={cn(
-                        "size-8 rounded-lg flex items-center justify-center transition-colors",
-                        isLikedByUser(route.id, userId || 'local-user')
-                          ? "text-red-500"
-                          : "text-muted-foreground hover:text-red-500"
-                      )}
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        fill={isLikedByUser(route.id, userId || 'local-user') ? "currentColor" : "none"}
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onLogClimb(route);
-                      }}
-                      aria-label="Log climb"
-                      title="Log climb"
-                      className={cn(
-                        "size-8 rounded-lg flex items-center justify-center transition-colors",
-                        hasUserClimbed(route.id, userId || 'local-user')
-                          ? "text-secondary"
-                          : "text-muted-foreground hover:text-secondary"
-                      )}
-                    >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={(e) => handleShareRoute(route, e)}
-                      aria-label="Share route"
-                      title="Share route"
-                      className="size-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-primary transition-colors"
-                    >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 12a2.25 2.25 0 114.5 0 2.25 2.25 0 01-4.5 0zm9-6.75a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm0 13.5a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-4.243-11.121l3.486 1.743m-3.486 5.006l3.486-1.743" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={(e) => toggleCardFlip(route.id, e)}
-                      aria-label="View info"
-                      title={isExpanded ? "Hide route details" : "Show route details"}
-                      className={cn(
-                        "h-8 rounded-lg px-2 flex items-center justify-center gap-1.5 text-xs font-semibold transition-colors",
-                        isExpanded
-                          ? "text-primary bg-primary/10"
-                          : "text-muted-foreground hover:text-primary"
-                      )}
-                    >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
-                      </svg>
-                      <span>Details</span>
-                    </button>
-                    {canEditRoute(route) && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onEditRoute(route);
-                        }}
-                        aria-label="Edit route"
-                        title="Edit route"
-                        className="size-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-blue-500 transition-colors"
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-                        </svg>
-                      </button>
-                    )}
-                    {canDeleteRoute(route) && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDeleteRoute(route);
-                        }}
-                        aria-label="Delete route"
-                        title="Delete route"
-                        className="size-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors"
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                        </svg>
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Chevron */}
+                  <svg
+                    className="h-5 w-5"
+                    fill={isLikedByUser(route.id, currentUserId || 'local-user') ? "currentColor" : "none"}
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                  </svg>
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onLogClimb(route);
+                  }}
+                  aria-label="Log climb"
+                  className={cn(
+                    "flex size-9 items-center justify-center rounded-lg transition-colors",
+                    hasUserClimbed(route.id, currentUserId || 'local-user')
+                      ? "text-secondary"
+                      : "text-muted-foreground"
+                  )}
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </button>
+                <button
+                  onClick={(e) => handleShareRoute(route, e)}
+                  aria-label="Share route"
+                  className="flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-primary"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 12a2.25 2.25 0 114.5 0 2.25 2.25 0 01-4.5 0zm9-6.75a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm0 13.5a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-4.243-11.121l3.486 1.743m-3.486 5.006l3.486-1.743" />
+                  </svg>
+                </button>
+                <button
+                  onClick={(e) => toggleCardFlip(route.id, e)}
+                  aria-label={isExpanded ? "Hide actions" : "Show actions"}
+                  aria-expanded={isExpanded}
+                  className={cn(
+                    "flex h-9 items-center justify-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition-colors",
+                    isExpanded ? "text-primary" : "text-muted-foreground"
+                  )}
+                >
                   <svg
                     className={cn(
-                      "w-4 h-4 transition-all",
-                      isExpanded
-                        ? "text-primary rotate-90"
-                        : "text-muted-foreground/50 group-hover:text-muted-foreground"
+                      "h-5 w-5 transition-transform duration-200",
+                      isExpanded && "rotate-180"
                     )}
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
                     strokeWidth={2}
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                   </svg>
-                </div>
+                  <span>{isExpanded ? 'Close' : 'Actions'}</span>
+                </button>
+              </div>
 
-                {/* Expanded Info Panel */}
-                <AnimatePresence>
-                  {isExpanded && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="relative overflow-hidden"
-                    >
-                      <div className="px-2 pb-4 pt-2">
-                        <div className="flex gap-6 text-sm">
-                          <div>
-                            <p className="text-muted-foreground text-xs mb-1">Grade</p>
-                            <p className="font-bold text-primary">{displayGrade || 'Ungraded'}</p>
-                            {route.grade_v && displayGrade !== route.grade_v && (
-                              <p className="text-xs text-muted-foreground">Setter: {route.grade_v}</p>
-                            )}
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground text-xs mb-1">Rating</p>
-                            <div className="flex items-center gap-1.5">
-                              <StarRating rating={Math.round(avgRating)} />
-                              {avgRating > 0 && <span className="text-sm font-medium">{avgRating.toFixed(1)}</span>}
-                            </div>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground text-xs mb-1">Setter</p>
-                            <p className="font-medium">{route.user_name || 'Anonymous'}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground text-xs mb-1">Sends</p>
-                            <p className="font-bold">{ascents.length}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground text-xs mb-1">Likes</p>
-                            <p className="font-bold text-red-500">{getLikeCount(route.id)}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground text-xs mb-1">Views</p>
-                            <p className="font-bold">{route.view_count || 0}</p>
-                          </div>
-                          {ascents.length > 0 && (
-                            <div className="flex-1">
-                              <p className="text-muted-foreground text-xs mb-1">Recent climbers</p>
-                              <div className="flex flex-wrap gap-1.5">
-                                {ascents.slice(0, 5).map((a, i) => (
-                                  <span key={i} className="text-xs bg-muted px-2 py-0.5 rounded">
-                                    {a.user_name || 'Anonymous'}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
+              <div className="hidden items-center gap-1 md:flex">
+                <button
+                  onClick={(e) => handleToggleLike(route, e)}
+                  aria-label="Like route"
+                  title="Like route"
+                  className={cn(
+                    "flex size-8 items-center justify-center rounded-lg transition-colors",
+                    isLikedByUser(route.id, currentUserId || 'local-user')
+                      ? "text-red-500"
+                      : "text-muted-foreground hover:text-red-500"
+                  )}
+                >
+                  <svg
+                    className="h-4 w-4"
+                    fill={isLikedByUser(route.id, currentUserId || 'local-user') ? "currentColor" : "none"}
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                  </svg>
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onLogClimb(route);
+                  }}
+                  aria-label="Log climb"
+                  title="Log climb"
+                  className={cn(
+                    "flex size-8 items-center justify-center rounded-lg transition-colors",
+                    hasUserClimbed(route.id, currentUserId || 'local-user')
+                      ? "text-secondary"
+                      : "text-muted-foreground hover:text-secondary"
+                  )}
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </button>
+                <button
+                  onClick={(e) => handleShareRoute(route, e)}
+                  aria-label="Share route"
+                  title="Share route"
+                  className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-primary"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 12a2.25 2.25 0 114.5 0 2.25 2.25 0 01-4.5 0zm9-6.75a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm0 13.5a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-4.243-11.121l3.486 1.743m-3.486 5.006l3.486-1.743" />
+                  </svg>
+                </button>
+                <button
+                  onClick={(e) => toggleCardFlip(route.id, e)}
+                  aria-label="View info"
+                  title={isExpanded ? "Hide route details" : "Show route details"}
+                  className={cn(
+                    "flex h-8 items-center justify-center gap-1.5 rounded-lg px-2 text-xs font-semibold transition-colors",
+                    isExpanded
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:text-primary"
+                  )}
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                  </svg>
+                  <span>Details</span>
+                </button>
+                {canEditRoute(route) && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEditRoute(route);
+                    }}
+                    aria-label="Edit route"
+                    title="Edit route"
+                    className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-blue-500"
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                    </svg>
+                  </button>
+                )}
+                {canDeleteRoute(route) && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteRoute(route);
+                    }}
+                    aria-label="Delete route"
+                    title="Delete route"
+                    className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-destructive"
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+
+              <svg
+                className={cn(
+                  "hidden h-4 w-4 transition-all md:block",
+                  isExpanded
+                    ? "rotate-90 text-primary"
+                    : "text-muted-foreground/50 group-hover:text-muted-foreground"
+                )}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+              </svg>
+            </div>
+
+            <AnimatePresence>
+              {isExpanded && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="relative overflow-hidden md:hidden"
+                >
+                  <div className="space-y-3 px-4 pb-4">
+                    <div className="grid grid-cols-5 gap-2">
+                      <div className="text-center">
+                        <p className="text-xs text-muted-foreground">Grade</p>
+                        <p className="font-bold text-primary">{displayGrade || '—'}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs text-muted-foreground">Rating</p>
+                        <div className="flex justify-center">
+                          {avgRating > 0 ? (
+                            <span className="font-bold">{avgRating.toFixed(1)}</span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
                           )}
                         </div>
                       </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </>
+                      <div className="text-center">
+                        <p className="text-xs text-muted-foreground">Sends</p>
+                        <p className="font-bold">{ascents.length}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs text-muted-foreground">Likes</p>
+                        <p className="font-bold">{getLikeCount(route.id)}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs text-muted-foreground">Views</p>
+                        <p className="font-bold">{route.view_count || 0}</p>
+                      </div>
+                    </div>
+
+                    {avgRating > 0 && (
+                      <div className="flex justify-center">
+                        <StarRating rating={Math.round(avgRating)} />
+                      </div>
+                    )}
+
+                    {ascents.length > 0 && (
+                      <div>
+                        <p className="mb-1.5 text-center text-xs text-muted-foreground">Recent climbers</p>
+                        <div className="flex flex-wrap justify-center gap-1.5">
+                          {ascents.slice(0, 4).map((a, i) => (
+                            <span key={i} className="rounded bg-muted/60 px-2 py-0.5 text-xs">
+                              {a.user_name || 'Anonymous'}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex justify-center gap-2 pt-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onLogClimb(route);
+                        }}
+                        className="flex items-center gap-1.5 rounded-lg bg-secondary/10 px-3 py-1.5 text-sm font-medium text-secondary"
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Log
+                      </button>
+                      <button
+                        onClick={(e) => handleShareRoute(route, e)}
+                        className="flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary"
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 12a2.25 2.25 0 114.5 0 2.25 2.25 0 01-4.5 0zm9-6.75a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm0 13.5a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-4.243-11.121l3.486 1.743m-3.486 5.006l3.486-1.743" />
+                        </svg>
+                        Share
+                      </button>
+                      {canEditRoute(route) && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEditRoute(route);
+                          }}
+                          className="flex items-center gap-1.5 rounded-lg bg-blue-500/10 px-3 py-1.5 text-sm font-medium text-blue-500"
+                        >
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                          </svg>
+                          Edit
+                        </button>
+                      )}
+                      {canDeleteRoute(route) && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteRoute(route);
+                          }}
+                          className="flex items-center gap-1.5 rounded-lg bg-destructive/10 px-3 py-1.5 text-sm font-medium text-destructive"
+                        >
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                          </svg>
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+              {isExpanded && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="relative hidden overflow-hidden md:block"
+                >
+                  <div className="px-2 pb-4 pt-2">
+                    <div className="flex gap-6 text-sm">
+                      <div>
+                        <p className="mb-1 text-xs text-muted-foreground">Grade</p>
+                        <p className="font-bold text-primary">{displayGrade || 'Ungraded'}</p>
+                        {route.grade_v && displayGrade !== route.grade_v && (
+                          <p className="text-xs text-muted-foreground">Setter: {route.grade_v}</p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="mb-1 text-xs text-muted-foreground">Rating</p>
+                        <div className="flex items-center gap-1.5">
+                          <StarRating rating={Math.round(avgRating)} />
+                          {avgRating > 0 && <span className="text-sm font-medium">{avgRating.toFixed(1)}</span>}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="mb-1 text-xs text-muted-foreground">Setter</p>
+                        <p className="font-medium">{route.user_name || 'Anonymous'}</p>
+                      </div>
+                      <div>
+                        <p className="mb-1 text-xs text-muted-foreground">Sends</p>
+                        <p className="font-bold">{ascents.length}</p>
+                      </div>
+                      <div>
+                        <p className="mb-1 text-xs text-muted-foreground">Likes</p>
+                        <p className="font-bold text-red-500">{getLikeCount(route.id)}</p>
+                      </div>
+                      <div>
+                        <p className="mb-1 text-xs text-muted-foreground">Views</p>
+                        <p className="font-bold">{route.view_count || 0}</p>
+                      </div>
+                      {ascents.length > 0 && (
+                        <div className="flex-1">
+                          <p className="mb-1 text-xs text-muted-foreground">Recent climbers</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {ascents.slice(0, 5).map((a, i) => (
+                              <span key={i} className="rounded bg-muted px-2 py-0.5 text-xs">
+                                {a.user_name || 'Anonymous'}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        );
+      })}
+    </div>
   );
 }

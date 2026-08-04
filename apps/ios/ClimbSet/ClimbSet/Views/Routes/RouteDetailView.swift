@@ -5,9 +5,8 @@ import Supabase
 import PostgREST
 
 enum RouteDetailGeometry {
-    /// Returns the image-space rectangle inside `container` that should be shared
-    /// by the wall image and its hold markers. Invalid snapshot dimensions fall
-    /// back to the full container so legacy routes keep their existing layout.
+    /// Returns the image-space rectangle shared by the wall image and hold
+    /// markers. Invalid dimensions use the full container.
     static func imageRect(
         imageWidth: Int?,
         imageHeight: Int?,
@@ -115,7 +114,6 @@ struct RouteDetailView: View {
     let onRouteDeleted: (String) -> Void
     let onDismiss: () -> Void
 
-    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @EnvironmentObject var session: AppSession
     @EnvironmentObject var routesViewModel: RoutesViewModel
@@ -201,7 +199,7 @@ struct RouteDetailView: View {
     }
 
     var body: some View {
-        let theme = BoardedTheme(colorScheme: colorScheme)
+        let theme = BoardedTheme()
         return GeometryReader { proxy in
             let isCompact = horizontalSizeClass == .compact
             let horizontalMargin: CGFloat = isCompact ? 8 : 24
@@ -333,7 +331,7 @@ struct RouteDetailView: View {
     }
 
     private func wallHeader(height: CGFloat) -> some View {
-        let theme = BoardedTheme(colorScheme: colorScheme)
+        let theme = BoardedTheme()
         return GeometryReader { proxy in
             let container = CGRect(origin: .zero, size: proxy.size)
             let resolvedDimensions = resolvedWallImageDimensions
@@ -496,7 +494,7 @@ struct RouteDetailView: View {
     }
 
     private var metadataBar: some View {
-        let theme = BoardedTheme(colorScheme: colorScheme)
+        let theme = BoardedTheme()
         return HStack(spacing: 0) {
             metadataItem(
                 systemImage: isLiked ? "heart.fill" : "heart",
@@ -561,7 +559,7 @@ struct RouteDetailView: View {
             .foregroundStyle(tint)
             Text(title)
                 .font(AppTypography.caption)
-                .foregroundStyle(BoardedTheme(colorScheme: colorScheme).secondaryText)
+                .foregroundStyle(BoardedTheme().secondaryText)
         }
         .frame(maxWidth: .infinity, minHeight: 48)
         .accessibilityElement(children: .combine)
@@ -569,7 +567,7 @@ struct RouteDetailView: View {
     }
 
     private var routeActions: some View {
-        let theme = BoardedTheme(colorScheme: colorScheme)
+        let theme = BoardedTheme()
         let canLike = session.userId != nil
         return BoardedGlassContainer(spacing: 12) {
             HStack(spacing: 12) {
@@ -624,7 +622,7 @@ struct RouteDetailView: View {
                     .boardedGlassSurface(in: Circle(), interactive: true)
                 Text(title)
                     .font(AppTypography.caption)
-                    .foregroundStyle(BoardedTheme(colorScheme: colorScheme).primaryText)
+                    .foregroundStyle(BoardedTheme().primaryText)
                     .lineLimit(1)
             }
             .frame(minWidth: 52, maxWidth: .infinity)
@@ -638,7 +636,7 @@ struct RouteDetailView: View {
     }
 
     private var detailsSection: some View {
-        let theme = BoardedTheme(colorScheme: colorScheme)
+        let theme = BoardedTheme()
         return VStack(alignment: .leading, spacing: 6) {
             Text(route.name)
                 .font(AppTypography.title)
@@ -705,7 +703,7 @@ struct RouteDetailView: View {
         isDisabled: Bool = false,
         retry: @escaping () -> Void
     ) -> some View {
-        let theme = BoardedTheme(colorScheme: colorScheme)
+        let theme = BoardedTheme()
         let shape = RoundedRectangle(cornerRadius: AppLayout.controlCornerRadius, style: .continuous)
 
         return VStack(alignment: .leading, spacing: 6) {
@@ -729,7 +727,7 @@ struct RouteDetailView: View {
 
 
     private var commentsSection: some View {
-        let theme = BoardedTheme(colorScheme: colorScheme)
+        let theme = BoardedTheme()
         let editorShape = RoundedRectangle(
             cornerRadius: AppLayout.controlCornerRadius,
             style: .continuous
@@ -865,7 +863,7 @@ struct RouteDetailView: View {
 
 
     private func routeHoldMarker(for hold: Hold) -> some View {
-        let theme = BoardedTheme(colorScheme: colorScheme)
+        let theme = BoardedTheme()
         let size: CGFloat
         let borderWidth: CGFloat
         switch hold.size {
@@ -1297,10 +1295,9 @@ private struct CommentRow: View {
     let canDelete: Bool
     let onDelete: () -> Void
 
-    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        let theme = BoardedTheme(colorScheme: colorScheme)
+        let theme = BoardedTheme()
         let shape = RoundedRectangle(cornerRadius: AppLayout.controlCornerRadius, style: .continuous)
 
         return VStack(alignment: .leading, spacing: 6) {

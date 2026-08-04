@@ -127,7 +127,7 @@ struct SupabaseProfileRepository: ProfileRepository {
     private func fetchRoutes(for ids: Set<String>, client: SupabaseClient) async throws -> [Route] {
         guard !ids.isEmpty else { return [] }
         return try await client.from("routes")
-            .select("id,user_id,user_name,wall_id,name,description,grade_v,grade_font,holds,is_public,view_count,share_token,created_at,updated_at,wall_image_url,wall_image_width,wall_image_height,ascents(id,route_id,user_id,user_name,grade_v,rating,notes,flashed,created_at)")
+            .select("id,user_id,user_name,wall_id,name,description,grade_v,grade_font,holds,is_public,view_count,share_token,created_at,updated_at,wall_image_url,wall_image_width,wall_image_height,ascents(id,route_id,user_id,user_name,grade_v,rating,notes,flashed,created_at),comments(id,route_id,user_id,user_name,content,is_beta,created_at)")
             .in("id", values: Array(ids))
             .execute()
             .value

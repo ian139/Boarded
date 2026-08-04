@@ -1,5 +1,4 @@
--- Replace legacy WITH CHECK (true) inserts with owner-scoped policies.
--- Child rows are restricted to routes the caller can actually access.
+-- Enforce owner-scoped inserts and route access for child rows.
 
 DROP POLICY IF EXISTS "Anyone can insert walls" ON walls;
 DROP POLICY IF EXISTS "Anyone can insert routes" ON routes;

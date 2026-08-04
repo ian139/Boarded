@@ -2,7 +2,6 @@ import SwiftUI
 
 struct RoutesView: View {
     @Binding var shareRequest: NativeShareRequest?
-    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @EnvironmentObject var viewModel: RoutesViewModel
     @EnvironmentObject var session: AppSession
@@ -33,7 +32,7 @@ struct RoutesView: View {
         )
     }
     var body: some View {
-        let theme = BoardedTheme(colorScheme: colorScheme)
+        let theme = BoardedTheme()
         return ZStack {
             theme.background.ignoresSafeArea()
 
@@ -131,7 +130,7 @@ struct RoutesView: View {
     }
 
     private var header: some View {
-        let theme = BoardedTheme(colorScheme: colorScheme)
+        let theme = BoardedTheme()
         return VStack(alignment: .leading, spacing: 12) {
             Text("\(viewModel.filteredRoutes.count) \(viewModel.filteredRoutes.count == 1 ? "route" : "routes")")
                 .font(AppTypography.title)
@@ -173,7 +172,7 @@ struct RoutesView: View {
     }
 
     private func compactMenuLabel(title: String, selection: String, isActive: Bool) -> some View {
-        let theme = BoardedTheme(colorScheme: colorScheme)
+        let theme = BoardedTheme()
         return VStack(alignment: .leading, spacing: 4) {
             Text(title)
                 .font(AppTypography.caption)
@@ -338,7 +337,7 @@ struct RoutesView: View {
     }
 
     private var content: some View {
-        let theme = BoardedTheme(colorScheme: colorScheme)
+        let theme = BoardedTheme()
         return Group {
             if viewModel.isLoading {
                 VStack(spacing: 12) {
@@ -393,7 +392,7 @@ struct RoutesView: View {
     }
 
     private var routesScrollContent: some View {
-        let theme = BoardedTheme(colorScheme: colorScheme)
+        let theme = BoardedTheme()
         return ScrollView {
             LazyVStack(spacing: 0) {
                 ForEach(Array(viewModel.filteredRoutes.enumerated()), id: \.element.id) { index, route in

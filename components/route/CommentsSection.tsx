@@ -15,14 +15,15 @@ interface CommentsSectionProps {
 
 export function CommentsSection({ routeId, comments }: CommentsSectionProps) {
   const { addComment, deleteComment } = useRoutesStore();
-  const { userId, displayName, isModerator } = useUserStore();
+  const { user, isModerator } = useUserStore();
   const [isExpanded, setIsExpanded] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [isBeta, setIsBeta] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const shouldReduceMotion = useReducedMotion();
 
-  const currentUserId = userId;
+  const currentUserId = user?.id;
+  const currentUserDisplayName = user?.displayName;
   const sortedComments = [...comments].sort((a, b) => {
     if (a.is_beta && !b.is_beta) return -1;
     if (!a.is_beta && b.is_beta) return 1;
@@ -38,7 +39,7 @@ export function CommentsSection({ routeId, comments }: CommentsSectionProps) {
       return;
     }
 
-    if (!userId) {
+    if (!currentUserId) {
       toast.error('Log in to comment on routes.');
       return;
     }
@@ -48,7 +49,7 @@ export function CommentsSection({ routeId, comments }: CommentsSectionProps) {
       id: crypto.randomUUID(),
       route_id: routeId,
       user_id: currentUserId,
-      user_name: displayName || 'Anonymous',
+      user_name: currentUserDisplayName || 'Anonymous',
       content: newComment.trim(),
       is_beta: isBeta,
       created_at: new Date().toISOString(),

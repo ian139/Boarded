@@ -2,10 +2,9 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject var session: AppSession
-    @Environment(\.colorScheme) private var colorScheme
 
     private var theme: BoardedTheme {
-        BoardedTheme(colorScheme: colorScheme)
+        BoardedTheme()
     }
 
     @AppStorage("appearanceMode") private var appearanceModeRaw = AppAppearanceMode.system.rawValue
@@ -216,10 +215,9 @@ private enum AuthMode {
 
 private struct AccountAccessView: View {
     @EnvironmentObject var session: AppSession
-    @Environment(\.colorScheme) private var colorScheme
 
     private var theme: BoardedTheme {
-        BoardedTheme(colorScheme: colorScheme)
+        BoardedTheme()
     }
 
     @State private var email = ""
@@ -384,10 +382,9 @@ private struct AccountTextField: View {
     let icon: String
     let placeholder: String
     @Binding var text: String
-    @Environment(\.colorScheme) private var colorScheme
 
     private var theme: BoardedTheme {
-        BoardedTheme(colorScheme: colorScheme)
+        BoardedTheme()
     }
 
     var keyboardType: UIKeyboardType = .default
@@ -422,10 +419,9 @@ private struct AccountTextField: View {
 
 private struct AccountSecureField: View {
     @Binding var password: String
-    @Environment(\.colorScheme) private var colorScheme
 
     private var theme: BoardedTheme {
-        BoardedTheme(colorScheme: colorScheme)
+        BoardedTheme()
     }
 
 

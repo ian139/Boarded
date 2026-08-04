@@ -1,5 +1,4 @@
--- Ensure existing deployments expose application tables through PostgREST.
--- RLS remains the source of row-level authorization.
+-- Expose application tables through PostgREST while retaining RLS authorization.
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
 REVOKE INSERT, UPDATE, DELETE
   ON TABLE public.walls, public.routes, public.ascents, public.comments, public.route_likes, public.profiles

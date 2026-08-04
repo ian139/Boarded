@@ -3,7 +3,6 @@ import SwiftUI
 struct ProfileView: View {
     @EnvironmentObject var session: AppSession
     @EnvironmentObject var routeDetailPresenter: RouteDetailPresenter
-    @Environment(\.colorScheme) private var colorScheme
     @StateObject private var viewModel: ProfileViewModel
     @StateObject private var routeDetailsViewModel = RoutesViewModel(repository: AppServices.routesRepository)
     @State private var profileRefreshID = 0
@@ -16,7 +15,7 @@ struct ProfileView: View {
         _viewModel = StateObject(wrappedValue: ProfileViewModel(repository: repository))
     }
 
-    private var theme: BoardedTheme { BoardedTheme(colorScheme: colorScheme) }
+    private var theme: BoardedTheme { BoardedTheme() }
 
     var body: some View {
         ScrollView {

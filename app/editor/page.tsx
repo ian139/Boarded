@@ -268,11 +268,12 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
     fetchRouteById,
   } = useRoutesStore();
   const {
-    userId,
-    displayName,
+    user,
     isModerator,
     isLoading: userLoading,
   } = useUserStore();
+  const currentUserId = user?.id;
+  const currentUserDisplayName = user?.displayName || 'Guest';
   const wall = selectedWall?.id === 'all-walls' ? DEFAULT_WALL : (selectedWall || DEFAULT_WALL);
 
   const [editingRoute, setEditingRoute] = useState<Route | null>(null);
@@ -292,8 +293,8 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
   const loadedEditRef = useRef<string | null>(null);
 
   const canEditRoute = useCallback((route: Route) => {
-    return isModerator || route.user_id === userId || route.user_id === 'local-user';
-  }, [isModerator, userId]);
+    return isModerator || route.user_id === currentUserId || route.user_id === 'local-user';
+  }, [isModerator, currentUserId]);
 
   useEffect(() => {
     if (!editRouteId) {
@@ -394,8 +395,8 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
       } else {
         const route: Route = {
           id: crypto.randomUUID(),
-          user_id: userId || 'local-user',
-          user_name: displayName || 'Anonymous',
+          user_id: currentUserId || 'local-user',
+          user_name: currentUserDisplayName || 'Anonymous',
           wall_id: wall.id,
           wall_image_url: wall.image_url,
           wall_image_width: wall.image_width,

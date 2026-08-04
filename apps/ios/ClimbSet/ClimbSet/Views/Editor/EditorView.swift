@@ -215,7 +215,7 @@ struct EditorView: View {
     }
 
     var body: some View {
-        let theme = BoardedTheme(colorScheme: colorScheme)
+        let theme = BoardedTheme()
         ZStack(alignment: .top) {
             GeometryReader { proxy in
                 canvasSurface(size: proxy.size, headerHeight: headerHeight)
@@ -473,7 +473,7 @@ struct EditorView: View {
             width: size.width,
             height: max(0, size.height - reservedHeaderHeight)
         )
-        let theme = BoardedTheme(colorScheme: colorScheme)
+        let theme = BoardedTheme()
 
         return ZStack {
             Rectangle()
@@ -732,7 +732,7 @@ struct EditorView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .background(
-            BoardedTheme(colorScheme: colorScheme).panelBackground,
+            BoardedTheme().panelBackground,
             in: RoundedRectangle(cornerRadius: 14, style: .continuous)
         )
     }

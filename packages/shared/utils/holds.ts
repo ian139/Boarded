@@ -6,7 +6,7 @@ const TOLERANCE = 3; // Tolerance in percentage for hold proximity detection
 /**
  * Create a new hold at the given coordinates
  */
-export function createHold(
+function createHold(
   x: number,
   y: number,
   type: HoldType,
@@ -113,12 +113,6 @@ export function cycleHoldType(holds: Hold[], holdId: string): Hold[] {
   });
 }
 
-/**
- * Clear all holds
- */
-export function clearHolds(): Hold[] {
-  return [];
-}
 
 /**
  * Toggle sequence numbering on all holds

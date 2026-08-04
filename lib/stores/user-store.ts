@@ -25,10 +25,6 @@ interface UserState {
   isLoading: boolean;
   isModerator: boolean;
 
-  // For backwards compatibility
-  userId: string;
-  displayName: string;
-
   signup: (email: string, password: string, displayName?: string) => Promise<{ success: boolean; requiresConfirmation?: boolean; error?: string }>;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
@@ -62,9 +58,9 @@ function slugify(value: string) {
     .replace(/(^-|-$)+/g, '');
 }
 
-function buildUsername(displayName: string, email: string, userId: string) {
+function buildUsername(displayName: string, email: string, id: string) {
   const base = slugify(displayName || email.split('@')[0] || 'climber') || 'climber';
-  return `${base}-${userId.slice(0, 4)}`;
+  return `${base}-${id.slice(0, 4)}`;
 }
 
 let removeAuthListener: (() => void) | null = null;
@@ -76,8 +72,6 @@ function authenticatedState(user: User) {
     profile: null,
     isAuthenticated: true,
     isModerator: user.isModerator,
-    userId: user.id,
-    displayName: user.displayName,
   };
 }
 
@@ -87,8 +81,6 @@ function signedOutState() {
     profile: null,
     isAuthenticated: false,
     isModerator: false,
-    userId: '',
-    displayName: 'Guest',
   };
 }
 
@@ -129,8 +121,6 @@ export const useUserStore = create<UserState>()(
       isAuthenticated: false,
       isLoading: true,
       isModerator: false,
-      userId: '',
-      displayName: 'Guest',
       initializeAuth: async () => {
         const supabase = createClient();
 
@@ -262,8 +252,6 @@ export const useUserStore = create<UserState>()(
           profile: null,
           isAuthenticated: false,
           isModerator: false,
-          userId: '',
-          displayName: 'Guest',
         });
         await reconcileDataForAuthChange();
       },
@@ -272,27 +260,24 @@ export const useUserStore = create<UserState>()(
         const supabase = createClient();
         const state = get();
 
-        if (state.user) {
-          try {
-            await supabase.auth.updateUser({
-              data: { display_name: name },
-            });
-            await supabase
-              .from('profiles')
-              .update({ full_name: name })
-              .eq('id', state.user.id);
-          } catch (error) {
-            console.error('Failed to update display name:', error);
-          }
+        if (!state.user) return;
 
-          set({
-            displayName: name,
-            user: { ...state.user, displayName: name },
-            profile: state.profile ? { ...state.profile, full_name: name } : state.profile,
+        try {
+          await supabase.auth.updateUser({
+            data: { display_name: name },
           });
-        } else {
-          set({ displayName: name });
+          await supabase
+            .from('profiles')
+            .update({ full_name: name })
+            .eq('id', state.user.id);
+        } catch (error) {
+          console.error('Failed to update display name:', error);
         }
+
+        set({
+          user: { ...state.user, displayName: name },
+          profile: state.profile ? { ...state.profile, full_name: name } : state.profile,
+        });
       },
 
       syncProfile: async () => {
@@ -413,9 +398,15 @@ export const useUserStore = create<UserState>()(
     {
       name: 'climbset-user',
       partialize: (state) => ({
-        displayName: state.displayName,
         profile: state.profile,
       }),
+      merge: (persistedState, currentState) => {
+        const persistedProfile = (persistedState as Partial<UserState> | null)?.profile;
+        return {
+          ...currentState,
+          profile: persistedProfile ?? currentState.profile,
+        };
+      },
     }
   )
 );

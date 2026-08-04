@@ -1,20 +1,10 @@
 import type { Ascent, Route } from '../types/index.ts';
 import { V_GRADES } from '../types/index.ts';
 
-export type GradeInput = string | number | null | undefined;
+export type GradeInput = string | null | undefined;
 
-/**
- * Convert a runtime grade value to the canonical V-scale label.
- *
- * Numeric values use the database wire convention (-1 = VB, 0 = V0, ...),
- * while numberToGrade intentionally retains its rank-index convention.
- */
-export const canonicalizeGrade = (grade: GradeInput): string | undefined => {
-  if (typeof grade === 'number') {
-    if (!Number.isInteger(grade) || grade < -1 || grade > 17) return undefined;
-    return grade === -1 ? 'VB' : `V${grade}`;
-  }
-
+/** Convert an unknown runtime value to a canonical V-scale label. */
+export const canonicalizeGrade = (grade: unknown): string | undefined => {
   if (typeof grade !== 'string') return undefined;
   const canonical = grade.trim().toUpperCase();
   return V_GRADES.includes(canonical) ? canonical : undefined;

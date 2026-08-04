@@ -23,7 +23,8 @@ interface WallPickerDialogProps {
 export function WallPickerDialog({ open, onOpenChange }: WallPickerDialogProps) {
   const { walls, selectedWall, setSelectedWall, addWall, updateWall, deleteWall } = useWallsStore();
   const { routes } = useRoutesStore();
-  const { userId, isModerator } = useUserStore();
+  const { user, isModerator } = useUserStore();
+  const currentUserId = user?.id;
 
   // Add wall state
   const [showAddWall, setShowAddWall] = useState(false);
@@ -65,7 +66,7 @@ export function WallPickerDialog({ open, onOpenChange }: WallPickerDialogProps) 
       mimeType: 'image/jpeg',
     });
 
-    if (!userId) {
+    if (!currentUserId) {
       return {
         imageUrl: await fileToDataUrl(compressed.blob),
         width: compressed.width,
@@ -73,7 +74,7 @@ export function WallPickerDialog({ open, onOpenChange }: WallPickerDialogProps) 
       };
     }
 
-    const filePath = `${userId}/${wallId}/${Date.now()}.jpg`;
+    const filePath = `${currentUserId}/${wallId}/${Date.now()}.jpg`;
     const { error } = await supabase.storage
       .from('walls')
       .upload(filePath, compressed.blob, { contentType: 'image/jpeg' });
@@ -110,7 +111,7 @@ export function WallPickerDialog({ open, onOpenChange }: WallPickerDialogProps) 
 
       const newWall: Wall = {
         id: wallId,
-        user_id: userId || 'local-user',
+        user_id: currentUserId || 'local-user',
         name: wallName.trim(),
         image_url: uploadedWallImage.imageUrl,
         image_width: uploadedWallImage.width,
@@ -188,12 +189,12 @@ export function WallPickerDialog({ open, onOpenChange }: WallPickerDialogProps) 
 
   const canUpdateWallPhoto = (wall: Wall) => {
     if (wall.id === 'default-wall') return true;
-    return isModerator || wall.user_id === userId || wall.user_id === 'local-user';
+    return isModerator || wall.user_id === currentUserId || wall.user_id === 'local-user';
   };
 
   const canDeleteWall = (wall: Wall) => {
     if (wall.id === 'default-wall') return false;
-    return isModerator || wall.user_id === userId || wall.user_id === 'local-user';
+    return isModerator || wall.user_id === currentUserId || wall.user_id === 'local-user';
   };
 
   return (

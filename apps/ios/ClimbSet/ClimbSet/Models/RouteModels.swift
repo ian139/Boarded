@@ -83,51 +83,10 @@ struct VGradeOption: Identifiable, Hashable {
         guard let label else { return nil }
         let normalized = label.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalized.isEmpty else { return nil }
-        if let numericValue = Int(normalized) { return numericValue }
         return all.first { $0.label.caseInsensitiveCompare(normalized) == .orderedSame }?.value
     }
 }
 
-struct FlexibleGrade: Codable, Hashable {
-    let value: String?
-
-    init(value: String?) {
-        self.value = value
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        if container.decodeNil() {
-            value = nil
-        } else if let numericValue = try? container.decode(Double.self) {
-            value = VGradeOption.label(for: Int(exactly: numericValue))
-        } else if let stringValue = try? container.decode(String.self) {
-            value = Self.canonicalLabel(for: stringValue)
-        } else {
-            throw DecodingError.dataCorruptedError(
-                in: container,
-                debugDescription: "Expected a numeric or V-scale grade."
-            )
-        }
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.singleValueContainer()
-        try container.encode(value)
-    }
-
-    private static func canonicalLabel(for value: String) -> String? {
-        guard let numericValue = VGradeOption.value(for: value) else { return nil }
-        return VGradeOption.label(for: numericValue)
-    }
-}
-
-extension KeyedDecodingContainer {
-    func decodeFlexibleGrade(forKey key: Key) throws -> String? {
-        guard contains(key), try !decodeNil(forKey: key) else { return nil }
-        return try decode(FlexibleGrade.self, forKey: key).value
-    }
-}
 
 
 struct Route: Codable, Identifiable, Hashable {
@@ -175,32 +134,6 @@ struct Route: Codable, Identifiable, Hashable {
         case isLiked = "is_liked"
         case ascents
         case comments
-    }
-}
-extension Route {
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(String.self, forKey: .id)
-        userId = try container.decodeIfPresent(String.self, forKey: .userId)
-        wallId = try container.decode(String.self, forKey: .wallId)
-        name = try container.decode(String.self, forKey: .name)
-        description = try container.decodeIfPresent(String.self, forKey: .description)
-        gradeV = try container.decodeFlexibleGrade(forKey: .gradeV)
-        gradeFont = try container.decodeIfPresent(String.self, forKey: .gradeFont)
-        holds = try container.decode([Hold].self, forKey: .holds)
-        isPublic = try container.decodeIfPresent(Bool.self, forKey: .isPublic) ?? true
-        viewCount = try container.decodeIfPresent(Int.self, forKey: .viewCount) ?? 0
-        shareToken = try container.decodeIfPresent(String.self, forKey: .shareToken)
-        createdAt = try container.decode(String.self, forKey: .createdAt)
-        updatedAt = try container.decode(String.self, forKey: .updatedAt)
-        userName = try container.decodeIfPresent(String.self, forKey: .userName)
-        wallImageUrl = try container.decodeIfPresent(String.self, forKey: .wallImageUrl)
-        wallImageWidth = try container.decodeIfPresent(Int.self, forKey: .wallImageWidth)
-        wallImageHeight = try container.decodeIfPresent(Int.self, forKey: .wallImageHeight)
-        likeCount = try container.decodeIfPresent(Int.self, forKey: .likeCount)
-        isLiked = try container.decodeIfPresent(Bool.self, forKey: .isLiked)
-        ascents = try container.decodeIfPresent([Ascent].self, forKey: .ascents) ?? []
-        comments = try container.decodeIfPresent([Comment].self, forKey: .comments) ?? []
     }
 }
 
@@ -272,18 +205,6 @@ struct Ascent: Codable, Identifiable, Hashable {
         case notes
         case flashed
         case createdAt = "created_at"
-    }
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(String.self, forKey: .id)
-        routeId = try container.decode(String.self, forKey: .routeId)
-        userId = try container.decodeIfPresent(String.self, forKey: .userId)
-        userName = try container.decodeIfPresent(String.self, forKey: .userName)
-        gradeV = try container.decodeFlexibleGrade(forKey: .gradeV)
-        rating = try container.decodeIfPresent(Int.self, forKey: .rating)
-        notes = try container.decodeIfPresent(String.self, forKey: .notes)
-        flashed = try container.decodeIfPresent(Bool.self, forKey: .flashed)
-        createdAt = try container.decodeIfPresent(String.self, forKey: .createdAt)
     }
 }
 struct AscentInsert: Encodable {

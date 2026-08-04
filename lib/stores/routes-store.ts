@@ -37,7 +37,7 @@ interface RoutesState {
   clearRemoteRoutes: (currentUserId?: string) => void;
 }
 
-type RouteRelationKey = 'ascents' | 'comments' | 'wall' | 'user' | 'is_liked' | 'like_count' | 'liked_by' | '_snapshotSyncPending' | '_socialSyncPending' | '_createSyncPending';
+type RouteRelationKey = 'ascents' | 'comments' | 'wall' | 'user' | 'is_liked' | 'like_count' | 'liked_by' | '_socialSyncPending' | '_createSyncPending';
 
 function stripRouteRelations<T extends Partial<Route>>(route: T): Omit<T, RouteRelationKey> {
   const persisted = { ...route };
@@ -48,23 +48,17 @@ function stripRouteRelations<T extends Partial<Route>>(route: T): Omit<T, RouteR
   delete persisted.is_liked;
   delete persisted.like_count;
   delete persisted.liked_by;
-  delete (persisted as Record<string, unknown>)._snapshotSyncPending;
   delete (persisted as Record<string, unknown>)._socialSyncPending;
   delete (persisted as Record<string, unknown>)._createSyncPending;
   return persisted as Omit<T, RouteRelationKey>;
 }
-type LocalRoute = Route & { _snapshotSyncPending?: boolean; _socialSyncPending?: boolean; _createSyncPending?: boolean };
+type LocalRoute = Route & { _socialSyncPending?: boolean; _createSyncPending?: boolean };
 
 let routeFetchGeneration = 0;
 let routeSyncGeneration = 0;
 let routeSyncLock = Promise.resolve();
 let routeAuthGeneration = 0;
 
-function isMissingSnapshotColumnsError(error: { code?: string; message?: string } | null | undefined) {
-  if (!error) return false;
-  return error.code === '42703' || error.code === 'PGRST204' ||
-    /wall_image_(width|height)|column .*does not exist|could not find the .*column/i.test(error.message || '');
-}
 function isDuplicateRouteError(error: { code?: string; message?: string } | null | undefined) {
   return error?.code === '23505' || /duplicate key|already exists/i.test(error?.message || '');
 }
@@ -104,13 +98,6 @@ async function normalizeRouteImage(supabase: BrowserSupabaseClient, route: Route
   return supabase.storage.from('walls').getPublicUrl(path).data.publicUrl;
 }
 
-function routeDataWithoutSnapshotDimensions(routeData: Record<string, unknown>) {
-  const fallback = { ...routeData };
-  delete fallback.wall_image_width;
-  delete fallback.wall_image_height;
-  return fallback;
-}
-
 export const useRoutesStore = create<RoutesState>()(
   persist(
     (set, get) => ({
@@ -128,8 +115,7 @@ export const useRoutesStore = create<RoutesState>()(
           const { data: { user } } = await supabase.auth.getUser();
           const currentUserId = user?.id || 'local-user';
 
-          // Try fetching routes with related data (comments may not exist in some DBs)
-          let result = await supabase
+          const result = await supabase
             .from('routes')
             .select(`
               *,
@@ -137,17 +123,6 @@ export const useRoutesStore = create<RoutesState>()(
               comments (*)
             `)
             .order('created_at', { ascending: false });
-
-          if (result.error) {
-            // Fallback: comments table/relation may not exist
-            result = await supabase
-              .from('routes')
-              .select(`
-                *,
-                ascents (*)
-              `)
-              .order('created_at', { ascending: false });
-          }
 
           if (result.error) {
             // Supabase not configured or permissions issue - keep existing local data
@@ -175,26 +150,20 @@ export const useRoutesStore = create<RoutesState>()(
           const existingRoutes = get().routes.map((route) => normalizeRouteGrades(route));
           const remoteRoutes = result.data?.map(r => {
             const likedBy = likesByRoute[r.id] || [];
-            const localSnapshot = existingRoutes.find(existing => existing.id === r.id);
-            const ownedSnapshot = localSnapshot?.user_id === currentUserId && r.user_id === currentUserId
-              ? localSnapshot as LocalRoute
+            const existingRoute = existingRoutes.find(existing => existing.id === r.id);
+            const ownedExisting = existingRoute?.user_id === currentUserId && r.user_id === currentUserId
+              ? existingRoute as LocalRoute
               : undefined;
             return normalizeRouteGrades({
               ...r,
-              // Older schemas do not return these columns. Keep the local snapshot
-              // until a later full-schema sync can persist it.
-              wall_image_url: r.wall_image_url ?? ownedSnapshot?.wall_image_url,
-              wall_image_width: r.wall_image_width ?? ownedSnapshot?.wall_image_width,
-              wall_image_height: r.wall_image_height ?? ownedSnapshot?.wall_image_height,
-              _snapshotSyncPending: ownedSnapshot?._snapshotSyncPending,
-              _socialSyncPending: ownedSnapshot?._socialSyncPending,
-              _createSyncPending: ownedSnapshot?._createSyncPending,
+              _socialSyncPending: ownedExisting?._socialSyncPending,
+              _createSyncPending: ownedExisting?._createSyncPending,
               holds: r.holds || [],
-              ascents: ownedSnapshot?._socialSyncPending
-                ? ownedSnapshot.ascents || r.ascents || []
+              ascents: ownedExisting?._socialSyncPending
+                ? ownedExisting.ascents || r.ascents || []
                 : r.ascents || [],
-              comments: ownedSnapshot?._socialSyncPending
-                ? ownedSnapshot.comments || r.comments || []
+              comments: ownedExisting?._socialSyncPending
+                ? ownedExisting.comments || r.comments || []
                 : r.comments || [],
               liked_by: likedBy,
               like_count: likedBy.length,
@@ -210,10 +179,9 @@ export const useRoutesStore = create<RoutesState>()(
             return;
           }
           if (remoteRoutes) {
-            // Keep local-only routes and any local snapshot metadata for older rows.
             const localRoutes = existingRoutes.filter(r =>
               r.user_id === 'local-user' ||
-              (((r as LocalRoute)._snapshotSyncPending || (r as LocalRoute)._socialSyncPending || (r as LocalRoute)._createSyncPending) && r.user_id === currentUserId)
+              (((r as LocalRoute)._socialSyncPending || (r as LocalRoute)._createSyncPending) && r.user_id === currentUserId)
             );
             const mergedRoutes = [
               ...remoteRoutes,
@@ -243,7 +211,7 @@ export const useRoutesStore = create<RoutesState>()(
         set((state) => ({
           routes: state.routes.filter((route) =>
             route.user_id === 'local-user' ||
-            (currentUserId && ((route as LocalRoute)._snapshotSyncPending || (route as LocalRoute)._socialSyncPending || (route as LocalRoute)._createSyncPending) && route.user_id === currentUserId)
+            (currentUserId && ((route as LocalRoute)._socialSyncPending || (route as LocalRoute)._createSyncPending) && route.user_id === currentUserId)
           ),
           isLoading: false,
         }));
@@ -271,10 +239,6 @@ export const useRoutesStore = create<RoutesState>()(
           : undefined;
         const route = normalizeRouteGrades({
           ...data,
-          wall_image_url: data.wall_image_url ?? ownedExisting?.wall_image_url,
-          wall_image_width: data.wall_image_width ?? ownedExisting?.wall_image_width,
-          wall_image_height: data.wall_image_height ?? ownedExisting?.wall_image_height,
-          _snapshotSyncPending: ownedExisting?._snapshotSyncPending,
           _socialSyncPending: ownedExisting?._socialSyncPending,
           _createSyncPending: ownedExisting?._createSyncPending,
           holds: data.holds || [],
@@ -307,7 +271,7 @@ export const useRoutesStore = create<RoutesState>()(
         if (!user) return;
         const localRoutes = get().routes.filter(r =>
           r.user_id === 'local-user' ||
-          (((r as LocalRoute)._snapshotSyncPending || (r as LocalRoute)._socialSyncPending || (r as LocalRoute)._createSyncPending) && r.user_id === user.id)
+          (((r as LocalRoute)._socialSyncPending || (r as LocalRoute)._createSyncPending) && r.user_id === user.id)
         );
 
         for (const route of localRoutes) {
@@ -330,37 +294,14 @@ export const useRoutesStore = create<RoutesState>()(
             continue;
           }
           const routeData = stripRouteRelations(routeForSync) as Record<string, unknown>;
-          const snapshot = {
-            wall_image_width: localRoute.wall_image_width,
-            wall_image_height: localRoute.wall_image_height,
-          };
           let synced = false;
           let remoteRouteAvailable = false;
-          let snapshotSyncPending = localRoute._snapshotSyncPending ?? false;
 
-          // A previous pre-011 insert may have succeeded without dimensions.
-          // Retry only the metadata first so a later migration can complete it.
-          if (localRoute._snapshotSyncPending && !localRoute._createSyncPending) {
-            remoteRouteAvailable = true;
-            const { data: snapshotData, error: snapshotError } = await supabase
-              .from('routes')
-              .update(snapshot)
-              .eq('id', route.id)
-              .select('id')
-              .maybeSingle();
-            if (syncGeneration !== routeSyncGeneration || authGeneration !== routeAuthGeneration) return;
-            if (!snapshotError && snapshotData) {
-              synced = true;
-              remoteRouteAvailable = true;
-              snapshotSyncPending = false;
-            } else if (!isMissingSnapshotColumnsError(snapshotError)) {
-              console.error('Failed to sync route snapshot metadata:', snapshotError);
-            }
-          } else if (localRoute._socialSyncPending && !localRoute._createSyncPending) {
+          if (localRoute._socialSyncPending && !localRoute._createSyncPending) {
             synced = true;
             remoteRouteAvailable = true;
           } else {
-            const firstInsert = await supabase
+            const { error: insertError } = await supabase
               .from('routes')
               .insert({
                 ...routeData,
@@ -369,61 +310,18 @@ export const useRoutesStore = create<RoutesState>()(
               });
             if (syncGeneration !== routeSyncGeneration || authGeneration !== routeAuthGeneration) return;
 
-            if (!firstInsert.error) {
+            if (!insertError) {
               synced = true;
               remoteRouteAvailable = true;
-            } else if (isDuplicateRouteError(firstInsert.error)) {
+            } else if (isDuplicateRouteError(insertError)) {
               if (await ownsRemoteRoute(supabase, route.id, user.id)) {
                 synced = true;
                 remoteRouteAvailable = true;
-                snapshotSyncPending = localRoute.wall_image_width !== undefined || localRoute.wall_image_height !== undefined;
               } else {
-                console.error('Failed to verify existing local route:', firstInsert.error);
-              }
-            } else if (isMissingSnapshotColumnsError(firstInsert.error)) {
-              const fallbackInsert = await supabase
-                .from('routes')
-                .insert({
-                  ...routeDataWithoutSnapshotDimensions(routeData),
-                  user_id: user.id,
-                  is_public: localRoute.is_public,
-                });
-              if (syncGeneration !== routeSyncGeneration || authGeneration !== routeAuthGeneration) return;
-              if (!fallbackInsert.error) {
-                const hasSnapshot = localRoute.wall_image_width !== undefined || localRoute.wall_image_height !== undefined;
-                snapshotSyncPending = hasSnapshot;
-                set((state) => ({
-                  routes: state.routes.map(r => {
-                    if (r.id !== route.id) return r;
-                    const next = { ...r, user_id: user.id } as LocalRoute;
-                    if (hasSnapshot) next._snapshotSyncPending = true;
-                    else delete next._snapshotSyncPending;
-                    return next;
-                  }),
-                }));
-                remoteRouteAvailable = true;
-                synced = true;
-              } else if (isDuplicateRouteError(fallbackInsert.error) && await ownsRemoteRoute(supabase, route.id, user.id)) {
-                snapshotSyncPending = localRoute.wall_image_width !== undefined || localRoute.wall_image_height !== undefined;
-                remoteRouteAvailable = true;
-                synced = true;
-              } else {
-                console.error('Failed to sync local route:', fallbackInsert.error);
-              }
-            } else if (localRoute.wall_image_width !== undefined || localRoute.wall_image_height !== undefined) {
-              const { data: snapshotData, error: snapshotError } = await supabase
-                .from('routes')
-                .update(snapshot)
-                .eq('id', route.id)
-                .select('id')
-                .maybeSingle();
-              if (syncGeneration !== routeSyncGeneration || authGeneration !== routeAuthGeneration) return;
-              if (!snapshotError && snapshotData) {
-                synced = true;
-                remoteRouteAvailable = true;
+                console.error('Failed to verify existing local route:', insertError);
               }
             } else {
-              console.error('Failed to sync local route:', firstInsert.error);
+              console.error('Failed to sync local route:', insertError);
             }
           }
           if (syncGeneration !== routeSyncGeneration || authGeneration !== routeAuthGeneration) return;
@@ -456,13 +354,11 @@ export const useRoutesStore = create<RoutesState>()(
               }
             }
           }
-          if (synced || snapshotSyncPending || socialSyncPending) {
+          if (synced || socialSyncPending) {
             set((state) => ({
               routes: state.routes.map(r => r.id === route.id
                 ? (() => {
                     const next = { ...r, user_id: user.id } as LocalRoute;
-                    if (snapshotSyncPending) next._snapshotSyncPending = true;
-                    else delete next._snapshotSyncPending;
                     if (socialSyncPending) next._socialSyncPending = true;
                     else delete next._socialSyncPending;
                     delete next._createSyncPending;
@@ -517,34 +413,12 @@ export const useRoutesStore = create<RoutesState>()(
             is_public: routeForPersistence.is_public,
           };
 
-          let result = await supabase
+          const result = await supabase
             .from('routes')
             .insert(payload)
             .select('id')
             .maybeSingle();
           if (authGeneration !== routeAuthGeneration) return true;
-
-          if (result.error && isMissingSnapshotColumnsError(result.error)) {
-            result = await supabase
-              .from('routes')
-              .insert({
-                ...routeDataWithoutSnapshotDimensions(routeData),
-                user_id: user.id,
-                is_public: routeForPersistence.is_public,
-              })
-              .select('id')
-              .maybeSingle();
-            if (authGeneration !== routeAuthGeneration) return true;
-
-            if (!result.error && (routeForPersistence.wall_image_width !== undefined || routeForPersistence.wall_image_height !== undefined)) {
-              // Keep dimensions locally when migration 011 is not deployed.
-              set((state) => ({
-                routes: state.routes.map(r => r.id === ensuredRoute.id
-                  ? { ...r, _snapshotSyncPending: true } as Route
-                  : r),
-              }));
-            }
-          }
 
           if (result.error || !result.data) {
             const saveError = result.error || new Error('Route insert was not authorized');
@@ -831,7 +705,7 @@ export const useRoutesStore = create<RoutesState>()(
       isLikedByUser: (routeId, userId) => {
         const route = get().routes.find((r) => r.id === routeId);
         if (!route) return false;
-        // Check is_liked first (set during fetch with correct user), fallback to liked_by array
+        // Check is_liked first (set during fetch with correct user), then liked_by.
         if (route.is_liked !== undefined) return route.is_liked;
         const likedBy = route.liked_by || [];
         return likedBy.includes(userId);

@@ -5,7 +5,6 @@ struct LogClimbSheet: View {
     let onSave: (String?, Int?, String?, Bool) async throws -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.colorScheme) private var colorScheme
 
     @State private var selectedGrade: String
     @State private var rating: Int = 0
@@ -21,7 +20,7 @@ struct LogClimbSheet: View {
     }
 
     private var theme: BoardedTheme {
-        BoardedTheme(colorScheme: colorScheme)
+        BoardedTheme()
     }
 
     var body: some View {
