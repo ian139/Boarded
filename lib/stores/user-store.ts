@@ -28,7 +28,6 @@ interface UserState {
   signup: (email: string, password: string, displayName?: string) => Promise<{ success: boolean; requiresConfirmation?: boolean; error?: string }>;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
-  setDisplayName: (name: string) => void;
   initializeAuth: () => Promise<void>;
   syncProfile: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<boolean>;
@@ -256,29 +255,6 @@ export const useUserStore = create<UserState>()(
         await reconcileDataForAuthChange();
       },
 
-      setDisplayName: async (name: string) => {
-        const supabase = createClient();
-        const state = get();
-
-        if (!state.user) return;
-
-        try {
-          await supabase.auth.updateUser({
-            data: { display_name: name },
-          });
-          await supabase
-            .from('profiles')
-            .update({ full_name: name })
-            .eq('id', state.user.id);
-        } catch (error) {
-          console.error('Failed to update display name:', error);
-        }
-
-        set({
-          user: { ...state.user, displayName: name },
-          profile: state.profile ? { ...state.profile, full_name: name } : state.profile,
-        });
-      },
 
       syncProfile: async () => {
         const supabase = createClient();

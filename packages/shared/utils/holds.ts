@@ -10,8 +10,7 @@ function createHold(
   x: number,
   y: number,
   type: HoldType,
-  size: HoldSize = 'medium',
-  sequence: number | null = null
+  size: HoldSize
 ): Hold {
   return {
     id: nanoid(),
@@ -19,7 +18,7 @@ function createHold(
     y,
     type,
     color: HOLD_COLORS[type],
-    sequence,
+    sequence: null,
     size,
   };
 }

@@ -38,7 +38,6 @@ function isLocalWall(wall: Wall) {
 interface WallsState {
   walls: Wall[];
   selectedWall: Wall | null;
-  isLoading: boolean;
 
   // Actions
   setSelectedWall: (wall: Wall | null) => void;
@@ -56,14 +55,12 @@ export const useWallsStore = create<WallsState>()(
     (set, get) => ({
       walls: [DEFAULT_WALL],
       selectedWall: DEFAULT_WALL,
-      isLoading: false,
 
       setSelectedWall: (wall) => set({ selectedWall: wall }),
 
       // Fetch walls allowed by Supabase RLS (public plus the signed-in user's private walls).
       fetchWalls: async () => {
         const fetchGeneration = ++wallFetchGeneration;
-        set({ isLoading: true });
 
         try {
           const supabase = createClient();
@@ -76,7 +73,6 @@ export const useWallsStore = create<WallsState>()(
 
           if (error) {
             console.error('Error fetching walls:', error);
-            if (fetchGeneration === wallFetchGeneration) set({ isLoading: false });
             return;
           }
 
@@ -94,11 +90,10 @@ export const useWallsStore = create<WallsState>()(
               ...localWalls,
               ...remoteWalls.filter(rw => !localWalls.some(lw => lw.id === rw.id))
             ];
-            set({ walls: mergedWalls, isLoading: false });
+            set({ walls: mergedWalls });
           }
         } catch (error) {
           console.error('Error fetching walls:', error);
-          if (fetchGeneration === wallFetchGeneration) set({ isLoading: false });
         }
       },
 
@@ -111,7 +106,6 @@ export const useWallsStore = create<WallsState>()(
           return {
             walls: state.walls.filter(isLocalWall),
             selectedWall: selectedIsLocal ? selected : DEFAULT_WALL,
-            isLoading: false,
           };
         });
       },
