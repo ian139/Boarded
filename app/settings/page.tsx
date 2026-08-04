@@ -79,7 +79,6 @@ export default function SettingsPage() {
   const handleClearData = () => {
     localStorage.removeItem('climbset-routes');
     localStorage.removeItem('climbset-walls');
-    localStorage.removeItem('climbset-wall');
     localStorage.removeItem('climbset-draft');
     window.location.reload();
   };

@@ -143,30 +143,10 @@ final class RoutesViewModel: ObservableObject {
         let currentLikeCount = current.likeCount ?? 0
         let newLikeCount = desiredLiked ? currentLikeCount + 1 : max(0, currentLikeCount - 1)
 
-        // Optimistic update
-        routes[index] = Route(
-            id: current.id,
-            userId: current.userId,
-            wallId: current.wallId,
-            name: current.name,
-            description: current.description,
-            gradeV: current.gradeV,
-            gradeFont: current.gradeFont,
-            holds: current.holds,
-            isPublic: current.isPublic,
-            viewCount: current.viewCount,
-            shareToken: current.shareToken,
-            createdAt: current.createdAt,
-            updatedAt: current.updatedAt,
-            userName: current.userName,
-            wallImageUrl: current.wallImageUrl,
-            wallImageWidth: current.wallImageWidth,
-            wallImageHeight: current.wallImageHeight,
-            likeCount: newLikeCount,
-            isLiked: desiredLiked,
-            ascents: current.ascents,
-            comments: current.comments
-        )
+        var updatedRoute = current
+        updatedRoute.likeCount = newLikeCount
+        updatedRoute.isLiked = desiredLiked
+        routes[index] = updatedRoute
 
         #if canImport(Supabase)
         guard !AppLaunchConfiguration.isUITestFixture,
@@ -204,34 +184,11 @@ final class RoutesViewModel: ObservableObject {
             throw RoutesViewModelError.routeNotLoaded(routeId)
         }
         let current = routes[index]
-        let updatedAscents = current.ascents.contains(where: { $0.id == ascent.id })
-            ? current.ascents
-            : current.ascents + [ascent]
-
-        // Optimistic update preserving route's setter grade
-        routes[index] = Route(
-            id: current.id,
-            userId: current.userId,
-            wallId: current.wallId,
-            name: current.name,
-            description: current.description,
-            gradeV: current.gradeV,
-            gradeFont: current.gradeFont,
-            holds: current.holds,
-            isPublic: current.isPublic,
-            viewCount: current.viewCount,
-            shareToken: current.shareToken,
-            createdAt: current.createdAt,
-            updatedAt: current.updatedAt,
-            userName: current.userName,
-            wallImageUrl: current.wallImageUrl,
-            wallImageWidth: current.wallImageWidth,
-            wallImageHeight: current.wallImageHeight,
-            likeCount: current.likeCount,
-            isLiked: current.isLiked,
-            ascents: updatedAscents,
-            comments: current.comments
-        )
+        var updatedRoute = current
+        if !updatedRoute.ascents.contains(where: { $0.id == ascent.id }) {
+            updatedRoute.ascents.append(ascent)
+        }
+        routes[index] = updatedRoute
 
         #if canImport(Supabase)
         guard !AppLaunchConfiguration.isUITestFixture,
@@ -264,29 +221,9 @@ final class RoutesViewModel: ObservableObject {
         }
 
         let current = routes[index]
-        let reconciledRoute = Route(
-            id: updatedRoute.id,
-            userId: updatedRoute.userId,
-            wallId: updatedRoute.wallId,
-            name: updatedRoute.name,
-            description: updatedRoute.description,
-            gradeV: updatedRoute.gradeV,
-            gradeFont: updatedRoute.gradeFont,
-            holds: updatedRoute.holds,
-            isPublic: updatedRoute.isPublic,
-            viewCount: updatedRoute.viewCount,
-            shareToken: updatedRoute.shareToken,
-            createdAt: updatedRoute.createdAt,
-            updatedAt: updatedRoute.updatedAt,
-            userName: updatedRoute.userName,
-            wallImageUrl: updatedRoute.wallImageUrl,
-            wallImageWidth: updatedRoute.wallImageWidth,
-            wallImageHeight: updatedRoute.wallImageHeight,
-            likeCount: updatedRoute.likeCount ?? current.likeCount,
-            isLiked: updatedRoute.isLiked ?? current.isLiked,
-            ascents: updatedRoute.ascents,
-            comments: updatedRoute.comments
-        )
+        var reconciledRoute = updatedRoute
+        reconciledRoute.likeCount = updatedRoute.likeCount ?? current.likeCount
+        reconciledRoute.isLiked = updatedRoute.isLiked ?? current.isLiked
         routes[index] = reconciledRoute
         return reconciledRoute
     }

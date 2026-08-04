@@ -166,16 +166,13 @@ enum NativeShareLinkParser {
               url.fragment == nil,
               url.pathComponents.count == 2,
               let token = url.pathComponents.last,
-              isValidToken(token),
+              isValidShareToken(token),
               url.path == "/\(token)" else {
             return nil
         }
         return token
     }
 
-    static func isValidToken(_ token: String) -> Bool {
-        isValidShareToken(token)
-    }
 }
 struct RootView_Previews: PreviewProvider {
     static var previews: some View {

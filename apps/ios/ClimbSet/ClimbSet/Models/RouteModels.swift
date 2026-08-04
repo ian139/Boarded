@@ -109,7 +109,7 @@ struct Route: Codable, Identifiable, Hashable {
     let wallImageHeight: Int?
     var likeCount: Int?
     var isLiked: Bool?
-    let ascents: [Ascent]
+    var ascents: [Ascent]
     let comments: [Comment]
 
     enum CodingKeys: String, CodingKey {
