@@ -51,8 +51,7 @@ struct RoutesView: View {
             }
             await viewModel.load(userId: session.userId)
             await wallsViewModel.load(userId: session.userId)
-            if !viewModel.isAllWallsSelected,
-               viewModel.selectedWallFilterId == nil,
+            if viewModel.selectedWallFilter == .none,
                let firstWall = wallsViewModel.walls.first {
                 viewModel.selectWall(id: firstWall.id)
             }
@@ -302,7 +301,7 @@ struct RoutesView: View {
                 compactMenuLabel(
                     title: "Wall",
                     selection: selectedWallFilterName,
-                    isActive: !viewModel.isAllWallsSelected
+                    isActive: viewModel.selectedWallFilter != .all
                 )
             }
             .frame(maxWidth: .infinity)
@@ -311,14 +310,14 @@ struct RoutesView: View {
         } else {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    BoardedFilterControl(title: "All Walls", isSelected: viewModel.isAllWallsSelected) {
+                    BoardedFilterControl(title: "All Walls", isSelected: viewModel.selectedWallFilter == .all) {
                         viewModel.selectAllWalls()
                     }
 
                     ForEach(wallsViewModel.walls) { wall in
                         BoardedFilterControl(
                             title: wall.name,
-                            isSelected: viewModel.selectedWallFilterId == wall.id && !viewModel.isAllWallsSelected
+                            isSelected: viewModel.selectedWallFilter == .wall(wall.id)
                         ) {
                             viewModel.selectWall(id: wall.id)
                         }
@@ -329,11 +328,10 @@ struct RoutesView: View {
     }
 
     private var selectedWallFilterName: String {
-        if viewModel.isAllWallsSelected {
-            return "All Walls"
+        if case let .wall(id) = viewModel.selectedWallFilter {
+            return wallsViewModel.walls.first { $0.id == id }?.name ?? "Select Wall"
         }
-        return wallsViewModel.walls.first { $0.id == viewModel.selectedWallFilterId }?.name
-            ?? "Select Wall"
+        return viewModel.selectedWallFilter == .all ? "All Walls" : "Select Wall"
     }
 
     private var content: some View {

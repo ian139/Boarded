@@ -5,7 +5,7 @@ const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), 
 
 const buildVersion = process.env.VERCEL_GIT_COMMIT_SHA ||
   process.env.NEXT_PUBLIC_BUILD_ID ||
-  `${pkg.version}-${Date.now()}`;
+  pkg.version;
 const nextConfig: NextConfig = {
   transpilePackages: ['@climbset/shared'],
   images: {

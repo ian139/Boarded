@@ -6,6 +6,12 @@ import Supabase
 import PostgREST
 #endif
 
+enum WallFilterSelection: Equatable {
+    case none
+    case all
+    case wall(String)
+}
+
 @MainActor
 final class RoutesViewModel: ObservableObject {
     @Published var routes: [Route] = []
@@ -13,8 +19,7 @@ final class RoutesViewModel: ObservableObject {
     @Published var errorMessage: String? = nil
     @Published var searchText = ""
     @Published var selectedSort: SortOption = .newest
-    @Published var selectedWallFilterId: String? = nil
-    @Published var isAllWallsSelected = false
+    @Published var selectedWallFilter: WallFilterSelection = .none
     @Published var selectedGradeFilter = "all"
     private let repository: RoutesRepository
     private var loadGeneration = 0
@@ -36,8 +41,7 @@ final class RoutesViewModel: ObservableObject {
         errorMessage = nil
         searchText = ""
         selectedSort = .newest
-        selectedWallFilterId = nil
-        isAllWallsSelected = false
+        selectedWallFilter = .none
         selectedGradeFilter = "all"
     }
 
@@ -47,13 +51,11 @@ final class RoutesViewModel: ObservableObject {
     }
 
     func selectAllWalls() {
-        selectedWallFilterId = nil
-        isAllWallsSelected = true
+        selectedWallFilter = .all
     }
 
     func selectWall(id: String) {
-        selectedWallFilterId = id
-        isAllWallsSelected = false
+        selectedWallFilter = .wall(id)
     }
 
     func load(userId: UUID?) async {
@@ -227,16 +229,19 @@ final class RoutesViewModel: ObservableObject {
         routes[index] = reconciledRoute
         return reconciledRoute
     }
-    var availableGrades: [String] {
-        let scopedRoutes: [Route]
-        if isAllWallsSelected {
-            scopedRoutes = routes
-        } else if let selectedWallFilterId {
-            scopedRoutes = routes.filter { $0.wallId == selectedWallFilterId }
-        } else {
-            scopedRoutes = []
+    private var wallScopedRoutes: [Route] {
+        switch selectedWallFilter {
+        case .none:
+            return []
+        case .all:
+            return routes
+        case .wall(let id):
+            return routes.filter { $0.wallId == id }
         }
-        return Array(Set(scopedRoutes.compactMap(\.gradeV)))
+    }
+
+    var availableGrades: [String] {
+        Array(Set(wallScopedRoutes.compactMap(\.gradeV)))
             .sorted { gradeNumber($0) < gradeNumber($1) }
     }
 
@@ -247,15 +252,7 @@ final class RoutesViewModel: ObservableObject {
 
     var filteredRoutes: [Route] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let wallFiltered: [Route]
-        if isAllWallsSelected {
-            wallFiltered = routes
-        } else if let selectedWallFilterId {
-            wallFiltered = routes.filter { $0.wallId == selectedWallFilterId }
-        } else {
-            wallFiltered = []
-        }
-        let base = wallFiltered.filter { route in
+        let base = wallScopedRoutes.filter { route in
             let matchesSearch = query.isEmpty
                 || route.name.lowercased().contains(query)
                 || (route.userName ?? "").lowercased().contains(query)
