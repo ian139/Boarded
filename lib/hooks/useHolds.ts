@@ -12,16 +12,16 @@ import {
 
 const STORAGE_KEY = 'climbset-draft';
 
-export function useHolds(initialHolds: Hold[] = []) {
+export function useHolds() {
 	const getStoredHolds = () => {
-		if (typeof window === 'undefined') return initialHolds;
+		if (typeof window === 'undefined') return [];
 		const saved = localStorage.getItem(STORAGE_KEY);
-		if (!saved) return initialHolds;
+		if (!saved) return [];
 		try {
 			const parsed = JSON.parse(saved);
-			return Array.isArray(parsed) ? parsed : initialHolds;
+			return Array.isArray(parsed) ? parsed : [];
 		} catch {
-			return initialHolds;
+			return [];
 		}
 	};
 
@@ -167,7 +167,7 @@ export function useHolds(initialHolds: Hold[] = []) {
 	const canRedo = historyMeta.index < historyMeta.length - 1;
 
 	return {
-		holds: holds || [], // Always return an array
+		holds,
 		selectedType,
 		selectedSize,
 		showSequence,

@@ -187,15 +187,10 @@ export function WallPickerDialog({ open, onOpenChange }: WallPickerDialogProps) 
     }
   };
 
-  const canUpdateWallPhoto = (wall: Wall) => {
-    if (wall.id === 'default-wall') return true;
-    return isModerator || wall.user_id === currentUserId || wall.user_id === 'local-user';
-  };
-
-  const canDeleteWall = (wall: Wall) => {
-    if (wall.id === 'default-wall') return false;
-    return isModerator || wall.user_id === currentUserId || wall.user_id === 'local-user';
-  };
+  const canManageWall = (wall: Wall) =>
+    isModerator || wall.user_id === currentUserId || wall.user_id === 'local-user';
+  const canUpdateWallPhoto = (wall: Wall) => wall.id === 'default-wall' || canManageWall(wall);
+  const canDeleteWall = (wall: Wall) => wall.id !== 'default-wall' && canManageWall(wall);
 
   return (
     <>
