@@ -38,7 +38,7 @@ test -s "$response"
 
 node <<'NODE'
 const { execFileSync } = require('node:child_process');
-const { readFileSync } = require('node:fs');
+const { existsSync, readFileSync } = require('node:fs');
 
 const maintainedExtensions = new Set([
   '.css', '.js', '.json', '.md', '.mjs', '.plist', '.sql', '.swift',
@@ -58,6 +58,7 @@ const paths = execFileSync('git', ['ls-files', '-z'])
     const dot = path.lastIndexOf('.');
     return dot >= 0 && maintainedExtensions.has(path.slice(dot));
   })
+  .filter((path) => existsSync(path))
   .sort();
 
 let bytes = 0;
