@@ -10,7 +10,6 @@ struct BoardedTheme {
 
     // Neutral panel roles derive from the active adaptive palette.
     var panelBackground: Color { AppColor.surface }
-    var elevatedPanelBackground: Color { AppColor.surface }
 
     var primaryText: Color { AppColor.text }
     var secondaryText: Color { AppColor.text.opacity(0.7) }
@@ -18,7 +17,6 @@ struct BoardedTheme {
     var secondary: Color { AppColor.secondary }
     var accent: Color { AppColor.accent }
     var border: Color { AppColor.border }
-    var subtleBorder: Color { AppColor.border }
     var destructive: Color { AppColor.destructive }
     var actionForeground: Color { AppColor.actionForeground }
 
@@ -152,7 +150,6 @@ struct BoardedGlassContainer<Content: View>: View {
 }
 
 private struct BoardedPanelModifier: ViewModifier {
-    let elevated: Bool
 
     func body(content: Content) -> some View {
         let theme = BoardedTheme()
@@ -168,8 +165,8 @@ extension View {
         modifier(BoardedPageBackgroundModifier())
     }
 
-    func boardedPanel(elevated: Bool = true) -> some View {
-        modifier(BoardedPanelModifier(elevated: elevated))
+    func boardedPanel() -> some View {
+        modifier(BoardedPanelModifier())
     }
 
     func boardedGlassSurface<S: Shape>(in shape: S, interactive: Bool = false) -> some View {

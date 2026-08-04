@@ -28,6 +28,24 @@ interface StorageFolderSize {
   totalBytes: number;
   latestTs: string | null;
 }
+const listWallStorageFolder = async (supabase: SupabaseClient, prefix: string) => {
+  const items = [];
+  let offset = 0;
+  const limit = 100;
+
+  while (true) {
+    const { data, error } = await supabase.storage
+      .from('walls')
+      .list(prefix, { limit, offset, sortBy: { column: 'name', order: 'asc' } });
+    if (error) throw error;
+    if (!data) throw new Error(`Incomplete storage list for prefix "${prefix}"`);
+    items.push(...data);
+    if (data.length < limit) break;
+    offset += limit;
+  }
+  return items;
+};
+
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -84,27 +102,11 @@ export default function SettingsPage() {
   };
 
   useEffect(() => {
-    const listStorageFolder = async (supabase: SupabaseClient, folder: string) => {
-      const items = [];
-      let offset = 0;
-      const limit = 100;
-
-      while (true) {
-        const { data, error } = await supabase.storage
-          .from('walls')
-          .list(folder, { limit, offset, sortBy: { column: 'name', order: 'asc' } });
-        if (error) throw error;
-        if (!data) throw new Error(`Incomplete storage list for prefix "${folder}"`);
-        items.push(...data);
-        if (data.length < limit) return items;
-        offset += limit;
-      }
-    };
 
     const listFolderSize = async (supabase: SupabaseClient, folder: string): Promise<StorageFolderSize> => {
       let totalBytes = 0;
       let latestTs: string | null = null;
-      const items = await listStorageFolder(supabase, folder);
+      const items = await listWallStorageFolder(supabase, folder);
 
       for (const item of items) {
         if (!item.metadata) {
@@ -144,7 +146,7 @@ export default function SettingsPage() {
             }
           }
         }
-        const folders = (await listStorageFolder(supabase, ''))
+        const folders = (await listWallStorageFolder(supabase, ''))
           .filter((item) => !item.metadata)
           .map((item) => item.name);
 
@@ -198,7 +200,6 @@ export default function SettingsPage() {
   const getCleanupCandidates = async () => {
     const supabase = createClient();
     const DB_PAGE_LIMIT = 1000;
-    const STORAGE_PAGE_LIMIT = 100;
     const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
 
     const fetchReferencedWallPaths = async () => {
@@ -244,31 +245,16 @@ export default function SettingsPage() {
       return Date.now() - new Date(ts).getTime() > SEVEN_DAYS;
     };
 
-    const listStorageFolder = async (prefix: string) => {
-      const items = [];
-      let offset = 0;
-      while (true) {
-        const { data, error } = await supabase.storage
-          .from('walls')
-          .list(prefix, { limit: STORAGE_PAGE_LIMIT, offset, sortBy: { column: 'name', order: 'asc' } });
-        if (error) throw error;
-        if (!data) throw new Error(`Incomplete storage list for prefix "${prefix}"`);
-        items.push(...data);
-        if (data.length < STORAGE_PAGE_LIMIT) break;
-        offset += STORAGE_PAGE_LIMIT;
-      }
-      return items;
-    };
 
     const collectStorageCandidates = async () => {
       const candidates: string[] = [];
-      const rootFolders = (await listStorageFolder('')).filter((item) => !item.metadata);
+      const rootFolders = (await listWallStorageFolder(supabase, '')).filter((item) => !item.metadata);
       for (const rootFolder of rootFolders) {
         const rootPrefix = rootFolder.name;
-        const wallFolders = (await listStorageFolder(rootPrefix)).filter((item) => !item.metadata);
+        const wallFolders = (await listWallStorageFolder(supabase, rootPrefix)).filter((item) => !item.metadata);
         for (const wallFolder of wallFolders) {
           const wallPrefix = `${rootPrefix}/${wallFolder.name}`;
-          const wallItems = await listStorageFolder(wallPrefix);
+          const wallItems = await listWallStorageFolder(supabase, wallPrefix);
           for (const item of wallItems) {
             if (!item.metadata || !isOldEnough(item)) continue;
             candidates.push(`${wallPrefix}/${item.name}`);

@@ -345,7 +345,7 @@ struct RoutesView: View {
                         .font(AppTypography.label)
                         .foregroundStyle(theme.secondaryText)
                 }
-                .boardedPanel(elevated: false)
+                .boardedPanel()
                 .frame(maxWidth: AppLayout.contentMaxWidth)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(theme.pagePadding)
@@ -363,7 +363,7 @@ struct RoutesView: View {
                     }
                     .buttonStyle(BoardedButtonStyle(.secondary))
                 }
-                .boardedPanel(elevated: false)
+                .boardedPanel()
                 .frame(maxWidth: AppLayout.contentMaxWidth)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(theme.pagePadding)
