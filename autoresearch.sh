@@ -48,7 +48,7 @@ const maintainedNames = new Set([
   '.env.local.example', '.gitattributes', '.gitignore',
 ]);
 const excluded = new Set(['package-lock.json']);
-const paths = execFileSync('git', ['ls-files', '-z'])
+const paths = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'])
   .toString('utf8')
   .split('\0')
   .filter(Boolean)
