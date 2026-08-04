@@ -157,21 +157,12 @@ struct SupabaseProfileRepository: ProfileRepository {
                 routeGrade: route?.gradeV,
                 ascentGrade: ascent.gradeV,
                 flashed: ascent.flashed ?? false,
-                completedAt: parseDate(ascent.createdAt),
+                completedAt: parseISO8601Date(ascent.createdAt),
                 route: route
             )
         }
     }
 
-    private func parseDate(_ value: String?) -> Date? {
-        guard let value else { return nil }
-        let withFractional = ISO8601DateFormatter()
-        withFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = withFractional.date(from: value) { return date }
-        let standard = ISO8601DateFormatter()
-        standard.formatOptions = [.withInternetDateTime]
-        return standard.date(from: value)
-    }
 }
 
 /// Deterministic data source for previews and unit tests only. Production code

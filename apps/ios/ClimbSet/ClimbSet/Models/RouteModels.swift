@@ -263,6 +263,16 @@ extension Hold {
     }
 }
 
+func parseISO8601Date(_ value: String?) -> Date? {
+    guard let value else { return nil }
+    let fractional = ISO8601DateFormatter()
+    fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    if let date = fractional.date(from: value) { return date }
+    let standard = ISO8601DateFormatter()
+    standard.formatOptions = [.withInternetDateTime]
+    return standard.date(from: value)
+}
+
 func normalizedRemoteImageURLString(_ value: String?) -> String? {
     guard let value else { return nil }
     let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)

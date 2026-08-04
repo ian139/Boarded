@@ -161,7 +161,7 @@ struct RouteRow: View {
     }
 
     private var timeAgo: String {
-        let diff = Date().timeIntervalSince(parseDate(route.createdAt))
+        let diff = Date().timeIntervalSince(parseISO8601Date(route.createdAt) ?? Date())
         let mins = Int(diff / 60)
         if mins < 60 { return "\(mins)m" }
         let hours = mins / 60
@@ -171,17 +171,4 @@ struct RouteRow: View {
         return "\(days / 7)w"
     }
 
-    private func parseDate(_ value: String) -> Date {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = formatter.date(from: value) {
-            return date
-        }
-        let fallback = ISO8601DateFormatter()
-        fallback.formatOptions = [.withInternetDateTime]
-        if let date = fallback.date(from: value) {
-            return date
-        }
-        return Date()
-    }
 }

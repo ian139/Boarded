@@ -330,9 +330,9 @@ final class RoutesViewModel: ObservableObject {
         return base.sorted { lhs, rhs in
             switch selectedSort {
             case .newest:
-                return parseDate(lhs.createdAt) > parseDate(rhs.createdAt)
+                return (parseISO8601Date(lhs.createdAt) ?? .distantPast) > (parseISO8601Date(rhs.createdAt) ?? .distantPast)
             case .oldest:
-                return parseDate(lhs.createdAt) < parseDate(rhs.createdAt)
+                return (parseISO8601Date(lhs.createdAt) ?? .distantPast) < (parseISO8601Date(rhs.createdAt) ?? .distantPast)
             case .name:
                 return lhs.name.localizedCompare(rhs.name) == .orderedAscending
             case .gradeAscending:
@@ -351,16 +351,6 @@ final class RoutesViewModel: ObservableObject {
         }
     }
 
-    private func parseDate(_ value: String) -> Date {
-        let fractional = ISO8601DateFormatter()
-        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = fractional.date(from: value) {
-            return date
-        }
-        let standard = ISO8601DateFormatter()
-        standard.formatOptions = [.withInternetDateTime]
-        return standard.date(from: value) ?? .distantPast
-    }
 
     private func gradeNumber(_ grade: String?) -> Double {
         Double(ProfileStatistics.gradeRank(grade))
