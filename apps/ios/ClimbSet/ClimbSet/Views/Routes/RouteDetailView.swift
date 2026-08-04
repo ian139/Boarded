@@ -1208,29 +1208,14 @@ struct RouteDetailView: View {
         wallImageWidth: Int?,
         wallImageHeight: Int?
     ) -> Route {
-        Route(
-            id: base.id,
-            userId: base.userId,
-            wallId: base.wallId,
-            name: base.name,
-            description: base.description,
-            gradeV: base.gradeV,
-            gradeFont: base.gradeFont,
-            holds: base.holds,
-            isPublic: base.isPublic,
-            viewCount: base.viewCount,
-            shareToken: base.shareToken,
-            createdAt: base.createdAt,
-            updatedAt: base.updatedAt,
-            userName: base.userName,
-            wallImageUrl: wallImageUrl,
-            wallImageWidth: wallImageWidth,
-            wallImageHeight: wallImageHeight,
-            likeCount: likeCount,
-            isLiked: isLiked,
-            ascents: ascents,
-            comments: base.comments
-        )
+        var updated = base
+        updated.likeCount = likeCount
+        updated.isLiked = isLiked
+        updated.ascents = ascents
+        updated.wallImageUrl = wallImageUrl
+        updated.wallImageWidth = wallImageWidth
+        updated.wallImageHeight = wallImageHeight
+        return updated
     }
     private func updateRouteWall(_ wall: Wall) async {
         do {

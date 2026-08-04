@@ -104,9 +104,9 @@ struct Route: Codable, Identifiable, Hashable {
     let createdAt: String
     let updatedAt: String
     let userName: String?
-    let wallImageUrl: String?
-    let wallImageWidth: Int?
-    let wallImageHeight: Int?
+    var wallImageUrl: String?
+    var wallImageWidth: Int?
+    var wallImageHeight: Int?
     var likeCount: Int?
     var isLiked: Bool?
     var ascents: [Ascent]
