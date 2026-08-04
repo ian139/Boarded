@@ -5,7 +5,6 @@ import { Hold, HoldType, HoldSize } from '@climbset/shared/types';
 import {
 	addHold as addHoldUtil,
 	removeHold as removeHoldUtil,
-	updateHold as updateHoldUtil,
 	clearHolds as clearHoldsUtil,
 	toggleSequencing,
 	findHoldNearPoint,
@@ -105,17 +104,6 @@ export function useHolds(initialHolds: Hold[] = []) {
 		[selectedType, selectedSize, pushToHistory]
 	);
 
-	// Update a specific hold
-	const updateHold = useCallback(
-		(holdId: string, updates: Partial<Hold>) => {
-			setHolds((prev) => {
-				const updated = updateHoldUtil(prev, holdId, updates);
-				pushToHistory(updated);
-				return updated;
-			});
-		},
-		[pushToHistory]
-	);
 
 	const clearHolds = useCallback(() => {
 		setHolds((prev) => {
@@ -188,7 +176,6 @@ export function useHolds(initialHolds: Hold[] = []) {
 		setSelectedSize,
 		addHold,
 		removeHold,
-		updateHold,
 		handleTap,
 		clearHolds,
 		setAllHolds,

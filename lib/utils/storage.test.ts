@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { classifyStoragePath, getWallStoragePathFromUrl, intersectStoragePaths } from './storage';
+import { classifyStoragePath, getWallStoragePathFromUrl, intersectStoragePaths } from './storage.ts';
 
 describe('getWallStoragePathFromUrl', () => {
   it('extracts the path and strips query strings and fragments', () => {

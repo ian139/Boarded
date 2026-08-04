@@ -17,9 +17,7 @@ interface RoutesState {
   addRoute: (route: Route) => Promise<boolean>;
   updateRoute: (id: string, updates: Partial<Route>) => Promise<boolean>;
   deleteRoute: (id: string) => Promise<boolean>;
-  getRoutesByWall: (wallId: string) => Route[];
   addAscent: (routeId: string, ascent: Ascent) => Promise<boolean>;
-  removeAscent: (routeId: string, ascentId: string) => Promise<boolean>;
   hasUserClimbed: (routeId: string, userId: string) => boolean;
 
   // Comment actions
@@ -627,8 +625,6 @@ export const useRoutesStore = create<RoutesState>()(
         }
       },
 
-      getRoutesByWall: (wallId) =>
-        get().routes.filter((r) => r.wall_id === wallId),
       addAscent: async (routeId, ascent) => {
         const previousRoute = get().routes.find(r => r.id === routeId);
         const normalizedAscent = {
@@ -679,37 +675,6 @@ export const useRoutesStore = create<RoutesState>()(
         }
       },
 
-      removeAscent: async (routeId, ascentId) => {
-        const previousRoute = get().routes.find(r => r.id === routeId);
-        if (!previousRoute) return false;
-        const authGeneration = routeAuthGeneration;
-
-        set((state) => ({
-          routes: state.routes.map((r) =>
-            r.id === routeId
-              ? { ...r, ascents: (r.ascents || []).filter((a) => a.id !== ascentId), updated_at: new Date().toISOString() }
-              : r
-          ),
-        }));
-        if (previousRoute.user_id === 'local-user' || (previousRoute as LocalRoute)._createSyncPending) return true;
-
-        try {
-          const supabase = createClient();
-          const { error } = await supabase
-            .from('ascents')
-            .delete()
-            .eq('id', ascentId);
-          if (error) throw error;
-          return true;
-        } catch (error) {
-          if (authGeneration !== routeAuthGeneration) return false;
-          console.error('Failed to remove ascent:', error);
-          set((state) => ({
-            routes: state.routes.map((r) => r.id === routeId ? previousRoute : r),
-          }));
-          return false;
-        }
-      },
       hasUserClimbed: (routeId, userId) => {
         const route = get().routes.find((r) => r.id === routeId);
         return route?.ascents?.some((a) => a.user_id === userId) || false;

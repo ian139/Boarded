@@ -34,19 +34,16 @@ npm install
 
    Open <http://localhost:3000>.
 
-The browser client reads `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. The template also contains `NEXT_PUBLIC_APP_URL`; the checked-in web code does not currently read that value. `LEGACY_SUPABASE_URL` is the optional migration input. Use the exact variable names below; do not invent alternate names.
+The browser client reads `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Use these exact names rather than inventing aliases.
 
 ### Environment variables and security
 
 | Variable | Required for | Meaning | Handling |
 | --- | --- | --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | Web client and maintenance scripts | Supabase project URL | Public configuration, but keep it aligned with the project being used. |
+| `NEXT_PUBLIC_SUPABASE_URL` | Web client | Supabase project URL | Public configuration, but keep it aligned with the project being used. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Web client | Supabase publishable/anonymous key used with normal user-session/RLS access | Client-safe only as designed by Supabase policies; never substitute a privileged key. |
-| `SUPABASE_SERVICE_ROLE_KEY` | `migrate:share-tokens`, `backfill:default-wall` | Privileged server-side Supabase key | **Never client-safe.** Do not put it in `NEXT_PUBLIC_*`, the iOS plist, browser code, screenshots, logs, or commits. |
-| `LEGACY_SUPABASE_URL` | Optional `backfill:default-wall` migration | Comma-separated legacy Supabase URL(s) whose storage origins may be rewritten | Keep private to the local maintenance environment; leave unset when not migrating legacy storage. |
-| `NEXT_PUBLIC_APP_URL` | Local/project URL configuration | Web app URL placeholder (`http://localhost:3000` in the template) | Do not treat this as a secret. Set it only where the app needs a public URL. |
 
-The browser Supabase client is created from the two `NEXT_PUBLIC_*` Supabase values. The service-role key bypasses normal RLS protections and is therefore restricted to deliberate maintenance scripts. If a privileged key is exposed, revoke or rotate it in Supabase immediately. Never put service-role or other secret values in this guide, tracked files, client configuration, screenshots, or logs.
+The browser Supabase client is created from these two public values. Never put secret values in this guide, tracked files, client configuration, screenshots, or logs.
 
 ## Exact npm commands
 
@@ -58,11 +55,10 @@ npm run dev
 npm run build
 npm start
 npm run lint
-npm run migrate:share-tokens
-npm run backfill:default-wall
+npm test
 ```
 
-Run `npm start` only after `npm run build`; it serves the production build locally. The two `migrate:*`/`backfill:*` commands are privileged data-maintenance operations, not ordinary application startup commands (see [Privileged maintenance](#privileged-maintenance)).
+Run `npm start` only after `npm run build`; it serves the production build locally.
 
 <a id="ios"></a>
 ## iOS setup and running
@@ -110,27 +106,13 @@ python3 supabase/tests/rls_ownership_harness.py
 
 The script deliberately refuses non-loopback API URLs and non-`supabase_db_*` database containers. It uses normal local Auth user JWTs and Docker Postgres fixture setup/cleanup; it does not read or send `SUPABASE_SERVICE_ROLE_KEY`. Start and configure any disposable local stack separately before invoking it, and never point the harness at production.
 
-## Privileged maintenance
-
-Run these only from the repository root with the intended Supabase project configured in `.env.local`:
-
-```bash
-npm run migrate:share-tokens
-npm run backfill:default-wall
-```
-
-- `migrate:share-tokens` finds routes with a null `share_token` and assigns generated tokens.
-- `backfill:default-wall` checks `public/walls/default-wall.jpg`, ensures the `walls` Storage bucket, uploads `default-wall/wall.jpg`, and rewrites matching `default-wall` route image URLs. `LEGACY_SUPABASE_URL` is optional for recognizing legacy storage origins.
-
-Both scripts require `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`. Review the target project and expected rows first, use a narrowly scoped maintenance environment, and keep the service-role key out of source control and client artifacts.
-
-<a id="validation"></a>
 ## Validation
 
 Run the checks relevant to the area you changed:
 
 ```bash
 npm run lint
+npm test
 npm run build
 xcodebuild -project apps/ios/ClimbSet/ClimbSet.xcodeproj -scheme ClimbSet -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build
 python3 supabase/tests/rls_ownership_harness.py
@@ -148,7 +130,6 @@ For native behavior changes, select an installed iOS simulator in Xcode and choo
 - `lib/` — web Supabase client, stores, hooks, utilities, and tests.
 - `packages/shared/` — workspace-shared TypeScript package.
 - `public/` — web static assets, including the default wall image.
-- `scripts/` — privileged maintenance scripts invoked by npm.
 - `apps/ios/ClimbSet/ClimbSet/` — SwiftUI app source, services, models, view models, assets, and Info.plist.
 - `apps/ios/ClimbSet/ClimbSet.xcodeproj/` — Xcode project and schemes.
 - `apps/ios/ClimbSet/ClimbSetTests/` — native unit/contract tests.

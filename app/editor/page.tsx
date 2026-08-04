@@ -5,8 +5,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useHolds } from '@/lib/hooks/useHolds';
-import { HoldType, HoldSize, Route, V_GRADES, HOLD_COLORS, HOLD_TYPE_CYCLE, HOLD_BORDER_WIDTH, Hold } from '@climbset/shared/types';
-import { pixelToPercentage } from '@climbset/shared/utils/holds';
+import { HoldType, HoldSize, Route, V_GRADES, HOLD_COLORS, HOLD_BORDER_WIDTH, Hold } from '@climbset/shared/types';
+import { getNextHoldType, pixelToPercentage } from '@climbset/shared/utils/holds';
 import { HoldMarker } from '@/components/wall/HoldMarker';
 import { nanoid } from 'nanoid';
 import { cn } from '@/lib/utils';
@@ -505,11 +505,6 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
   const previewSize = 12 + (sizeValue / 100) * 20;
   const previewBorderWidth = HOLD_BORDER_WIDTH[selectedSize];
 
-  const cycleHoldType = () => {
-    const currentIndex = HOLD_TYPE_CYCLE.indexOf(selectedType);
-    const nextIndex = (currentIndex + 1) % HOLD_TYPE_CYCLE.length;
-    setSelectedType(HOLD_TYPE_CYCLE[nextIndex]);
-  };
 
   const handleSaveDialogChange = (open: boolean) => {
     setShowSaveDialog(open);
@@ -611,7 +606,7 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
           <div className="bg-card/75 backdrop-blur-2xl border border-border/20 rounded-2xl p-3">
             <div className="flex items-center justify-between gap-2">
               <button
-                onClick={cycleHoldType}
+                onClick={() => setSelectedType(getNextHoldType(selectedType))}
                 className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border/20 bg-muted/40 active:scale-95 transition-all"
                 style={{
                   backgroundColor: `${HOLD_COLORS[selectedType]}15`,

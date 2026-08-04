@@ -1,5 +1,5 @@
-import type { Ascent, Route } from '../types';
-import { V_GRADES } from '../types';
+import type { Ascent, Route } from '../types/index.ts';
+import { V_GRADES } from '../types/index.ts';
 
 export type GradeInput = string | number | null | undefined;
 

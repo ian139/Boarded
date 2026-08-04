@@ -88,14 +88,6 @@ export function removeHold(holds: Hold[], x: number, y: number): Hold[] {
   return holds.filter((hold) => hold.id !== holdToRemove.id);
 }
 
-/**
- * Update a hold's properties
- */
-export function updateHold(holds: Hold[], holdId: string, updates: Partial<Hold>): Hold[] {
-  return holds.map((hold) =>
-    hold.id === holdId ? { ...hold, ...updates } : hold
-  );
-}
 
 /**
  * Get the next hold type in the cycle

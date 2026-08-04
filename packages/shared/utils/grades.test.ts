@@ -6,7 +6,7 @@ import {
   gradeToNumber,
   numberToGrade,
   normalizeRouteGrades,
-} from './grades';
+} from './grades.ts';
 
 describe('canonicalizeGrade', () => {
   it('canonicalizes case and surrounding whitespace', () => {
