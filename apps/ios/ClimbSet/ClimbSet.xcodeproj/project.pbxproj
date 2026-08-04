@@ -27,7 +27,6 @@
 		AA1100302F5B000100535751 /* LogClimbSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1100312F5B000100535751 /* LogClimbSheet.swift */; };
 		3CDD08EE2F5A072900535751 /* SearchField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD08EA2F5A072900535751 /* SearchField.swift */; };
 		3CDD08EF2F5A072900535751 /* RoutesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD08E62F5A072900535751 /* RoutesView.swift */; };
-		3CDD08F02F5A072900535751 /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD08DD2F5A072900535751 /* AuthView.swift */; };
 		3CDD08F12F5A072900535751 /* RouteDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD08E42F5A072900535751 /* RouteDetailView.swift */; };
 		3CDD08F22F5A072900535751 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD08E22F5A072900535751 /* SettingsView.swift */; };
 		3CDD08F32F5A072900535751 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD08E12F5A072900535751 /* ProfileView.swift */; };
@@ -75,7 +74,6 @@
 		3CDD09122F5A200100535751 /* ProfileStatistics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileStatistics.swift; sourceTree = "<group>"; };
 		3CDD08C82F5A064A00535751 /* SupabaseConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseConfig.swift; sourceTree = "<group>"; };
 		3CDD08CA2F5A067100535751 /* ProfileModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileModels.swift; sourceTree = "<group>"; };
-		3CDD08DD2F5A072900535751 /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
 		3CDD08DF2F5A072900535751 /* EditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorView.swift; sourceTree = "<group>"; };
 		3CDD08E12F5A072900535751 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		3CDD08E22F5A072900535751 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -127,10 +125,8 @@
 				AA1100132F5B000100535751 /* ClimbSetUITests */,
 				3CDD08EC2F5A072900535751 /* Views */,
 				3CDD08902F59FBD700535751 /* Theme.swift */,
-				3CDD08912F59FBD700535751 /* Utilities */,
 				3CDD08752F59FBB600535751 /* Models */,
 				3CDD08772F59FBB600535751 /* Services */,
-				3CDD08C52F5A00C800535751 /* Frameworks */,
 				3CDD08242F59F69900535751 /* Products */,
 				3CDD08FB2F5A0A0300535751 /* ViewModels */,
 			);
@@ -167,29 +163,6 @@
 			);
 			name = Services;
 			path = ClimbSet/Services;
-			sourceTree = "<group>";
-		};
-		3CDD08912F59FBD700535751 /* Utilities */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			name = Utilities;
-			path = ClimbSet/Utilities;
-			sourceTree = "<group>";
-		};
-		3CDD08C52F5A00C800535751 /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			name = Frameworks;
-			sourceTree = "<group>";
-		};
-		3CDD08DE2F5A072900535751 /* Auth */ = {
-			isa = PBXGroup;
-			children = (
-				3CDD08DD2F5A072900535751 /* AuthView.swift */,
-			);
-			path = Auth;
 			sourceTree = "<group>";
 		};
 		3CDD08E02F5A072900535751 /* Editor */ = {
@@ -233,7 +206,6 @@
 			isa = PBXGroup;
 			children = (
 				3CDD09032F5A0F8E00535751 /* Walls */,
-				3CDD08DE2F5A072900535751 /* Auth */,
 				3CDD08E02F5A072900535751 /* Editor */,
 				3CDD08E32F5A072900535751 /* Profile */,
 				3CDD08E72F5A072900535751 /* Routes */,
@@ -422,7 +394,6 @@
 				3CDD08FD2F5A0A0300535751 /* CommentsViewModel.swift in Sources */,
 				3CDD08FE2F5A0A0300535751 /* ProfileViewModel.swift in Sources */,
 				3CDD08FF2F5A0A0300535751 /* AppSession.swift in Sources */,
-				3CDD08F02F5A072900535751 /* AuthView.swift in Sources */,
 				3CDD08F12F5A072900535751 /* RouteDetailView.swift in Sources */,
 				3CDD08F22F5A072900535751 /* SettingsView.swift in Sources */,
 				3CDD08F32F5A072900535751 /* ProfileView.swift in Sources */,

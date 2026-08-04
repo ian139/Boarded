@@ -209,6 +209,11 @@ struct SettingsView: View {
     }
 }
 
+private enum AuthMode {
+    case signIn
+    case signUp
+}
+
 private struct AccountAccessView: View {
     @EnvironmentObject var session: AppSession
     @Environment(\.colorScheme) private var colorScheme
