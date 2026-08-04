@@ -301,10 +301,6 @@ extension Wall {
         normalizedRemoteImageURLString(imageUrl)
     }
 
-    var imageURL: URL? {
-        guard let normalizedImageUrl else { return nil }
-        return URL(string: normalizedImageUrl)
-    }
 }
 
 extension HoldType {

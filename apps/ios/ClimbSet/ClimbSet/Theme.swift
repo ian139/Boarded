@@ -304,14 +304,6 @@ private func hexToRGB(_ value: String) -> (r: Double, g: Double, b: Double) {
     return (0, 0, 0)
 }
 
-#if canImport(UIKit)
-extension UIColor {
-    static func fromHex(_ value: String) -> UIColor {
-        let rgb = hexToRGB(value)
-        return UIColor(red: rgb.r, green: rgb.g, blue: rgb.b, alpha: 1)
-    }
-}
-#endif
 
 extension Color {
     static func hex(_ value: String) -> Color {
