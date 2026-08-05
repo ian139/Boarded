@@ -97,6 +97,17 @@ export function getNextHoldType(currentType: HoldType): HoldType {
   return HOLD_TYPE_CYCLE[nextIndex];
 }
 
+const HOLD_SIZE_CYCLE: HoldSize[] = ['small', 'medium', 'large'];
+
+/**
+ * Get the next hold size in the cycle
+ */
+export function getNextHoldSize(currentSize: HoldSize): HoldSize {
+  const currentIndex = HOLD_SIZE_CYCLE.indexOf(currentSize);
+  const nextIndex = (currentIndex + 1) % HOLD_SIZE_CYCLE.length;
+  return HOLD_SIZE_CYCLE[nextIndex];
+}
+
 /**
  * Cycle a hold's type to the next in sequence and update its color
  */

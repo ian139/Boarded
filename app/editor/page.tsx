@@ -5,8 +5,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useHolds } from '@/lib/hooks/useHolds';
-import { HoldType, HoldSize, Route, V_GRADES, HOLD_COLORS, HOLD_BORDER_WIDTH, Hold } from '@climbset/shared/types';
-import { getNextHoldType, pixelToPercentage } from '@climbset/shared/utils/holds';
+import { HoldType, Route, V_GRADES, HOLD_COLORS, HOLD_BORDER_WIDTH, Hold } from '@climbset/shared/types';
+import { getNextHoldType, getNextHoldSize, pixelToPercentage } from '@climbset/shared/utils/holds';
 import { HoldMarker } from '@/components/wall/HoldMarker';
 import { nanoid } from 'nanoid';
 import { cn } from '@/lib/utils';
@@ -452,58 +452,9 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
 
   const holdTypes: HoldType[] = ['start', 'hand', 'foot', 'finish'];
 
-  const sizeToValue = (size: HoldSize): number => {
-    switch (size) {
-      case 'small': return 0;
-      case 'medium': return 50;
-      case 'large': return 100;
-    }
-  };
+  const cycleSize = () => setSelectedSize(getNextHoldSize(selectedSize));
 
-  const valueToSize = (value: number): HoldSize => {
-    if (value < 33) return 'small';
-    if (value < 67) return 'medium';
-    return 'large';
-  };
-
-  const [sizeValue, setSizeValue] = useState(sizeToValue(selectedSize));
-
-  useEffect(() => {
-    setSizeValue(sizeToValue(selectedSize));
-  }, [selectedSize]);
-
-  const handleSizeChange = (value: number) => {
-    setSizeValue(value);
-    const newSize = valueToSize(value);
-    if (newSize !== selectedSize) {
-      setSelectedSize(newSize);
-    }
-  };
-
-  const [isDraggingSize, setIsDraggingSize] = useState(false);
-  const dragStartRef = useRef<{ x: number; startValue: number } | null>(null);
-
-  const handleSizeDragStart = (e: React.PointerEvent) => {
-    e.preventDefault();
-    setIsDraggingSize(true);
-    dragStartRef.current = { x: e.clientX, startValue: sizeValue };
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
-  };
-
-  const handleSizeDragMove = (e: React.PointerEvent) => {
-    if (!isDraggingSize || !dragStartRef.current) return;
-    const deltaX = e.clientX - dragStartRef.current.x;
-    const newValue = Math.max(0, Math.min(100, dragStartRef.current.startValue + deltaX * 1.5));
-    handleSizeChange(newValue);
-  };
-
-  const handleSizeDragEnd = (e: React.PointerEvent) => {
-    setIsDraggingSize(false);
-    dragStartRef.current = null;
-    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-  };
-
-  const previewSize = 12 + (sizeValue / 100) * 20;
+  const previewSize = 16;
   const previewBorderWidth = HOLD_BORDER_WIDTH[selectedSize];
 
 
@@ -551,7 +502,7 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
       />
 
       {/* Header - translucent blurred overlay */}
-      <header className="fixed top-0 left-0 right-0 z-40 px-4 pt-safe pt-4 pb-3 bg-card/40 backdrop-blur-2xl border-b border-border/10">
+      <header className="fixed top-0 left-0 right-0 z-40 px-4 pt-[max(env(safe-area-inset-top),1rem)] pb-4 bg-card/40 backdrop-blur-2xl border-b border-border/10">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link
             href="/"
@@ -626,33 +577,26 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
                 </svg>
               </button>
 
-              <div
-                className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-xl border border-border/20 transition-all touch-none select-none",
-                  isDraggingSize
-                    ? "bg-primary/10 border-primary/40 scale-105"
-                    : "bg-muted/40"
-                )}
-                onPointerDown={handleSizeDragStart}
-                onPointerMove={handleSizeDragMove}
-                onPointerUp={handleSizeDragEnd}
-                onPointerCancel={handleSizeDragEnd}
+              <button
+                onClick={cycleSize}
+                aria-label="Change hold size"
+                title={`Size: ${selectedSize}`}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-border/20 bg-muted/40 active:scale-95 transition-all"
               >
-                <svg className="w-3.5 h-3.5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
-                </svg>
                 <div
-                  className="rounded-full transition-all"
+                  className="shrink-0 rounded-full"
                   style={{
                     width: previewSize,
                     height: previewSize,
                     border: `${previewBorderWidth}px solid ${HOLD_COLORS[selectedType]}`,
                     backgroundColor: `${HOLD_COLORS[selectedType]}30`,
-                    boxShadow: isDraggingSize ? `0 0 8px ${HOLD_COLORS[selectedType]}66` : undefined,
                   }}
                 />
                 <span className="text-xs text-muted-foreground capitalize w-12">{selectedSize}</span>
-              </div>
+                <svg className="w-3.5 h-3.5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" />
+                </svg>
+              </button>
 
               <div className="flex items-center gap-1">
                 <button
@@ -733,9 +677,14 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
 
               <div className="hidden h-8 w-px bg-border/20 mx-1 lg:block" />
 
-              <div className="flex items-center gap-2 bg-muted/40 rounded-xl px-3 py-2 border border-border/10">
+              <button
+                onClick={cycleSize}
+                aria-label="Change hold size"
+                title={`Size: ${selectedSize}`}
+                className="flex items-center gap-2 bg-muted/40 rounded-xl px-3 py-2 border border-border/10 hover:bg-muted/60 transition-colors"
+              >
                 <div
-                  className="shrink-0 rounded-full transition-all"
+                  className="shrink-0 rounded-full"
                   style={{
                     width: previewSize,
                     height: previewSize,
@@ -743,17 +692,11 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
                     backgroundColor: `${HOLD_COLORS[selectedType]}30`,
                   }}
                 />
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={sizeValue}
-                  onChange={(e) => handleSizeChange(Number(e.target.value))}
-                  className="w-20 h-1.5 bg-muted rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-foreground [&::-webkit-slider-thumb]:cursor-pointer"
-                  title={`Size: ${selectedSize}`}
-                />
                 <span className="text-xs text-muted-foreground w-10 capitalize">{selectedSize}</span>
-              </div>
+                <svg className="w-3.5 h-3.5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" />
+                </svg>
+              </button>
 
               <div className="hidden h-8 w-px bg-border/20 mx-1 lg:block" />
 
