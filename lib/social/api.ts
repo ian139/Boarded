@@ -1,6 +1,6 @@
 import type { FollowingFeedItem, ProfileFollowCounts } from '@boarded/shared/types';
-import { createClient } from '@/lib/supabase/client';
-import type { FeedCursor } from './feed';
+import { createClient } from '../supabase/client.ts';
+import type { FeedCursor } from './feed.ts';
 
 export async function getProfileFollowCounts(profileId: string): Promise<ProfileFollowCounts> {
   const { data, error } = await createClient().rpc('get_profile_follow_counts', {
