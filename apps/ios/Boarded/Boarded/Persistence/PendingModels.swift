@@ -151,6 +151,14 @@ final class PendingSendDraft {
 /// written before the draft is persisted so a crash never leaves a draft
 /// pointing at a missing file.
 enum DraftImageStore {
+    enum Error: LocalizedError, Equatable {
+        case invalidFileName
+
+        var errorDescription: String? {
+            "Draft image file names must be a single local file name."
+        }
+    }
+
     static var directory: URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         return base.appendingPathComponent("Boarded/DraftImages", isDirectory: true)
@@ -161,19 +169,30 @@ enum DraftImageStore {
     }
 
     static func write(_ data: Data, fileName: String) throws -> URL {
+        guard isSafeFileName(fileName) else { throw Error.invalidFileName }
         try ensureDirectory()
-        let url = directory.appendingPathComponent(fileName)
+        let url = directory.appendingPathComponent(fileName, isDirectory: false)
         try data.write(to: url, options: .atomic)
         return url
     }
 
     static func read(fileName: String) -> Data? {
-        let url = directory.appendingPathComponent(fileName)
+        guard isSafeFileName(fileName) else { return nil }
+        let url = directory.appendingPathComponent(fileName, isDirectory: false)
         return try? Data(contentsOf: url)
     }
 
     static func delete(fileName: String) {
-        let url = directory.appendingPathComponent(fileName)
+        guard isSafeFileName(fileName) else { return }
+        let url = directory.appendingPathComponent(fileName, isDirectory: false)
         try? FileManager.default.removeItem(at: url)
+    }
+
+    private static func isSafeFileName(_ fileName: String) -> Bool {
+        !fileName.isEmpty
+            && fileName != "."
+            && fileName != ".."
+            && fileName == URL(fileURLWithPath: fileName).lastPathComponent
+            && !fileName.contains("\0")
     }
 }

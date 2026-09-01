@@ -152,6 +152,37 @@ final class NativeContractTests: XCTestCase {
         XCTAssertEqual(pendingAttempts.count, 1)
     }
 
+    func testSessionLoggerReplaysImmediatelyWhileOnline() async throws {
+        let context = try makeContext()
+        let repository = MockSessionRepository()
+        let sync = SessionSyncService(
+            repository: repository,
+            feedRepository: MockFeedRepository(),
+            modelContext: context
+        )
+        let viewModel = SessionLoggerViewModel(modelContext: context, syncService: sync, userId: userID)
+
+        viewModel.startSession(venueName: "Gym")
+        await Task.yield()
+        await Task.yield()
+        XCTAssertEqual(try await repository.fetchSessions(userID: userID).count, 1)
+        XCTAssertEqual(viewModel.syncState, .synced)
+
+        viewModel.recordAttempt(
+            routeName: "Slab",
+            discipline: .boulder,
+            gradeSystem: .vScale,
+            gradeLabel: "V4",
+            outcome: .sent,
+            notes: nil
+        )
+        await Task.yield()
+        await Task.yield()
+        let sessionID = try XCTUnwrap(viewModel.activeSession?.id)
+        XCTAssertEqual(try await repository.fetchAttempts(sessionID: sessionID).count, 1)
+        XCTAssertEqual(viewModel.syncState, .synced)
+    }
+
     // MARK: - Optimistic rollback
 
     func testFeedLikeRollsBackOnFailure() async {
@@ -168,11 +199,10 @@ final class NativeContractTests: XCTestCase {
 
     // MARK: - Meetup capacity and open-state semantics
 
-    func testMeetupJoinEnforcesCapacityCancelledPastAndOrganizer() async throws {
+    func testMeetupJoinIsIdempotentAndEnforcesOpenState() async throws {
         let organizer = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
         let joiner = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
         let now = Date(timeIntervalSince1970: 1_700_000_000)
-
         let full = Meetup(
             id: UUID(), organizerId: organizer, title: "Full", description: "d", venueName: "v",
             area: "a", startsAt: now.addingTimeInterval(3600), endsAt: nil, capacity: 2,
@@ -193,20 +223,15 @@ final class NativeContractTests: XCTestCase {
             area: "a", startsAt: now.addingTimeInterval(3600), endsAt: nil, capacity: nil,
             status: .scheduled, createdAt: now, updatedAt: now
         )
-
         let repository = MockMeetupRepository(
             meetups: [full, cancelled, past, own],
             currentUserID: joiner,
             now: now
         )
 
-        _ = try await repository.joinMeetup(id: full.id)
-        do {
-            _ = try await repository.joinMeetup(id: full.id)
-            XCTFail("Expected idempotent re-join, not a capacity error")
-        } catch let error as MeetupRepositoryError {
-            XCTAssertEqual(error, .full)
-        }
+        let first = try await repository.joinMeetup(id: full.id)
+        let second = try await repository.joinMeetup(id: full.id)
+        XCTAssertEqual(second, first)
 
         do {
             _ = try await repository.joinMeetup(id: cancelled.id)
@@ -214,20 +239,151 @@ final class NativeContractTests: XCTestCase {
         } catch let error as MeetupRepositoryError {
             XCTAssertEqual(error, .cancelled)
         }
-
         do {
             _ = try await repository.joinMeetup(id: past.id)
             XCTFail("Expected past error")
         } catch let error as MeetupRepositoryError {
             XCTAssertEqual(error, .past)
         }
-
         do {
             _ = try await repository.joinMeetup(id: own.id)
             XCTFail("Expected organizer error")
         } catch let error as MeetupRepositoryError {
             XCTAssertEqual(error, .organizerJoin)
         }
+    }
+
+    func testMeetupJoinRejectsFullCapacityForNewAttendee() async throws {
+        let organizer = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
+        let existingAttendee = UUID(uuidString: "33333333-3333-4333-8333-333333333333")!
+        let joiner = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let meetup = Meetup(
+            id: UUID(), organizerId: organizer, title: "Full", description: "d", venueName: "v",
+            area: "a", startsAt: now.addingTimeInterval(3600), endsAt: nil, capacity: 2,
+            status: .scheduled, createdAt: now, updatedAt: now
+        )
+        let attendee = MeetupAttendee(meetupId: meetup.id, userId: existingAttendee, joinedAt: now)
+        let repository = MockMeetupRepository(
+            meetups: [meetup],
+            attendees: [attendee],
+            currentUserID: joiner,
+            now: now
+        )
+
+        do {
+            _ = try await repository.joinMeetup(id: meetup.id)
+            XCTFail("Expected full error for a new attendee")
+        } catch let error as MeetupRepositoryError {
+            XCTAssertEqual(error, .full)
+        }
+    }
+
+    func testDraftReplayPublishesAfterAttemptAndCleansLocalArtifacts() async throws {
+        let context = try makeContext()
+        let feed = RecordingDraftFeedRepository(currentUserID: userID)
+        let sync = SessionSyncService(
+            repository: MockSessionRepository(),
+            feedRepository: feed,
+            modelContext: context
+        )
+        let attemptID = UUID(uuidString: "44444444-4444-4444-8444-444444444444")!
+        let draftID = UUID(uuidString: "55555555-5555-4555-8555-555555555555")!
+        let attempt = PendingAttempt(
+            id: attemptID,
+            sessionId: UUID(uuidString: "66666666-6666-4666-8666-666666666666")!,
+            userId: userID,
+            boardRouteId: nil,
+            routeName: "Slab",
+            discipline: .boulder,
+            gradeSystem: .vScale,
+            gradeLabel: "V4",
+            outcome: .sent,
+            attemptNumber: 1,
+            notes: nil,
+            occurredAt: Date(timeIntervalSince1970: 150)
+        )
+        let fileName = "draft-\(draftID.uuidString).jpg"
+        let imageData = Data([0x01, 0x02, 0x03])
+        let draft = PendingSendDraft(
+            id: draftID,
+            attemptId: attemptID,
+            caption: "A send",
+            imageFileName: fileName,
+            imageAlt: "A slab",
+            createdAt: Date(timeIntervalSince1970: 160)
+        )
+        try sync.enqueue(attempt: attempt)
+        try sync.enqueue(draft: draft, imageData: imageData)
+
+        await sync.replay()
+
+        let posts = feed.createdPosts()
+        XCTAssertEqual(posts.count, 1)
+        XCTAssertEqual(posts[0].id, draftID)
+        XCTAssertEqual(posts[0].imagePath, "\(userID.uuidString.lowercased())/\(draftID.uuidString.lowercased()).jpg")
+        XCTAssertEqual(feed.uploadedPaths(), [posts[0].imagePath!])
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSendDraft>()).isEmpty)
+        XCTAssertNil(DraftImageStore.read(fileName: fileName))
+        XCTAssertEqual(sync.state, .synced)
+
+        await sync.replay()
+        XCTAssertEqual(feed.createdPosts().count, 1)
+    }
+
+    func testDraftReplayRetainsDraftAndImageAfterPublishFailure() async throws {
+        let context = try makeContext()
+        let feed = RecordingDraftFeedRepository(currentUserID: userID)
+        feed.failCreatePost = true
+        let sync = SessionSyncService(
+            repository: MockSessionRepository(),
+            feedRepository: feed,
+            modelContext: context
+        )
+        let attemptID = UUID(uuidString: "77777777-7777-4777-8777-777777777777")!
+        let draftID = UUID(uuidString: "88888888-8888-4888-8888-888888888888")!
+        let attempt = PendingAttempt(
+            id: attemptID,
+            sessionId: UUID(uuidString: "99999999-9999-4999-8999-999999999999")!,
+            userId: userID,
+            boardRouteId: nil,
+            routeName: "Crimp",
+            discipline: .boulder,
+            gradeSystem: .vScale,
+            gradeLabel: "V5",
+            outcome: .sent,
+            attemptNumber: 1,
+            notes: nil,
+            occurredAt: Date(timeIntervalSince1970: 150)
+        )
+        let fileName = "draft-\(draftID.uuidString).jpg"
+        let imageData = Data([0x09, 0x08, 0x07])
+        let draft = PendingSendDraft(
+            id: draftID,
+            attemptId: attemptID,
+            caption: "Retry me",
+            imageFileName: fileName,
+            imageAlt: "A crimp",
+            createdAt: Date(timeIntervalSince1970: 160)
+        )
+        try sync.enqueue(attempt: attempt)
+        try sync.enqueue(draft: draft, imageData: imageData)
+
+        await sync.replay()
+
+        let retained = try XCTUnwrap(try context.fetch(FetchDescriptor<PendingSendDraft>()).first)
+        XCTAssertEqual(retained.syncState, .failed)
+        XCTAssertEqual(DraftImageStore.read(fileName: fileName), imageData)
+        XCTAssertEqual(sync.state, .failed)
+        XCTAssertNotNil(sync.errorMessage)
+
+        feed.failCreatePost = false
+        await sync.replay()
+
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSendDraft>()).isEmpty)
+        XCTAssertNil(DraftImageStore.read(fileName: fileName))
+        XCTAssertEqual(feed.createdPosts().count, 1)
+        XCTAssertEqual(sync.state, .synced)
     }
 
     // MARK: - Draft persistence
@@ -378,5 +534,111 @@ private final class FailingLikeFeedRepository: FeedRepository, @unchecked Sendab
 
     func createPost(attemptID: UUID, caption: String?, imagePath: String?, imageAlt: String?) async throws -> SendPost {
         throw FeedRepositoryError.unavailable
+    }
+
+    func createPost(
+        id: UUID,
+        attemptID: UUID,
+        caption: String?,
+        imagePath: String?,
+        imageAlt: String?
+    ) async throws -> SendPost {
+        throw FeedRepositoryError.unavailable
+    }
+
+    func uploadPostImage(data: Data, path: String) async throws {
+        throw FeedRepositoryError.unavailable
+    }
+}
+
+private final class RecordingDraftFeedRepository: FeedRepository, @unchecked Sendable {
+    private let lock = NSLock()
+    private let currentUserID: UUID
+    private let now = Date(timeIntervalSince1970: 1_700_000_000)
+    private var posts: [SendPost] = []
+    private var paths: [String] = []
+    private var shouldFailCreatePost = false
+
+    init(currentUserID: UUID) {
+        self.currentUserID = currentUserID
+    }
+
+    var failCreatePost: Bool {
+        get {
+            lock.lock(); defer { lock.unlock() }
+            return shouldFailCreatePost
+        }
+        set {
+            lock.lock(); defer { lock.unlock() }
+            shouldFailCreatePost = newValue
+        }
+    }
+
+    func uploadedPaths() -> [String] {
+        lock.lock(); defer { lock.unlock() }
+        return paths
+    }
+
+    func createdPosts() -> [SendPost] {
+        lock.lock(); defer { lock.unlock() }
+        return posts
+    }
+
+    func fetchFeed(cursor: FeedCursor?, authorFilter: UUID?, pageSize: Int) async throws -> FeedPage {
+        FeedPage(items: [], nextCursor: nil, hasMore: false)
+    }
+
+    func fetchComments(postID: UUID) async throws -> [SendPostComment] { [] }
+
+    func createComment(postID: UUID, content: String) async throws -> SendPostComment {
+        throw FeedRepositoryError.unavailable
+    }
+
+    func toggleLike(postID: UUID) async throws -> Bool {
+        throw FeedRepositoryError.unavailable
+    }
+
+    func createPost(attemptID: UUID, caption: String?, imagePath: String?, imageAlt: String?) async throws -> SendPost {
+        try await createPost(
+            id: UUID(),
+            attemptID: attemptID,
+            caption: caption,
+            imagePath: imagePath,
+            imageAlt: imageAlt
+        )
+    }
+
+    func createPost(
+        id: UUID,
+        attemptID: UUID,
+        caption: String?,
+        imagePath: String?,
+        imageAlt: String?
+    ) async throws -> SendPost {
+        lock.lock()
+        defer { lock.unlock() }
+        if let existing = posts.first(where: { $0.id == id }) {
+            return existing
+        }
+        if shouldFailCreatePost {
+            throw FeedRepositoryError.unavailable
+        }
+        let post = SendPost(
+            id: id,
+            userId: currentUserID,
+            attemptId: attemptID,
+            caption: caption,
+            imagePath: imagePath,
+            imageAlt: imageAlt,
+            createdAt: now,
+            updatedAt: now
+        )
+        posts.append(post)
+        return post
+    }
+
+    func uploadPostImage(data: Data, path: String) async throws {
+        lock.lock(); defer { lock.unlock() }
+        paths.append(path)
     }
 }

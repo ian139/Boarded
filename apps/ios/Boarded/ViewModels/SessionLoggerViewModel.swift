@@ -12,6 +12,8 @@ final class SessionLoggerViewModel: ObservableObject {
     private let modelContext: ModelContext
     private let syncService: SessionSyncService
     private let userId: UUID
+    private var replayTask: Task<Void, Never>?
+    private var replayRequested = false
 
     init(modelContext: ModelContext, syncService: SessionSyncService, userId: UUID) {
         self.modelContext = modelContext
@@ -34,6 +36,8 @@ final class SessionLoggerViewModel: ObservableObject {
             activeSession = session
             attempts = []
             errorMessage = nil
+            syncState = syncService.state
+            scheduleOnlineReplay()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -66,6 +70,8 @@ final class SessionLoggerViewModel: ObservableObject {
             try syncService.enqueue(attempt: attempt)
             attempts.append(attempt)
             errorMessage = nil
+            syncState = syncService.state
+            scheduleOnlineReplay()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -85,6 +91,8 @@ final class SessionLoggerViewModel: ObservableObject {
             activeSession = nil
             attempts = []
             errorMessage = nil
+            syncState = syncService.state
+            scheduleOnlineReplay()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -93,5 +101,22 @@ final class SessionLoggerViewModel: ObservableObject {
     func retrySync() async {
         await syncService.replay()
         syncState = syncService.state
+        errorMessage = syncService.errorMessage
+    }
+
+    private func scheduleOnlineReplay() {
+        guard syncService.isOnline else { return }
+        replayRequested = true
+        guard replayTask == nil else { return }
+        replayTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            while self.replayRequested {
+                self.replayRequested = false
+                await self.syncService.replay()
+            }
+            self.syncState = self.syncService.state
+            self.errorMessage = self.syncService.errorMessage
+            self.replayTask = nil
+        }
     }
 }

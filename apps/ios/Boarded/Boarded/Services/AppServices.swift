@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 
 /// Central service graph. Production code always resolves Supabase-backed
 /// repositories; deterministic fixtures are used only for UI-test/preview
@@ -55,4 +56,13 @@ enum AppServices {
         return MockProfileRepository()
         #endif
     }()
+
+    @MainActor
+    static func makeSessionSyncService(modelContext: ModelContext) -> SessionSyncService {
+        SessionSyncService(
+            repository: sessionRepository,
+            feedRepository: feedRepository,
+            modelContext: modelContext
+        )
+    }
 }

@@ -21,7 +21,7 @@ struct MeetupDraft {
     let capacity: Int?
 }
 
-enum MeetupRepositoryError: LocalizedError {
+enum MeetupRepositoryError: LocalizedError, Equatable {
     case unavailable
     case notFound
     case full

@@ -6,6 +6,14 @@ protocol FeedRepository {
     func createComment(postID: UUID, content: String) async throws -> SendPostComment
     func toggleLike(postID: UUID) async throws -> Bool
     func createPost(attemptID: UUID, caption: String?, imagePath: String?, imageAlt: String?) async throws -> SendPost
+    func createPost(
+        id: UUID,
+        attemptID: UUID,
+        caption: String?,
+        imagePath: String?,
+        imageAlt: String?
+    ) async throws -> SendPost
+    func uploadPostImage(data: Data, path: String) async throws
 }
 
 enum FeedRepositoryError: LocalizedError {
@@ -31,6 +39,8 @@ final class MockFeedRepository: FeedRepository, @unchecked Sendable {
     private var items: [SendFeedItem]
     private var comments: [SendPostComment]
     private var likedPostIDs: Set<UUID>
+    private var posts: [SendPost] = []
+    private var uploadedImages: [String: Data] = [:]
 
     /// Deterministic identity and clock used by the fixture.
     let currentUserID: UUID
@@ -110,9 +120,28 @@ final class MockFeedRepository: FeedRepository, @unchecked Sendable {
     }
 
     func createPost(attemptID: UUID, caption: String?, imagePath: String?, imageAlt: String?) async throws -> SendPost {
-        lock.lock(); defer { lock.unlock() }
-        let post = SendPost(
+        try await createPost(
             id: UUID(),
+            attemptID: attemptID,
+            caption: caption,
+            imagePath: imagePath,
+            imageAlt: imageAlt
+        )
+    }
+
+    func createPost(
+        id: UUID,
+        attemptID: UUID,
+        caption: String?,
+        imagePath: String?,
+        imageAlt: String?
+    ) async throws -> SendPost {
+        lock.lock(); defer { lock.unlock() }
+        if let existing = posts.first(where: { $0.id == id }) {
+            return existing
+        }
+        let post = SendPost(
+            id: id,
             userId: currentUserID,
             attemptId: attemptID,
             caption: caption,
@@ -121,7 +150,13 @@ final class MockFeedRepository: FeedRepository, @unchecked Sendable {
             createdAt: now,
             updatedAt: now
         )
+        posts.append(post)
         return post
+    }
+
+    func uploadPostImage(data: Data, path: String) async throws {
+        lock.lock(); defer { lock.unlock() }
+        uploadedImages[path] = data
     }
 }
 
@@ -204,9 +239,26 @@ struct SupabaseFeedRepository: FeedRepository {
     }
 
     func createPost(attemptID: UUID, caption: String?, imagePath: String?, imageAlt: String?) async throws -> SendPost {
+        try await createPost(
+            id: UUID(),
+            attemptID: attemptID,
+            caption: caption,
+            imagePath: imagePath,
+            imageAlt: imageAlt
+        )
+    }
+
+    func createPost(
+        id: UUID,
+        attemptID: UUID,
+        caption: String?,
+        imagePath: String?,
+        imageAlt: String?
+    ) async throws -> SendPost {
         guard let client else { throw FeedRepositoryError.unavailable }
         let userID = try await client.auth.session.user.id
         let payload = PostInsert(
+            id: id,
             user_id: userID,
             attempt_id: attemptID,
             caption: caption,
@@ -214,15 +266,29 @@ struct SupabaseFeedRepository: FeedRepository {
             image_alt: imageAlt
         )
         let rows: [SendPost] = try await client.from("send_posts")
-            .insert(payload)
+            .upsert(payload, onConflict: "id")
             .select("*")
             .execute()
             .value
         guard let row = rows.first else { throw FeedRepositoryError.notFound }
         return row
     }
-}
 
+    func uploadPostImage(data: Data, path: String) async throws {
+        guard let client else { throw FeedRepositoryError.unavailable }
+        _ = try await client.storage
+            .from("social-media")
+            .upload(
+                path,
+                data: data,
+                options: FileOptions(
+                    cacheControl: "31536000",
+                    contentType: "image/jpeg",
+                    upsert: true
+                )
+            )
+    }
+}
 private struct FeedParameters: Encodable {
     let before_created_at: Date?
     let before_id: UUID?
@@ -242,6 +308,7 @@ private struct LikeInsert: Encodable {
 }
 
 private struct PostInsert: Encodable {
+    let id: UUID
     let user_id: UUID
     let attempt_id: UUID
     let caption: String?
