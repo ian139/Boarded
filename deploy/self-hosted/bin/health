@@ -1,0 +1,17 @@
+#!/bin/sh
+set -eu
+. "$(dirname "$0")/common.sh"
+usage() { echo 'Usage: bin/health [--dry-run]'; }
+case "${1:-}" in -h|--help) usage; exit 0;; esac
+parse_dry_run "$@"; require_env
+if [ "$DRY_RUN" = 1 ]; then echo '+ inspect db, auth, rest, storage, api-gateway health'; exit 0; fi
+for service in db auth rest storage api-gateway; do
+  id=$(compose ps -q "$service"); [ -n "$id" ] || { echo "$service is not running" >&2; exit 1; }
+  state=$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$id")
+  [ "$state" = healthy ] || { echo "$service is $state" >&2; exit 1; }
+done
+compose exec -T auth wget -qO- http://127.0.0.1:9999/health >/dev/null
+compose exec -T rest postgrest --ready
+compose exec -T storage wget -qO- http://127.0.0.1:5000/status >/dev/null
+compose exec -T api-gateway wget -qO- http://127.0.0.1:8000/health >/dev/null
+echo 'Database, Auth, PostgREST, Storage, and API gateway are healthy.'

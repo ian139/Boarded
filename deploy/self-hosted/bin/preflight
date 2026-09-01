@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+. "$(dirname "$0")/common.sh"
+usage() { echo 'Usage: bin/preflight'; }
+case "${1:-}" in -h|--help) usage; exit 0;; '') ;; *) echo "Unknown argument: $1" >&2; exit 2;; esac
+[ "$#" -eq 0 ] || { echo 'Unexpected arguments' >&2; exit 2; }
+require_env
+echo 'Preflight passed'

@@ -1,0 +1,41 @@
+#!/bin/sh
+set -eu
+. "$(dirname "$0")/common.sh"
+case "${1:-}" in -h|--help) echo 'Usage: bin/migrate [--dry-run]'; exit 0;; esac
+parse_dry_run "$@"; require_env
+FILES=$(printf '%s\n' "$REPO"/supabase/migrations/*.sql | LC_ALL=C sort)
+[ -f "$(printf '%s\n' "$FILES" | sed -n '1p')" ] || usage_error 'No migrations found'
+state=
+migrate_cleanup() {
+  status=$?
+  trap - EXIT HUP INT TERM
+  set +e
+  [ -z "$state" ] || rm -f "$state"
+  release_operation_lock
+  exit "$status"
+}
+trap migrate_cleanup EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
+[ "$DRY_RUN" = 1 ] || acquire_operation_lock migrate
+if [ "$DRY_RUN" = 0 ]; then
+  compose exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d postgres <<'SQL'
+CREATE SCHEMA IF NOT EXISTS boarded_migrations;
+CREATE TABLE IF NOT EXISTS boarded_migrations.schema_migrations(filename text PRIMARY KEY, sha256 text NOT NULL, applied_at timestamptz NOT NULL DEFAULT now());
+SQL
+fi
+ledger=$(compose exec -T db psql -At -U postgres -d postgres -c "SELECT to_regclass('boarded_migrations.schema_migrations') IS NOT NULL")
+state=$(mktemp "${TMPDIR:-/tmp}/boarded-migrate.XXXXXX")
+printf '%s\n' "$FILES" | while IFS= read -r file; do
+  name=$(basename "$file"); hash=$(shasum -a 256 "$file" | cut -d ' ' -f 1)
+  recorded=
+  if [ "$ledger" = t ]; then recorded=$(compose exec -T db psql -At -U postgres -d postgres -v name="$name" -c "SELECT sha256 FROM boarded_migrations.schema_migrations WHERE filename=:'name'"); fi
+  if [ "$recorded" = "$hash" ]; then echo "applied $name $hash"; continue; fi
+  if [ -n "$recorded" ]; then echo "checksum-mismatch $name expected=$recorded actual=$hash" >&2; echo mismatch > "$state"; continue; fi
+  echo "pending $name $hash"
+  [ "$DRY_RUN" = 1 ] && continue
+  { printf 'BEGIN;\n'; cat "$file"; printf "\nINSERT INTO boarded_migrations.schema_migrations(filename,sha256) VALUES ('%s','%s');\nCOMMIT;\n" "$name" "$hash"; } | compose exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d postgres
+  echo "applied-now $name"
+done
+[ ! -s "$state" ] || exit 1

@@ -1,0 +1,20 @@
+#!/bin/sh
+set -eu
+ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+PINS=$ROOT/IMAGE_PINS
+[ -f "$PINS" ] || { echo 'IMAGE_PINS missing' >&2; exit 1; }
+tmp=$(mktemp "${TMPDIR:-/tmp}/boarded-pins.XXXXXX")
+trap 'rm -f "$tmp" "$tmp.pins"' EXIT HUP INT TERM
+for file in "$ROOT"/*compose*.yml "$ROOT"/upstream/docker/*compose*.yml; do
+  [ -f "$file" ] || continue
+  awk '$1 == "image:" { value=$2; gsub(/^["\047]|["\047]$/, "", value); print value }' "$file" >> "$tmp"
+done
+sort -u "$PINS" > "$tmp.pins"
+sort -u "$tmp" -o "$tmp"
+[ -s "$tmp" ] || { echo 'No Compose images found' >&2; exit 1; }
+while IFS= read -r image; do
+  case "$image" in *:latest@*|*:latest-dev@*) echo "Floating tag forbidden: $image" >&2; exit 1;; esac
+  case "$image" in *:*@sha256:????????????????????????????????????????????????????????????????) ;; *) echo "Image must have explicit tag and sha256 digest: $image" >&2; exit 1;; esac
+done < "$tmp"
+cmp -s "$tmp" "$tmp.pins" || { echo 'Compose images differ from IMAGE_PINS' >&2; diff -u "$tmp.pins" "$tmp" >&2 || true; exit 1; }
+echo 'All Compose images are digest-pinned and match IMAGE_PINS'

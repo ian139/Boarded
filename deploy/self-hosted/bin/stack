@@ -1,0 +1,19 @@
+#!/bin/sh
+set -eu
+. "$(dirname "$0")/common.sh"
+
+usage() { cat <<'EOF'
+Usage: bin/stack <up|down> [--dry-run]
+
+up    Start the pinned Supabase stack and wait for Compose health.
+down  Stop containers without deleting database or Storage volumes.
+EOF
+}
+case "${1:-}" in -h|--help|'') usage; exit 0;; up|down) ACTION=$1; shift;; *) usage_error "Expected up or down";; esac
+parse_dry_run "$@"
+require_env
+if [ "$ACTION" = up ]; then
+  if [ "$DRY_RUN" = 1 ]; then printf '+ docker compose --env-file %s -f %s up -d --wait --wait-timeout 120\n' "$ENV_FILE" "$COMPOSE_FILE"; else compose up -d --wait --wait-timeout 120; fi
+else
+  if [ "$DRY_RUN" = 1 ]; then printf '+ docker compose --env-file %s -f %s down\n' "$ENV_FILE" "$COMPOSE_FILE"; else compose down; fi
+fi

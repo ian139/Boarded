@@ -1,0 +1,89 @@
+#!/bin/sh
+set -eu
+. "$(dirname "$0")/common.sh"
+usage() { echo 'Usage: BACKUP_VERIFY_KEY_FILE=/secure/backup-public.pem bin/restore <backup> --old-origin URL --new-origin URL [--dry-run]'; }
+case "${1:-}" in -h|--help|'') usage; exit 0;; esac
+SRC=$1; shift; OLD=; NEW=; DRY_RUN=0; VALIDATE_ONLY=0
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --old-origin|--new-origin) [ "$#" -ge 2 ] || usage_error "Missing value for $1"; option=$1; value=$2; shift 2; [ "$option" = --old-origin ] && OLD=$value || NEW=$value;;
+    --dry-run) [ "$DRY_RUN" = 0 ] || usage_error 'Duplicate --dry-run'; DRY_RUN=1; shift;;
+    --validate-only) [ "$VALIDATE_ONLY" = 0 ] || usage_error 'Duplicate --validate-only'; VALIDATE_ONLY=1; shift;;
+    *) usage_error "Unknown option: $1";;
+  esac
+done
+[ -n "$OLD" ] && [ -n "$NEW" ] && [ "$OLD" != "$NEW" ] || usage_error 'Distinct old and new origins are required'
+valid_origin "$OLD" && valid_origin "$NEW" || usage_error 'Origins must be valid, pathless HTTPS origins (HTTP loopback with an explicit valid port allowed)'
+KEY=${BACKUP_VERIFY_KEY_FILE:-}
+[ -f "$KEY" ] && [ ! -L "$KEY" ] || usage_error 'BACKUP_VERIFY_KEY_FILE must name a regular, non-symlink public key file'
+[ -d "$SRC" ] && [ ! -L "$SRC" ] || usage_error 'Backup must be a regular, non-symlink directory'
+src_path=$(CDPATH= cd -P -- "$SRC" && pwd)
+key_dir=$(CDPATH= cd -P -- "$(dirname -- "$KEY")" && pwd); key_path=$key_dir/$(basename -- "$KEY")
+require_trusted_ancestors "$key_path" 'Verification key'
+require_owned "$key_path" 'Verification key'
+require_rsa_key "$key_path" 'Verification key' public
+require_trusted_ancestors "$src_path" 'Backup source'
+require_owned "$src_path" 'Backup source'
+case "$key_path" in "$src_path"|"$src_path"/*) usage_error 'Verification key must be outside backup directory';; esac
+files='schema.dump data.dump migrations.dump storage.tar.gz SHA256SUMS SHA256SUMS.sig'
+for f in $files; do [ -f "$src_path/$f" ] && [ ! -L "$src_path/$f" ] || usage_error "Missing or unsafe $src_path/$f"; done
+require_env
+umask 077
+stage=$(mktemp -d "${TMPDIR:-/tmp}/boarded-restore.XXXXXX")
+QUIESCED=0
+restore_cleanup() {
+  status=$?
+  trap - EXIT HUP INT TERM
+  set +e
+  if [ "$QUIESCED" = 1 ]; then
+    compose start --wait --wait-timeout 120 auth rest storage api-gateway >/dev/null 2>&1
+  fi
+  rm -rf "$stage"
+  release_operation_lock
+  exit "$status"
+}
+trap restore_cleanup EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
+chmod 700 "$stage"
+for f in $files; do cp "$src_path/$f" "$stage/$f"; chmod 600 "$stage/$f"; done
+cp "$key_path" "$stage/verification-key.pem"
+chmod 600 "$stage/verification-key.pem"
+require_rsa_key "$stage/verification-key.pem" 'Staged verification key' public
+# From here onward, authenticate and consume only private staged copies.
+openssl dgst -sha256 -verify "$stage/verification-key.pem" -signature "$stage/SHA256SUMS.sig" "$stage/SHA256SUMS" >/dev/null ||
+  usage_error 'Backup manifest signature verification failed'
+( CDPATH= cd "$stage" && shasum -a 256 -c SHA256SUMS )
+tar -tzf "$stage/storage.tar.gz" | while IFS= read -r member; do case "$member" in /*|../*|*/../*|*/..) usage_error "Unsafe archive member: $member";; esac; done
+[ "$VALIDATE_ONLY" = 0 ] || { echo 'Backup metadata, authentication, hashes, archive paths, and origins are valid'; exit 0; }
+compose exec -T db pg_restore --list < "$stage/schema.dump" >/dev/null
+compose exec -T db pg_restore --list < "$stage/data.dump" >/dev/null
+compose exec -T db pg_restore --list < "$stage/migrations.dump" >/dev/null
+[ "$DRY_RUN" = 0 ] || { echo "+ authenticated restore; rewrite $OLD to $NEW"; exit 0; }
+acquire_operation_lock restore
+QUIESCED=1
+compose stop auth rest storage api-gateway
+compose exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d template1 <<'SQL'
+SELECT pg_terminate_backend(pid)
+FROM pg_stat_activity
+WHERE datname = 'postgres' AND pid <> pg_backend_pid();
+DROP DATABASE IF EXISTS postgres WITH (FORCE);
+CREATE DATABASE postgres OWNER postgres;
+SQL
+# Recreate database-scoped JWT settings lost by DROP/CREATE, sourced from the
+# db container's own JWT_SECRET/JWT_EXP environment via the pinned upstream file.
+compose exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d postgres -f /docker-entrypoint-initdb.d/init-scripts/99-jwt.sql
+compose exec -T db pg_restore -U postgres -d postgres --no-owner < "$stage/schema.dump"
+compose exec -T db pg_restore -U postgres -d postgres --disable-triggers --no-owner < "$stage/data.dump"
+compose exec -T db pg_restore -U postgres -d postgres --no-owner < "$stage/migrations.dump"
+compose exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d postgres -v old_origin="$OLD" -v new_origin="$NEW" <<'SQL'
+UPDATE public.profiles SET avatar_url=replace(avatar_url, :'old_origin', :'new_origin') WHERE avatar_url LIKE :'old_origin' || '/storage/v1/object/%';
+UPDATE public.routes SET wall_image_url=replace(wall_image_url, :'old_origin', :'new_origin') WHERE wall_image_url LIKE :'old_origin' || '/storage/v1/object/%';
+UPDATE public.walls SET image_url=replace(image_url, :'old_origin', :'new_origin') WHERE image_url LIKE :'old_origin' || '/storage/v1/object/%';
+SQL
+compose run --rm --no-deps -T storage sh -c 'rm -rf /var/lib/storage/* /var/lib/storage/.[!.]* /var/lib/storage/..?*; tar -C /var/lib/storage -xzf -' < "$stage/storage.tar.gz"
+compose start --wait --wait-timeout 120 auth rest storage api-gateway
+"$ROOT/bin/health"
+QUIESCED=0
+release_operation_lock

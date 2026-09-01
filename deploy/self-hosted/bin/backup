@@ -1,0 +1,68 @@
+#!/bin/sh
+set -eu
+. "$(dirname "$0")/common.sh"
+usage() { echo 'Usage: BACKUP_SIGNING_KEY_FILE=/secure/backup-private.pem bin/backup <new-directory> [--dry-run]'; }
+case "${1:-}" in -h|--help|'') usage; exit 0;; esac
+DEST=$1; shift; parse_dry_run "$@"; require_env
+KEY=${BACKUP_SIGNING_KEY_FILE:-}
+[ -f "$KEY" ] && [ ! -L "$KEY" ] || usage_error 'BACKUP_SIGNING_KEY_FILE must name a regular, non-symlink private key file'
+key_dir=$(CDPATH= cd -P -- "$(dirname -- "$KEY")" && pwd); key_path=$key_dir/$(basename -- "$KEY")
+require_trusted_ancestors "$key_path" 'Signing key'
+require_owned "$key_path" 'Signing key'
+require_mode_0600 "$key_path" 'Signing key'
+require_rsa_key "$key_path" 'Signing key' private
+dest_parent=$(CDPATH= cd -P -- "$(dirname -- "$DEST")" && pwd) || usage_error 'Backup parent directory does not exist'
+require_trusted_ancestors "$dest_parent" 'Backup destination parent'
+require_owned "$dest_parent" 'Backup destination parent'
+dest_path=$dest_parent/$(basename -- "$DEST")
+case "$key_path" in "$dest_path"|"$dest_path"/*) usage_error 'Signing key must be outside backup directory';; esac
+[ ! -e "$dest_path" ] && [ ! -L "$dest_path" ] || usage_error "Destination exists: $dest_path"
+if [ "$DRY_RUN" = 1 ]; then
+  echo "+ acquire operation lock $OPERATION_LOCK_DIR"
+  echo "+ create mode-0700 backup directory $dest_path"
+  echo '+ compose stop api-gateway auth rest storage'
+  echo "+ compose exec -T db pg_dump --schema-only > $dest_path/schema.dump"
+  echo "+ compose exec -T db pg_dump --data-only > $dest_path/data.dump"
+  echo "+ compose exec -T db pg_dump --schema=boarded_migrations > $dest_path/migrations.dump"
+  echo "+ compose run --rm --no-deps -T storage tar -C /var/lib/storage -czf - . > $dest_path/storage.tar.gz"
+  echo "+ write and sign SHA256SUMS in $dest_path"
+  echo '+ compose start --wait --wait-timeout 120 api-gateway auth rest storage'
+  echo '+ bin/health'
+  echo "+ release operation lock $OPERATION_LOCK_DIR"
+  exit 0
+fi
+umask 077
+acquire_operation_lock backup || exit 1
+QUIESCED=0
+backup_cleanup() {
+  status=$?
+  trap - EXIT HUP INT TERM
+  set +e
+  rm -rf "$dest_path"
+  if [ "$QUIESCED" = 1 ]; then
+    compose start --wait --wait-timeout 120 api-gateway auth rest storage >/dev/null 2>&1
+  fi
+  release_operation_lock
+  exit "$status"
+}
+trap backup_cleanup EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
+mkdir -m 700 "$dest_path"
+QUIESCED=1
+compose stop api-gateway auth rest storage
+compose exec -T db pg_dump -U postgres -d postgres --schema-only --format=custom --no-owner --exclude-schema=boarded_migrations > "$dest_path/schema.dump"
+compose exec -T db pg_dump -U postgres -d postgres --data-only --format=custom --no-owner --exclude-schema=boarded_migrations > "$dest_path/data.dump"
+compose exec -T db pg_dump -U postgres -d postgres --schema=boarded_migrations --format=custom --no-owner > "$dest_path/migrations.dump"
+compose run --rm --no-deps -T storage tar -C /var/lib/storage -czf - . > "$dest_path/storage.tar.gz"
+( CDPATH= cd "$dest_path" && shasum -a 256 schema.dump data.dump migrations.dump storage.tar.gz > SHA256SUMS )
+# OpenSSL reads the private key from this file; key bytes never enter argv.
+openssl dgst -sha256 -sign "$key_path" -out "$dest_path/SHA256SUMS.sig" "$dest_path/SHA256SUMS"
+chmod 600 "$dest_path"/*
+compose start --wait --wait-timeout 120 api-gateway auth rest storage
+"$ROOT/bin/health"
+QUIESCED=0
+release_operation_lock
+trap - EXIT HUP INT TERM
+echo "Backup written to $dest_path"

@@ -1,0 +1,40 @@
+#!/bin/sh
+set -eu
+. "$(dirname "$0")/common.sh"
+usage() { cat <<'EOF'
+Usage: bin/bootstrap empty [--dry-run]
+       bin/bootstrap managed <backup> --old-origin URL --new-origin URL [--dry-run]
+EOF
+}
+case "${1:-}" in
+  -h|--help|'') usage; exit 0;;
+  empty)
+    shift
+    parse_dry_run "$@"
+    "$ROOT/bin/stack" up "$@"
+    if [ "$DRY_RUN" = 1 ]; then printf '+ %s/bin/migrate\n' "$ROOT"; else "$ROOT/bin/migrate"; fi
+    exit
+    ;;
+  managed) shift;;
+  *) usage_error 'Expected empty or managed';;
+esac
+[ "$#" -gt 0 ] || usage_error 'Missing backup directory'
+BACKUP=$1; shift
+OLD=; NEW=; DRY_RUN=0
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --old-origin|--new-origin) [ "$#" -ge 2 ] || usage_error "Missing value for $1"; option=$1; value=$2; shift 2; if [ "$option" = --old-origin ]; then [ -z "$OLD" ] || usage_error 'Duplicate --old-origin'; OLD=$value; else [ -z "$NEW" ] || usage_error 'Duplicate --new-origin'; NEW=$value; fi;;
+    --dry-run) [ "$DRY_RUN" = 0 ] || usage_error 'Duplicate --dry-run'; DRY_RUN=1; shift;;
+    *) usage_error "Unknown option: $1";;
+  esac
+done
+[ -n "$OLD" ] && [ -n "$NEW" ] || usage_error 'Both --old-origin and --new-origin are required'
+# Authenticate metadata, payload hashes, archive paths, and origins before stack mutation.
+"$ROOT/bin/restore" "$BACKUP" --old-origin "$OLD" --new-origin "$NEW" --validate-only
+if [ "$DRY_RUN" = 1 ]; then
+  "$ROOT/bin/stack" up --dry-run
+  printf '+ restore authenticated backup %s; rewrite %s to %s\n' "$BACKUP" "$OLD" "$NEW"
+else
+  "$ROOT/bin/stack" up
+  "$ROOT/bin/restore" "$BACKUP" --old-origin "$OLD" --new-origin "$NEW"
+fi
