@@ -148,8 +148,17 @@ final class SessionSyncService: ObservableObject {
 
     /// Removes an attempt from the local timeline. Attempts that have entered
     /// replay are represented by a durable tombstone so an undo cannot be
-    /// lost between an in-flight upsert and a later retry.
+    /// lost between an in-flight upsert and a later retry. Linked send-post drafts
+    /// and their draft images are cleaned up so sync cannot remain queued.
     func delete(attempt: PendingAttempt) throws {
+        let linkedDrafts = fetchAllDrafts().filter { $0.attemptId == attempt.id }
+        for draft in linkedDrafts {
+            if let fileName = draft.imageFileName {
+                DraftImageStore.delete(fileName: fileName)
+            }
+            modelContext.delete(draft)
+        }
+
         let requiresRemoteDelete = attempt.syncState != .queued
         if requiresRemoteDelete, !fetchAllAttemptDeletions().contains(where: { $0.id == attempt.id }) {
             modelContext.insert(
@@ -366,6 +375,10 @@ final class SessionSyncService: ObservableObject {
 
     private func fetchAllAttempts() -> [PendingAttempt] {
         (try? modelContext.fetch(FetchDescriptor<PendingAttempt>())) ?? []
+    }
+
+    private func fetchAllDrafts() -> [PendingSendDraft] {
+        (try? modelContext.fetch(FetchDescriptor<PendingSendDraft>())) ?? []
     }
 
     private func canonicalImagePath(userID: UUID, postID: UUID) -> String {

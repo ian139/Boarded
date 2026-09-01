@@ -13,8 +13,17 @@ final class AppSession: ObservableObject {
     private let profileRepository: any ProfileRepository
     private let fixture: Bool
 
-    init(profileRepository: any ProfileRepository, fixture: Bool = false) {
+    init(
+        profileRepository: any ProfileRepository,
+        userId: UUID? = nil,
+        userEmail: String? = nil,
+        profile: Profile? = nil,
+        fixture: Bool = false
+    ) {
         self.profileRepository = profileRepository
+        self.userId = userId
+        self.userEmail = userEmail
+        self.profile = profile
         self.fixture = fixture
     }
 
@@ -155,6 +164,91 @@ final class AppSession: ObservableObject {
         } catch {
             guard generation == sessionGeneration else { return }
             errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Provisions a missing profile row for an already-authenticated account.
+    /// Trims fields, creates the profile, and transitions the session to ready.
+    /// If creation fails, attempts to fetch and accept an existing profile;
+    /// otherwise retains needsProfileSetup with a recoverable error.
+    func completeProfileSetup(
+        username: String,
+        displayName: String? = nil,
+        homeArea: String? = nil
+    ) async {
+        #if DEBUG
+        if fixture {
+            guard let userId else {
+                errorMessage = ProfileRepositoryError.invalidUserID.localizedDescription
+                return
+            }
+            let trimmedUsername = username.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmedUsername.isEmpty else {
+                errorMessage = ProfileRepositoryError.invalidUsername.localizedDescription
+                return
+            }
+            let trimmedDisplayName = displayName?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let trimmedHomeArea = homeArea?.trimmingCharacters(in: .whitespacesAndNewlines)
+            profile = Profile(
+                id: userId,
+                username: trimmedUsername,
+                fullName: trimmedDisplayName?.isEmpty == true ? nil : trimmedDisplayName,
+                avatarUrl: nil,
+                bio: nil,
+                homeArea: trimmedHomeArea?.isEmpty == true ? nil : trimmedHomeArea,
+                createdAt: Date()
+            )
+            errorMessage = nil
+            return
+        }
+        #endif
+
+        guard let userId else {
+            errorMessage = ProfileRepositoryError.invalidUserID.localizedDescription
+            return
+        }
+
+        let trimmedUsername = username.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedUsername.isEmpty else {
+            errorMessage = ProfileRepositoryError.invalidUsername.localizedDescription
+            return
+        }
+
+        let trimmedDisplayName = displayName?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedHomeArea = homeArea?.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        sessionGeneration += 1
+        let generation = sessionGeneration
+        isLoading = true
+        errorMessage = nil
+        defer {
+            if generation == sessionGeneration {
+                isLoading = false
+            }
+        }
+
+        let draft = ProfileDraft(
+            id: userId,
+            username: trimmedUsername,
+            displayName: trimmedDisplayName?.isEmpty == true ? nil : trimmedDisplayName,
+            homeArea: trimmedHomeArea?.isEmpty == true ? nil : trimmedHomeArea
+        )
+
+        do {
+            let created = try await profileRepository.createProfile(draft)
+            guard generation == sessionGeneration, self.userId == userId else { return }
+            profile = created
+            errorMessage = nil
+        } catch {
+            guard generation == sessionGeneration, self.userId == userId else { return }
+            if let existing = try? await profileRepository.fetchProfile(userID: userId) {
+                guard generation == sessionGeneration, self.userId == userId else { return }
+                profile = existing
+                errorMessage = nil
+            } else {
+                guard generation == sessionGeneration, self.userId == userId else { return }
+                errorMessage = error.localizedDescription
+            }
         }
     }
 

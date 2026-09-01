@@ -122,6 +122,101 @@ final class NativeContractTests: XCTestCase {
         }
     }
 
+    // MARK: - AppSession profile setup
+
+    func testAppSessionCompleteProfileSetupSucceedsAndClearsError() async throws {
+        let repository = MockProfileRepository()
+        let session = AppSession(profileRepository: repository, userId: userID, userEmail: "mara@example.com")
+        XCTAssertTrue(session.needsProfileSetup)
+        XCTAssertNil(session.profile)
+        XCTAssertNil(session.errorMessage)
+
+        await session.completeProfileSetup(
+            username: "  mara ",
+            displayName: "  Mara Climber ",
+            homeArea: "  Boulder "
+        )
+
+        XCTAssertFalse(session.needsProfileSetup)
+        XCTAssertEqual(session.profile?.id, userID)
+        XCTAssertEqual(session.profile?.username, "mara")
+        XCTAssertEqual(session.profile?.fullName, "Mara Climber")
+        XCTAssertEqual(session.profile?.homeArea, "Boulder")
+        XCTAssertEqual(session.displayName, "Mara Climber")
+        XCTAssertNil(session.errorMessage)
+        XCTAssertFalse(session.isLoading)
+    }
+
+    func testAppSessionCompleteProfileSetupRejectsEmptyUsername() async throws {
+        let repository = MockProfileRepository()
+        let session = AppSession(profileRepository: repository, userId: userID, userEmail: "mara@example.com")
+        XCTAssertTrue(session.needsProfileSetup)
+
+        await session.completeProfileSetup(
+            username: "   ",
+            displayName: "Mara",
+            homeArea: "Boulder"
+        )
+
+        XCTAssertTrue(session.needsProfileSetup)
+        XCTAssertNil(session.profile)
+        XCTAssertEqual(session.errorMessage, ProfileRepositoryError.invalidUsername.localizedDescription)
+        XCTAssertFalse(session.isLoading)
+    }
+
+    func testAppSessionCompleteProfileSetupRejectsUnauthenticated() async throws {
+        let repository = MockProfileRepository()
+        let session = AppSession(profileRepository: repository, userId: nil)
+        XCTAssertFalse(session.needsProfileSetup)
+
+        await session.completeProfileSetup(username: "mara")
+
+        XCTAssertNil(session.profile)
+        XCTAssertEqual(session.errorMessage, ProfileRepositoryError.invalidUserID.localizedDescription)
+    }
+
+    func testAppSessionCompleteProfileSetupAcceptsExistingProfileOnCreateFailure() async throws {
+        let existing = Profile(
+            id: userID,
+            username: "existing_mara",
+            fullName: "Existing Mara",
+            avatarUrl: nil,
+            bio: nil,
+            homeArea: "Boulder",
+            createdAt: Date()
+        )
+        let repository = MockProfileRepository(profile: existing)
+        let session = AppSession(profileRepository: repository, userId: userID, userEmail: "mara@example.com")
+        XCTAssertTrue(session.needsProfileSetup)
+
+        await session.completeProfileSetup(
+            username: "new_username",
+            displayName: "New Name",
+            homeArea: "Denver"
+        )
+
+        XCTAssertFalse(session.needsProfileSetup)
+        XCTAssertEqual(session.profile?.username, "existing_mara")
+        XCTAssertEqual(session.profile?.fullName, "Existing Mara")
+        XCTAssertNil(session.errorMessage)
+    }
+
+    func testAppSessionCompleteProfileSetupRetainsRecoverableErrorWhenCreationFailsAndNoProfileExists() async throws {
+        let repository = MissingProfileFailingCreateRepository()
+        let session = AppSession(profileRepository: repository, userId: userID, userEmail: "mara@example.com")
+        XCTAssertTrue(session.needsProfileSetup)
+
+        await session.completeProfileSetup(
+            username: "mara",
+            displayName: "Mara Climber",
+            homeArea: "Boulder"
+        )
+
+        XCTAssertTrue(session.needsProfileSetup)
+        XCTAssertNil(session.profile)
+        XCTAssertEqual(session.errorMessage, ProfileRepositoryError.unavailable.localizedDescription)
+    }
+
     // MARK: - Sent-only eligibility
 
     func testOnlySentAttemptsAreSendEligible() {
@@ -266,6 +361,116 @@ final class NativeContractTests: XCTestCase {
 
         XCTAssertTrue(try await repository.fetchAttempts(sessionID: pending.sessionId).isEmpty)
         XCTAssertTrue(try context.fetch(FetchDescriptor<PendingAttemptDeletion>()).isEmpty)
+        XCTAssertEqual(onlineSync.state, .synced)
+    }
+
+    func testUndoAttemptCleansLinkedDraftAndImageWithoutAffectingUnrelatedDrafts() async throws {
+        let context = try makeContext()
+        let repository = MockSessionRepository()
+        let sync = SessionSyncService(repository: repository, modelContext: context, connectivityOverride: false)
+
+        let attempt1ID = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
+        let attempt2ID = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
+        let attempt1 = pendingAttempt(id: attempt1ID, syncState: .queued)
+        let attempt2 = pendingAttempt(id: attempt2ID, syncState: .queued)
+
+        let draft1ID = UUID(uuidString: "33333333-3333-4333-8333-333333333333")!
+        let draft2ID = UUID(uuidString: "44444444-4444-4444-8444-444444444444")!
+        let fileName1 = "draft-\(draft1ID.uuidString).jpg"
+        let fileName2 = "draft-\(draft2ID.uuidString).jpg"
+        let data1 = Data([0x01, 0x02])
+        let data2 = Data([0x03, 0x04])
+
+        let draft1 = PendingSendDraft(
+            id: draft1ID,
+            attemptId: attempt1ID,
+            caption: "Draft 1",
+            imageFileName: fileName1,
+            imageAlt: "Alt 1"
+        )
+        let draft2 = PendingSendDraft(
+            id: draft2ID,
+            attemptId: attempt2ID,
+            caption: "Draft 2",
+            imageFileName: fileName2,
+            imageAlt: "Alt 2"
+        )
+
+        try sync.enqueue(attempt: attempt1)
+        try sync.enqueue(attempt: attempt2)
+        try sync.enqueue(draft: draft1, imageData: data1)
+        try sync.enqueue(draft: draft2, imageData: data2)
+
+        XCTAssertEqual(DraftImageStore.read(fileName: fileName1), data1)
+        XCTAssertEqual(DraftImageStore.read(fileName: fileName2), data2)
+
+        try sync.delete(attempt: attempt1)
+
+        // Draft 1 and image 1 deleted
+        let remainingDraftsAfterDelete1 = try context.fetch(FetchDescriptor<PendingSendDraft>())
+        XCTAssertEqual(remainingDraftsAfterDelete1.map(\.id), [draft2ID])
+        XCTAssertNil(DraftImageStore.read(fileName: fileName1))
+
+        // Draft 2 and image 2 preserved
+        XCTAssertEqual(DraftImageStore.read(fileName: fileName2), data2)
+        XCTAssertEqual(sync.state, .queued)
+
+        try sync.delete(attempt: attempt2)
+
+        // Draft 2 and image 2 deleted
+        let remainingDraftsAfterDelete2 = try context.fetch(FetchDescriptor<PendingSendDraft>())
+        XCTAssertTrue(remainingDraftsAfterDelete2.isEmpty)
+        XCTAssertNil(DraftImageStore.read(fileName: fileName2))
+        XCTAssertEqual(sync.state, .synced)
+    }
+
+    func testUndoSyncedAttemptCleansLinkedDraftAndPreventsOrphanPublish() async throws {
+        let context = try makeContext()
+        let repository = MockSessionRepository()
+        let feed = RecordingDraftFeedRepository(currentUserID: userID)
+        let sync = SessionSyncService(
+            repository: repository,
+            feedRepository: feed,
+            modelContext: context,
+            connectivityOverride: false
+        )
+
+        let attemptID = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
+        let pending = pendingAttempt(id: attemptID, syncState: .synced)
+        context.insert(pending)
+        try context.save()
+        _ = try await repository.upsertAttempt(pending.remote)
+
+        let draftID = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
+        let fileName = "draft-\(draftID.uuidString).jpg"
+        let imageData = Data([0xaa, 0xbb])
+        let draft = PendingSendDraft(
+            id: draftID,
+            attemptId: attemptID,
+            caption: "Undo me",
+            imageFileName: fileName,
+            imageAlt: "Alt"
+        )
+        try sync.enqueue(draft: draft, imageData: imageData)
+
+        try sync.delete(attempt: pending)
+
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSendDraft>()).isEmpty)
+        XCTAssertNil(DraftImageStore.read(fileName: fileName))
+        let tombstones = try context.fetch(FetchDescriptor<PendingAttemptDeletion>())
+        XCTAssertEqual(tombstones.map(\.id), [attemptID])
+
+        let onlineSync = SessionSyncService(
+            repository: repository,
+            feedRepository: feed,
+            modelContext: context,
+            connectivityOverride: true
+        )
+        await onlineSync.replay()
+
+        XCTAssertTrue(try await repository.fetchAttempts(sessionID: pending.sessionId).isEmpty)
+        XCTAssertTrue(feed.createdPosts().isEmpty)
+        XCTAssertTrue(feed.uploadedPaths().isEmpty)
         XCTAssertEqual(onlineSync.state, .synced)
     }
 
@@ -918,5 +1123,23 @@ private final class RecordingDraftFeedRepository: FeedRepository, @unchecked Sen
     func uploadPostImage(data: Data, path: String) async throws {
         lock.lock(); defer { lock.unlock() }
         paths.append(path)
+    }
+}
+
+private final class MissingProfileFailingCreateRepository: ProfileRepository, @unchecked Sendable {
+    func fetchProfile(userID: UUID) async throws -> Profile? {
+        return nil
+    }
+
+    func fetchStatistics(userID: UUID) async throws -> ProfileStatistics {
+        throw ProfileRepositoryError.unavailable
+    }
+
+    func createProfile(_ draft: ProfileDraft) async throws -> Profile {
+        throw ProfileRepositoryError.unavailable
+    }
+
+    func updateProfile(userID: UUID, update: ProfileUpdate) async throws -> Profile {
+        throw ProfileRepositoryError.unavailable
     }
 }
