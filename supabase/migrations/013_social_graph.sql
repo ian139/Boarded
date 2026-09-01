@@ -72,7 +72,9 @@ $$;
 -- strictly "routes created by users the caller follows".
 --
 -- Pagination is keyset on (activity_at, route_id) where activity_at is the
--- route's created_at. Ordering is newest-first and deterministic because
+-- route's created_at. Routes with a NULL created_at are excluded so every
+-- returned activity_at matches the non-null wire type and the cursor tuple
+-- comparison stays total. Ordering is newest-first and deterministic because
 -- (created_at, id) is a total order. Pass both cursor fields or neither.
 CREATE OR REPLACE FUNCTION public.get_following_feed(
   p_cursor_activity_at timestamptz DEFAULT NULL,
@@ -99,11 +101,12 @@ AS $$
   JOIN public.routes r ON r.user_id = f.following_id
   LEFT JOIN public.profiles p ON p.id = f.following_id
   WHERE f.follower_id = auth.uid()
+    AND r.created_at IS NOT NULL
     AND (
       p_cursor_activity_at IS NULL
       OR (r.created_at, r.id) < (p_cursor_activity_at, p_cursor_route_id)
     )
-  ORDER BY r.created_at DESC, r.id DESC
+  ORDER BY r.created_at DESC NULLS LAST, r.id DESC
   LIMIT LEAST(GREATEST(COALESCE(p_limit, 20), 1), 50);
 $$;
 

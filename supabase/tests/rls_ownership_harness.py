@@ -37,6 +37,7 @@ OTHER_PUBLIC_ROUTE_ID = "c1d2e3f4-1111-4a2b-8c3d-9e0f1a2b3c4d"
 OTHER_PUBLIC_ROUTE_2_ID = "c1d2e3f4-2222-4a2b-8c3d-9e0f1a2b3c4d"
 OTHER_PUBLIC_ROUTE_3_ID = "c1d2e3f4-3333-4a2b-8c3d-9e0f1a2b3c4d"
 OTHER_PRIVATE_ROUTE_ID = "c1d2e3f4-4444-4a2b-8c3d-9e0f1a2b3c4d"
+OTHER_NULL_CREATED_ROUTE_ID = "c1d2e3f4-5555-4a2b-8c3d-9e0f1a2b3c4d"
 
 OWNER_EMAIL = "climbset-rls-harness-owner@local.invalid"
 OTHER_EMAIL = "climbset-rls-harness-other@local.invalid"
@@ -311,6 +312,7 @@ def setup_fixtures() -> None:
             OTHER_PUBLIC_ROUTE_2_ID,
             OTHER_PUBLIC_ROUTE_3_ID,
             OTHER_PRIVATE_ROUTE_ID,
+            OTHER_NULL_CREATED_ROUTE_ID,
         )
     )
     expected_emails = ", ".join(sql_quote(email) for _, email in users)
@@ -371,15 +373,16 @@ VALUES
   ({sql_quote(OWNER_ID)}, 'rls-harness-owner', true),
   ({sql_quote(OTHER_ID)}, 'rls-harness-other', true)
 ON CONFLICT (id) DO UPDATE SET username = EXCLUDED.username, is_public = EXCLUDED.is_public;
-INSERT INTO public.routes (id, user_id, wall_id, name, grade_v, holds, is_public)
+INSERT INTO public.routes (id, user_id, wall_id, name, grade_v, holds, is_public, created_at)
 VALUES
-  ({sql_quote(OWNER_ROUTE_ID)}, {sql_quote(OWNER_ID)}, 'rls-harness-wall', {sql_quote(ROUTE_MARKER + 'owner')}, 'VB', '[]'::jsonb, true),
-  ({sql_quote(PROTECTED_ROUTE_ID)}, {sql_quote(OWNER_ID)}, 'rls-harness-wall', {sql_quote(ROUTE_MARKER + 'protected')}, 'V1', '[]'::jsonb, true),
-  ({sql_quote(NULL_OWNER_ROUTE_ID)}, NULL, 'rls-harness-wall', {sql_quote(ROUTE_MARKER + 'null-owner')}, 'V0', '[]'::jsonb, true),
-  ({sql_quote(OTHER_PUBLIC_ROUTE_ID)}, {sql_quote(OTHER_ID)}, 'rls-harness-wall', {sql_quote(ROUTE_MARKER + 'other-public')}, 'V2', '[]'::jsonb, true),
-  ({sql_quote(OTHER_PUBLIC_ROUTE_2_ID)}, {sql_quote(OTHER_ID)}, 'rls-harness-wall', {sql_quote(ROUTE_MARKER + 'other-public-2')}, 'V3', '[]'::jsonb, true),
-  ({sql_quote(OTHER_PUBLIC_ROUTE_3_ID)}, {sql_quote(OTHER_ID)}, 'rls-harness-wall', {sql_quote(ROUTE_MARKER + 'other-public-3')}, 'V4', '[]'::jsonb, true),
-  ({sql_quote(OTHER_PRIVATE_ROUTE_ID)}, {sql_quote(OTHER_ID)}, 'rls-harness-wall', {sql_quote(ROUTE_MARKER + 'other-private')}, 'V5', '[]'::jsonb, false);
+  ({sql_quote(OWNER_ROUTE_ID)}, {sql_quote(OWNER_ID)}, 'rls-harness-wall', {sql_quote(ROUTE_MARKER + 'owner')}, 'VB', '[]'::jsonb, true, now()),
+  ({sql_quote(PROTECTED_ROUTE_ID)}, {sql_quote(OWNER_ID)}, 'rls-harness-wall', {sql_quote(ROUTE_MARKER + 'protected')}, 'V1', '[]'::jsonb, true, now()),
+  ({sql_quote(NULL_OWNER_ROUTE_ID)}, NULL, 'rls-harness-wall', {sql_quote(ROUTE_MARKER + 'null-owner')}, 'V0', '[]'::jsonb, true, now()),
+  ({sql_quote(OTHER_PUBLIC_ROUTE_ID)}, {sql_quote(OTHER_ID)}, 'rls-harness-wall', {sql_quote(ROUTE_MARKER + 'other-public')}, 'V2', '[]'::jsonb, true, now()),
+  ({sql_quote(OTHER_PUBLIC_ROUTE_2_ID)}, {sql_quote(OTHER_ID)}, 'rls-harness-wall', {sql_quote(ROUTE_MARKER + 'other-public-2')}, 'V3', '[]'::jsonb, true, now()),
+  ({sql_quote(OTHER_PUBLIC_ROUTE_3_ID)}, {sql_quote(OTHER_ID)}, 'rls-harness-wall', {sql_quote(ROUTE_MARKER + 'other-public-3')}, 'V4', '[]'::jsonb, true, now()),
+  ({sql_quote(OTHER_PRIVATE_ROUTE_ID)}, {sql_quote(OTHER_ID)}, 'rls-harness-wall', {sql_quote(ROUTE_MARKER + 'other-private')}, 'V5', '[]'::jsonb, false, now()),
+  ({sql_quote(OTHER_NULL_CREATED_ROUTE_ID)}, {sql_quote(OTHER_ID)}, 'rls-harness-wall', {sql_quote(ROUTE_MARKER + 'other-null-created')}, 'V6', '[]'::jsonb, true, NULL);
 COMMIT;
 """
     run_psql(sql)
@@ -398,6 +401,7 @@ def cleanup_fixtures() -> None:
             OTHER_PUBLIC_ROUTE_2_ID,
             OTHER_PUBLIC_ROUTE_3_ID,
             OTHER_PRIVATE_ROUTE_ID,
+            OTHER_NULL_CREATED_ROUTE_ID,
         )
     )
     emails = ", ".join(sql_quote(email) for email in (OWNER_EMAIL, OTHER_EMAIL))
@@ -504,7 +508,33 @@ def rpc(base: str, function: str, token: str | None = None, payload: object | No
 
 
 def assert_social_graph(base: str, owner_token: str, other_token: str) -> None:
-    # Owner follows OTHER.
+    # Cross-user impersonation: OTHER attempts to create a follow on behalf of
+    # OWNER before any legitimate OWNER->OTHER row exists. RLS must reject it;
+    # a PK conflict cannot satisfy this assertion because the pair is absent.
+    cross_follow = expect_api_result(
+        request_json(
+            "POST",
+            f"{base}/rest/v1/follows",
+            other_token,
+            {"follower_id": OWNER_ID, "following_id": OTHER_ID},
+        ),
+        "cross-user follow",
+    )
+    if 200 <= cross_follow.status < 300:
+        fail(f"cross-user follow unexpectedly succeeded: HTTP {cross_follow.status}")
+    # Verify the impersonated row was not created.
+    cross_read = expect_api_result(
+        request_json(
+            "GET",
+            f"{base}/rest/v1/follows?follower_id=eq.{OWNER_ID}&following_id=eq.{OTHER_ID}&select=*",
+            owner_token,
+        ),
+        "cross-user follow row absence",
+    )
+    if cross_read.status != 200 or not isinstance(cross_read.body, list) or cross_read.body:
+        fail(f"cross-user follow left a row behind: HTTP {cross_read.status} {cross_read.body!r}")
+
+    # Owner follows OTHER (legitimate).
     follow = expect_api_result(
         request_json(
             "POST",
@@ -543,19 +573,6 @@ def assert_social_graph(base: str, owner_token: str, other_token: str) -> None:
     if 200 <= self_follow.status < 300:
         fail(f"self-follow unexpectedly succeeded: HTTP {self_follow.status}")
 
-    # Cross-user: OTHER cannot create a follow on behalf of OWNER.
-    cross_follow = expect_api_result(
-        request_json(
-            "POST",
-            f"{base}/rest/v1/follows",
-            other_token,
-            {"follower_id": OWNER_ID, "following_id": OTHER_ID},
-        ),
-        "cross-user follow",
-    )
-    if 200 <= cross_follow.status < 300:
-        fail(f"cross-user follow unexpectedly succeeded: HTTP {cross_follow.status}")
-
     # Anonymous users cannot read the social graph.
     anon_read = expect_api_result(
         request_json("GET", f"{base}/rest/v1/follows?select=*"),
@@ -586,10 +603,14 @@ def assert_social_graph(base: str, owner_token: str, other_token: str) -> None:
         fail(f"feed leaked private route: {feed_ids!r}")
     if OWNER_ROUTE_ID in feed_ids or PROTECTED_ROUTE_ID in feed_ids:
         fail(f"feed included own routes: {feed_ids!r}")
+    if OTHER_NULL_CREATED_ROUTE_ID in feed_ids:
+        fail(f"feed leaked NULL-created route: {feed_ids!r}")
     for route_id in (OTHER_PUBLIC_ROUTE_ID, OTHER_PUBLIC_ROUTE_2_ID, OTHER_PUBLIC_ROUTE_3_ID):
         if route_id not in feed_ids:
             fail(f"feed missing public route {route_id}: {feed_ids!r}")
     for item in feed.body:
+        if item.get("activity_at") is None:
+            fail(f"feed returned a NULL activity_at: {item!r}")
         if item.get("author_id") != OTHER_ID or item.get("author_username") != "rls-harness-other":
             fail(f"feed item has wrong author enrichment: {item!r}")
 
