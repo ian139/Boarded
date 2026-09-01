@@ -1,16 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Geist_Mono, Manrope } from "next/font/google";
+import { Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { BottomNav } from "@/components/shared/BottomNav";
 import { Toaster } from "@/components/ui/sonner";
 import { Providers } from "@/components/providers/Providers";
 import { Analytics } from "@vercel/analytics/next";
 import Script from "next/script";
-
-const manrope = Manrope({
-  variable: "--font-manrope",
-  subsets: ["latin"],
-});
 
 
 const geistMono = Geist_Mono({
@@ -32,10 +27,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f7f3ea" },
-    { media: "(prefers-color-scheme: dark)", color: "#1b1a17" },
-  ],
+  themeColor: "#0A0B10",
 };
 
 export default function RootLayout({
@@ -44,10 +36,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${manrope.variable} ${geistMono.variable} antialiased font-sans`}
-      >
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <body className={`${geistMono.variable} antialiased font-sans`}>
         <Providers>
           {children}
           <BottomNav />

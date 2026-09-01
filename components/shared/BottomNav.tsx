@@ -15,8 +15,17 @@ const navItems = [
     ),
   },
   {
+    href: '/activity',
+    label: 'Activity',
+    icon: (active: boolean) => (
+      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4 18V9m5 9V5m5 13v-7m5 7V3" />
+      </svg>
+    ),
+  },
+  {
     href: '/editor',
-    label: 'Create',
+    label: 'Log',
     icon: (active: boolean) => (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -38,10 +47,8 @@ export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="Primary navigation" className="fixed bottom-0 left-0 right-0 z-50 px-3 pb-2 md:hidden">
-      <div className="absolute inset-x-3 inset-y-0 rounded-2xl border border-border bg-card/80 backdrop-blur-xl" />
-
-      <div className="relative flex items-center justify-evenly px-2 py-2 pb-safe">
+    <nav aria-label="Primary navigation" className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background px-2 pb-safe md:hidden">
+      <div className="flex items-center justify-evenly py-1">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
 
@@ -51,7 +58,7 @@ export function BottomNav() {
               href={item.href}
               aria-current={isActive ? 'page' : undefined}
               className={cn(
-                'relative flex min-w-[72px] flex-col items-center justify-center rounded-xl px-5 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                'relative flex min-h-14 min-w-16 flex-col items-center justify-center rounded-xl px-3 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
               )}
             >
