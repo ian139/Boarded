@@ -12,18 +12,5 @@
 	<string>sb_publishable_BwvrPq9WJ-BZ41RqYdYf-g_c8ObuhTk</string>
 	<key>SUPABASE_URL</key>
 	<string>https://tntsouylpzkwaqubvtac.supabase.co</string>
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleTypeRole</key>
-			<string>Viewer</string>
-			<key>CFBundleURLName</key>
-			<string>com.ian.Boarded.share</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>boarded</string>
-			</array>
-		</dict>
-	</array>
 </dict>
 </plist>

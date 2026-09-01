@@ -66,19 +66,18 @@ Run `npm start` only after `npm run build`; it serves the production build local
 1. Open the checked-in Xcode project:
 
    ```bash
-   open apps/ios/ClimbSet/ClimbSet.xcodeproj
+   open apps/ios/Boarded/Boarded.xcodeproj
    ```
 
-2. In Xcode, select the `ClimbSet` scheme, choose an iOS 18-compatible simulator or a signed development device, and choose **Product > Run**.
+2. In Xcode, select the `Boarded` scheme, choose an iOS 18-compatible simulator or a signed development device, and choose **Product > Run**.
 3. To configure a Supabase project for the native target, edit the target's Info.plist values named `SUPABASE_URL` and `SUPABASE_ANON_KEY`. `SupabaseConfig.swift` reads those two bundle values and creates the native client with the anonymous/publishable key.
-4. If native route sharing should produce web links, set the target's optional `PUBLIC_APP_URL` Info.plist value to the web origin. When it is absent, the native code falls back to a `climbset://share/<token>` deep link. Keep any value limited to a URL; never place a service-role key in the plist.
 
-The project settings currently specify marketing version `0.1.2`, iOS deployment target `18.0`, and Swift `5.0`. The Swift package graph is resolved in `apps/ios/ClimbSet/ClimbSet.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`; opening the project lets Xcode resolve the checked-in package graph.
+The project settings currently specify marketing version `0.1.2`, iOS deployment target `18.0`, and Swift `5.0`. The Swift package graph is resolved in `apps/ios/Boarded/Boarded.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`; opening the project lets Xcode resolve the checked-in package graph.
 
 A command-line Debug build is:
 
 ```bash
-xcodebuild -project apps/ios/ClimbSet/ClimbSet.xcodeproj -scheme ClimbSet -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build
+xcodebuild -project apps/ios/Boarded/Boarded.xcodeproj -scheme Boarded -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build
 ```
 
 For a device build or run, select a development team/signing destination in Xcode rather than assuming a particular local device identifier.
@@ -86,7 +85,7 @@ For a device build or run, select a development team/signing destination in Xcod
 <a id="supabase"></a>
 ## Supabase migrations and local harness
 
-The complete checked-in migration history runs from `supabase/migrations/001_initial_schema.sql` through `012_api_role_table_grants.sql`. Apply every migration **once, in numeric order** using the Supabase Dashboard SQL Editor, or use a separately linked Supabase CLI workflow that you maintain for the target project.
+The complete checked-in migration history runs from `supabase/migrations/001_initial_schema.sql` through `013_social_graph.sql`. Apply every migration **once, in numeric order** using the Supabase Dashboard SQL Editor, or use a separately linked Supabase CLI workflow that you maintain for the target project.
 
 This repository does **not** contain `supabase/config.toml`. Consequently, do not claim that this checkout can run `supabase start`, and do not assume a local CLI workflow is configured here. A separately linked CLI may be used only when its project configuration and credentials are maintained outside this repository.
 
@@ -96,11 +95,11 @@ The optional RLS ownership harness is `supabase/tests/rls_ownership_harness.py`:
 python3 supabase/tests/rls_ownership_harness.py
 ```
 
-It is a test of a disposable local Supabase stack, not a cloud-project setup command. The harness defaults to `http://127.0.0.1:54321` and the Docker container `supabase_db_climbset-supabase`; override them only with loopback/local values:
+It is a test of a disposable local Supabase stack, not a cloud-project setup command. The harness defaults to `http://127.0.0.1:54321` and the Docker container `supabase_db_boarded-supabase`; override them only with loopback/local values:
 
 ```bash
-CLIMBSET_LOCAL_SUPABASE_URL=http://127.0.0.1:54321 \
-CLIMBSET_LOCAL_DB_CONTAINER=supabase_db_climbset-supabase \
+BOARDED_LOCAL_SUPABASE_URL=http://127.0.0.1:54321 \
+BOARDED_LOCAL_DB_CONTAINER=supabase_db_boarded-supabase \
 python3 supabase/tests/rls_ownership_harness.py
 ```
 
@@ -114,13 +113,13 @@ Run the checks relevant to the area you changed:
 npm run lint
 npm test
 npm run build
-xcodebuild -project apps/ios/ClimbSet/ClimbSet.xcodeproj -scheme ClimbSet -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build
+xcodebuild -project apps/ios/Boarded/Boarded.xcodeproj -scheme Boarded -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build
 python3 supabase/tests/rls_ownership_harness.py
 ```
 
 The web commands validate the checked-in Next.js app. The Xcode command validates a simulator Debug build. The Python command is conditional on a separately started disposable local Supabase stack; a missing local stack is an environment prerequisite failure, not permission to point the harness at a remote project.
 
-For native behavior changes, select an installed iOS simulator in Xcode and choose **Product > Test**. The shared `ClimbSet` scheme runs the `ClimbSetTests` unit/contract target and the `ClimbSetUITests` UI target.
+For native behavior changes, select an installed iOS simulator in Xcode and choose **Product > Test**. The shared `Boarded` scheme runs the `BoardedTests` unit/contract target and the `BoardedUITests` UI target.
 
 <a id="repository-map"></a>
 ## Repository map
@@ -130,11 +129,11 @@ For native behavior changes, select an installed iOS simulator in Xcode and choo
 - `lib/` — web Supabase client, stores, hooks, utilities, and tests.
 - `packages/shared/` — workspace-shared TypeScript package.
 - `public/` — web static assets, including the default wall image.
-- `apps/ios/ClimbSet/ClimbSet/` — SwiftUI app source, services, models, view models, assets, and Info.plist.
-- `apps/ios/ClimbSet/ClimbSet.xcodeproj/` — Xcode project and schemes.
-- `apps/ios/ClimbSet/ClimbSetTests/` — native unit/contract tests.
-- `apps/ios/ClimbSet/ClimbSetUITests/` — native UI tests.
-- `supabase/migrations/` — ordered SQL schema, policy, RPC, and storage migrations (001–012).
+- `apps/ios/Boarded/Boarded/` — SwiftUI app source, services, models, view models, assets, and Info.plist.
+- `apps/ios/Boarded/Boarded.xcodeproj/` — Xcode project and schemes.
+- `apps/ios/Boarded/BoardedTests/` — native unit/contract tests.
+- `apps/ios/Boarded/BoardedUITests/` — native UI tests.
+- `supabase/migrations/` — ordered SQL schema, policy, RPC, and storage migrations (001–013).
 - `supabase/tests/` — local-only security harnesses; currently the RLS ownership harness.
 - `.env.local.example` — safe variable-name/template file; `.env.local` is local-only.
 

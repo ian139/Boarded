@@ -7,9 +7,7 @@ struct RootView: View {
     @StateObject private var session = AppSession(fixture: AppLaunchConfiguration.isUITestFixture)
     @StateObject private var routesViewModel = RoutesViewModel(repository: AppServices.routesRepository)
     @StateObject private var routeDetailPresenter = RouteDetailPresenter()
-    @State private var shareRequest: NativeShareRequest?
     @State private var selectedTab: Destination
-    @State private var isInvalidShareLinkPresented = false
     private let logFixture: AttemptLogFixture?
 
     init() {
@@ -21,7 +19,7 @@ struct RootView: View {
     var body: some View {
         ZStack {
             TabView(selection: $selectedTab) {
-                NavigationStack { RoutesView(shareRequest: $shareRequest) }
+                NavigationStack { RoutesView() }
                     .accessibilityHidden(routeDetailPresenter.presentation != nil)
                     .tabItem { Label("Home", systemImage: "house") }
                     .tag(Destination.home)
@@ -68,17 +66,6 @@ struct RootView: View {
         .environmentObject(routesViewModel)
         .environmentObject(routeDetailPresenter)
         .task { await session.load() }
-        .onOpenURL { url in
-            guard let token = NativeShareLinkParser.token(from: url) else {
-                isInvalidShareLinkPresented = true
-                return
-            }
-            selectedTab = .home
-            shareRequest = NativeShareRequest(token: token)
-        }
-        .alert("Unable to open shared route", isPresented: $isInvalidShareLinkPresented) {
-            Button("OK", role: .cancel) {}
-        } message: { Text("The shared link is invalid.") }
     }
 
     private static var fixtureConfiguration: AttemptLogFixture? {
@@ -125,17 +112,6 @@ private struct TabBarAccessibilityBridge: UIViewRepresentable {
         for child in controller.children { if let result = findTabBarController(in: child) { return result } }
         if let presented = controller.presentedViewController { return findTabBarController(in: presented) }
         return nil
-    }
-}
-
-struct NativeShareRequest: Identifiable { let id = UUID(); let token: String }
-
-enum NativeShareLinkParser {
-    static func token(from url: URL) -> String? {
-        guard url.scheme?.lowercased() == "boarded", url.host?.lowercased() == "share",
-              url.query == nil, url.fragment == nil, url.pathComponents.count == 2,
-              let token = url.pathComponents.last, isValidShareToken(token), url.path == "/\(token)" else { return nil }
-        return token
     }
 }
 

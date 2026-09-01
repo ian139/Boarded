@@ -247,14 +247,6 @@ final class NativeContractTests: XCTestCase {
         XCTAssertNil(model.paginationErrorMessage)
     }
 
-    func testShareDeepLinkRoutesCanonicalLinksToHomeAndRejectsActivityPaths() {
-        XCTAssertEqual(
-            NativeShareLinkParser.token(from: URL(string: "boarded://share/fixture-granite")!),
-            "fixture-granite"
-        )
-        XCTAssertNil(NativeShareLinkParser.token(from: URL(string: "boarded://activity/fixture-granite")!))
-    }
-
     func testEditorGeometryUsesModestInitialZoomForMismatchedAspectRatios() {
         let canvas = CGSize(width: 400, height: 300)
         let nearMatchingImage = EditorHoldGeometry.initialImageRect(

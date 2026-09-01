@@ -1,38 +1,21 @@
 import SwiftUI
 
 struct RoutesView: View {
-    @Binding var shareRequest: NativeShareRequest?
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @EnvironmentObject var viewModel: RoutesViewModel
     @EnvironmentObject var session: AppSession
     @EnvironmentObject var routeDetailPresenter: RouteDetailPresenter
     @StateObject private var wallsViewModel: WallsViewModel
-    @State private var sharedRouteError: String?
     @State private var loggingRoute: Route? = nil
     @AccessibilityFocusState private var focusedRouteID: String?
     @State private var routePendingFocusRestore: String?
 
     init(
-        shareRequest: Binding<NativeShareRequest?> = .constant(nil),
         wallsRepository: any WallsRepository = AppServices.wallsRepository
     ) {
-        _shareRequest = shareRequest
         _wallsViewModel = StateObject(wrappedValue: WallsViewModel(repository: wallsRepository))
     }
 
-    private struct ShareTaskIdentity: Equatable {
-        let requestID: UUID?
-        let userID: UUID?
-        let isSessionLoading: Bool
-    }
-
-    private var shareTaskIdentity: ShareTaskIdentity {
-        ShareTaskIdentity(
-            requestID: shareRequest?.id,
-            userID: session.userId,
-            isSessionLoading: session.isLoading
-        )
-    }
     var body: some View {
         let theme = BoardedTheme()
         return ZStack {
@@ -74,37 +57,6 @@ struct RoutesView: View {
                 try await viewModel.addAscent(routeId: route.id, ascent: ascent)
                 loggingRoute = nil
             }
-        }
-        .task(id: shareTaskIdentity) {
-            guard let request = shareRequest, !session.isLoading else { return }
-            await openSharedRoute(token: request.token)
-            if !Task.isCancelled, shareRequest?.id == request.id {
-                shareRequest = nil
-            }
-        }
-        .alert("Unable to open shared route", isPresented: Binding(
-            get: { sharedRouteError != nil },
-            set: { if !$0 { sharedRouteError = nil } }
-        )) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(sharedRouteError ?? "The shared route could not be loaded.")
-        }
-    }
-    private func openSharedRoute(token: String) async {
-        sharedRouteError = nil
-        do {
-            let sharedRoute = try await viewModel.fetchSharedRoute(token: token)
-            guard !Task.isCancelled else { return }
-            if let index = viewModel.routes.firstIndex(where: { $0.id == sharedRoute.id }) {
-                viewModel.routes[index] = sharedRoute
-            } else {
-                viewModel.routes.insert(sharedRoute, at: 0)
-            }
-            presentRoute(sharedRoute, restoringFocusTo: nil)
-        } catch {
-            guard !Task.isCancelled else { return }
-            sharedRouteError = error.localizedDescription
         }
     }
 
