@@ -1,4 +1,4 @@
-# Boarded Green — Native iOS Design Language
+# Boarded Green — iOS and Web Design Language
 
 ## 1. Design thesis
 
@@ -16,7 +16,7 @@ The central visual tension is:
 
 > **Expressive serif moments for identity and achievement; disciplined sans-serif systems for action and information.**
 
-The app lives primarily on a warm-black field. Chalk-colored typography provides clarity. Vivid green identifies agency, progression, selection, and successful outcomes. Photography supplies the physical reality.
+Boarded lives on a warm-black field on iOS and web. Chalk-colored typography provides clarity. Vivid green identifies agency, progression, selection, and successful outcomes. Photography supplies the physical reality.
 
 ---
 
@@ -120,32 +120,30 @@ The palette is intentionally warm. Do not replace Obsidian with pure `#000000` o
 
 These pairings are safe foundations. Opacity-derived secondary colors must still be tested at their actual sizes and weights.
 
-## Recommended semantic tokens
+## Shared semantic tokens
 
-```text
-background/base          #0A0B10
-background/elevated      #171A22
-surface/card             #0D0F14
-surface/selected         rgba(50, 213, 131, 0.12)
+The token names and meanings are the cross-platform contract. iOS color assets or Swift constants and web CSS custom properties MUST map to the same semantic token; components MUST consume semantic names rather than palette values.
 
-text/primary             #F4F2EB
-text/secondary           rgba(244, 242, 235, 0.64)
-text/tertiary            rgba(244, 242, 235, 0.44)
-text/disabled            rgba(244, 242, 235, 0.30)
-
-stroke/default           rgba(244, 242, 235, 0.18)
-stroke/subtle            rgba(244, 242, 235, 0.10)
-divider                  rgba(244, 242, 235, 0.08)
-
-accent/default           #32D583
-accent/pressed           #27B873
-accent/soft              rgba(50, 213, 131, 0.14)
-accent/onAccent          #0A0B10
-
-danger                    #FF6B64
-warning                   #F6C85F
-information               #69A7FF
-```
+| Semantic token | Value | Web custom property |
+|---|---:|---|
+| `background/base` | `#0A0B10` | `--color-background-base` |
+| `background/elevated` | `#171A22` | `--color-background-elevated` |
+| `surface/card` | `#0D0F14` | `--color-surface-card` |
+| `surface/selected` | `rgba(50, 213, 131, 0.12)` | `--color-surface-selected` |
+| `text/primary` | `#F4F2EB` | `--color-text-primary` |
+| `text/secondary` | `rgba(244, 242, 235, 0.64)` | `--color-text-secondary` |
+| `text/tertiary` | `rgba(244, 242, 235, 0.44)` | `--color-text-tertiary` |
+| `text/disabled` | `rgba(244, 242, 235, 0.30)` | `--color-text-disabled` |
+| `stroke/default` | `rgba(244, 242, 235, 0.18)` | `--color-stroke-default` |
+| `stroke/subtle` | `rgba(244, 242, 235, 0.10)` | `--color-stroke-subtle` |
+| `divider` | `rgba(244, 242, 235, 0.08)` | `--color-divider` |
+| `accent/default` | `#32D583` | `--color-accent-default` |
+| `accent/pressed` | `#27B873` | `--color-accent-pressed` |
+| `accent/soft` | `rgba(50, 213, 131, 0.14)` | `--color-accent-soft` |
+| `accent/onAccent` | `#0A0B10` | `--color-accent-on-accent` |
+| `danger` | `#FF6B64` | `--color-danger` |
+| `warning` | `#F6C85F` | `--color-warning` |
+| `information` | `#69A7FF` | `--color-information` |
 
 ## Semantic color rules
 
@@ -159,16 +157,13 @@ information               #69A7FF
 
 ## Appearance strategy
 
-Boarded should be **dark-first and dark-default**.
+Boarded is dark-only on iOS and web. There is no light theme, automatic inversion, or conditional light-mode adaptation.
 
-If a light appearance is required, create a deliberate adaptation rather than automatically inverting colors:
-
-- Chalk becomes the page background.
-- Obsidian becomes primary text.
-- Elevated regions become warm white.
-- Slate becomes a structural border or dark utility surface.
-- Use a darker green for small text.
-- Preserve photography, typography, spacing, and the mark.
+- iOS MUST render the dark palette regardless of the system appearance and declare dark appearance for Boarded-owned surfaces.
+- Web MUST set `color-scheme: dark` and keep the same semantic-token mapping when `prefers-color-scheme: light` matches.
+- Browser and native system-owned controls MUST request their dark treatment.
+- Light-preference detection MUST NOT substitute colors or expose a theme toggle.
+- Photography, embedded third-party content, and system permission UI are not recolored, but their Boarded-owned surroundings remain dark.
 
 ---
 
@@ -180,7 +175,7 @@ Boarded requires two distinct typographic voices.
 
 ### Display serif
 
-A high-contrast italic serif is used for:
+Use **Cormorant Garamond Semibold Italic (weight 600, italic)** under the **SIL Open Font License 1.1 (OFL-1.1)** for:
 
 - The Boarded wordmark.
 - Route grades.
@@ -190,12 +185,7 @@ A high-contrast italic serif is used for:
 - Session-result focal metrics.
 - Personal records.
 
-It should feel elegant, sharp, physical, and slightly dramatic.
-
-Recommended prototype pairing:
-
-- **New York Italic** for native prototypes.
-- A licensed editorial serif such as Canela, Editorial New, or a comparable high-contrast family for final brand work.
+This is the sole Boarded display serif; do not substitute New York, Canela, Editorial New, or a “comparable” family. Bundle the licensed font files and OFL text in the iOS application. Self-host a subsetted WOFF2 on the Boarded web origin with `font-display: swap`; do not load it from a third-party font CDN. Both platforms expose weight 600 italic only. The fallback chain is `Georgia, "Times New Roman", serif`; fallback is a loading or font-failure behavior, not an alternate approved brand face.
 
 Do not use the serif for:
 
@@ -209,7 +199,11 @@ Do not use the serif for:
 
 ### Interface sans
 
-Use SF Pro for:
+- iOS uses native SF Pro through system text styles; never bundle or self-host SF Pro.
+- Web uses `system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`.
+- Interface weights are regular 400, medium 500, and semibold 600.
+
+Use the interface sans for:
 
 - Navigation.
 - Labels.
@@ -294,6 +288,34 @@ Use a four-column compact grid with 12-point gutters. Most components should spa
 
 Avoid three-column metric layouts on narrow iPhones. Two columns are clearer and more usable.
 
+## Web token mapping and responsive layout
+
+On web, every numeric spacing, radius, stroke, type-size, and target token maps `1 pt` to `1 CSS px` at the authored layout level. Browser zoom and device pixel ratio provide physical scaling; do not convert tokens using DPR. The shared spacing sequence is therefore `4, 8, 12, 16, 20, 24, 32, 40, 48, 64px`, and radius names retain the same numeric values in CSS px.
+
+Use content-driven reflow at these fixed viewport breakpoints:
+
+| Range | Layout | Container |
+|---|---|---|
+| `< 600px` | Mobile, four columns, 12px gutters | Fluid, 20px side margins |
+| `600–899px` | Compact tablet, eight columns, 16px gutters | Fluid, 24px side margins |
+| `900–1199px` | Desktop, twelve columns, 20px gutters | `min(100% - 48px, 1120px)` |
+| `≥ 1200px` | Wide desktop, twelve columns, 24px gutters | Maximum 1200px |
+
+- Text content uses a maximum readable measure of `68ch`; dense data regions may use the full container.
+- A component reflows when its own available width is insufficient; it MUST NOT shrink type, clip actions, or introduce horizontal page scrolling to preserve a desktop composition.
+- Below 600px, side-by-side primary regions stack in reading order, metric triples become rows or a two-column group, action groups wrap with the primary action first, and tables become labeled rows or gain an explicitly labeled local scroll region.
+- Media preserves its defined aspect ratio and crops intentionally. Route grades, outcome labels, and primary actions never truncate.
+- At 200% browser zoom on a 1280px viewport, content MUST reflow without loss of information or two-dimensional page scrolling.
+
+## Web interaction states
+
+- Pointer targets MUST be at least `44×44 CSS px`; use `48×48 CSS px` for live logging and other high-frequency actions. Inline text links are exempt from the box minimum but require an adequate line height and visible underline.
+- Hover is an enhancement only. Apply it exclusively under `(hover: hover) and (pointer: fine)`; no action, label, or essential information may exist only on hover.
+- Pointer press uses the same semantic pressed state as iOS. Coarse-pointer input MUST NOT receive sticky hover styling.
+- Every interactive element MUST be keyboard reachable in logical DOM order, operable with standard keys, and visibly focused with a 2px `accent/default` ring plus a 2px Obsidian offset. Never remove the browser focus indicator without this replacement.
+- Use semantic HTML controls. `Enter` activates links and buttons; `Space` activates buttons and selectable controls; `Escape` closes a dismissible overlay and returns focus to its invoker; arrow-key behavior follows the applicable ARIA pattern.
+- Disabled controls remain non-interactive, use `text/disabled`, and expose their disabled state programmatically. Loading controls retain their accessible name and prevent duplicate submission.
+
 ## Composition
 
 Every screen should have:
@@ -358,6 +380,14 @@ A strong initial structure is:
 4. **Profile**
 
 Activity and sharing can live within Home unless research demonstrates that they deserve a permanent fifth tab.
+
+The destinations are shared across platforms, but their placement responds to the input and viewport:
+
+- iOS and web below 600px use a bottom tab bar with all four labeled destinations and safe-area-aware padding.
+- Web at 600–899px may retain the bottom bar when touch is primary; otherwise use the desktop treatment.
+- Web at 900px and above uses a persistent top navigation within the content container: Boarded identity at the start, the four labeled destinations in the primary region, and account/utility actions at the end.
+- Navigation MUST not expose a different information architecture between mobile and desktop. When resizing across a breakpoint, retain the current destination, scroll position where practical, and keyboard focus.
+- A mobile overflow menu is reserved for secondary utilities, never the four primary destinations. Desktop navigation MUST collapse before labels overlap or horizontal scrolling appears.
 
 ## Tab bar
 
@@ -907,8 +937,8 @@ Avoid text overlays on hands, faces, holds, or equipment. If text must sit over 
 
 # 15. Accessibility and outdoor use
 
-- Minimum target: 44×44 pt.
-- Prefer 48–52 pt for live logging.
+- Minimum target: `44×44 pt` on iOS and `44×44 CSS px` on web.
+- Prefer `48–52 pt` on iOS and `48–52 CSS px` on web for live logging.
 - Body text contrast: at least 4.5:1.
 - Large text and meaningful graphics: at least 3:1.
 - Never use red and green alone to distinguish outcomes.
@@ -969,7 +999,7 @@ A complete designer handoff should contain:
 ## Foundations
 
 - Core and semantic colors.
-- Dark and optional light appearances.
+- One dark-only appearance shared by iOS and web.
 - Serif, sans, and tabular text styles.
 - Spacing tokens.
 - Compact and regular grids.
