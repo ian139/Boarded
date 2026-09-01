@@ -28,7 +28,7 @@ fi
 ledger=$(compose exec -T db psql -At -U postgres -d postgres -c "SELECT to_regclass('boarded_migrations.schema_migrations') IS NOT NULL")
 state=$(mktemp "${TMPDIR:-/tmp}/boarded-migrate.XXXXXX")
 printf '%s\n' "$FILES" | while IFS= read -r file; do
-  name=$(basename "$file"); hash=$(shasum -a 256 "$file" | cut -d ' ' -f 1)
+  name=$(basename "$file"); hash=$(sha256_digest "$file")
   recorded=
   if [ "$ledger" = t ]; then recorded=$(compose exec -T db psql -At -U postgres -d postgres -v name="$name" -c "SELECT sha256 FROM boarded_migrations.schema_migrations WHERE filename=:'name'"); fi
   if [ "$recorded" = "$hash" ]; then echo "applied $name $hash"; continue; fi

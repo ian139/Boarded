@@ -26,7 +26,15 @@ require_trusted_ancestors "$src_path" 'Backup source'
 require_owned "$src_path" 'Backup source'
 case "$key_path" in "$src_path"|"$src_path"/*) usage_error 'Verification key must be outside backup directory';; esac
 files='schema.dump data.dump migrations.dump storage.tar.gz SHA256SUMS SHA256SUMS.sig'
-for f in $files; do [ -f "$src_path/$f" ] && [ ! -L "$src_path/$f" ] || usage_error "Missing or unsafe $src_path/$f"; done
+check_source_file() {
+  _restore_file=$1
+  _restore_source=$src_path/$_restore_file
+  [ -f "$_restore_source" ] && [ ! -L "$_restore_source" ] ||
+    usage_error "Missing or unsafe $_restore_source"
+  require_owned "$_restore_source" "Backup artifact $_restore_file"
+  require_mode_0600 "$_restore_source" "Backup artifact $_restore_file"
+}
+for f in $files; do check_source_file "$f"; done
 require_env
 umask 077
 stage=$(mktemp -d "${TMPDIR:-/tmp}/boarded-restore.XXXXXX")
@@ -74,7 +82,7 @@ check_staged_file verification-key.pem
 # From here onward, authenticate and consume only private staged copies.
 openssl dgst -sha256 -verify "$stage/verification-key.pem" -signature "$stage/SHA256SUMS.sig" "$stage/SHA256SUMS" >/dev/null ||
   usage_error 'Backup manifest signature verification failed'
-( CDPATH= cd "$stage" && shasum -a 256 -c SHA256SUMS )
+( CDPATH= cd "$stage" && sha256_check_manifest SHA256SUMS )
 tar -tzf "$stage/storage.tar.gz" | while IFS= read -r member; do case "$member" in /*|../*|*/../*|*/..) usage_error "Unsafe archive member: $member";; esac; done
 [ "$VALIDATE_ONLY" = 0 ] || { echo 'Backup metadata, authentication, hashes, archive paths, and origins are valid'; exit 0; }
 compose exec -T db pg_restore --list < "$stage/schema.dump" >/dev/null
@@ -105,7 +113,7 @@ UPDATE public.profiles SET avatar_url=replace(avatar_url, :'old_origin', :'new_o
 UPDATE public.routes SET wall_image_url=replace(wall_image_url, :'old_origin', :'new_origin') WHERE wall_image_url LIKE :'old_origin' || '/storage/v1/object/%';
 UPDATE public.walls SET image_url=replace(image_url, :'old_origin', :'new_origin') WHERE image_url LIKE :'old_origin' || '/storage/v1/object/%';
 SQL
-compose run --rm --no-deps -T storage sh -c 'rm -rf /var/lib/storage/* /var/lib/storage/.[!.]* /var/lib/storage/..?*; tar -C /var/lib/storage -xzf -' < "$stage/storage.tar.gz"
+compose run --rm --no-deps -T storage sh -c 'rm -rf /var/lib/storage/* /var/lib/storage/.[!.]* /var/lib/storage/..?* && tar -C /var/lib/storage -xzf -' < "$stage/storage.tar.gz"
 compose start --wait --wait-timeout 120 auth rest storage api-gateway
 "$ROOT/bin/health"
 QUIESCED=0

@@ -87,7 +87,7 @@ compose run --rm --no-deps -T storage tar -C /var/lib/storage -czf - . > "$dest_
 for backup_file in schema.dump data.dump migrations.dump storage.tar.gz; do
   check_backup_file "$backup_file"
 done
-( CDPATH= cd "$dest_path" && shasum -a 256 schema.dump data.dump migrations.dump storage.tar.gz > SHA256SUMS )
+( CDPATH= cd "$dest_path" && sha256_manifest schema.dump data.dump migrations.dump storage.tar.gz > SHA256SUMS )
 check_backup_file SHA256SUMS
 # OpenSSL reads the private key from this file; key bytes never enter argv.
 openssl dgst -sha256 -sign "$key_path" -out "$dest_path/SHA256SUMS.sig" "$dest_path/SHA256SUMS"

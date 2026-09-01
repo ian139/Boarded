@@ -9,6 +9,35 @@ valid_port() {
   case "$1" in ''|*[!0-9]*) return 1;; esac
   [ "$1" -ge 1 ] 2>/dev/null && [ "$1" -le 65535 ] 2>/dev/null
 }
+sha256_manifest() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$@"
+  elif command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$@"
+  else
+    usage_error 'A SHA-256 utility (sha256sum or shasum) is required for backup, restore, and migration manifests'
+  fi
+}
+sha256_digest() {
+  [ "$#" -eq 1 ] || usage_error 'sha256_digest expects exactly one file'
+  _sha_output=$(sha256_manifest "$1") ||
+    usage_error "Could not calculate SHA-256 digest: $1"
+  printf '%s\n' "${_sha_output%% *}"
+}
+sha256_check_manifest() {
+  [ "$#" -eq 1 ] || usage_error 'sha256_check_manifest expects exactly one manifest'
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum -c "$1"
+  elif command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 -c "$1"
+  else
+    usage_error 'A SHA-256 utility (sha256sum or shasum) is required to verify the manifest'
+  fi
+}
+require_sha256_tool() {
+  command -v sha256sum >/dev/null 2>&1 || command -v shasum >/dev/null 2>&1 ||
+    usage_error 'Cannot continue: install sha256sum or shasum for SHA-256 manifest checks'
+}
 STAT_DIALECT=bsd
 _stat_probe=$(stat -c '%a' / 2>/dev/null) || _stat_probe=
 case "$_stat_probe" in ''|*[!0-7]*) ;; *) STAT_DIALECT=gnu;; esac
@@ -40,20 +69,36 @@ acl_entry_is_foreign() {
   _acl_entry=$1
   _acl_owner_uid=$2
   _acl_owner_name=$3
+  _acl_owner_uuid=${4-}
+  _acl_root_uuid=${5-}
   case "$ACL_PLATFORM" in
     Darwin)
       _acl_body=${_acl_entry#*: }
       [ "$_acl_body" != "$_acl_entry" ] || return 0
-      _acl_type=${_acl_body%%:*}
-      _acl_rest=${_acl_body#*:}
-      _acl_principal=${_acl_rest%% *}
-      _acl_action=${_acl_rest#* }
-      _acl_action=${_acl_action%% *}
-      [ "$_acl_action" = allow ] || return 1
-      case "$_acl_type" in
-        user)
-          case "$_acl_principal" in
-            "$_acl_owner_name"|root|"$_acl_owner_uid"|0) return 1;;
+      case "$_acl_body" in
+        *" allow "*)
+          _acl_subject=${_acl_body%% allow *}
+          _acl_perms=${_acl_body#* allow }
+          [ -n "$_acl_subject" ] && [ "$_acl_perms" != "$_acl_body" ] && [ -n "$_acl_perms" ] || return 0
+          case "$_acl_subject" in
+            "user:$_acl_owner_name"|"user:root"|"user:$_acl_owner_uid"|"user:0") return 1;;
+          esac
+          if [ -n "$_acl_owner_uuid" ]; then
+            case "$_acl_subject" in "$_acl_owner_uuid") return 1;; esac
+          fi
+          if [ -n "$_acl_root_uuid" ]; then
+            case "$_acl_subject" in "$_acl_root_uuid") return 1;; esac
+          fi
+          return 0
+          ;;
+        *" deny "*)
+          _acl_subject=${_acl_body%% deny *}
+          _acl_perms=${_acl_body#* deny }
+          [ -n "$_acl_subject" ] && [ "$_acl_perms" != "$_acl_body" ] && [ -n "$_acl_perms" ] || return 0
+          case "$_acl_subject" in
+            user:*) [ -n "${_acl_subject#user:}" ] || return 0; return 1;;
+            group:*) [ -n "${_acl_subject#group:}" ] || return 0; return 1;;
+            everyone|????????-????-????-????-????????????) return 1;;
             *) return 0;;
           esac
           ;;
@@ -86,18 +131,49 @@ acl_entry_is_foreign() {
     *) return 0;;
   esac
 }
+darwin_user_uuid() {
+  _acl_user=$1
+  _acl_record=$(/usr/bin/dscl . -read "/Users/$_acl_user" GeneratedUID 2>/dev/null) || return 1
+  _acl_uuid=${_acl_record#GeneratedUID: }
+  case "$_acl_uuid" in
+    ????????-????-????-????-????????????) printf '%s\n' "$_acl_uuid";;
+    *) return 1;;
+  esac
+}
 require_no_foreign_acl() {
   _acl_path=$1
   _acl_label=$2
   _acl_owner_uid=$3
   _acl_owner_name=$(stat_owner_name "$_acl_path" 2>/dev/null) ||
     usage_error "Cannot determine $_acl_label owner for ACL inspection: $_acl_path"
+  _acl_owner_uuid=
+  _acl_root_uuid=
   case "$ACL_PLATFORM" in
     Darwin)
-      _acl_listing=$(/bin/ls -lde "$_acl_path" 2>/dev/null) ||
+      _acl_listing=$(/bin/ls -lden "$_acl_path" 2>/dev/null) ||
         usage_error "Cannot inspect $_acl_label ACL: $_acl_path"
+      _acl_header=$(printf '%s\n' "$_acl_listing" | sed -n '1p') ||
+        usage_error "Cannot inspect $_acl_label ACL: $_acl_path"
+      _acl_mode=${_acl_header%% *}
+      case "$_acl_mode" in
+        [bcdlps-]?????????|[bcdlps-]?????????+|[bcdlps-]?????????@) ;;
+        *) usage_error "Malformed $_acl_label ACL listing: $_acl_path";;
+      esac
       _acl_entries=$(printf '%s\n' "$_acl_listing" | sed '1d') ||
         usage_error "Cannot inspect $_acl_label ACL: $_acl_path"
+      case "$_acl_mode" in *+) _acl_has_marker=1;; *) _acl_has_marker=0;; esac
+      if [ "$_acl_has_marker" = 1 ] && [ -z "$_acl_entries" ]; then
+        usage_error "Cannot inspect $_acl_label ACL entries: $_acl_path"
+      fi
+      if [ "$_acl_has_marker" = 0 ] && [ -n "$_acl_entries" ]; then
+        usage_error "Malformed $_acl_label ACL listing: $_acl_path"
+      fi
+      _acl_owner_uuid=
+      _acl_root_uuid=
+      if [ -n "$_acl_entries" ]; then
+        _acl_owner_uuid=$(darwin_user_uuid "$_acl_owner_name" 2>/dev/null) || _acl_owner_uuid=
+        _acl_root_uuid=$(darwin_user_uuid root 2>/dev/null) || _acl_root_uuid=
+      fi
       ;;
     Linux)
       if command -v getfacl >/dev/null 2>&1; then
@@ -117,7 +193,7 @@ require_no_foreign_acl() {
   esac
   while IFS= read -r _acl_entry || [ -n "$_acl_entry" ]; do
     [ -n "$_acl_entry" ] || continue
-    if acl_entry_is_foreign "$_acl_entry" "$_acl_owner_uid" "$_acl_owner_name"; then
+    if acl_entry_is_foreign "$_acl_entry" "$_acl_owner_uid" "$_acl_owner_name" "$_acl_owner_uuid" "$_acl_root_uuid"; then
       usage_error "$_acl_label has an extended ACL granting access beyond owner/root: $_acl_path"
     fi
   done <<EOF
@@ -283,6 +359,7 @@ require_env() {
   clear_managed_env
   load_env_file "$_env_path"
   validate_env
+  require_sha256_tool
   "$ROOT/bin/verify-pin"
 }
 compose() { docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"; }
