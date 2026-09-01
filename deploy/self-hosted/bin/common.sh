@@ -12,6 +12,7 @@ valid_port() {
 STAT_DIALECT=bsd
 _stat_probe=$(stat -c '%a' / 2>/dev/null) || _stat_probe=
 case "$_stat_probe" in ''|*[!0-7]*) ;; *) STAT_DIALECT=gnu;; esac
+ACL_PLATFORM=$(uname -s 2>/dev/null || printf '%s' unknown)
 stat_mode() {
   if [ "$STAT_DIALECT" = gnu ]; then
     stat -c '%a' "$1"
@@ -26,6 +27,133 @@ stat_uid() {
     stat -f '%u' "$1"
   fi
 }
+stat_owner_name() {
+  if [ "$STAT_DIALECT" = gnu ]; then
+    stat -c '%U' "$1"
+  else
+    stat -f '%Su' "$1"
+  fi
+}
+# Return success when an ACL entry is a foreign or otherwise unsafe grant.
+# Owner/root allow entries and deny entries are not foreign grants.
+acl_entry_is_foreign() {
+  _acl_entry=$1
+  _acl_owner_uid=$2
+  _acl_owner_name=$3
+  case "$ACL_PLATFORM" in
+    Darwin)
+      _acl_body=${_acl_entry#*: }
+      [ "$_acl_body" != "$_acl_entry" ] || return 0
+      _acl_type=${_acl_body%%:*}
+      _acl_rest=${_acl_body#*:}
+      _acl_principal=${_acl_rest%% *}
+      _acl_action=${_acl_rest#* }
+      _acl_action=${_acl_action%% *}
+      [ "$_acl_action" = allow ] || return 1
+      case "$_acl_type" in
+        user)
+          case "$_acl_principal" in
+            "$_acl_owner_name"|root|"$_acl_owner_uid"|0) return 1;;
+            *) return 0;;
+          esac
+          ;;
+        *) return 0;;
+      esac
+      ;;
+    Linux)
+      case "$_acl_entry" in
+        user::*|group::*|other::*|mask::*) return 1;;
+        default:user::*|default:mask::*) return 1;;
+        user:*:*)
+          _acl_principal=${_acl_entry#user:}
+          _acl_principal=${_acl_principal%%:*}
+          case "$_acl_principal" in
+            "$_acl_owner_name"|root|"$_acl_owner_uid"|0) return 1;;
+            *) return 0;;
+          esac
+          ;;
+        default:user:*:*)
+          _acl_principal=${_acl_entry#default:user:}
+          _acl_principal=${_acl_principal%%:*}
+          case "$_acl_principal" in
+            "$_acl_owner_name"|root|"$_acl_owner_uid"|0) return 1;;
+            *) return 0;;
+          esac
+          ;;
+        *) return 0;;
+      esac
+      ;;
+    *) return 0;;
+  esac
+}
+require_no_foreign_acl() {
+  _acl_path=$1
+  _acl_label=$2
+  _acl_owner_uid=$3
+  _acl_owner_name=$(stat_owner_name "$_acl_path" 2>/dev/null) ||
+    usage_error "Cannot determine $_acl_label owner for ACL inspection: $_acl_path"
+  case "$ACL_PLATFORM" in
+    Darwin)
+      _acl_listing=$(/bin/ls -lde "$_acl_path" 2>/dev/null) ||
+        usage_error "Cannot inspect $_acl_label ACL: $_acl_path"
+      _acl_entries=$(printf '%s\n' "$_acl_listing" | sed '1d') ||
+        usage_error "Cannot inspect $_acl_label ACL: $_acl_path"
+      ;;
+    Linux)
+      if command -v getfacl >/dev/null 2>&1; then
+        _acl_entries=$(getfacl -cp "$_acl_path" 2>/dev/null) ||
+          usage_error "Cannot inspect $_acl_label ACL: $_acl_path"
+      else
+        _acl_listing=$(ls -ld "$_acl_path" 2>/dev/null) ||
+          usage_error "Cannot inspect $_acl_label ACL: $_acl_path"
+        _acl_mode=${_acl_listing%% *}
+        case "$_acl_mode" in
+          *+) usage_error "$_acl_label has an ACL marker but getfacl is unavailable; refusing: $_acl_path";;
+        esac
+        _acl_entries=
+      fi
+      ;;
+    *) usage_error "Cannot inspect $_acl_label ACL on unsupported platform: $ACL_PLATFORM";;
+  esac
+  while IFS= read -r _acl_entry || [ -n "$_acl_entry" ]; do
+    [ -n "$_acl_entry" ] || continue
+    if acl_entry_is_foreign "$_acl_entry" "$_acl_owner_uid" "$_acl_owner_name"; then
+      usage_error "$_acl_label has an extended ACL granting access beyond owner/root: $_acl_path"
+    fi
+  done <<EOF
+$_acl_entries
+EOF
+}
+# Clear inherited ACLs on artifacts created by this tooling, then re-check
+# custody. Linux cannot safely normalize without setfacl when an ACL marker is
+# present, so that case fails closed.
+normalize_acl() {
+  _na_path=$1
+  _na_label=$2
+  case "$ACL_PLATFORM" in
+    Darwin)
+      /bin/chmod -N "$_na_path" 2>/dev/null ||
+        usage_error "Cannot clear inherited ACL from $_na_label: $_na_path"
+      ;;
+    Linux)
+      if command -v setfacl >/dev/null 2>&1; then
+        setfacl -b "$_na_path" 2>/dev/null ||
+          usage_error "Cannot clear inherited ACL from $_na_label: $_na_path"
+      else
+        _na_listing=$(ls -ld "$_na_path" 2>/dev/null) ||
+          usage_error "Cannot inspect $_na_label ACL: $_na_path"
+        _na_mode=${_na_listing%% *}
+        case "$_na_mode" in
+          *+) usage_error "Cannot clear $_na_label ACL because setfacl is unavailable: $_na_path";;
+        esac
+      fi
+      ;;
+    *) usage_error "Cannot clear $_na_label ACL on unsupported platform: $ACL_PLATFORM";;
+  esac
+  _na_uid=$(stat_uid "$_na_path" 2>/dev/null) ||
+    usage_error "Cannot determine $_na_label owner after ACL normalization: $_na_path"
+  require_no_foreign_acl "$_na_path" "$_na_label" "$_na_uid"
+}
 require_trusted_component() {
   tc_path=$1
   tc_label=$2
@@ -34,6 +162,7 @@ require_trusted_component() {
   tc_mode=$(stat_mode "$tc_path") || usage_error "Cannot determine $tc_label permissions: $tc_path"
   case "$tc_mode" in ''|*[!0-7]*) usage_error "Invalid $tc_label permissions: $tc_mode";; esac
   case "$tc_mode" in *[2367][0-7]|*[0-7][2367]) usage_error "$tc_label must not be group- or world-writable: $tc_path";; esac
+  require_no_foreign_acl "$tc_path" "$tc_label" "$tc_uid"
 }
 require_owned() {
   ro_path=$1
@@ -43,6 +172,7 @@ require_owned() {
   ro_mode=$(stat_mode "$ro_path") || usage_error "Cannot determine $ro_label permissions: $ro_path"
   case "$ro_mode" in ''|*[!0-7]*) usage_error "Invalid $ro_label permissions: $ro_mode";; esac
   case "$ro_mode" in *[2367][0-7]|*[0-7][2367]) usage_error "$ro_label must not be group- or world-writable: $ro_path";; esac
+  require_no_foreign_acl "$ro_path" "$ro_label" "$ro_uid"
 }
 require_trusted_ancestors() {
   ta_path=$1

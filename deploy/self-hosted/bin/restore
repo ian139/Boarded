@@ -31,12 +31,31 @@ require_env
 umask 077
 stage=$(mktemp -d "${TMPDIR:-/tmp}/boarded-restore.XXXXXX")
 QUIESCED=0
+MUTATION_STARTED=0
+check_staged_file() {
+  _restore_file=$1
+  [ -f "$stage/$_restore_file" ] && [ ! -L "$stage/$_restore_file" ] ||
+    usage_error "Staged restore artifact is missing or unsafe: $stage/$_restore_file"
+  chmod 600 "$stage/$_restore_file"
+  normalize_acl "$stage/$_restore_file" "Staged restore artifact $_restore_file"
+  require_owned "$stage/$_restore_file" "Staged restore artifact $_restore_file"
+  require_mode_0600 "$stage/$_restore_file" "Staged restore artifact $_restore_file"
+}
 restore_cleanup() {
   status=$?
   trap - EXIT HUP INT TERM
   set +e
-  if [ "$QUIESCED" = 1 ]; then
-    compose start --wait --wait-timeout 120 auth rest storage api-gateway >/dev/null 2>&1
+  if [ "$MUTATION_STARTED" = 1 ]; then
+    if compose stop auth rest storage api-gateway >/dev/null 2>&1; then
+      printf '%s\n' 'Restore failed after database mutation; public services are left stopped.' >&2
+    else
+      printf '%s\n' 'Restore failed after database mutation and service stop could not be confirmed.' >&2
+    fi
+    printf '%s\n' 'Recovery: re-run this restore from a known-good backup, then run bin/stack up and bin/health.' >&2
+  elif [ "$QUIESCED" = 1 ]; then
+    if ! compose start --wait --wait-timeout 120 auth rest storage api-gateway >/dev/null 2>&1; then
+      printf '%s\n' 'Restore failed before database mutation and service recovery failed; run bin/stack up, then bin/health.' >&2
+    fi
   fi
   rm -rf "$stage"
   release_operation_lock
@@ -47,10 +66,11 @@ trap 'exit 129' HUP
 trap 'exit 130' INT
 trap 'exit 143' TERM
 chmod 700 "$stage"
-for f in $files; do cp "$src_path/$f" "$stage/$f"; chmod 600 "$stage/$f"; done
+normalize_acl "$stage" 'Restore staging directory'
+require_owned "$stage" 'Restore staging directory'
+for f in $files; do cp "$src_path/$f" "$stage/$f"; check_staged_file "$f"; done
 cp "$key_path" "$stage/verification-key.pem"
-chmod 600 "$stage/verification-key.pem"
-require_rsa_key "$stage/verification-key.pem" 'Staged verification key' public
+check_staged_file verification-key.pem
 # From here onward, authenticate and consume only private staged copies.
 openssl dgst -sha256 -verify "$stage/verification-key.pem" -signature "$stage/SHA256SUMS.sig" "$stage/SHA256SUMS" >/dev/null ||
   usage_error 'Backup manifest signature verification failed'
@@ -68,6 +88,9 @@ compose exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d template1 <<'SQL'
 SELECT pg_terminate_backend(pid)
 FROM pg_stat_activity
 WHERE datname = 'postgres' AND pid <> pg_backend_pid();
+SQL
+MUTATION_STARTED=1
+compose exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d template1 <<'SQL'
 DROP DATABASE IF EXISTS postgres WITH (FORCE);
 CREATE DATABASE postgres OWNER postgres;
 SQL
@@ -86,4 +109,5 @@ compose run --rm --no-deps -T storage sh -c 'rm -rf /var/lib/storage/* /var/lib/
 compose start --wait --wait-timeout 120 auth rest storage api-gateway
 "$ROOT/bin/health"
 QUIESCED=0
+MUTATION_STARTED=0
 release_operation_lock
