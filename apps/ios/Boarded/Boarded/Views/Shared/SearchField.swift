@@ -21,12 +21,13 @@ struct SearchField: View {
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(theme.secondaryText)
+                        .frame(width: AppLayout.minimumControlHeight, height: AppLayout.minimumControlHeight)
                 }
                 .accessibilityLabel("Clear search")
             }
         }
-        .padding(.horizontal, 12)
-        .frame(minHeight: 44)
+        .padding(.leading, AppSpacing.space12)
+        .frame(minHeight: AppLayout.minimumControlHeight)
         .boardedGlassSurface(in: shape, interactive: true)
     }
 }

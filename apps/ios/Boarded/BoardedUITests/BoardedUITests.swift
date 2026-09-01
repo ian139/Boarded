@@ -17,6 +17,63 @@ final class BoardedUITests: XCTestCase {
         app = nil
     }
 
+    private func relaunch(fixture state: String? = nil) {
+        app.terminate()
+        app = XCUIApplication()
+        app.launchArguments = ["--boarded-ui-fixture"] + (state.map { [$0] } ?? [])
+        app.launch()
+    }
+
+    private func capture(_ name: String, after element: XCUIElement, timeout: TimeInterval = 10) {
+        XCTAssertTrue(element.waitForExistence(timeout: timeout), "Missing rendered state anchor for \(name)")
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    func testRenderedStateFixtures() throws {
+        capture("home-list", after: app.staticTexts["Granite Drift"])
+
+        app.staticTexts["Granite Drift"].tap()
+        capture("home-route-detail", after: app.otherElements["Route detail popup"])
+
+        app.buttons["Route actions"].tap()
+        XCTAssertTrue(app.buttons["Edit Route"].waitForExistence(timeout: 5))
+        app.buttons["Edit Route"].tap()
+        let editorCanvas = app.descendants(matching: .any)["Editor canvas surface"]
+        capture("topo-editor", after: editorCanvas)
+
+        app.buttons["Browse topo"].tap()
+        let browseCanvas = app.descendants(matching: .any)
+            .matching(identifier: "Editor canvas surface")
+            .matching(NSPredicate(format: "label == %@", "Topo wall"))
+            .firstMatch
+        capture("topo-browse", after: browseCanvas)
+
+        relaunch()
+        XCTAssertTrue(app.staticTexts["Granite Drift"].waitForExistence(timeout: 10))
+        app.buttons["Profile"].firstMatch.tap()
+        capture("profile", after: app.staticTexts["Fixture Climber"])
+
+        app.staticTexts["Settings"].tap()
+        capture("settings", after: app.navigationBars["Settings"])
+
+        relaunch(fixture: "log-active")
+        capture("log-active", after: app.staticTexts["ACTIVE SESSION"])
+
+        relaunch(fixture: "log-offline")
+        capture(
+            "log-offline",
+            after: app.descendants(matching: .any)
+                .matching(NSPredicate(format: "label CONTAINS %@", "Offline. Attempts remain saved"))
+                .firstMatch
+        )
+
+        relaunch(fixture: "log-result")
+        capture("log-result", after: app.staticTexts["Route sent"])
+    }
+
     func testFixtureLaunchRoutesDetailAndSelectors() throws {
         XCTAssertTrue(app.staticTexts["1 route"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Granite Drift"].waitForExistence(timeout: 10))
@@ -54,7 +111,7 @@ final class BoardedUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Like"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["Log Send"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["Share"].waitForExistence(timeout: 3))
-        XCTAssertFalse(app.tabBars.buttons["Routes"].exists)
+        XCTAssertFalse(app.tabBars.buttons["Home"].exists)
 
         let commentsButton = app.buttons["Comments"]
         XCTAssertTrue(commentsButton.waitForExistence(timeout: 3))
@@ -69,9 +126,9 @@ final class BoardedUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Close route"].waitForExistence(timeout: 3))
         app.buttons["Close route"].tap()
         if usesDirectSelectorControls {
-            XCTAssertTrue(app.buttons["Routes"].waitForExistence(timeout: 5))
+            XCTAssertTrue(app.buttons["Home"].waitForExistence(timeout: 5))
         } else {
-            XCTAssertTrue(app.tabBars.buttons["Routes"].waitForExistence(timeout: 5))
+            XCTAssertTrue(app.tabBars.buttons["Home"].waitForExistence(timeout: 5))
         }
 
         if usesDirectSelectorControls {
@@ -114,11 +171,12 @@ final class BoardedUITests: XCTestCase {
 
         app.staticTexts["Settings"].tap()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Appearance"].exists)
-        XCTAssertTrue(app.staticTexts["2 walls"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["Dark"].waitForExistence(timeout: 3))
-        app.buttons["Dark"].tap()
-        XCTAssertTrue(app.staticTexts["Dark mode is forced on"].waitForExistence(timeout: 3))
+        let appearance = app.descendants(matching: .any)["Appearance setting"]
+        XCTAssertTrue(appearance.waitForExistence(timeout: 3))
+        XCTAssertEqual(appearance.value as? String, "Dark")
+        let manageWalls = app.buttons["Manage Walls"]
+        XCTAssertTrue(manageWalls.waitForExistence(timeout: 5))
+        XCTAssertTrue(manageWalls.label.localizedCaseInsensitiveContains("2 walls"))
 
         XCUIDevice.shared.orientation = .landscapeLeft
         let window = app.windows.firstMatch
@@ -130,7 +188,7 @@ final class BoardedUITests: XCTestCase {
 
     func testFixtureEditorWallAndHoldControlsAreDeterministic() throws {
         XCTAssertTrue(app.staticTexts["1 route"].waitForExistence(timeout: 10))
-        app.tabBars.buttons["Editor"].tap()
+        app.tabBars.buttons["Topo"].tap()
         XCTAssertTrue(app.staticTexts["Hold count"].waitForExistence(timeout: 10))
 
         // Holds are inferred from canvas touches; the old explicit selectors are gone.
@@ -152,22 +210,22 @@ final class BoardedUITests: XCTestCase {
         app.tabBars.buttons["Profile"].tap()
         app.staticTexts["Settings"].tap()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
-        app.buttons["Manage Walls"].tap()
-        XCTAssertTrue(app.navigationBars["Select Wall"].waitForExistence(timeout: 5))
+        let manageWalls = app.buttons["Manage Walls"]
+        XCTAssertTrue(manageWalls.waitForExistence(timeout: 5))
+        XCTAssertTrue(manageWalls.label.localizedCaseInsensitiveContains("2 walls"))
+        manageWalls.tap()
+        let wallsList = app.collectionViews["Wall manager"]
+        XCTAssertTrue(wallsList.waitForExistence(timeout: 5))
+        wallsList.swipeUp()
 
         let nameField = app.textFields["Wall name"]
         XCTAssertTrue(nameField.waitForExistence(timeout: 3))
         nameField.tap()
         nameField.typeText(name)
-        if app.keyboards.firstMatch.exists {
-            if app.keyboards.buttons["Done"].exists {
-                app.keyboards.buttons["Done"].tap()
-            } else {
-                app.keyboards.buttons["Return"].tap()
-            }
-        }
         app.buttons["Add Wall"].tap()
-        XCTAssertTrue(app.staticTexts[name].waitForExistence(timeout: 5))
+        wallsList.swipeDown()
+        wallsList.swipeDown()
+        XCTAssertTrue(app.buttons[name].waitForExistence(timeout: 5))
         XCTAssertEqual(app.buttons[name].value as? String, "Selected")
         let renamed = "\(name) Renamed"
         let createdWall = app.buttons[name]
@@ -196,7 +254,7 @@ final class BoardedUITests: XCTestCase {
     func testFixtureEditorHoldGesturesAndRouteCreate() throws {
         let routeName = "UI Fixture Route \(UUID().uuidString)"
         XCTAssertTrue(app.staticTexts["1 route"].waitForExistence(timeout: 10))
-        app.tabBars.buttons["Editor"].tap()
+        app.tabBars.buttons["Topo"].tap()
         let canvas = app.descendants(matching: .any)["Editor canvas surface"]
         XCTAssertTrue(canvas.waitForExistence(timeout: 10))
 
@@ -240,8 +298,8 @@ final class BoardedUITests: XCTestCase {
         let secondMarker = app.descendants(matching: .any)["Editor hold 2"]
         XCTAssertTrue(firstMarker.waitForExistence(timeout: 5))
         XCTAssertTrue(secondMarker.waitForExistence(timeout: 5))
-        XCTAssertTrue(firstMarker.label.hasPrefix("Start"))
-        XCTAssertTrue(secondMarker.label.hasPrefix("Start"))
+        XCTAssertTrue(firstMarker.label.localizedCaseInsensitiveContains("start"))
+        XCTAssertTrue(secondMarker.label.localizedCaseInsensitiveContains("start"))
         XCTAssertFalse(firstMarker.label.localizedCaseInsensitiveContains("selected"))
         XCTAssertTrue((firstMarker.value as? String)?.contains("percent x") == true)
 
@@ -253,20 +311,20 @@ final class BoardedUITests: XCTestCase {
 
         // A marker cycles Start → Hand → Foot → Finish → delete without a selector.
         firstMarker.tap()
-        XCTAssertTrue(firstMarker.label.hasPrefix("Hand"))
+        XCTAssertTrue(firstMarker.label.localizedCaseInsensitiveContains("hand"))
         firstMarker.tap()
-        XCTAssertTrue(firstMarker.label.hasPrefix("Foot"))
+        XCTAssertTrue(firstMarker.label.localizedCaseInsensitiveContains("foot"))
         firstMarker.tap()
-        XCTAssertTrue(firstMarker.label.hasPrefix("Finish"))
+        XCTAssertTrue(firstMarker.label.localizedCaseInsensitiveContains("finish"))
         firstMarker.tap()
         XCTAssertTrue((canvas.value as? String)?.contains("1 hold") == true)
 
         // Reacquire the surviving marker after deletion; it starts as Start.
         let survivingMarker = app.descendants(matching: .any)["Editor hold 1"]
         XCTAssertTrue(survivingMarker.waitForExistence(timeout: 5))
-        XCTAssertTrue(survivingMarker.label.hasPrefix("Start"))
+        XCTAssertTrue(survivingMarker.label.localizedCaseInsensitiveContains("start"))
         survivingMarker.tap()
-        XCTAssertTrue(survivingMarker.label.hasPrefix("Hand"))
+        XCTAssertTrue(survivingMarker.label.localizedCaseInsensitiveContains("hand"))
 
         // A further empty-canvas tap still defaults to Start.
         canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.6)).tap()
@@ -274,7 +332,7 @@ final class BoardedUITests: XCTestCase {
 
         let addedMarker = app.descendants(matching: .any)["Editor hold 2"]
         XCTAssertTrue(addedMarker.waitForExistence(timeout: 5))
-        XCTAssertTrue(addedMarker.label.hasPrefix("Start"))
+        XCTAssertTrue(addedMarker.label.localizedCaseInsensitiveContains("start"))
         XCTAssertFalse(survivingMarker.label.localizedCaseInsensitiveContains("selected"))
 
         guard let addedInitialRadius = radius(from: addedMarker.value as? String),
@@ -298,7 +356,7 @@ final class BoardedUITests: XCTestCase {
         XCTAssertEqual(survivingPositionAfterPinch.y, secondInitialPosition.y)
         XCTAssertEqual(addedPositionAfterPinch.x, addedInitialPosition.x)
         XCTAssertEqual(addedPositionAfterPinch.y, addedInitialPosition.y)
-        XCTAssertTrue(survivingMarker.label.hasPrefix("Hand"))
+        XCTAssertTrue(survivingMarker.label.localizedCaseInsensitiveContains("hand"))
 
         // A one-finger drag begun on a marker must not move either hold or create another.
         let dragStart = survivingMarker.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
@@ -315,7 +373,7 @@ final class BoardedUITests: XCTestCase {
         XCTAssertEqual(addedPositionAfterDrag.x, addedInitialPosition.x)
         XCTAssertEqual(addedPositionAfterDrag.y, addedInitialPosition.y)
         XCTAssertTrue((canvas.value as? String)?.contains("2 holds") == true)
-        XCTAssertTrue(survivingMarker.label.hasPrefix("Hand"))
+        XCTAssertTrue(survivingMarker.label.localizedCaseInsensitiveContains("hand"))
 
         // Reset returns canvas zoom to its initial value without creating a hold.
         canvas.pinch(withScale: 1.4, velocity: 1.0)
@@ -330,14 +388,14 @@ final class BoardedUITests: XCTestCase {
         XCTAssertEqual(zoom(from: canvas.value as? String), initialCanvasZoom)
         XCTAssertTrue((canvas.value as? String)?.contains("2 holds") == true)
 
-        app.buttons["Save"].tap()
+        app.buttons["Editor save route"].tap()
         let routeNameField = app.textFields["Route name"]
         XCTAssertTrue(routeNameField.waitForExistence(timeout: 3))
         routeNameField.tap()
         routeNameField.typeText(routeName)
-        app.buttons.matching(identifier: "Save").element(boundBy: 1).tap()
-        XCTAssertTrue(app.tabBars.buttons["Routes"].waitForExistence(timeout: 5))
-        app.tabBars.buttons["Routes"].tap()
+        app.buttons["Route form save"].tap()
+        XCTAssertTrue(app.tabBars.buttons["Home"].waitForExistence(timeout: 5))
+        app.tabBars.buttons["Home"].tap()
         XCTAssertTrue(app.staticTexts[routeName].waitForExistence(timeout: 10))
         app.staticTexts[routeName].tap()
         XCTAssertTrue(app.otherElements["Route detail popup"].waitForExistence(timeout: 5))
@@ -348,8 +406,8 @@ final class BoardedUITests: XCTestCase {
         let persistedSecondMarker = app.descendants(matching: .any)["Editor hold 2"]
         XCTAssertTrue(persistedFirstMarker.waitForExistence(timeout: 5))
         XCTAssertTrue(persistedSecondMarker.waitForExistence(timeout: 5))
-        XCTAssertTrue(persistedFirstMarker.label.hasPrefix("Hand"))
-        XCTAssertTrue(persistedSecondMarker.label.hasPrefix("Start"))
+        XCTAssertTrue(persistedFirstMarker.label.localizedCaseInsensitiveContains("hand"))
+        XCTAssertTrue(persistedSecondMarker.label.localizedCaseInsensitiveContains("start"))
         XCTAssertEqual(radius(from: persistedFirstMarker.value as? String), survivingResizedRadius)
         XCTAssertEqual(radius(from: persistedSecondMarker.value as? String), addedInitialRadius)
         guard let persistedFirstPosition = position(from: persistedFirstMarker.value as? String),
@@ -370,7 +428,7 @@ final class BoardedUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Granite Drift"].exists)
         app.buttons["Route actions"].tap()
         app.buttons["Edit Route"].tap()
-        let editorSave = app.buttons["Save"]
+        let editorSave = app.buttons["Editor save route"]
         XCTAssertTrue(editorSave.waitForExistence(timeout: 5))
         let editorSaveEnabled = expectation(
             for: NSPredicate(format: "enabled == true"),
@@ -382,7 +440,7 @@ final class BoardedUITests: XCTestCase {
         XCTAssertTrue(routeNameField.waitForExistence(timeout: 3))
         routeNameField.tap()
         routeNameField.typeText(" Updated")
-        app.buttons.matching(identifier: "Save").element(boundBy: 1).tap()
+        app.buttons["Route form save"].tap()
         XCTAssertTrue(app.staticTexts[updatedName].waitForExistence(timeout: 8))
         app.staticTexts[updatedName].tap()
         XCTAssertTrue(app.otherElements["Route detail popup"].waitForExistence(timeout: 5))
@@ -399,7 +457,11 @@ final class BoardedUITests: XCTestCase {
         app.tabBars.buttons["Profile"].tap()
         app.staticTexts["Settings"].tap()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
-        app.staticTexts["Account Access"].tap()
+        let accountAccess = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH[c] %@", "Account access")
+        ).firstMatch
+        XCTAssertTrue(accountAccess.waitForExistence(timeout: 5))
+        accountAccess.tap()
         XCTAssertTrue(app.navigationBars["Account"].waitForExistence(timeout: 5))
         let logOut = app.buttons["Log Out"]
         XCTAssertTrue(logOut.waitForExistence(timeout: 3))

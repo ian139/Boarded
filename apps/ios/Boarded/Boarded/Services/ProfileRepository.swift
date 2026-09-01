@@ -6,11 +6,26 @@ struct ProfileMetrics: Hashable, Codable {
     let likesCount: Int
 }
 
+private nonisolated struct ProfileFollowCountsParameters: Encodable, Sendable {
+    let target_profile_id: UUID
+}
+
+private nonisolated struct FollowingFeedParameters: Encodable, Sendable {
+    let p_cursor_activity_at: Date?
+    let p_cursor_route_id: UUID?
+    let p_limit: Int
+}
+
 protocol ProfileRepository {
     func fetchProfile(userID: UUID) async throws -> Profile?
     func fetchLeaderboard() async throws -> [ProfileLeaderboardEntry]
     func fetchClimbHistory(userID: UUID) async throws -> [ProfileClimbHistoryItem]
     func fetchMetrics(userID: UUID) async throws -> ProfileMetrics
+    func fetchFollowCounts(profileID: UUID) async throws -> ProfileFollowCounts
+    func isFollowing(profileID: UUID, followerID: UUID) async throws -> Bool
+    func follow(profileID: UUID, followerID: UUID) async throws
+    func unfollow(profileID: UUID, followerID: UUID) async throws
+    func fetchFollowingFeed(cursor: FollowingFeedCursor?, limit: Int) async throws -> [FollowingFeedItem]
 }
 
 enum ProfileRepositoryError: LocalizedError {
@@ -124,6 +139,59 @@ struct SupabaseProfileRepository: ProfileRepository {
         return ProfileMetrics(routesCount: routeIDStrings.count, likesCount: likes.count)
     }
 
+    func fetchFollowCounts(profileID: UUID) async throws -> ProfileFollowCounts {
+        guard let client else { throw ProfileRepositoryError.unavailable }
+        let rows: [ProfileFollowCounts] = try await client
+            .rpc("get_profile_follow_counts", params: ProfileFollowCountsParameters(target_profile_id: profileID))
+            .execute()
+            .value
+        return rows.first ?? ProfileFollowCounts(followerCount: 0, followingCount: 0)
+    }
+
+    func isFollowing(profileID: UUID, followerID: UUID) async throws -> Bool {
+        guard let client else { throw ProfileRepositoryError.unavailable }
+        let rows: [ProfileFollow] = try await client.from("follows")
+            .select("follower_id,following_id,created_at")
+            .eq("follower_id", value: followerID.uuidString)
+            .eq("following_id", value: profileID.uuidString)
+            .limit(1)
+            .execute()
+            .value
+        return !rows.isEmpty
+    }
+
+    func follow(profileID: UUID, followerID: UUID) async throws {
+        guard let client else { throw ProfileRepositoryError.unavailable }
+        struct Insert: Encodable {
+            let follower_id: UUID
+            let following_id: UUID
+        }
+        _ = try await client.from("follows")
+            .insert(Insert(follower_id: followerID, following_id: profileID))
+            .execute()
+    }
+
+    func unfollow(profileID: UUID, followerID: UUID) async throws {
+        guard let client else { throw ProfileRepositoryError.unavailable }
+        _ = try await client.from("follows")
+            .delete()
+            .eq("follower_id", value: followerID.uuidString)
+            .eq("following_id", value: profileID.uuidString)
+            .execute()
+    }
+
+    func fetchFollowingFeed(cursor: FollowingFeedCursor?, limit: Int) async throws -> [FollowingFeedItem] {
+        guard let client else { throw ProfileRepositoryError.unavailable }
+        return try await client.rpc(
+            "get_following_feed",
+            params: FollowingFeedParameters(
+                p_cursor_activity_at: cursor?.activityAt,
+                p_cursor_route_id: cursor?.routeId,
+                p_limit: min(max(limit, 1), 50)
+            )
+        ).execute().value
+    }
+
     private func fetchRoutes(for ids: Set<String>, client: SupabaseClient) async throws -> [Route] {
         guard !ids.isEmpty else { return [] }
         return try await client.from("routes")
@@ -206,5 +274,28 @@ struct MockProfileRepository: ProfileRepository {
     func fetchMetrics(userID: UUID) async throws -> ProfileMetrics {
         if let error { throw error }
         return metrics
+    }
+
+    func fetchFollowCounts(profileID: UUID) async throws -> ProfileFollowCounts {
+        if let error { throw error }
+        return ProfileFollowCounts(followerCount: 0, followingCount: 0)
+    }
+
+    func isFollowing(profileID: UUID, followerID: UUID) async throws -> Bool {
+        if let error { throw error }
+        return false
+    }
+
+    func follow(profileID: UUID, followerID: UUID) async throws {
+        if let error { throw error }
+    }
+
+    func unfollow(profileID: UUID, followerID: UUID) async throws {
+        if let error { throw error }
+    }
+
+    func fetchFollowingFeed(cursor: FollowingFeedCursor?, limit: Int) async throws -> [FollowingFeedItem] {
+        if let error { throw error }
+        return []
     }
 }

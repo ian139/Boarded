@@ -21,13 +21,33 @@ struct ProfileView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 header
-                if let errorMessage = viewModel.errorMessage {
+                if viewModel.hasLoadedSelectedProfile, let followError = viewModel.followErrorMessage {
+                    Label("Follow change failed: \(followError)", systemImage: "exclamationmark.triangle")
+                        .font(AppTypography.body)
+                        .foregroundStyle(theme.destructive)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityElement(children: .combine)
+                }
+                if viewModel.isLoading {
+                    profileLoadingPanel
+                } else if let errorMessage = viewModel.errorMessage {
                     errorPanel(errorMessage)
                 } else {
                     pointsPanel
                     leaderboardSection
                     highlightsSection
                     historySection
+                }
+                if viewModel.hasLoadedSelectedProfile, let countError = viewModel.followCountsRefreshErrorMessage {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label("Follow updated, but counts could not refresh: \(countError)", systemImage: "arrow.clockwise.circle")
+                            .font(AppTypography.body)
+                            .foregroundStyle(theme.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Button("Retry count refresh") { Task { await viewModel.retryFollowCounts() } }
+                            .buttonStyle(BoardedButtonStyle(.secondary))
+                    }
+                    .accessibilityElement(children: .contain)
                 }
                 settingsRow
             }
@@ -37,6 +57,7 @@ struct ProfileView: View {
         }
         .boardedPageBackground()
         .task(id: session.userId) {
+            viewModel.setCurrentUserID(session.userId)
             await viewModel.load(userID: session.userId)
         }
         .task(id: profileRefreshID) {
@@ -63,76 +84,142 @@ struct ProfileView: View {
     }
 
     private var header: some View {
-        HStack(alignment: .top, spacing: 14) {
-            Circle()
-                .fill(theme.primary.opacity(0.15))
-                .frame(width: 64, height: 64)
-                .overlay(Image(systemName: "figure.climbing").font(.title2).foregroundStyle(theme.primary))
-            VStack(alignment: .leading, spacing: 5) {
+        VStack(alignment: .leading, spacing: AppSpacing.space16) {
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: AppSpacing.space16) {
+                    profileMark
+                    profileIdentity
+                    Spacer(minLength: 0)
+                    editProfileButton
+                }
+                VStack(alignment: .leading, spacing: AppSpacing.space12) {
+                    HStack(alignment: .top, spacing: AppSpacing.space16) {
+                        profileMark
+                        profileIdentity
+                    }
+                    editProfileButton
+                }
+            }
+            if viewModel.hasLoadedSelectedProfile {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: AppSpacing.space20) { followFact("Followers", count: viewModel.followCounts.followerCount); followFact("Following", count: viewModel.followCounts.followingCount) }
+                    VStack(alignment: .leading, spacing: AppSpacing.space8) { followFact("Followers", count: viewModel.followCounts.followerCount); followFact("Following", count: viewModel.followCounts.followingCount) }
+                }
+                if let currentUserID = session.userId, viewModel.selectedUserID != currentUserID {
+                    Button {
+                        Task { await viewModel.setFollowing(!viewModel.isFollowing, currentUserID: currentUserID) }
+                    } label: {
+                        HStack(spacing: AppSpacing.space8) {
+                            if viewModel.isUpdatingFollow { ProgressView().accessibilityHidden(true) }
+                            Image(systemName: viewModel.isFollowing ? "person.badge.minus" : "person.badge.plus").accessibilityHidden(true)
+                            Text(viewModel.isFollowing ? "Unfollow" : "Follow")
+                        }
+                    }
+                    .buttonStyle(BoardedButtonStyle(viewModel.isFollowing ? .secondary : .primary))
+                    .disabled(viewModel.isUpdatingFollow)
+                    .accessibilityHint(viewModel.isFollowing ? "Stops showing this climber’s routes in Activity" : "Shows this climber’s public routes in Activity")
+                }
+            }
+        }
+        .boardedPanel()
+    }
+
+    private var profileMark: some View {
+        Circle()
+            .fill(theme.primary.opacity(0.15))
+            .frame(width: AppSpacing.space64, height: AppSpacing.space64)
+            .overlay(Image(systemName: "figure.climbing").font(.title2).foregroundStyle(theme.primary))
+            .accessibilityHidden(true)
+    }
+
+    private var profileIdentity: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.space4) {
+            if viewModel.isLoading {
+                Text("Loading profile…").font(AppTypography.title).foregroundStyle(theme.primaryText)
+                ProgressView().accessibilityLabel("Loading profile")
+            } else if viewModel.errorMessage != nil {
+                Text("Profile unavailable").font(AppTypography.title).foregroundStyle(theme.primaryText)
+                Text("This climber’s profile could not be loaded.").font(AppTypography.body).foregroundStyle(theme.secondaryText)
+            } else {
                 Text(viewModel.profile?.displayName ?? (viewModel.selectedUserID == session.userId ? session.profile?.displayName : nil) ?? session.userEmail ?? "Guest Climber")
-                    .font(AppTypography.title)
+                    .font(AppTypography.display)
                     .foregroundStyle(theme.primaryText)
-                    .fixedSize(horizontal: false, vertical: true)
                 if let username = viewModel.profile?.username ?? (viewModel.selectedUserID == session.userId ? session.profile?.username : nil), !username.isEmpty {
                     Text("@\(username)").font(AppTypography.label).foregroundStyle(theme.primary)
                 }
                 Text(viewModel.profile?.bio ?? (viewModel.selectedUserID == session.userId ? session.profile?.bio : nil) ?? (session.userId == nil ? "Sign in to track your climbs." : "Your climbing profile"))
                     .font(AppTypography.body)
                     .foregroundStyle(theme.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 0)
-            if session.userId != nil {
-                Button {
-                    editFullName = session.profile?.fullName ?? ""
-                    editUsername = session.profile?.username ?? ""
-                    editBio = session.profile?.bio ?? ""
-                    isEditPresented = true
-                } label: {
-                    Image(systemName: "square.and.pencil")
-                        .accessibilityLabel("Edit profile")
-                }
-                .buttonStyle(.borderless)
-                .foregroundStyle(theme.primary)
             }
         }
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    @ViewBuilder private var editProfileButton: some View {
+        if viewModel.hasLoadedSelectedProfile, session.userId != nil, viewModel.selectedUserID == session.userId {
+            Button {
+                editFullName = session.profile?.fullName ?? ""
+                editUsername = session.profile?.username ?? ""
+                editBio = session.profile?.bio ?? ""
+                isEditPresented = true
+            } label: {
+                Label("Edit profile", systemImage: "square.and.pencil")
+                    .frame(minHeight: AppLayout.minimumControlHeight)
+            }
+            .buttonStyle(BoardedButtonStyle(.secondary))
+        }
+    }
+
+    private func followFact(_ label: String, count: Int) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: AppSpacing.space4) {
+            Text(count.formatted()).font(AppTypography.display).foregroundStyle(theme.primaryText)
+            Text(label).font(AppTypography.caption).foregroundStyle(theme.secondaryText)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var profileLoadingPanel: some View {
+        HStack(spacing: 12) {
+            ProgressView()
+            Text("Loading profile details…")
+                .font(AppTypography.body)
+                .foregroundStyle(theme.secondaryText)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .boardedPanel()
+        .accessibilityElement(children: .combine)
     }
 
     private var pointsPanel: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Stats").font(AppTypography.headline).foregroundStyle(theme.primaryText)
-                    Text("Points are not defined by the web profile").font(AppTypography.caption).foregroundStyle(theme.secondaryText)
+        VStack(alignment: .leading, spacing: AppSpacing.space12) {
+            BoardedSectionHeading(title: "Climbing facts", subtitle: "A concise record of completed climbs")
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: AppSpacing.space8) {
+                    statValue(title: "Sends", value: viewModel.sendsCount.formatted())
+                    statValue(title: "Flashes", value: viewModel.flashedCount.formatted())
+                    statValue(title: "Highest", value: viewModel.highestGrade ?? "—")
                 }
-                Spacer()
-                VStack(alignment: .trailing, spacing: 4) {
-                    Text(viewModel.points.map(String.init) ?? "—")
-                        .font(AppTypography.largeTitle)
-                        .foregroundStyle(theme.primaryText)
-                    Text("Points unavailable").font(AppTypography.caption).foregroundStyle(theme.secondaryText)
+                VStack(alignment: .leading, spacing: AppSpacing.space12) {
+                    statValue(title: "Sends", value: viewModel.sendsCount.formatted())
+                    statValue(title: "Flashes", value: viewModel.flashedCount.formatted())
+                    statValue(title: "Highest", value: viewModel.highestGrade ?? "—")
                 }
-            }
-            theme.primaryText.opacity(0.12).frame(height: 1)
-            HStack(spacing: 0) {
-                statValue(title: "Sends", value: "\(viewModel.sendsCount)")
-                theme.primaryText.opacity(0.12).frame(width: 1).frame(maxHeight: .infinity)
-                statValue(title: "Flashes", value: "\(viewModel.flashedCount)")
-                theme.primaryText.opacity(0.12).frame(width: 1).frame(maxHeight: .infinity)
-                statValue(title: "Highest", value: viewModel.highestGrade ?? "—")
             }
         }
         .boardedPanel()
     }
 
     private func statValue(title: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(value).font(AppTypography.headline).foregroundStyle(theme.primaryText)
+        VStack(alignment: .leading, spacing: AppSpacing.space4) {
+            Text(value)
+                .font(AppTypography.display)
+                .foregroundStyle(theme.primaryText)
+                .minimumScaleFactor(0.8)
             Text(title).font(AppTypography.caption).foregroundStyle(theme.secondaryText)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 8)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title), \(value)")
     }
 
     private var leaderboardSection: some View {
@@ -178,10 +265,15 @@ struct ProfileView: View {
     private var highlightsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             BoardedSectionHeading(title: "Previous Highlights", subtitle: "Your strongest and longest completed climbs")
-            HStack(spacing: 0) {
-                highlightCard(title: "Best Climb", climb: viewModel.highlights.bestClimb, icon: "star.fill")
-                theme.primaryText.opacity(0.12).frame(width: 1).frame(maxHeight: .infinity)
-                highlightCard(title: "Longest Project", climb: viewModel.highlights.longestProject, icon: "flag.fill")
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: AppSpacing.space12) {
+                    highlightCard(title: "Best Climb", climb: viewModel.highlights.bestClimb, icon: "star.fill")
+                    highlightCard(title: "Longest Project", climb: viewModel.highlights.longestProject, icon: "flag.fill")
+                }
+                VStack(spacing: AppSpacing.space12) {
+                    highlightCard(title: "Best Climb", climb: viewModel.highlights.bestClimb, icon: "star.fill")
+                    highlightCard(title: "Longest Project", climb: viewModel.highlights.longestProject, icon: "flag.fill")
+                }
             }
         }
         .boardedPanel()
@@ -208,7 +300,7 @@ struct ProfileView: View {
                         } label: {
                             HStack(spacing: 12) {
                                 Image(systemName: climb.flashed ? "bolt.fill" : "checkmark.circle.fill")
-                                    .foregroundStyle(climb.flashed ? theme.accent : theme.secondary)
+                                    .foregroundStyle(climb.flashed ? theme.accent : theme.secondaryText)
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(climb.routeName).font(AppTypography.body).foregroundStyle(theme.primaryText).lineLimit(1)
                                     Text("\(climb.grade ?? "Unknown grade") • \(formattedDate(climb.completedAt))")
@@ -232,20 +324,22 @@ struct ProfileView: View {
     }
 
     private func highlightCard(title: String, climb: ProfileClimbHistoryItem?, icon: String) -> some View {
-        VStack(alignment: .leading, spacing: 7) {
-            Image(systemName: icon).foregroundStyle(theme.accent)
-            Text(title).font(AppTypography.caption).foregroundStyle(theme.secondaryText)
-            Text(climb?.routeName ?? "No data").font(AppTypography.headline).foregroundStyle(theme.primaryText).lineLimit(2)
-            if let climb { Text(climb.grade ?? "Unknown grade").font(AppTypography.caption).foregroundStyle(theme.primary) }
+        VStack(alignment: .leading, spacing: AppSpacing.space8) {
+            Label(title, systemImage: icon).font(AppTypography.caption).foregroundStyle(theme.secondaryText)
+            Text(climb?.routeName ?? "No data").font(AppTypography.headline).foregroundStyle(theme.primaryText)
+            if let climb {
+                Text(climb.grade ?? "Unknown grade").font(AppTypography.display).foregroundStyle(theme.primary)
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(8)
+        .frame(maxWidth: .infinity, minHeight: AppLayout.minimumControlHeight, alignment: .leading)
+        .padding(AppSpacing.space8)
+        .accessibilityElement(children: .combine)
     }
 
     private var settingsRow: some View {
         NavigationLink { SettingsView() } label: {
             HStack {
-                Image(systemName: "gearshape").foregroundStyle(theme.secondary)
+                Image(systemName: "gearshape").foregroundStyle(theme.secondaryText)
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Settings").font(AppTypography.headline).foregroundStyle(theme.primaryText)
                     Text("Account, data, and appearance").font(AppTypography.caption).foregroundStyle(theme.secondaryText)
@@ -371,5 +465,135 @@ struct ProfileView_Previews: PreviewProvider {
         ProfileView(repository: MockProfileRepository())
             .environmentObject(AppSession())
             .environmentObject(RouteDetailPresenter())
+    }
+}
+
+struct ActivityView: View {
+    @EnvironmentObject private var session: AppSession
+    @EnvironmentObject private var routeDetailPresenter: RouteDetailPresenter
+    @StateObject private var viewModel = FollowingFeedViewModel(
+        profileRepository: AppServices.profileRepository,
+        routesRepository: AppServices.routesRepository
+    )
+    @StateObject private var routeViewModel = RoutesViewModel(repository: AppServices.routesRepository)
+
+    var body: some View {
+        Group {
+            if session.userId == nil {
+                EmptyStateView(title: "Follow the line", subtitle: "Sign in, follow climbers, and their newest public routes will appear here.")
+            } else if viewModel.isLoading && viewModel.items.isEmpty {
+                VStack(spacing: 12) {
+                    ProgressView()
+                    Text("Loading following activity…").font(AppTypography.body)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .accessibilityElement(children: .combine)
+            } else if let error = viewModel.errorMessage, viewModel.items.isEmpty {
+                VStack(alignment: .leading, spacing: 16) {
+                    Label("Activity is offline or unavailable", systemImage: "wifi.exclamationmark")
+                        .font(AppTypography.headline)
+                        .foregroundStyle(AppColor.warning)
+                    Text(error).font(AppTypography.body).foregroundStyle(AppColor.muted)
+                    Text("Saved routes and climb logging remain available.")
+                        .font(AppTypography.body)
+                        .foregroundStyle(AppColor.text)
+                    Button("Try Again") { Task { await viewModel.load(userID: session.userId) } }
+                        .buttonStyle(BoardedButtonStyle())
+                }
+                .boardedPanel()
+                .padding(20)
+            } else if viewModel.items.isEmpty {
+                EmptyStateView(title: "No activity yet", subtitle: "Follow a climber from Profile to see their newest public routes.")
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        ForEach(viewModel.items) { item in
+                            activityRow(item)
+                        }
+                        if let paginationError = viewModel.paginationErrorMessage {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Label("Couldn’t load more activity", systemImage: "exclamationmark.triangle")
+                                    .font(AppTypography.headline)
+                                    .foregroundStyle(AppColor.warning)
+                                Text(paginationError)
+                                    .font(AppTypography.body)
+                                    .foregroundStyle(AppColor.muted)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                Button("Try loading more again") {
+                                    Task { await viewModel.loadMore(userID: session.userId) }
+                                }
+                                .buttonStyle(BoardedButtonStyle(.secondary))
+                                .disabled(viewModel.isLoadingMore)
+                            }
+                            .boardedPanel()
+                            .accessibilityElement(children: .contain)
+                        }
+                        if viewModel.canLoadMore {
+                            Button {
+                                Task { await viewModel.loadMore(userID: session.userId) }
+                            } label: {
+                                if viewModel.isLoadingMore {
+                                    Label("Loading more activity", systemImage: "hourglass")
+                                } else {
+                                    Label("Load more", systemImage: "arrow.down")
+                                }
+                            }
+                            .buttonStyle(BoardedButtonStyle(.secondary))
+                            .disabled(viewModel.isLoadingMore)
+                        }
+                    }
+                    .padding(20)
+                }
+                .refreshable { await viewModel.load(userID: session.userId) }
+            }
+        }
+        .foregroundStyle(AppColor.text)
+        .boardedPageBackground()
+        .navigationTitle("Activity")
+        .task(id: session.userId) { await viewModel.load(userID: session.userId) }
+    }
+
+    private func activityRow(_ item: FollowingFeedItem) -> some View {
+        let route = viewModel.routesByID[item.routeId]
+        return Button {
+            guard let route else { return }
+            routeViewModel.upsertRoute(route)
+            routeDetailPresenter.present(RouteDetailPresentation(
+                route: route,
+                routesViewModel: routeViewModel,
+                onRouteChanged: { routeViewModel.upsertRoute($0) },
+                onRouteDeleted: { deletedID in routeViewModel.routes.removeAll { $0.id == deletedID } }
+            ))
+        } label: {
+            HStack(alignment: .top, spacing: 16) {
+                Image(systemName: route == nil ? "point.3.filled.connected.trianglepath.dotted" : "point.3.connected.trianglepath.dotted")
+                    .foregroundStyle(route == nil ? AppColor.tertiaryText : AppColor.primary)
+                    .frame(width: 44, height: 44)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(item.authorUsername.map { "@\($0)" } ?? "Climber")
+                        .font(AppTypography.label)
+                        .foregroundStyle(AppColor.muted)
+                    Text(route?.gradeV ?? "Route")
+                        .font(AppTypography.display)
+                        .foregroundStyle(AppColor.text)
+                    Text(route?.name ?? "Route details unavailable")
+                        .font(AppTypography.body)
+                        .foregroundStyle(AppColor.text)
+                    Text(item.activityAt.formatted(date: .abbreviated, time: .shortened))
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColor.muted)
+                }
+                Spacer()
+                if route != nil { Image(systemName: "chevron.right").foregroundStyle(AppColor.muted) }
+            }
+            .frame(minHeight: 56)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(route == nil)
+        .boardedPanel()
+        .accessibilityElement(children: .combine)
+        .accessibilityHint(route == nil ? "Route details are unavailable" : "Opens route details")
     }
 }

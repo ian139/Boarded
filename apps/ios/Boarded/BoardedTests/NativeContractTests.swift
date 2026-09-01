@@ -75,47 +75,184 @@ final class NativeContractTests: XCTestCase {
         XCTAssertEqual(RouteDetailGeometry.imageRect(imageWidth: 0, imageHeight: 500, in: container), container)
     }
 
-    func testAppColorResolvesAdaptivePaletteForDarkAndLightTraits() {
+    func testAppColorIsDarkOnlyForEverySystemTrait() {
         let darkTraits = UITraitCollection(userInterfaceStyle: .dark)
         let lightTraits = UITraitCollection(userInterfaceStyle: .light)
+        for traits in [darkTraits, lightTraits] {
+            assertRGB(UIColor(AppColor.background).resolvedColor(with: traits), red: 10.0 / 255, green: 11.0 / 255, blue: 16.0 / 255)
+            assertRGB(UIColor(AppColor.text).resolvedColor(with: traits), red: 244.0 / 255, green: 242.0 / 255, blue: 235.0 / 255)
+            assertRGB(UIColor(AppColor.primary).resolvedColor(with: traits), red: 50.0 / 255, green: 213.0 / 255, blue: 131.0 / 255)
+        }
+    }
 
-        assertRGB(
-            UIColor(AppColor.background).resolvedColor(with: darkTraits),
-            red: 0,
-            green: 0,
-            blue: 0
+    func testFollowingFeedDecodesCanonicalWireFieldsAndMapsCursor() throws {
+        let data = Data("""
+        [{"route_id":"11111111-1111-4111-8111-111111111111","activity_at":"2026-08-31T12:30:00Z","author_id":"22222222-2222-4222-8222-222222222222","author_username":"mara"}]
+        """.utf8)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let item = try XCTUnwrap(try decoder.decode([FollowingFeedItem].self, from: data).first)
+        XCTAssertEqual(item.authorUsername, "mara")
+        XCTAssertEqual(item.cursor.routeId, item.routeId)
+        XCTAssertEqual(item.cursor.activityAt, item.activityAt)
+    }
+
+    func testProfileFollowCountsDecodeBigintJSONNumbers() throws {
+        let counts = try JSONDecoder().decode(
+            [ProfileFollowCounts].self,
+            from: Data("[{\"follower_count\":12,\"following_count\":4}]".utf8)
         )
-        assertRGB(
-            UIColor(AppColor.text).resolvedColor(with: darkTraits),
-            red: 1,
-            green: 1,
-            blue: 1
-        )
-        assertRGB(
-            UIColor(AppColor.primary).resolvedColor(with: darkTraits),
-            red: 1,
-            green: 59.0 / 255.0,
-            blue: 48.0 / 255.0
+        XCTAssertEqual(counts.first, ProfileFollowCounts(followerCount: 12, followingCount: 4))
+    }
+
+    func testFollowStateTransitionsAfterRepositoryMutation() async {
+        let target = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
+        let viewer = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
+        let model = ProfileViewModel(repository: MockProfileRepository(
+            profile: Profile(
+                id: target.uuidString,
+                username: "fixture",
+                fullName: "Fixture Climber",
+                avatarUrl: nil,
+                bio: nil,
+                createdAt: nil
+            )
+        ))
+        await model.load(userID: target)
+        await model.setFollowing(true, currentUserID: viewer)
+        XCTAssertTrue(model.isFollowing)
+        XCTAssertFalse(model.isUpdatingFollow)
+        await model.setFollowing(false, currentUserID: viewer)
+        XCTAssertFalse(model.isFollowing)
+    }
+
+    func testProfileSwitchClearsContentAndRejectsStaleFollowStatus() async {
+        let first = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
+        let second = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
+        let viewer = UUID(uuidString: "33333333-3333-4333-8333-333333333333")!
+        let repository = ControlledProfileRepository(slowUserID: first)
+        let model = ProfileViewModel(repository: repository)
+        model.setCurrentUserID(viewer)
+
+        let firstLoad = Task { await model.load(userID: first) }
+        try? await Task.sleep(nanoseconds: 20_000_000)
+        let secondLoad = Task { await model.selectAccount(userID: second) }
+        XCTAssertTrue(model.isLoading)
+        XCTAssertNil(model.profile)
+        XCTAssertEqual(model.followCounts.followerCount, 0)
+        await secondLoad.value
+        await firstLoad.value
+
+        XCTAssertEqual(model.selectedUserID, second)
+        XCTAssertEqual(model.profile?.id, second.uuidString)
+        XCTAssertFalse(model.isFollowing)
+    }
+
+    func testSelectedProfileFailureSuppressesIdentityAndSocialActions() async {
+        let viewer = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
+        let unavailable = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
+        let repository = ControlledProfileRepository(failProfileUserID: unavailable)
+        let model = ProfileViewModel(repository: repository)
+        model.setCurrentUserID(viewer)
+
+        await model.load(userID: viewer)
+        await model.selectAccount(userID: unavailable)
+
+        XCTAssertNotNil(model.errorMessage)
+        XCTAssertNil(model.profile)
+        XCTAssertFalse(model.hasLoadedSelectedProfile)
+        XCTAssertEqual(model.followCounts, ProfileFollowCounts(followerCount: 0, followingCount: 0))
+        await model.setFollowing(true, currentUserID: viewer)
+        XCTAssertEqual(repository.followCalls, 0)
+        XCTAssertFalse(model.isFollowing)
+    }
+
+    func testLeaderboardPersistsAcrossSelectionAndMyProfileRestoresPointsLookup() async {
+        let viewer = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
+        let other = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
+        let repository = ControlledProfileRepository(leaderboardUserID: viewer, leaderboardPoints: 42)
+        let model = ProfileViewModel(repository: repository)
+        model.setCurrentUserID(viewer)
+
+        await model.load(userID: viewer)
+        let loadedLeaderboard = model.leaderboard
+        await model.selectAccount(userID: other)
+        XCTAssertEqual(model.leaderboard, loadedLeaderboard)
+
+        await model.myProfile(currentUserID: viewer)
+        XCTAssertEqual(model.selectedUserID, viewer)
+        XCTAssertEqual(model.leaderboard, loadedLeaderboard)
+        XCTAssertEqual(model.points, 42)
+    }
+
+    func testSuccessfulFollowSurvivesFailedCountRefreshAndRetryReconciles() async {
+        let target = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
+        let viewer = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
+        let repository = ControlledProfileRepository(failSecondCountFetch: true)
+        let model = ProfileViewModel(repository: repository)
+        await model.load(userID: target)
+
+        await model.setFollowing(true, currentUserID: viewer)
+        XCTAssertTrue(model.isFollowing)
+        XCTAssertEqual(model.followCounts.followerCount, 1)
+        XCTAssertNotNil(model.followCountsRefreshErrorMessage)
+        XCTAssertNil(model.followErrorMessage)
+
+        await model.retryFollowCounts()
+        XCTAssertTrue(model.isFollowing)
+        XCTAssertEqual(model.followCounts.followerCount, 7)
+        XCTAssertNil(model.followCountsRefreshErrorMessage)
+    }
+
+    func testFeedAccountSwitchClearsRowsAndRejectsStaleCompletion() async {
+        let first = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
+        let second = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
+        let repository = ControlledProfileRepository(slowFeedUserID: first)
+        let model = FollowingFeedViewModel(
+            profileRepository: repository,
+            routesRepository: MockRoutesRepository(),
+            pageSize: 1
         )
 
-        assertRGB(
-            UIColor(AppColor.background).resolvedColor(with: lightTraits),
-            red: 232.0 / 255.0,
-            green: 220.0 / 255.0,
-            blue: 200.0 / 255.0
+        let firstLoad = Task { await model.load(userID: first) }
+        try? await Task.sleep(nanoseconds: 20_000_000)
+        let secondLoad = Task { await model.load(userID: second) }
+        XCTAssertTrue(model.items.isEmpty)
+        await secondLoad.value
+        await firstLoad.value
+
+        XCTAssertEqual(model.items.first?.authorId, second)
+        await model.load(userID: nil)
+        XCTAssertTrue(model.items.isEmpty)
+        XCTAssertFalse(model.canLoadMore)
+        XCTAssertNil(model.errorMessage)
+    }
+
+    func testPaginationErrorKeepsRowsAndClearsAfterRetry() async {
+        let user = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
+        let repository = ControlledProfileRepository(failFirstPagination: true)
+        let model = FollowingFeedViewModel(
+            profileRepository: repository,
+            routesRepository: MockRoutesRepository(),
+            pageSize: 1
         )
-        assertRGB(
-            UIColor(AppColor.text).resolvedColor(with: lightTraits),
-            red: 0,
-            green: 0,
-            blue: 0
+        await model.load(userID: user)
+        let initial = model.items
+
+        await model.loadMore(userID: user)
+        XCTAssertEqual(model.items, initial)
+        XCTAssertNotNil(model.paginationErrorMessage)
+        await model.loadMore(userID: user)
+        XCTAssertEqual(model.items.count, 2)
+        XCTAssertNil(model.paginationErrorMessage)
+    }
+
+    func testShareDeepLinkRoutesCanonicalLinksToHomeAndRejectsActivityPaths() {
+        XCTAssertEqual(
+            NativeShareLinkParser.token(from: URL(string: "boarded://share/fixture-granite")!),
+            "fixture-granite"
         )
-        assertRGB(
-            UIColor(AppColor.primary).resolvedColor(with: lightTraits),
-            red: 1,
-            green: 59.0 / 255.0,
-            blue: 48.0 / 255.0
-        )
+        XCTAssertNil(NativeShareLinkParser.token(from: URL(string: "boarded://activity/fixture-granite")!))
     }
 
     func testEditorGeometryUsesModestInitialZoomForMismatchedAspectRatios() {
@@ -259,5 +396,100 @@ final class NativeContractTests: XCTestCase {
           "comments":[]
         }
         """
+    }
+}
+
+@MainActor
+private final class ControlledProfileRepository: ProfileRepository {
+    private let slowUserID: UUID?
+    private let slowFeedUserID: UUID?
+    private let failSecondCountFetch: Bool
+    private let failFirstPagination: Bool
+    private let failProfileUserID: UUID?
+    private let leaderboardUserID: UUID?
+    private let leaderboardPoints: Int
+    private(set) var followCalls = 0
+    private var countFetches = 0
+    private var feedFetches = 0
+
+    init(
+        slowUserID: UUID? = nil,
+        slowFeedUserID: UUID? = nil,
+        failSecondCountFetch: Bool = false,
+        failFirstPagination: Bool = false,
+        failProfileUserID: UUID? = nil,
+        leaderboardUserID: UUID? = nil,
+        leaderboardPoints: Int = 0
+    ) {
+        self.slowUserID = slowUserID
+        self.slowFeedUserID = slowFeedUserID
+        self.failSecondCountFetch = failSecondCountFetch
+        self.failFirstPagination = failFirstPagination
+        self.failProfileUserID = failProfileUserID
+        self.leaderboardUserID = leaderboardUserID
+        self.leaderboardPoints = leaderboardPoints
+    }
+
+    func fetchProfile(userID: UUID) async throws -> Profile? {
+        if userID == slowUserID { try await Task.sleep(nanoseconds: 150_000_000) }
+        if userID == failProfileUserID { throw ProfileRepositoryError.unavailable }
+        return Profile(id: userID.uuidString, username: "climber", fullName: nil, avatarUrl: nil, bio: nil, createdAt: nil)
+    }
+
+    func fetchLeaderboard() async throws -> [ProfileLeaderboardEntry] {
+        guard let leaderboardUserID else { return [] }
+        return [
+            ProfileLeaderboardEntry(
+                id: leaderboardUserID.uuidString,
+                displayName: "Leaderboard Climber",
+                points: leaderboardPoints,
+                sendsCount: 0,
+                highestGrade: nil,
+                profile: nil
+            )
+        ]
+    }
+    func fetchClimbHistory(userID: UUID) async throws -> [ProfileClimbHistoryItem] { [] }
+    func fetchMetrics(userID: UUID) async throws -> ProfileMetrics { ProfileMetrics(routesCount: 2, likesCount: 3) }
+
+    func fetchFollowCounts(profileID: UUID) async throws -> ProfileFollowCounts {
+        countFetches += 1
+        if failSecondCountFetch && countFetches == 2 { throw ProfileRepositoryError.unavailable }
+        return ProfileFollowCounts(followerCount: failSecondCountFetch && countFetches > 2 ? 7 : 0, followingCount: 0)
+    }
+
+    func isFollowing(profileID: UUID, followerID: UUID) async throws -> Bool {
+        if profileID == slowUserID { try await Task.sleep(nanoseconds: 150_000_000) }
+        return profileID == slowUserID
+    }
+
+    func follow(profileID: UUID, followerID: UUID) async throws {
+        followCalls += 1
+    }
+    func unfollow(profileID: UUID, followerID: UUID) async throws {}
+
+    func fetchFollowingFeed(cursor: FollowingFeedCursor?, limit: Int) async throws -> [FollowingFeedItem] {
+        feedFetches += 1
+        if cursor != nil, failFirstPagination, feedFetches == 2 {
+            throw ProfileRepositoryError.unavailable
+        }
+        let author = slowFeedUserID ?? UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
+        if cursor == nil, author == slowFeedUserID, feedFetches == 1 {
+            try await Task.sleep(nanoseconds: 150_000_000)
+        }
+        let effectiveAuthor: UUID
+        if slowFeedUserID != nil, feedFetches > 1 {
+            effectiveAuthor = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
+        } else {
+            effectiveAuthor = author
+        }
+        return [
+            FollowingFeedItem(
+                routeId: UUID(),
+                activityAt: Date().addingTimeInterval(TimeInterval(-feedFetches)),
+                authorId: effectiveAuthor,
+                authorUsername: "climber"
+            )
+        ]
     }
 }

@@ -9,6 +9,8 @@ struct RoutesView: View {
     @StateObject private var wallsViewModel: WallsViewModel
     @State private var sharedRouteError: String?
     @State private var loggingRoute: Route? = nil
+    @AccessibilityFocusState private var focusedRouteID: String?
+    @State private var routePendingFocusRestore: String?
 
     init(
         shareRequest: Binding<NativeShareRequest?> = .constant(nil),
@@ -99,7 +101,7 @@ struct RoutesView: View {
             } else {
                 viewModel.routes.insert(sharedRoute, at: 0)
             }
-            presentRoute(sharedRoute)
+            presentRoute(sharedRoute, restoringFocusTo: nil)
         } catch {
             guard !Task.isCancelled else { return }
             sharedRouteError = error.localizedDescription
@@ -113,7 +115,8 @@ struct RoutesView: View {
             viewModel.routes.insert(updatedRoute, at: 0)
         }
     }
-    private func presentRoute(_ route: Route) {
+    private func presentRoute(_ route: Route, restoringFocusTo routeID: String? = nil) {
+        routePendingFocusRestore = routeID
         routeDetailPresenter.present(
             RouteDetailPresentation(
                 route: route,
@@ -131,15 +134,33 @@ struct RoutesView: View {
     private var header: some View {
         let theme = BoardedTheme()
         return VStack(alignment: .leading, spacing: 12) {
-            Text("\(viewModel.filteredRoutes.count) \(viewModel.filteredRoutes.count == 1 ? "route" : "routes")")
-                .font(AppTypography.title)
-                .foregroundStyle(theme.primaryText)
-                .accessibilityAddTraits(.isHeader)
+            HStack {
+                Text("\(viewModel.filteredRoutes.count) \(viewModel.filteredRoutes.count == 1 ? "route" : "routes")")
+                    .font(AppTypography.title)
+                    .foregroundStyle(theme.primaryText)
+                    .accessibilityAddTraits(.isHeader)
+                Spacer()
+                NavigationLink {
+                    ActivityView()
+                } label: {
+                    Label("Activity", systemImage: "person.2")
+                        .font(AppTypography.label)
+                        .frame(minHeight: 44)
+                }
+                .accessibilityHint("Shows new public routes from people you follow")
+            }
 
             SearchField(text: $viewModel.searchText, placeholder: "Search routes, setters...")
 
             if horizontalSizeClass == .compact {
-                compactSelectors
+                ViewThatFits(in: .horizontal) {
+                    compactSelectors
+                    VStack(spacing: AppSpacing.space8) {
+                        wallFilter
+                        gradeSelector
+                        sortSelector
+                    }
+                }
             } else {
                 wallFilter
                 sortSelector
@@ -171,33 +192,30 @@ struct RoutesView: View {
     }
 
     private func compactMenuLabel(title: String, selection: String, isActive: Bool) -> some View {
-        let theme = BoardedTheme()
-        return VStack(alignment: .leading, spacing: 4) {
+        let shape = RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
+        return VStack(alignment: .leading, spacing: AppSpacing.space4) {
             Text(title)
                 .font(AppTypography.caption)
-                .foregroundStyle(theme.secondaryText)
-                .lineLimit(1)
+                .foregroundStyle(AppColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
 
-            HStack(spacing: 4) {
+            HStack(spacing: AppSpacing.space4) {
                 Text(selection)
                     .font(AppTypography.label)
-                    .foregroundStyle(isActive ? theme.primary : theme.primaryText)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
+                    .foregroundStyle(isActive ? AppColor.accentDefault : AppColor.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.down")
                     .font(AppTypography.caption)
-                    .foregroundStyle(theme.secondaryText)
+                    .foregroundStyle(AppColor.textSecondary)
             }
         }
-        .padding(.horizontal, 12)
-        .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
-        .background(isActive ? theme.primary.opacity(0.12) : theme.panelBackground)
+        .padding(.horizontal, AppSpacing.space12)
+        .frame(maxWidth: .infinity, minHeight: AppLayout.primaryControlHeight, alignment: .leading)
+        .background(isActive ? AppColor.surfaceSelected : AppColor.surfaceCard, in: shape)
         .overlay {
-            RoundedRectangle(cornerRadius: theme.controlCornerRadius, style: .continuous)
-                .stroke(isActive ? theme.primary.opacity(0.4) : theme.border, lineWidth: 1)
+            shape.stroke(isActive ? AppColor.accentDefault : AppColor.strokeDefault, lineWidth: AppStroke.hairline)
         }
-        .clipShape(RoundedRectangle(cornerRadius: theme.controlCornerRadius, style: .continuous))
     }
 
     @ViewBuilder
@@ -396,6 +414,10 @@ struct RoutesView: View {
                 ForEach(Array(viewModel.filteredRoutes.enumerated()), id: \.element.id) { index, route in
                     RouteRow(
                         route: route,
+                        onOpen: {
+                            focusedRouteID = route.id
+                            presentRoute(route, restoringFocusTo: route.id)
+                        },
                         onLike: {
                             if let userId = session.userId {
                                 Task { await viewModel.toggleLike(routeId: route.id, userId: userId) }
@@ -407,14 +429,11 @@ struct RoutesView: View {
                             }
                         }
                     )
+                    .accessibilityFocused($focusedRouteID, equals: route.id)
                     .padding(.horizontal, theme.pagePadding)
-                    .padding(.vertical, 12)
+                    .padding(.vertical, AppSpacing.space8)
                     .frame(maxWidth: AppLayout.contentMaxWidth)
                     .frame(maxWidth: .infinity)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        presentRoute(route)
-                    }
 
                     if index < viewModel.filteredRoutes.count - 1 {
                         theme.primaryText.opacity(0.12)
@@ -426,6 +445,11 @@ struct RoutesView: View {
             .safeAreaPadding(.bottom, 72)
         }
         .background(theme.background)
+        .onChange(of: routeDetailPresenter.presentation?.id) { _, presentationID in
+            guard presentationID == nil, let routeID = routePendingFocusRestore else { return }
+            routePendingFocusRestore = nil
+            focusedRouteID = routeID
+        }
     }
 
     @ViewBuilder

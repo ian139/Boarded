@@ -7,76 +7,59 @@ struct SettingsView: View {
         BoardedTheme()
     }
 
-    @AppStorage("appearanceMode") private var appearanceModeRaw = AppAppearanceMode.system.rawValue
+    @AppStorage("appearanceMode") private var appearanceModeRaw = AppAppearanceMode.dark.rawValue
     @StateObject private var metrics = ProfileViewModel(repository: AppServices.profileRepository)
     @StateObject private var wallsViewModel = WallsViewModel(repository: AppServices.wallsRepository)
     @State private var isWallPickerPresented = false
 
-    private var appearanceMode: AppAppearanceMode {
-        AppAppearanceMode(rawValue: appearanceModeRaw) ?? .system
-    }
+    private var appearanceMode: AppAppearanceMode { .dark }
 
     var body: some View {
-        ZStack {
-            theme.background.ignoresSafeArea()
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    accountSection
-                    appearanceSection
-                    wallsSection
-                    dataSection
-                }
-                .padding(.bottom, 24)
-                .frame(maxWidth: AppLayout.contentMaxWidth)
-                .frame(maxWidth: .infinity)
-            }
-            .padding(AppLayout.horizontalPadding)
+        List {
+            accountSection
+            appearanceSection
+            wallsSection
+            dataSection
         }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(theme.background)
+        .environment(\.colorScheme, .dark)
         .navigationTitle("Settings")
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarTitleDisplayMode(.large)
         .task {
             await metrics.load(userID: session.userId)
             await wallsViewModel.load(userId: session.userId)
         }
+        .sheet(isPresented: $isWallPickerPresented) {
+            WallPickerView(viewModel: wallsViewModel, navigationTitle: "Manage Walls")
+                .environmentObject(session)
+        }
     }
 
     private var accountSection: some View {
-        NavigationLink {
-            AccountAccessView()
-        } label: {
-            HStack(spacing: 12) {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(theme.primary.opacity(0.12))
-                    .frame(width: 42, height: 42)
-                    .overlay(
-                        Image(systemName: session.userId == nil ? "person.badge.key" : "person.crop.circle.badge.checkmark")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(theme.primary)
-                    )
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Account Access")
-                        .font(AppTypography.headline)
-                        .foregroundColor(theme.primaryText)
-                    Text(accountSubtitle)
-                        .font(AppTypography.label)
-                        .foregroundColor(theme.secondaryText)
-                        .lineLimit(1)
+        Section {
+            NavigationLink {
+                AccountAccessView()
+            } label: {
+                Label {
+                    VStack(alignment: .leading, spacing: AppSpacing.space4) {
+                        Text("Account access").font(AppTypography.body).foregroundStyle(theme.primaryText)
+                        Text(accountSubtitle).font(AppTypography.caption).foregroundStyle(theme.secondaryText)
+                    }
+                } icon: {
+                    Image(systemName: session.userId == nil ? "person.badge.key" : "person.crop.circle.badge.checkmark")
+                        .foregroundStyle(theme.primary)
+                        .accessibilityHidden(true)
                 }
-
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(theme.secondaryText.opacity(0.65))
+                .frame(minHeight: AppLayout.minimumControlHeight)
             }
-            .padding(12)
-            .background(theme.panelBackground)
-            .overlay(
-                RoundedRectangle(cornerRadius: AppLayout.cornerRadius)
-                    .stroke(theme.border.opacity(0.75), lineWidth: 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: AppLayout.cornerRadius))
+            .accessibilityLabel("Account access, \(accountSubtitle)")
+            .accessibilityHint("Opens account and sign-in settings")
+        } header: {
+            Text("Account")
         }
+        .listRowBackground(theme.panelBackground)
     }
 
     private var accountSubtitle: String {
@@ -90,111 +73,75 @@ struct SettingsView: View {
     }
 
     private var dataSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        Section {
+            LabeledContent("Connection", value: supabaseStatus)
+            LabeledContent("Routes", value: metrics.routesCount.formatted())
+            LabeledContent("Sends", value: metrics.sendsCount.formatted())
+            LabeledContent("Likes", value: metrics.likesCount.formatted())
+        } header: {
             Text("Data")
-                .font(AppTypography.headline)
-                .foregroundColor(theme.primaryText)
-            Text(supabaseStatus)
-                .font(AppTypography.label)
-                .foregroundColor(theme.secondaryText)
-            HStack(spacing: 12) {
-                Text("Routes: \(metrics.routesCount)")
-                Text("Sends: \(metrics.sendsCount)")
-                Text("Likes: \(metrics.likesCount)")
-            }
-            .font(AppTypography.label)
-            .foregroundColor(theme.secondaryText)
+        } footer: {
+            Text("Counts reflect the profile currently stored for this account.")
         }
-        .padding(12)
-        .background(theme.panelBackground)
-        .overlay(
-            RoundedRectangle(cornerRadius: AppLayout.cornerRadius)
-                .stroke(theme.border, lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: AppLayout.cornerRadius))
+        .foregroundStyle(theme.primaryText)
+        .listRowBackground(theme.panelBackground)
     }
 
     private var appearanceSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 12) {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(theme.primary.opacity(0.12))
-                    .frame(width: 42, height: 42)
-                    .overlay(
-                        Image(systemName: appearanceMode == .dark ? "moon.fill" : "sun.max.fill")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(theme.primary)
-                    )
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Appearance")
-                        .font(AppTypography.headline)
-                        .foregroundColor(theme.primaryText)
-                    Text(appearanceSubtitle)
-                        .font(AppTypography.label)
-                        .foregroundColor(theme.secondaryText)
-                }
-
-                Spacer()
+        Section {
+            LabeledContent {
+                Text("Dark")
+                    .foregroundStyle(theme.primaryText)
+            } label: {
+                Label("Appearance", systemImage: "moon.fill")
+                    .foregroundStyle(theme.primaryText)
             }
+            .frame(minHeight: AppLayout.minimumControlHeight)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Appearance, dark only")
 
-            Picker("Appearance", selection: $appearanceModeRaw) {
-                ForEach(AppAppearanceMode.allCases) { mode in
-                    Text(mode.title).tag(mode.rawValue)
-                }
-            }
-            .pickerStyle(.segmented)
-            .tint(theme.primary)
-
-            Text(appVersion)
-                .font(AppTypography.label)
-                .foregroundColor(theme.secondaryText)
+            .accessibilityIdentifier("Appearance setting")
+            .accessibilityValue("Dark")
+            LabeledContent("Version", value: appVersion)
+                .foregroundStyle(theme.secondaryText)
+        } header: {
+            Text("Display")
+        } footer: {
+            Text("Boarded always uses its high-contrast dark field. System Reduce Motion and Reduce Transparency settings are respected.")
         }
-        .padding(12)
-        .background(theme.panelBackground)
-        .overlay(
-            RoundedRectangle(cornerRadius: AppLayout.cornerRadius)
-                .stroke(theme.border.opacity(0.75), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: AppLayout.cornerRadius))
+        .listRowBackground(theme.panelBackground)
     }
 
     private var appearanceSubtitle: String {
-        switch appearanceMode {
-        case .system:
-            return "Follows your device setting"
-        case .light:
-            return "Light mode is forced on"
-        case .dark:
-            return "Dark mode is forced on"
-        }
+        "Boarded uses its high-contrast dark field"
     }
 
     private var wallsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Walls")
-                .font(AppTypography.headline)
-                .foregroundColor(theme.primaryText)
-            Text("\(wallsViewModel.walls.count) walls")
-                .font(AppTypography.label)
-                .foregroundColor(theme.secondaryText)
-            Button("Manage Walls") {
+        Section {
+            Button {
                 isWallPickerPresented = true
+            } label: {
+                HStack {
+                    Label("Manage walls", systemImage: "square.3.layers.3d")
+                    Spacer()
+                    Text(wallsViewModel.walls.count.formatted())
+                        .foregroundStyle(theme.secondaryText)
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(theme.secondaryText)
+                        .accessibilityHidden(true)
+                }
+                .frame(minHeight: AppLayout.minimumControlHeight)
+                .contentShape(Rectangle())
             }
-            .font(AppTypography.label)
-            .foregroundColor(theme.primary)
+            .foregroundStyle(theme.primaryText)
+            .accessibilityIdentifier("Manage Walls")
+            .accessibilityLabel("Manage walls, \(wallsViewModel.walls.count.formatted()) walls")
+            .accessibilityHint("Opens the wall picker")
+        } header: {
+            Text("Climbing walls")
         }
-        .padding(12)
-        .background(theme.panelBackground)
-        .overlay(
-            RoundedRectangle(cornerRadius: AppLayout.cornerRadius)
-                .stroke(theme.border, lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: AppLayout.cornerRadius))
-        .sheet(isPresented: $isWallPickerPresented) {
-            WallPickerView(viewModel: wallsViewModel)
-                .environmentObject(session)
-        }
+        .listRowBackground(theme.panelBackground)
     }
 
     private var supabaseStatus: String {

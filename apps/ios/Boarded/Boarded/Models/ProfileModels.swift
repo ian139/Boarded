@@ -127,3 +127,47 @@ struct ProfileHighlights: Hashable {
     let bestClimb: ProfileClimbHistoryItem?
     let longestProject: ProfileClimbHistoryItem?
 }
+
+struct ProfileFollow: Codable, Hashable {
+    let followerId: UUID
+    let followingId: UUID
+    let createdAt: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case followerId = "follower_id"
+        case followingId = "following_id"
+        case createdAt = "created_at"
+    }
+}
+
+struct ProfileFollowCounts: Codable, Hashable {
+    let followerCount: Int
+    let followingCount: Int
+
+    enum CodingKeys: String, CodingKey {
+        case followerCount = "follower_count"
+        case followingCount = "following_count"
+    }
+}
+
+struct FollowingFeedCursor: Codable, Hashable {
+    let activityAt: Date
+    let routeId: UUID
+}
+
+struct FollowingFeedItem: Codable, Identifiable, Hashable {
+    let routeId: UUID
+    let activityAt: Date
+    let authorId: UUID
+    let authorUsername: String?
+
+    var id: UUID { routeId }
+    var cursor: FollowingFeedCursor { FollowingFeedCursor(activityAt: activityAt, routeId: routeId) }
+
+    enum CodingKeys: String, CodingKey {
+        case routeId = "route_id"
+        case activityAt = "activity_at"
+        case authorId = "author_id"
+        case authorUsername = "author_username"
+    }
+}

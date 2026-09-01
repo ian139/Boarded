@@ -45,6 +45,10 @@
 		AA1100102F5B000100535751 /* BoardedUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1100112F5B000100535751 /* BoardedUITests.swift */; };
 		AA1100422F5B000100535751 /* CormorantGaramond-SemiBoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = AA1100402F5B000100535751 /* CormorantGaramond-SemiBoldItalic.ttf */; };
 		AA1100432F5B000100535751 /* Cormorant-Garamond-OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = AA1100412F5B000100535751 /* Cormorant-Garamond-OFL.txt */; };
+		BB2200012F5C000100535751 /* AttemptModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2200112F5C000100535751 /* AttemptModels.swift */; };
+		BB2200022F5C000100535751 /* AttemptRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2200122F5C000100535751 /* AttemptRepository.swift */; };
+		BB2200032F5C000100535751 /* BoardedPrimitives.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2200132F5C000100535751 /* BoardedPrimitives.swift */; };
+		BB2200042F5C000100535751 /* LogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2200142F5C000100535751 /* LogView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -100,6 +104,10 @@
 		AA1100122F5B000100535751 /* BoardedUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BoardedUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA1100402F5B000100535751 /* CormorantGaramond-SemiBoldItalic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "CormorantGaramond-SemiBoldItalic.ttf"; path = "Boarded/CormorantGaramond-SemiBoldItalic.ttf"; sourceTree = "<group>"; };
 		AA1100412F5B000100535751 /* Cormorant-Garamond-OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; name = "Cormorant-Garamond-OFL.txt"; path = "Boarded/Cormorant-Garamond-OFL.txt"; sourceTree = "<group>"; };
+		BB2200112F5C000100535751 /* AttemptModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttemptModels.swift; sourceTree = "<group>"; };
+		BB2200122F5C000100535751 /* AttemptRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttemptRepository.swift; sourceTree = "<group>"; };
+		BB2200132F5C000100535751 /* BoardedPrimitives.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardedPrimitives.swift; sourceTree = "<group>"; };
+		BB2200142F5C000100535751 /* LogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -154,6 +162,7 @@
 				3CDD08CA2F5A067100535751 /* ProfileModels.swift */,
 				3CDD09122F5A200100535751 /* ProfileStatistics.swift */,
 				3CDD08742F59FBB600535751 /* RouteModels.swift */,
+				BB2200112F5C000100535751 /* AttemptModels.swift */,
 			);
 			name = Models;
 			path = Boarded/Models;
@@ -166,6 +175,7 @@
 				AA1100022F5B000100535751 /* WallsRepository.swift */,
 				3CDD09102F5A200100535751 /* ProfileRepository.swift */,
 				3CDD08C82F5A064A00535751 /* SupabaseConfig.swift */,
+				BB2200122F5C000100535751 /* AttemptRepository.swift */,
 			);
 			name = Services;
 			path = Boarded/Services;
@@ -199,11 +209,20 @@
 			path = Routes;
 			sourceTree = "<group>";
 		};
+		BB2200202F5C000100535751 /* Log */ = {
+			isa = PBXGroup;
+			children = (
+				BB2200142F5C000100535751 /* LogView.swift */,
+			);
+			path = Log;
+			sourceTree = "<group>";
+		};
 		3CDD08EB2F5A072900535751 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
 				3CDD08E82F5A072900535751 /* EmptyStateView.swift */,
 				3CDD08EA2F5A072900535751 /* SearchField.swift */,
+				BB2200132F5C000100535751 /* BoardedPrimitives.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -215,6 +234,7 @@
 				3CDD08E02F5A072900535751 /* Editor */,
 				3CDD08E32F5A072900535751 /* Profile */,
 				3CDD08E72F5A072900535751 /* Routes */,
+				BB2200202F5C000100535751 /* Log */,
 				3CDD08EB2F5A072900535751 /* Shared */,
 			);
 			name = Views;
@@ -409,6 +429,10 @@
 				3CDD08F62F5A072900535751 /* EditorView.swift in Sources */,
 				AA1100012F5B000100535751 /* WallsRepository.swift in Sources */,
 				3CDD08C92F5A064A00535751 /* SupabaseConfig.swift in Sources */,
+				BB2200012F5C000100535751 /* AttemptModels.swift in Sources */,
+				BB2200022F5C000100535751 /* AttemptRepository.swift in Sources */,
+				BB2200032F5C000100535751 /* BoardedPrimitives.swift in Sources */,
+				BB2200042F5C000100535751 /* LogView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

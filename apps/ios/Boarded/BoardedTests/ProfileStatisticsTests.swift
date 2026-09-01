@@ -255,4 +255,20 @@ private final class DelayedMetricsRepository: ProfileRepository, @unchecked Send
         try await delay(for: userID)
         return metricsByUser[userID] ?? ProfileMetrics(routesCount: 0, likesCount: 0)
     }
+
+    func fetchFollowCounts(profileID: UUID) async throws -> ProfileFollowCounts {
+        ProfileFollowCounts(followerCount: 0, followingCount: 0)
+    }
+
+    func isFollowing(profileID: UUID, followerID: UUID) async throws -> Bool {
+        false
+    }
+
+    func follow(profileID: UUID, followerID: UUID) async throws {}
+
+    func unfollow(profileID: UUID, followerID: UUID) async throws {}
+
+    func fetchFollowingFeed(cursor: FollowingFeedCursor?, limit: Int) async throws -> [FollowingFeedItem] {
+        []
+    }
 }

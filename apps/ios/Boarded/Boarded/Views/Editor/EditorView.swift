@@ -135,6 +135,11 @@ private struct EditorCanvasInteractionShape: Shape {
 
 
 
+private enum TopoPresentationMode {
+    case browse
+    case edit
+}
+
 struct EditorView: View {
     let routeToEdit: Route?
     let onRouteUpdated: (Route) -> Void
@@ -145,6 +150,10 @@ struct EditorView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.colorScheme) private var colorScheme
     @StateObject private var wallsViewModel: WallsViewModel
+    @Environment(\.accessibilityDifferentiateWithoutColor) private var differentiateWithoutColor
+    @State private var presentationMode: TopoPresentationMode
+    @State private var selectedHoldID: String?
+    @FocusState private var focusedHoldID: String?
     @State private var holds: [Hold] = []
     @State private var routeName = ""
     @State private var routeGrade: String? = nil
@@ -199,6 +208,7 @@ struct EditorView: View {
         self.routeToEdit = routeToEdit
         self.onRouteUpdated = onRouteUpdated
         _wallsViewModel = StateObject(wrappedValue: WallsViewModel(repository: wallsRepository))
+        _presentationMode = State(initialValue: .edit)
         _holds = State(initialValue: routeToEdit?.holds ?? [])
         _routeName = State(initialValue: routeToEdit?.name ?? "")
         _routeGrade = State(initialValue: routeToEdit?.gradeV)
@@ -259,6 +269,11 @@ struct EditorView: View {
             }
         }
         .boardedPageBackground()
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if !holds.isEmpty {
+                topoNodeActionList
+            }
+        }
         .sheet(isPresented: $isSavePresented) {
             SaveRouteSheet(
                 routeName: $routeName,
@@ -304,11 +319,27 @@ struct EditorView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .wallImageDidChange)) { notification in
-            guard let wallID = notification.object as? String, wallID == acceptedWallID else { return }
+            guard presentationMode == .edit,
+                  let wallID = notification.object as? String,
+                  wallID == acceptedWallID else { return }
             holds.removeAll()
             announce("Wall image changed. Holds cleared.")
             resetZoom(animated: false)
             refreshWallMetadata()
+        }
+        .onChange(of: presentationMode) { _, mode in
+            selectedHoldID = nil
+            focusedHoldID = nil
+            if mode == .browse {
+                resetZoom()
+            }
+        }
+        .onChange(of: holds) { _, updatedHolds in
+            guard let selectedHoldID,
+                  updatedHolds.contains(where: { $0.id == selectedHoldID }) else {
+                self.selectedHoldID = nil
+                return
+            }
         }
         .onPreferenceChange(EditorHeaderHeightPreferenceKey.self) { measuredHeight in
             let clampedHeight = max(0, measuredHeight)
@@ -359,32 +390,50 @@ struct EditorView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: dynamicTypeSize.isAccessibilitySize ? 6 : 0) {
-            if dynamicTypeSize.isAccessibilitySize {
-                HStack(spacing: 10) {
+        VStack(alignment: .leading, spacing: AppSpacing.space8) {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: AppSpacing.space12) {
                     headerTitle
-                        .fixedSize(horizontal: true, vertical: false)
-                    Spacer(minLength: 4)
-                    saveButton
-                        .fixedSize(horizontal: true, vertical: false)
-                }
-                holdCountView
-                wallPickerButton
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            } else {
-                HStack(spacing: 10) {
-                    headerTitle
-                    wallPickerButton
+                    if presentationMode == .edit {
+                        wallPickerButton
+                    }
                     holdCountView
-                    Spacer(minLength: 4)
-                    saveButton
+                    Spacer(minLength: AppSpacing.space4)
+                    modeActionButton
+                    if presentationMode == .edit {
+                        saveButton
+                    }
                 }
+
+                VStack(alignment: .leading, spacing: AppSpacing.space8) {
+                    HStack(spacing: AppSpacing.space8) {
+                        headerTitle
+                        Spacer(minLength: AppSpacing.space4)
+                        modeActionButton
+                    }
+                    HStack(spacing: AppSpacing.space8) {
+                        if presentationMode == .edit {
+                            wallPickerButton
+                        }
+                        holdCountView
+                        Spacer(minLength: AppSpacing.space4)
+                        if presentationMode == .edit {
+                            saveButton
+                        }
+                    }
+                }
+            }
+
+            if presentationMode == .browse {
+                Text("Select any topo node to inspect its type, position, and route order.")
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(.horizontal, AppLayout.horizontalPadding)
-        .padding(.top, 8)
-        .padding(.bottom, 8)
-        .frame(maxWidth: AppLayout.contentMaxWidth)
+        .padding(.vertical, AppSpacing.space8)
+        .frame(maxWidth: AppLayout.editorMaxWidth)
         .frame(maxWidth: .infinity)
         .sheet(isPresented: $isWallPickerPresented, onDismiss: {
             presentPendingWallSwitchIfPossible()
@@ -402,11 +451,50 @@ struct EditorView: View {
         }
     }
 
+    private var modeActionButton: some View {
+        Button {
+            presentationMode = presentationMode == .browse ? .edit : .browse
+        } label: {
+            Label(
+                presentationMode == .browse ? "Edit route" : "Browse topo",
+                systemImage: presentationMode == .browse ? "pencil" : "eye"
+            )
+            .font(AppTypography.label)
+            .frame(minHeight: AppLayout.minimumControlHeight)
+            .padding(.horizontal, AppSpacing.space12)
+            .foregroundStyle(presentationMode == .browse ? AppColor.accentOnAccent : AppColor.textPrimary)
+            .background(
+                presentationMode == .browse ? AppColor.accentDefault : AppColor.backgroundElevated,
+                in: Capsule()
+            )
+            .overlay {
+                if presentationMode == .edit {
+                    Capsule().stroke(AppColor.strokeDefault, lineWidth: AppStroke.hairline)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint(
+            presentationMode == .browse
+                ? "Enters edit mode. Changes are not saved until you choose Save."
+                : "Shows the route without editing controls."
+        )
+    }
+
     private var headerTitle: some View {
-        Text("Editor")
-            .font(AppTypography.title)
-            .foregroundColor(AppColor.text)
-            .lineLimit(1)
+        VStack(alignment: .leading, spacing: 0) {
+            Text(presentationMode == .browse ? (routeName.isEmpty ? "Topo" : routeName) : "Route editor")
+                .font(presentationMode == .browse ? AppTypography.display : AppTypography.title)
+                .foregroundStyle(AppColor.textPrimary)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
+                .minimumScaleFactor(0.8)
+            if presentationMode == .browse, let routeGrade {
+                Text(routeGrade)
+                    .font(AppTypography.label)
+                    .foregroundStyle(AppColor.textSecondary)
+            }
+        }
+        .accessibilityElement(children: .combine)
     }
 
     private var wallPickerButton: some View {
@@ -462,6 +550,7 @@ struct EditorView: View {
         .opacity((holds.isEmpty || !wallIsUsable) ? 0.4 : 1)
         .accessibilityLabel("Save")
         .accessibilityHint("Saves this route.")
+        .accessibilityIdentifier("Editor save route")
     }
 
     private func canvasSurface(size: CGSize, headerHeight: CGFloat) -> some View {
@@ -484,11 +573,15 @@ struct EditorView: View {
                 .simultaneousGesture(dragGesture(in: size, imageRect: imageRect))
                 .accessibilityElement()
                 .accessibilityIdentifier("Editor canvas surface")
-                .accessibilityLabel("Wall editor")
+                .accessibilityLabel(presentationMode == .browse ? "Topo wall" : "Wall editor")
                 .accessibilityValue(canvasAccessibilityValue)
-                .accessibilityHint("Activate to add a Start hold at the wall center. Drag to pan when the wall overflows. Pinch the wall to zoom or a hold to resize it.")
+                .accessibilityHint(
+                    presentationMode == .browse
+                        ? "Explore the route nodes below. Drag to pan and pinch to zoom."
+                        : "Activate to add a Start hold at the wall center. Drag to pan and pinch to zoom."
+                )
                 .accessibilityAction {
-                    guard wallIsUsable else { return }
+                    guard presentationMode == .edit, wallIsUsable else { return }
                     let viewPoint = CGPoint(
                         x: size.width / 2,
                         y: max(reservedHeaderHeight + 1, size.height / 2)
@@ -516,6 +609,14 @@ struct EditorView: View {
                 .offset(panOffset)
                 .allowsHitTesting(false)
                 .zIndex(1)
+            if presentationMode == .browse, holds.count > 1 {
+                topoRouteTrace(in: imageRect)
+                    .frame(width: size.width, height: size.height)
+                    .scaleEffect(zoomScale)
+                    .offset(panOffset)
+                    .allowsHitTesting(false)
+                    .zIndex(1.75)
+            }
 
             if holds.isEmpty && wallIsUsable {
                 emptyCanvasReadabilityTint
@@ -594,6 +695,37 @@ struct EditorView: View {
             )
         )
         .coordinateSpace(name: "editorCanvas")
+    }
+
+    private func topoRouteTrace(in imageRect: CGRect) -> some View {
+        Path { path in
+            guard let first = holds.first else { return }
+            path.move(
+                to: CGPoint(
+                    x: imageRect.minX + first.normalizedX * imageRect.width,
+                    y: imageRect.minY + first.normalizedY * imageRect.height
+                )
+            )
+            for hold in holds.dropFirst() {
+                path.addLine(
+                    to: CGPoint(
+                        x: imageRect.minX + hold.normalizedX * imageRect.width,
+                        y: imageRect.minY + hold.normalizedY * imageRect.height
+                    )
+                )
+            }
+        }
+        .stroke(
+            AppColor.textPrimary,
+            style: StrokeStyle(
+                lineWidth: differentiateWithoutColor ? AppStroke.focus : AppStroke.hairline + 1,
+                lineCap: .round,
+                lineJoin: .round,
+                dash: differentiateWithoutColor ? [AppSpacing.space8, AppSpacing.space4] : []
+            )
+        )
+        .shadow(color: AppColor.backgroundBase.opacity(0.72), radius: AppSpacing.space4)
+        .accessibilityHidden(true)
     }
 
     @ViewBuilder
@@ -742,6 +874,234 @@ struct EditorView: View {
 
 
 
+    private var selectedHold: Hold? {
+        guard let selectedHoldID else { return nil }
+        return holds.first(where: { $0.id == selectedHoldID })
+    }
+
+    private var topoNodeActionList: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.space8) {
+            nodeSelectionMenu
+            if let selectedHold {
+                if presentationMode == .browse {
+                    nodeInspection(for: selectedHold)
+                } else {
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: AppSpacing.space8) {
+                            nodeEditMenu(for: selectedHold)
+                            nodeMoveMenu(for: selectedHold)
+                            nodeOrderControls(for: selectedHold)
+                            Spacer(minLength: AppSpacing.space4)
+                            deleteNodeButton(selectedHold)
+                        }
+                        VStack(alignment: .leading, spacing: AppSpacing.space8) {
+                            HStack(spacing: AppSpacing.space8) {
+                                nodeEditMenu(for: selectedHold)
+                                nodeMoveMenu(for: selectedHold)
+                            }
+                            HStack(spacing: AppSpacing.space8) {
+                                nodeOrderControls(for: selectedHold)
+                                Spacer(minLength: AppSpacing.space4)
+                                deleteNodeButton(selectedHold)
+                            }
+                        }
+                    }
+                }
+            } else {
+                nodeGuidance
+            }
+        }
+        .padding(.horizontal, AppLayout.horizontalPadding)
+        .padding(.vertical, AppSpacing.space12)
+        .background(AppColor.backgroundElevated)
+        .overlay(alignment: .top) {
+            Rectangle().fill(AppColor.strokeSubtle).frame(height: AppStroke.hairline)
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    private func nodeInspection(for hold: Hold) -> some View {
+        Text(
+            "\(typeDisplayName(hold.type)) · Route position \(nodeNumber(for: hold.id)) of \(holds.count) · "
+                + "\(Int(hold.x.rounded())) percent x, \(Int(hold.y.rounded())) percent y"
+        )
+        .font(AppTypography.body)
+        .foregroundStyle(AppColor.textSecondary)
+        .fixedSize(horizontal: false, vertical: true)
+        .accessibilityLabel(
+            "\(typeDisplayName(hold.type)). Route position \(nodeNumber(for: hold.id)) of \(holds.count). "
+                + "\(Int(hold.x.rounded())) percent x, \(Int(hold.y.rounded())) percent y."
+        )
+    }
+
+    private var nodeSelectionMenu: some View {
+        Menu {
+            ForEach(Array(holds.enumerated()), id: \.element.id) { index, hold in
+                Button {
+                    selectHold(hold.id)
+                } label: {
+                    Label(
+                        "Node \(index + 1), \(typeDisplayName(hold.type))",
+                        systemImage: selectedHoldID == hold.id ? "checkmark.circle.fill" : nodeSymbol(for: hold.type)
+                    )
+                }
+            }
+        } label: {
+            Label(
+                selectedHold.map { "Node \(nodeNumber(for: $0.id))" } ?? "Select node",
+                systemImage: selectedHold == nil ? "list.number" : "checkmark.circle.fill"
+            )
+            .font(AppTypography.label)
+            .frame(minHeight: AppLayout.minimumControlHeight)
+            .padding(.horizontal, AppSpacing.space12)
+        }
+        .foregroundStyle(selectedHold == nil ? AppColor.textPrimary : AppColor.accentDefault)
+        .boardedGlassSurface(in: Capsule(), interactive: true)
+        .accessibilityLabel("Select topo node")
+        .accessibilityValue(selectedHold.map { "Node \(nodeNumber(for: $0.id)), \(typeDisplayName($0.type))" } ?? "None selected")
+    }
+
+    private var nodeGuidance: some View {
+        Text(
+            presentationMode == .browse
+                ? "Select a node to inspect its details."
+                : "Select a node to edit its type, position, route order, or delete it."
+        )
+        .font(AppTypography.body)
+        .foregroundStyle(AppColor.textSecondary)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func nodeEditMenu(for hold: Hold) -> some View {
+        Menu {
+            ForEach(HoldType.allCases, id: \.self) { type in
+                Button {
+                    setHoldType(id: hold.id, type: type)
+                } label: {
+                    Label(typeDisplayName(type), systemImage: hold.type == type ? "checkmark" : nodeSymbol(for: type))
+                }
+            }
+        } label: {
+            Label("Edit", systemImage: "pencil")
+                .font(AppTypography.label)
+                .frame(minHeight: AppLayout.minimumControlHeight)
+                .padding(.horizontal, AppSpacing.space12)
+        }
+        .foregroundStyle(AppColor.textPrimary)
+        .boardedGlassSurface(in: Capsule(), interactive: true)
+        .accessibilityLabel("Edit node \(nodeNumber(for: hold.id)) type")
+        .accessibilityValue(typeDisplayName(hold.type))
+    }
+
+    private func nodeMoveMenu(for hold: Hold) -> some View {
+        Menu {
+            Button("Move up", systemImage: "arrow.up") { moveHold(id: hold.id, x: 0, y: -5) }
+            Button("Move down", systemImage: "arrow.down") { moveHold(id: hold.id, x: 0, y: 5) }
+            Button("Move left", systemImage: "arrow.left") { moveHold(id: hold.id, x: -5, y: 0) }
+            Button("Move right", systemImage: "arrow.right") { moveHold(id: hold.id, x: 5, y: 0) }
+        } label: {
+            Label("Move", systemImage: "move.3d")
+                .font(AppTypography.label)
+                .frame(minHeight: AppLayout.minimumControlHeight)
+                .padding(.horizontal, AppSpacing.space12)
+        }
+        .foregroundStyle(AppColor.textPrimary)
+        .boardedGlassSurface(in: Capsule(), interactive: true)
+        .accessibilityLabel("Move node \(nodeNumber(for: hold.id))")
+        .accessibilityHint("Moves the node five percent in a chosen direction.")
+    }
+
+    private func nodeOrderControls(for hold: Hold) -> some View {
+        let index = holds.firstIndex(where: { $0.id == hold.id }) ?? holds.startIndex
+        return HStack(spacing: AppSpacing.space4) {
+            nodeOrderButton(title: "Earlier", image: "arrow.left", disabled: index == holds.startIndex) {
+                reorderHold(id: hold.id, offset: -1)
+            }
+            nodeOrderButton(title: "Later", image: "arrow.right", disabled: index == holds.index(before: holds.endIndex)) {
+                reorderHold(id: hold.id, offset: 1)
+            }
+        }
+    }
+
+    private func nodeOrderButton(title: String, image: String, disabled: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: image)
+                .frame(minWidth: AppLayout.minimumControlHeight, minHeight: AppLayout.minimumControlHeight)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(disabled ? AppColor.textDisabled : AppColor.textPrimary)
+        .boardedGlassSurface(in: Circle(), interactive: true)
+        .disabled(disabled)
+        .accessibilityLabel("\(title) in route order")
+    }
+
+    private func deleteNodeButton(_ hold: Hold) -> some View {
+        Button(role: .destructive) {
+            deleteHold(id: hold.id)
+        } label: {
+            Label("Delete", systemImage: "trash")
+                .font(AppTypography.label)
+                .frame(minHeight: AppLayout.minimumControlHeight)
+                .padding(.horizontal, AppSpacing.space12)
+        }
+        .foregroundStyle(AppColor.danger)
+        .boardedGlassSurface(in: Capsule(), interactive: true)
+        .accessibilityLabel("Delete node \(nodeNumber(for: hold.id))")
+    }
+
+    private func selectHold(_ id: String) {
+        selectedHoldID = id
+        focusedHoldID = id
+        announce("Node \(nodeNumber(for: id)) selected.")
+    }
+
+    private func setHoldType(id: String, type: HoldType) {
+        guard presentationMode == .edit,
+              let index = holds.firstIndex(where: { $0.id == id }) else { return }
+        holds[index].type = type
+        holds[index].color = type.colorHex
+        announce("Node \(index + 1) changed to \(typeDisplayName(type).lowercased()).")
+    }
+
+    private func reorderHold(id: String, offset: Int) {
+        guard presentationMode == .edit,
+              let index = holds.firstIndex(where: { $0.id == id }) else { return }
+        let destination = index + offset
+        guard holds.indices.contains(destination) else { return }
+        holds.swapAt(index, destination)
+        announce("Node moved to position \(destination + 1).")
+    }
+
+    private func moveHold(id: String, x: Double, y: Double) {
+        guard presentationMode == .edit,
+              let index = holds.firstIndex(where: { $0.id == id }) else { return }
+        holds[index].x = min(100, max(0, holds[index].x + x))
+        holds[index].y = min(100, max(0, holds[index].y + y))
+        announce("Node \(index + 1) moved to \(Int(holds[index].x.rounded())) percent x, \(Int(holds[index].y.rounded())) percent y.")
+    }
+
+    private func deleteHold(id: String) {
+        guard presentationMode == .edit,
+              let index = holds.firstIndex(where: { $0.id == id }) else { return }
+        holds.remove(at: index)
+        selectedHoldID = nil
+        focusedHoldID = nil
+        announce("Node \(index + 1) deleted.")
+    }
+
+    private func nodeNumber(for id: String) -> Int {
+        (holds.firstIndex(where: { $0.id == id }) ?? 0) + 1
+    }
+
+    private func nodeSymbol(for type: HoldType) -> String {
+        switch type {
+        case .start: return "play.fill"
+        case .hand: return "hand.raised.fill"
+        case .foot: return "shoeprints.fill"
+        case .finish: return "flag.checkered"
+        }
+    }
+
     private func markerButton(
         for hold: Hold,
         index: Int,
@@ -761,11 +1121,12 @@ struct EditorView: View {
         return Button {
             handleMarkerTap(id: hold.id)
         } label: {
-            holdView(for: hold)
+            holdView(for: hold, isSelected: selectedHoldID == hold.id)
                 .frame(width: targetSize, height: targetSize)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .focused($focusedHoldID, equals: hold.id)
         .frame(width: targetSize, height: targetSize)
         .position(
             x: imageRect.minX + hold.normalizedX * imageRect.width,
@@ -774,14 +1135,17 @@ struct EditorView: View {
         .simultaneousGesture(
             dragGesture(in: canvasSize, imageRect: imageRect, suppressMarkerTap: true)
         )
+        .simultaneousGesture(markerMagnificationGesture(id: hold.id))
         .zIndex(Double(index + 2))
         .accessibilityElement(children: .ignore)
         .accessibilityIdentifier("Editor hold \(index + 1)")
-        .accessibilityLabel(markerAccessibilityLabel(for: hold))
-        .accessibilityValue("\(Int(hold.x.rounded())) percent x, \(Int(hold.y.rounded())) percent y, \(Int(holdRadiusValue(hold).rounded())) image points")
-        .accessibilityHint("Tap to cycle type. Pinch to resize. Drag to pan the wall.")
+        .accessibilityLabel("Node \(index + 1), \(markerAccessibilityLabel(for: hold))")
+        .accessibilityValue("\(selectedHoldID == hold.id ? "Selected, " : "")\(Int(hold.x.rounded())) percent x, \(Int(hold.y.rounded())) percent y, \(Int(holdRadiusValue(hold).rounded())) image points")
+        .accessibilityHint(presentationMode == .browse ? "Selects this node for inspection." : "Activates the next hold type. Adjust to resize.")
+        .accessibilityAddTraits(selectedHoldID == hold.id ? .isSelected : [])
         .accessibilityHidden(!wallIsUsable || !canReceiveInput)
         .accessibilityAdjustableAction { direction in
+            guard presentationMode == .edit else { return }
             adjustHoldRadius(id: hold.id, direction: direction)
         }
     }
@@ -812,6 +1176,10 @@ struct EditorView: View {
             suppressNextMarkerTap = false
             return
         }
+        if presentationMode == .browse {
+            selectHold(id)
+            return
+        }
         guard let index = holds.firstIndex(where: { $0.id == id }) else { return }
         let currentType = holds[index].type
         guard let nextType = EditorHoldInteraction.nextType(after: currentType) else {
@@ -824,28 +1192,41 @@ struct EditorView: View {
         announce("Hold changed to \(typeDisplayName(nextType).lowercased()).")
     }
 
-    private func holdView(for hold: Hold) -> some View {
+    private func holdView(for hold: Hold, isSelected: Bool) -> some View {
         let size = holdDiameterValue(hold)
         let holdColor = Color.hex(hold.type.colorHex)
 
         return ZStack {
             Circle()
-                .stroke(holdColor, lineWidth: 3)
-                .background(
-                    Circle()
-                        .fill(holdColor.opacity(0.2))
+                .stroke(
+                    isSelected ? AppColor.accentDefault : holdColor,
+                    lineWidth: isSelected ? AppStroke.focus : AppStroke.hairline + 2
                 )
+                .background(
+                    Circle().fill(isSelected ? AppColor.surfaceSelected : AppColor.backgroundBase.opacity(0.72))
+                )
+                .overlay {
+                    if isSelected && differentiateWithoutColor {
+                        Circle()
+                            .stroke(
+                                AppColor.textPrimary,
+                                style: StrokeStyle(lineWidth: AppStroke.hairline, dash: [AppSpacing.space4])
+                            )
+                            .padding(-AppSpacing.space4)
+                    }
+                }
                 .frame(width: size, height: size)
 
-            Text(hold.type.shortLabel)
-                .font(.system(size: size * 0.35, weight: .bold))
-                .foregroundColor(AppColor.text)
+            Image(systemName: nodeSymbol(for: hold.type))
+                .font(.system(size: max(8, size * 0.35), weight: .bold))
+                .foregroundStyle(AppColor.textPrimary)
         }
     }
 
 
     private func updateMarkerMagnification(id: String, magnification: CGFloat) {
-        guard wallIsUsable,
+        guard presentationMode == .edit,
+              wallIsUsable,
               let index = holds.firstIndex(where: { $0.id == id }) else {
             return
         }
@@ -883,13 +1264,24 @@ struct EditorView: View {
         id: String,
         direction: AccessibilityAdjustmentDirection
     ) {
-        guard wallIsUsable,
+        guard presentationMode == .edit,
+              wallIsUsable,
               let index = holds.firstIndex(where: { $0.id == id }) else { return }
         let current = holdRadiusValue(holds[index])
         let delta: CGFloat = direction == .increment ? 4 : -4
         guard let radius = EditorHoldGeometry.clampedRadius(current + delta) else { return }
         holds[index].radius = Double(radius)
         announce("Hold radius \(Int(radius.rounded())) image points.")
+    }
+
+    private func markerMagnificationGesture(id: String) -> some Gesture {
+        MagnifyGesture()
+            .onChanged { value in
+                updateMarkerMagnification(id: id, magnification: value.magnification)
+            }
+            .onEnded { _ in
+                finishMarkerMagnification(id: id)
+            }
     }
 
     private func magnificationGesture(
@@ -904,12 +1296,13 @@ struct EditorView: View {
                         id: session.id,
                         magnification: value.magnification
                     )
-                } else if let touchedHold = hold(
-                    at: value.startLocation,
-                    in: size,
-                    imageRect: imageRect,
-                    headerHeight: headerHeight
-                ) {
+                } else if presentationMode == .edit,
+                          let touchedHold = hold(
+                              at: value.startLocation,
+                              in: size,
+                              imageRect: imageRect,
+                              headerHeight: headerHeight
+                          ) {
                     updateMarkerMagnification(
                         id: touchedHold.id,
                         magnification: value.magnification
@@ -1064,6 +1457,7 @@ struct EditorView: View {
             handleMarkerTap(id: tappedHold.id)
             return
         }
+        guard presentationMode == .edit else { return }
 
         guard let imagePoint = EditorHoldGeometry.imagePoint(
             from: location,
@@ -1114,7 +1508,9 @@ struct EditorView: View {
     }
 
     private func placeHold(at imagePoint: CGPoint, in imageRect: CGRect, type: HoldType) {
-        guard imageRect.width > 0, imageRect.height > 0 else { return }
+        guard presentationMode == .edit,
+              imageRect.width > 0,
+              imageRect.height > 0 else { return }
         let x = max(2, min(98, ((imagePoint.x - imageRect.minX) / imageRect.width) * 100))
         let y = max(2, min(98, ((imagePoint.y - imageRect.minY) / imageRect.height) * 100))
         let newHold = Hold(
@@ -1134,7 +1530,7 @@ struct EditorView: View {
 
 
     private func handleWallSelectionChange(_ newID: String?) {
-        guard !isApplyingWallSelection else { return }
+        guard presentationMode == .edit, !isApplyingWallSelection else { return }
         guard newID != acceptedWallID else { return }
         if let acceptedWallID, !wallsViewModel.walls.contains(where: { $0.id == acceptedWallID }) {
             holds.removeAll()
@@ -1162,7 +1558,7 @@ struct EditorView: View {
     }
 
     private func confirmWallSwitch() {
-        guard hasPendingWallSelection else { return }
+        guard presentationMode == .edit, hasPendingWallSelection else { return }
         let targetWallID = pendingWallID
         isApplyingWallSelection = true
         wallsViewModel.restoreWallSelection(id: targetWallID)
@@ -1544,6 +1940,7 @@ struct SaveRouteSheet: View {
                                 .stroke(AppColor.border, lineWidth: 1)
                         )
                         .font(AppTypography.body)
+                        .accessibilityIdentifier("Route name")
 
                     Picker("Grade", selection: $routeGrade) {
                         if !isEditing || routeGrade == nil {
@@ -1604,6 +2001,7 @@ struct SaveRouteSheet: View {
                     }
                     .foregroundColor(AppColor.primary)
                     .disabled(routeName.trimmingCharacters(in: .whitespaces).isEmpty || isSaving)
+                    .accessibilityIdentifier("Route form save")
                 }
             }
         }

@@ -118,6 +118,9 @@ struct RouteDetailView: View {
     @EnvironmentObject var session: AppSession
     @EnvironmentObject var routesViewModel: RoutesViewModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @AccessibilityFocusState private var closeControlFocused: Bool
     @StateObject private var commentsViewModel: CommentsViewModel
     @StateObject private var wallsViewModel: WallsViewModel
     @State private var isLiked = false
@@ -215,13 +218,11 @@ struct RouteDetailView: View {
             let cardShape = RoundedRectangle(cornerRadius: 28, style: .continuous)
 
             ZStack {
-                AppColor.scrim
+                (reduceTransparency ? AppColor.backgroundBase : AppColor.scrim)
                     .opacity(isPopupVisible ? 1 : 0)
                     .ignoresSafeArea()
                     .contentShape(Rectangle())
-                    .onTapGesture {
-                        closePopup()
-                    }
+                    .onTapGesture { closePopup() }
 
                 VStack(spacing: 0) {
                     wallHeader(height: wallHeight)
@@ -252,21 +253,25 @@ struct RouteDetailView: View {
                 )
                 .accessibilityElement(children: .contain)
                 .accessibilityIdentifier("Route detail popup")
+                .accessibilityLabel("Route details for \(route.name)")
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .ignoresSafeArea()
         .allowsHitTesting(!isClosing)
+        .preferredColorScheme(.dark)
+        .accessibilityAction(.escape) { closePopup() }
         .onAppear {
             likeCount = route.likeCount ?? 0
             isLiked = route.isLiked ?? false
             if reduceMotion {
                 isPopupVisible = true
             } else {
-                withAnimation(.snappy(duration: 0.28)) {
+                withAnimation(AppMotion.routeTrace) {
                     isPopupVisible = true
                 }
             }
+            closeControlFocused = true
         }
         .task {
             await commentsViewModel.load()
@@ -302,7 +307,7 @@ struct RouteDetailView: View {
             .environmentObject(routesViewModel)
         }
         .sheet(item: $shareItem) { item in
-            ActivityView(activityItems: [item.url])
+            RouteShareActivityView(activityItems: [item.url])
         }
         .confirmationDialog(
             "Delete \(route.name)?",
@@ -414,6 +419,8 @@ struct RouteDetailView: View {
                         .contentShape(Circle())
                         .buttonStyle(.plain)
                         .accessibilityLabel("Close route")
+                        .accessibilityFocused($closeControlFocused)
+                        .accessibilityInputLabels(["Close Route", "Close"])
 
                         Spacer()
 
@@ -511,7 +518,7 @@ struct RouteDetailView: View {
                 systemImage: "checkmark.circle.fill",
                 title: "Sends",
                 value: "\(ascents.count)",
-                tint: theme.secondary
+                tint: AppColor.accentDefault
             )
 
             Divider()
@@ -567,42 +574,50 @@ struct RouteDetailView: View {
     }
 
     private var routeActions: some View {
-        let theme = BoardedTheme()
         let canLike = session.userId != nil
-        return BoardedGlassContainer(spacing: 12) {
-            HStack(spacing: 12) {
-                routeActionButton(
-                    title: "Like",
-                    systemImage: isLiked ? "heart.fill" : "heart",
-                    tint: isLiked ? theme.primary : theme.primaryText,
-                    isEnabled: canLike,
-                    accessibilityHint: canLike ? nil : "Sign in to like routes."
-                ) {
-                    toggleLike()
-                }
-
-                routeActionButton(
-                    title: "Log Send",
-                    systemImage: "checkmark.circle",
-                    tint: theme.primary,
-                    isEnabled: session.userId != nil,
-                    accessibilityHint: session.userId == nil ? "Sign in to log sends." : nil
-                ) {
-                    isLogSheetPresented = true
-                }
-
-                routeActionButton(
-                    title: "Share",
-                    systemImage: "square.and.arrow.up",
-                    tint: theme.primary,
-                    isEnabled: !isSharing
-                ) {
-                    requestShare()
-                }
+        return ViewThatFits(in: .horizontal) {
+            HStack(spacing: AppSpacing.space12) {
+                likeAction(canLike: canLike)
+                logAction
+                shareAction
+            }
+            VStack(spacing: AppSpacing.space8) {
+                likeAction(canLike: canLike)
+                logAction
+                shareAction
             }
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("Route actions row")
+    }
+
+    private func likeAction(canLike: Bool) -> some View {
+        routeActionButton(
+            title: isLiked ? "Unlike" : "Like",
+            systemImage: isLiked ? "heart.fill" : "heart",
+            tint: isLiked ? AppColor.accentDefault : AppColor.textPrimary,
+            isEnabled: canLike,
+            accessibilityHint: canLike ? nil : "Sign in to like routes."
+        ) { toggleLike() }
+    }
+
+    private var logAction: some View {
+        routeActionButton(
+            title: "Log Send",
+            systemImage: "checkmark.circle",
+            tint: AppColor.accentDefault,
+            isEnabled: session.userId != nil,
+            accessibilityHint: session.userId == nil ? "Sign in to log sends." : nil
+        ) { isLogSheetPresented = true }
+    }
+
+    private var shareAction: some View {
+        routeActionButton(
+            title: "Share",
+            systemImage: "square.and.arrow.up",
+            tint: AppColor.accentDefault,
+            isEnabled: !isSharing
+        ) { requestShare() }
     }
 
     private func routeActionButton(
@@ -614,19 +629,17 @@ struct RouteDetailView: View {
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            VStack(spacing: 5) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(tint)
-                    .frame(width: 44, height: 44)
-                    .boardedGlassSurface(in: Circle(), interactive: true)
-                Text(title)
-                    .font(AppTypography.caption)
-                    .foregroundStyle(BoardedTheme().primaryText)
-                    .lineLimit(1)
-            }
-            .frame(minWidth: 52, maxWidth: .infinity)
-            .contentShape(Rectangle())
+            Label(title, systemImage: systemImage)
+                .font(AppTypography.label)
+                .foregroundStyle(tint)
+                .frame(maxWidth: .infinity, minHeight: AppLayout.primaryControlHeight)
+                .padding(.horizontal, AppSpacing.space12)
+                .background(AppColor.backgroundElevated, in: RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
+                        .stroke(AppColor.strokeDefault, lineWidth: AppStroke.hairline)
+                }
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .disabled(!isEnabled)
@@ -636,31 +649,40 @@ struct RouteDetailView: View {
     }
 
     private var detailsSection: some View {
-        let theme = BoardedTheme()
-        return VStack(alignment: .leading, spacing: 6) {
-            Text(route.name)
-                .font(AppTypography.title)
-                .foregroundStyle(theme.primaryText)
-
-            Text(route.userName ?? "Setter")
-                .font(AppTypography.label)
-                .foregroundStyle(theme.secondaryText)
-
-            if let grade = route.gradeV {
-                Text(grade)
-                    .font(AppTypography.label)
-                    .foregroundStyle(theme.primary)
-            }
-
-            if let description = route.description, !description.isEmpty {
-                Text(description)
-                    .font(AppTypography.body)
-                    .foregroundStyle(theme.primaryText)
-                    .padding(.top, 6)
+        let grade = route.gradeV ?? "—"
+        return Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: AppSpacing.space8) {
+                    gradeFact(grade)
+                    routeIdentity
+                }
+            } else {
+                HStack(alignment: .firstTextBaseline, spacing: AppSpacing.space16) {
+                    gradeFact(grade)
+                    routeIdentity
+                }
             }
         }
-        .accessibilityElement(children: .contain)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(route.name), grade \(route.gradeV ?? "unknown"), set by \(route.userName ?? "Setter")")
         .accessibilityIdentifier("Route details")
+    }
+
+    private func gradeFact(_ grade: String) -> some View {
+        Text(grade)
+            .font(AppTypography.displayLarge)
+            .foregroundStyle(AppColor.textPrimary)
+            .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private var routeIdentity: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.space4) {
+            Text(route.name).font(AppTypography.title).foregroundStyle(AppColor.textPrimary).fixedSize(horizontal: false, vertical: true)
+            Text(route.userName ?? "Setter").font(AppTypography.label).foregroundStyle(AppColor.textSecondary).fixedSize(horizontal: false, vertical: true)
+            if let description = route.description, !description.isEmpty {
+                Text(description).font(AppTypography.body).foregroundStyle(AppColor.textPrimary).fixedSize(horizontal: false, vertical: true)
+            }
+        }
     }
     @ViewBuilder
     private var operationFeedback: some View {
@@ -989,7 +1011,7 @@ struct RouteDetailView: View {
             return
         }
 
-        withAnimation(.snappy(duration: 0.28)) {
+        withAnimation(AppMotion.routeTrace) {
             isPopupVisible = false
         }
         Task {
@@ -1263,7 +1285,7 @@ private struct ShareItem: Identifiable {
     let url: URL
 }
 
-private struct ActivityView: UIViewControllerRepresentable {
+private struct RouteShareActivityView: UIViewControllerRepresentable {
     let activityItems: [Any]
 
     func makeUIViewController(context: Context) -> UIActivityViewController {
