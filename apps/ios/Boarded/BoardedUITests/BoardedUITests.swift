@@ -84,6 +84,33 @@ final class BoardedUITests: XCTestCase {
         relaunch(fixture: "log-result")
         capture("log-result", after: app.staticTexts["Route sent"])
     }
+    private func openSettingsFromProfile() {
+        let settings = app.staticTexts["Settings"]
+        guard settings.waitForExistence(timeout: 5) else {
+            XCTFail("The Profile Settings control must exist.")
+            return
+        }
+
+        let profile = app.scrollViews.firstMatch
+        guard profile.waitForExistence(timeout: 5) else {
+            XCTFail("The Profile scroll view must exist.")
+            return
+        }
+
+        for _ in 0..<10 where !settings.isHittable {
+            profile.swipeUp()
+        }
+
+        guard settings.exists else {
+            XCTFail("The Profile Settings control disappeared while scrolling.")
+            return
+        }
+        guard settings.isHittable else {
+            XCTFail("The Profile Settings control must be hittable after scrolling.")
+            return
+        }
+        settings.tap()
+    }
 
     func testFixtureLaunchRoutesDetailAndSelectors() throws {
         XCTAssertTrue(app.staticTexts["1 route"].waitForExistence(timeout: 10))
@@ -180,7 +207,7 @@ final class BoardedUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Fixture Climber Edited"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Settings"].exists)
 
-        app.staticTexts["Settings"].tap()
+        openSettingsFromProfile()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
         let appearance = app.descendants(matching: .any)["Appearance setting"]
         XCTAssertTrue(appearance.waitForExistence(timeout: 3))
@@ -222,7 +249,7 @@ final class BoardedUITests: XCTestCase {
         let name = "UI Fixture Wall \(UUID().uuidString)"
         XCTAssertTrue(app.staticTexts["1 route"].waitForExistence(timeout: 10))
         primaryTab("Profile").tap()
-        app.staticTexts["Settings"].tap()
+        openSettingsFromProfile()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
         let manageWalls = app.buttons["Manage Walls"]
         for _ in 0..<6 where !manageWalls.isHittable {
@@ -472,7 +499,7 @@ final class BoardedUITests: XCTestCase {
     func testFixtureLogoutAndSignInStayLocal() throws {
         XCTAssertTrue(app.staticTexts["1 route"].waitForExistence(timeout: 10))
         primaryTab("Profile").tap()
-        app.staticTexts["Settings"].tap()
+        openSettingsFromProfile()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
         let accountAccess = app.buttons.matching(
             NSPredicate(format: "label BEGINSWITH[c] %@", "Account access")
