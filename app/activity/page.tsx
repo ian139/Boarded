@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import type { Route } from '@boarded/shared/types';
 import { calculateDisplayGrade } from '@boarded/shared/utils/grades';
@@ -21,6 +21,8 @@ export default function ActivityPage() {
   const { routes, fetchRoutes } = useRoutesStore();
   const { walls, fetchWalls } = useWallsStore();
   const [routeToView, setRouteToView] = useState<Route | null>(null);
+  const routeTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const restoreRouteFocusRef = useRef(false);
   const userId = user?.id ?? null;
   const items = feedUserId === userId ? storedItems : [];
 
@@ -36,6 +38,15 @@ export default function ActivityPage() {
     if (!isAuthenticated || !userId) return;
     void Promise.all([fetchRoutes(), fetchWalls()]);
   }, [fetchRoutes, fetchWalls, isAuthenticated, userId]);
+
+  useEffect(() => {
+    if (routeToView || !restoreRouteFocusRef.current) return;
+
+    restoreRouteFocusRef.current = false;
+    const trigger = routeTriggerRef.current;
+    routeTriggerRef.current = null;
+    if (trigger?.isConnected) trigger.focus();
+  }, [routeToView]);
 
   const enrichedItems = useMemo(
     () => enrichFeedItems(items, routes, walls),
@@ -94,7 +105,13 @@ export default function ActivityPage() {
                 return (
                   <li key={item.route_id}>
                     {route ? (
-                      <button className="feed-row w-full text-left" onClick={() => setRouteToView(route)}>
+                      <button
+                        className="feed-row w-full text-left"
+                        onClick={(event) => {
+                          routeTriggerRef.current = event.currentTarget;
+                          setRouteToView(route);
+                        }}
+                      >
                         <span className="route-node" aria-hidden="true" />
                         <span className="min-w-0">
                           <span className="block font-semibold text-primary">@{item.author_username || 'climber'} boarded {route.name}</span>
@@ -136,7 +153,10 @@ export default function ActivityPage() {
         <RouteViewerDialog
           route={routeToView}
           onOpenChange={(open) => {
-            if (!open) setRouteToView(null);
+            if (!open) {
+              restoreRouteFocusRef.current = true;
+              setRouteToView(null);
+            }
           }}
           wallImageUrl={
             routeToView
