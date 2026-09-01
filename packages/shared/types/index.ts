@@ -98,6 +98,28 @@ export interface Profile {
   updated_at: string;
 }
 
+// Social graph: follow relationship between two profiles.
+export interface Follow {
+  follower_id: string;
+  following_id: string;
+  created_at: string;
+}
+
+// Follower/following counts returned by get_profile_follow_counts.
+export interface ProfileFollowCounts {
+  follower_count: number;
+  following_count: number;
+}
+
+// One row of the following feed returned by get_following_feed.
+// Clients enrich with route/profile data via the route_id/author_id keys.
+export interface FollowingFeedItem {
+  route_id: string;
+  activity_at: string;
+  author_id: string;
+  author_username: string | null;
+}
+
 // Hold colors mapping
 export const HOLD_COLORS: Record<HoldType, string> = {
   start: '#10b981',   // green

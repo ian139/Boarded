@@ -33,6 +33,10 @@ OWNER_ROUTE_ID = "b5f0d878-5d47-4db8-90a5-3c5bc73f7c31"
 PROTECTED_ROUTE_ID = "d2f7e93e-8a59-45a8-b3cb-4d5ef7bd2314"
 NULL_OWNER_ROUTE_ID = "f3c4a8d1-9b62-4f27-8a4c-6e0d2b1f8357"
 INSERTED_ROUTE_ID = "e8a1f57c-6d32-4bd1-9e48-2f0c7a6b9135"
+OTHER_PUBLIC_ROUTE_ID = "c1d2e3f4-1111-4a2b-8c3d-9e0f1a2b3c4d"
+OTHER_PUBLIC_ROUTE_2_ID = "c1d2e3f4-2222-4a2b-8c3d-9e0f1a2b3c4d"
+OTHER_PUBLIC_ROUTE_3_ID = "c1d2e3f4-3333-4a2b-8c3d-9e0f1a2b3c4d"
+OTHER_PRIVATE_ROUTE_ID = "c1d2e3f4-4444-4a2b-8c3d-9e0f1a2b3c4d"
 
 OWNER_EMAIL = "climbset-rls-harness-owner@local.invalid"
 OTHER_EMAIL = "climbset-rls-harness-other@local.invalid"
@@ -190,8 +194,6 @@ def request_storage(
         fail(f"Storage HTTP {method} {url} failed: {exc}")
 
 
-
-
 def storage_metadata_count(key: str) -> int:
     result = run_psql(
         "SELECT count(*) FROM storage.objects "
@@ -300,7 +302,16 @@ def setup_fixtures() -> None:
     user_ids = ", ".join(sql_quote(user_id) for user_id, _ in users)
     route_ids = ", ".join(
         sql_quote(route_id)
-        for route_id in (OWNER_ROUTE_ID, PROTECTED_ROUTE_ID, NULL_OWNER_ROUTE_ID, INSERTED_ROUTE_ID)
+        for route_id in (
+            OWNER_ROUTE_ID,
+            PROTECTED_ROUTE_ID,
+            NULL_OWNER_ROUTE_ID,
+            INSERTED_ROUTE_ID,
+            OTHER_PUBLIC_ROUTE_ID,
+            OTHER_PUBLIC_ROUTE_2_ID,
+            OTHER_PUBLIC_ROUTE_3_ID,
+            OTHER_PRIVATE_ROUTE_ID,
+        )
     )
     expected_emails = ", ".join(sql_quote(email) for _, email in users)
     marker = sql_quote(ROUTE_MARKER)
@@ -355,11 +366,20 @@ VALUES
   ({sql_quote(OTHER_ID)}, {sql_quote(OTHER_ID)},
    jsonb_build_object('sub', {sql_quote(OTHER_ID)}, 'email', {sql_quote(OTHER_EMAIL)}),
    'email', now(), now(), now());
+INSERT INTO public.profiles (id, username, is_public)
+VALUES
+  ({sql_quote(OWNER_ID)}, 'rls-harness-owner', true),
+  ({sql_quote(OTHER_ID)}, 'rls-harness-other', true)
+ON CONFLICT (id) DO UPDATE SET username = EXCLUDED.username, is_public = EXCLUDED.is_public;
 INSERT INTO public.routes (id, user_id, wall_id, name, grade_v, holds, is_public)
 VALUES
   ({sql_quote(OWNER_ROUTE_ID)}, {sql_quote(OWNER_ID)}, 'rls-harness-wall', {sql_quote(ROUTE_MARKER + 'owner')}, 'VB', '[]'::jsonb, true),
   ({sql_quote(PROTECTED_ROUTE_ID)}, {sql_quote(OWNER_ID)}, 'rls-harness-wall', {sql_quote(ROUTE_MARKER + 'protected')}, 'V1', '[]'::jsonb, true),
-  ({sql_quote(NULL_OWNER_ROUTE_ID)}, NULL, 'rls-harness-wall', {sql_quote(ROUTE_MARKER + 'null-owner')}, 'V0', '[]'::jsonb, true);
+  ({sql_quote(NULL_OWNER_ROUTE_ID)}, NULL, 'rls-harness-wall', {sql_quote(ROUTE_MARKER + 'null-owner')}, 'V0', '[]'::jsonb, true),
+  ({sql_quote(OTHER_PUBLIC_ROUTE_ID)}, {sql_quote(OTHER_ID)}, 'rls-harness-wall', {sql_quote(ROUTE_MARKER + 'other-public')}, 'V2', '[]'::jsonb, true),
+  ({sql_quote(OTHER_PUBLIC_ROUTE_2_ID)}, {sql_quote(OTHER_ID)}, 'rls-harness-wall', {sql_quote(ROUTE_MARKER + 'other-public-2')}, 'V3', '[]'::jsonb, true),
+  ({sql_quote(OTHER_PUBLIC_ROUTE_3_ID)}, {sql_quote(OTHER_ID)}, 'rls-harness-wall', {sql_quote(ROUTE_MARKER + 'other-public-3')}, 'V4', '[]'::jsonb, true),
+  ({sql_quote(OTHER_PRIVATE_ROUTE_ID)}, {sql_quote(OTHER_ID)}, 'rls-harness-wall', {sql_quote(ROUTE_MARKER + 'other-private')}, 'V5', '[]'::jsonb, false);
 COMMIT;
 """
     run_psql(sql)
@@ -369,7 +389,16 @@ def cleanup_fixtures() -> None:
     user_ids = ", ".join(sql_quote(user_id) for user_id in (OWNER_ID, OTHER_ID))
     route_ids = ", ".join(
         sql_quote(route_id)
-        for route_id in (OWNER_ROUTE_ID, PROTECTED_ROUTE_ID, NULL_OWNER_ROUTE_ID, INSERTED_ROUTE_ID)
+        for route_id in (
+            OWNER_ROUTE_ID,
+            PROTECTED_ROUTE_ID,
+            NULL_OWNER_ROUTE_ID,
+            INSERTED_ROUTE_ID,
+            OTHER_PUBLIC_ROUTE_ID,
+            OTHER_PUBLIC_ROUTE_2_ID,
+            OTHER_PUBLIC_ROUTE_3_ID,
+            OTHER_PRIVATE_ROUTE_ID,
+        )
     )
     emails = ", ".join(sql_quote(email) for email in (OWNER_EMAIL, OTHER_EMAIL))
     run_psql(
@@ -467,6 +496,168 @@ def assert_delete(base: str, route_id: str, token: str, expected_count: int, des
         fail(f"{description}: rejected delete removed the row")
 
 
+def rpc(base: str, function: str, token: str | None = None, payload: object | None = None) -> ApiResult:
+    return expect_api_result(
+        request_json("POST", f"{base}/rest/v1/rpc/{function}", token, payload if payload is not None else {}),
+        f"rpc {function}",
+    )
+
+
+def assert_social_graph(base: str, owner_token: str, other_token: str) -> None:
+    # Owner follows OTHER.
+    follow = expect_api_result(
+        request_json(
+            "POST",
+            f"{base}/rest/v1/follows?select=*",
+            owner_token,
+            {"follower_id": OWNER_ID, "following_id": OTHER_ID},
+        ),
+        "owner follow other",
+    )
+    if follow.status not in {200, 201}:
+        fail(f"owner follow other failed: HTTP {follow.status} {follow.body!r}")
+
+    # Duplicate follow surfaces as a clean 409 conflict (idempotent/clean conflict).
+    duplicate = expect_api_result(
+        request_json(
+            "POST",
+            f"{base}/rest/v1/follows",
+            owner_token,
+            {"follower_id": OWNER_ID, "following_id": OTHER_ID},
+        ),
+        "duplicate follow",
+    )
+    if duplicate.status != 409:
+        fail(f"duplicate follow expected 409, got HTTP {duplicate.status} {duplicate.body!r}")
+
+    # Self-follow is forbidden by the CHECK constraint.
+    self_follow = expect_api_result(
+        request_json(
+            "POST",
+            f"{base}/rest/v1/follows",
+            owner_token,
+            {"follower_id": OWNER_ID, "following_id": OWNER_ID},
+        ),
+        "self follow",
+    )
+    if 200 <= self_follow.status < 300:
+        fail(f"self-follow unexpectedly succeeded: HTTP {self_follow.status}")
+
+    # Cross-user: OTHER cannot create a follow on behalf of OWNER.
+    cross_follow = expect_api_result(
+        request_json(
+            "POST",
+            f"{base}/rest/v1/follows",
+            other_token,
+            {"follower_id": OWNER_ID, "following_id": OTHER_ID},
+        ),
+        "cross-user follow",
+    )
+    if 200 <= cross_follow.status < 300:
+        fail(f"cross-user follow unexpectedly succeeded: HTTP {cross_follow.status}")
+
+    # Anonymous users cannot read the social graph.
+    anon_read = expect_api_result(
+        request_json("GET", f"{base}/rest/v1/follows?select=*"),
+        "anon follows read",
+    )
+    if anon_read.status not in {401, 403}:
+        fail(f"anon follows read expected 401/403, got HTTP {anon_read.status}")
+
+    # Anonymous users cannot call the feed RPC.
+    anon_feed = rpc(base, "get_following_feed")
+    if anon_feed.status not in {401, 403}:
+        fail(f"anon feed expected 401/403, got HTTP {anon_feed.status}")
+
+    # Follower/following counts are exact for the authenticated caller.
+    counts = rpc(base, "get_profile_follow_counts", owner_token, {"target_profile_id": OTHER_ID})
+    if counts.status != 200 or not isinstance(counts.body, list) or len(counts.body) != 1:
+        fail(f"counts RPC failed: HTTP {counts.status} {counts.body!r}")
+    count_row = counts.body[0]
+    if count_row.get("follower_count") != 1 or count_row.get("following_count") != 0:
+        fail(f"counts wrong: {count_row!r}")
+
+    # Feed returns only OTHER's public routes; private and own routes are excluded.
+    feed = rpc(base, "get_following_feed", owner_token, {"p_limit": 10})
+    if feed.status != 200 or not isinstance(feed.body, list):
+        fail(f"feed RPC failed: HTTP {feed.status} {feed.body!r}")
+    feed_ids = [item["route_id"] for item in feed.body]
+    if OTHER_PRIVATE_ROUTE_ID in feed_ids:
+        fail(f"feed leaked private route: {feed_ids!r}")
+    if OWNER_ROUTE_ID in feed_ids or PROTECTED_ROUTE_ID in feed_ids:
+        fail(f"feed included own routes: {feed_ids!r}")
+    for route_id in (OTHER_PUBLIC_ROUTE_ID, OTHER_PUBLIC_ROUTE_2_ID, OTHER_PUBLIC_ROUTE_3_ID):
+        if route_id not in feed_ids:
+            fail(f"feed missing public route {route_id}: {feed_ids!r}")
+    for item in feed.body:
+        if item.get("author_id") != OTHER_ID or item.get("author_username") != "rls-harness-other":
+            fail(f"feed item has wrong author enrichment: {item!r}")
+
+    # Deterministic keyset pagination on (activity_at, route_id), newest first.
+    page1 = rpc(base, "get_following_feed", owner_token, {"p_limit": 2})
+    if page1.status != 200 or not isinstance(page1.body, list) or len(page1.body) != 2:
+        fail(f"feed page1 failed: HTTP {page1.status} {page1.body!r}")
+    second = page1.body[1]
+    page2 = rpc(
+        base,
+        "get_following_feed",
+        owner_token,
+        {
+            "p_cursor_activity_at": second["activity_at"],
+            "p_cursor_route_id": second["route_id"],
+            "p_limit": 2,
+        },
+    )
+    if page2.status != 200 or not isinstance(page2.body, list) or len(page2.body) != 1:
+        fail(f"feed page2 failed: HTTP {page2.status} {page2.body!r}")
+    if page2.body[0]["route_id"] != OTHER_PUBLIC_ROUTE_ID:
+        fail(f"feed page2 returned wrong item: {page2.body!r}")
+    page1_ids = {item["route_id"] for item in page1.body}
+    page2_ids = {item["route_id"] for item in page2.body}
+    if page1_ids & page2_ids:
+        fail(f"feed pages overlap: {page1_ids} & {page2_ids}")
+
+    # Owner can unfollow.
+    unfollow = expect_api_result(
+        request_json(
+            "DELETE",
+            f"{base}/rest/v1/follows?follower_id=eq.{OWNER_ID}&following_id=eq.{OTHER_ID}",
+            owner_token,
+        ),
+        "owner unfollow",
+    )
+    if unfollow.status not in {200, 204}:
+        fail(f"owner unfollow failed: HTTP {unfollow.status} {unfollow.body!r}")
+
+    # Re-follow, then verify OTHER cannot remove OWNER's follow.
+    refollow = expect_api_result(
+        request_json(
+            "POST",
+            f"{base}/rest/v1/follows",
+            owner_token,
+            {"follower_id": OWNER_ID, "following_id": OTHER_ID},
+        ),
+        "owner refollow",
+    )
+    if refollow.status not in {200, 201}:
+        fail(f"owner refollow failed: HTTP {refollow.status} {refollow.body!r}")
+    # OTHER attempts to remove OWNER's follow; RLS filters the row so the
+    # follow must survive regardless of the HTTP status (RLS is a filter).
+    cross_unfollow = expect_api_result(
+        request_json(
+            "DELETE",
+            f"{base}/rest/v1/follows?follower_id=eq.{OWNER_ID}&following_id=eq.{OTHER_ID}",
+            other_token,
+        ),
+        "cross-user unfollow",
+    )
+    still = rpc(base, "get_profile_follow_counts", owner_token, {"target_profile_id": OTHER_ID})
+    if still.status != 200 or not isinstance(still.body, list) or still.body[0].get("follower_count") != 1:
+        fail(f"cross-user unfollow removed owner's follow: HTTP {cross_unfollow.status} {still.body!r}")
+
+    print("PASS: social graph follow/unfollow, self-follow denial, cross-user denial, anon denial, counts, feed visibility, and pagination verified")
+
+
 def run() -> None:
     base = os.environ.get(LOCAL_URL_ENV, DEFAULT_LOCAL_URL).rstrip("/")
     ensure_backend(base)
@@ -537,6 +728,8 @@ def run() -> None:
         if get_route(base, PROTECTED_ROUTE_ID) is None or get_route(base, NULL_OWNER_ROUTE_ID) is None:
             fail("a rejected mutation did not preserve its route")
         print("PASS: owner update/delete succeeded; non-owner and NULL user_id mutations were rejected with rows preserved")
+
+        assert_social_graph(base, owner, other)
     finally:
         cleanup_fixtures()
         print("PASS: fixed UUID auth users and route fixtures cleaned up")
