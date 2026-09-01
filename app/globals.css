@@ -19,6 +19,7 @@
   --color-accent: var(--color-accent-soft);
   --color-accent-foreground: var(--color-accent-default);
   --color-destructive: var(--color-danger);
+  --color-warning: var(--color-status-warning);
   --color-border: var(--color-stroke-default);
   --color-input: var(--color-stroke-subtle);
   --color-ring: var(--color-accent-default);
@@ -49,7 +50,7 @@
   --color-accent-soft: rgba(50, 213, 131, 0.14);
   --color-accent-on-accent: #0A0B10;
   --color-danger: #FF6B64;
-  --color-warning: #F6C85F;
+  --color-status-warning: #F6C85F;
   --color-information: #69A7FF;
   --background: var(--color-background-base);
   --foreground: var(--color-text-primary);

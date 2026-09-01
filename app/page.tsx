@@ -175,14 +175,36 @@ export default function Home() {
     router.push('/editor');
   };
 
-  if (!isClient) return null;
+  if (!isClient) {
+    return (
+      <div className="app-shell min-h-dvh pb-28 md:pb-10" aria-busy="true">
+        <header className="page-header px-4 pt-5 md:px-8">
+          <div className="flex items-center justify-between border-b border-border/50 pb-4">
+            <div className="flex items-center gap-2">
+              <Image src="/icon.png" alt="Boarded logo" width={24} height={24} className="rounded-md" />
+              <h1 className="wordmark">Boarded</h1>
+            </div>
+            <nav aria-label="Primary navigation" className="hidden items-center gap-6 md:flex">
+              <Link href="/" className="font-medium text-primary">Home</Link>
+              <Link href="/editor" className="font-medium text-muted-foreground">Log</Link>
+              <Link href="/profile" className="font-medium text-muted-foreground">Profile</Link>
+            </nav>
+          </div>
+        </header>
+        <main className="page-frame px-4 py-16 text-center md:px-8">
+          <div className="mx-auto mb-4 size-12 animate-pulse rounded-xl bg-muted" />
+          <p className="text-sm text-muted-foreground">Loading your routes…</p>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="app-shell min-h-dvh pb-28 md:pb-10">
       {/* Header */}
       <header className="page-header px-4 md:px-8 pt-5 pb-4">
         {isOfflineMode && (
-          <div className="mb-3 rounded-lg border border-border bg-secondary px-4 py-2 text-sm text-muted-foreground">
+          <div role="status" className="mb-3 rounded-lg border border-warning/40 bg-warning/10 px-4 py-2 text-sm text-warning">
             Local-only mode. Cloud sync is unavailable.
           </div>
         )}
@@ -214,6 +236,11 @@ export default function Home() {
             </button>
           </div>
 
+          <nav aria-label="Primary navigation" className="flex items-center gap-6">
+            <Link href="/" aria-current="page" className="font-medium text-primary">Home</Link>
+            <Link href="/editor" className="font-medium text-muted-foreground transition-colors hover:text-foreground">Log</Link>
+            <Link href="/profile" className="font-medium text-muted-foreground transition-colors hover:text-foreground">Profile</Link>
+          </nav>
           <div className="flex items-center gap-4">
             <Link
               href="/settings"
