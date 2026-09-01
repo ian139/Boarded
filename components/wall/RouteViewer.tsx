@@ -633,7 +633,7 @@ export function RouteViewer({
         </div>
 
         <div className="pointer-events-none absolute inset-x-0 top-14 flex justify-end p-3">
-          <div className="pointer-events-auto flex items-center gap-1 rounded-xl border border-foreground/[0.12] bg-card/75 p-1 backdrop-blur-md">
+          <div className="pointer-events-auto flex items-center gap-1 rounded-lg border border-border bg-card p-1">
             <button
               type="button"
               onClick={() => applyZoom(zoomRef.current / 1.2)}
@@ -670,7 +670,7 @@ export function RouteViewer({
       </div>
 
       {routeId && (
-        <section className="w-full shrink-0 border-t border-foreground/[0.12] bg-card/80 backdrop-blur-xl">
+        <section className="w-full shrink-0 border-t border-border bg-card">
           <div className="space-y-4 p-4 sm:p-5">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">

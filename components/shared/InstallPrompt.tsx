@@ -65,7 +65,7 @@ export function InstallPrompt() {
   return (
     <>
       {isVisible && (
-        <div className="mb-3 rounded-xl border border-border/50 bg-card/80 px-4 py-2 text-sm text-foreground flex items-center justify-between gap-3">
+        <div className="mb-3 rounded-lg border border-border bg-card px-4 py-2 text-sm text-foreground flex items-center justify-between gap-3">
           <span>Install Boarded for a faster, app-like experience.</span>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={handleDismiss}>
@@ -78,7 +78,7 @@ export function InstallPrompt() {
         </div>
       )}
       {!isVisible && showIOS && (
-        <div className="mb-3 rounded-xl border border-border/50 bg-card/80 px-4 py-2 text-sm text-foreground">
+        <div className="mb-3 rounded-lg border border-border bg-card px-4 py-2 text-sm text-foreground">
           <div className="flex items-center justify-between gap-3">
             <span>Install on iOS: Tap Share, then “Add to Home Screen”.</span>
             <Button variant="outline" size="sm" onClick={handleDismiss}>

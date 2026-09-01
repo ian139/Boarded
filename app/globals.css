@@ -1,13 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@font-face {
-  font-family: "Cormorant Garamond";
-  src: url("/fonts/CormorantGaramond-SemiBoldItalic.ttf") format("truetype");
-  font-weight: 600;
-  font-style: italic;
-  font-display: swap;
-}
+
 
 @theme inline {
   --color-background: var(--color-background-base);
@@ -28,9 +22,9 @@
   --color-border: var(--color-stroke-default);
   --color-input: var(--color-stroke-subtle);
   --color-ring: var(--color-accent-default);
-  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: var(--font-manrope), "Avenir Next", sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
-  --font-display: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+  --font-display: var(--font-bodoni), Georgia, "Times New Roman", serif;
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
@@ -87,7 +81,7 @@
     overflow-x: hidden;
     background: var(--color-background-base);
     color: var(--color-text-primary);
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-family: var(--font-manrope), "Avenir Next", sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
     -webkit-font-smoothing: antialiased;
   }
@@ -112,7 +106,7 @@
   .content-container { width: min(calc(100% - 40px), 1200px); margin-inline: auto; }
   .page-header {
     position: sticky; top: 0; z-index: 40;
-    background: rgba(10, 11, 16, 0.94);
+    background: var(--color-background-base);
     border-bottom: 1px solid var(--color-divider);
   }
   .surface-panel, .auth-card {
@@ -123,8 +117,8 @@
   }
   .auth-shell { background: var(--color-background-base); }
   .auth-card { padding: 32px; }
-  .wordmark, .display-title, .display-subtitle {
-    font-family: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+  .wordmark, .display-title, .display-subtitle, .route-grade, .editorial-metric {
+    font-family: var(--font-bodoni), Georgia, "Times New Roman", serif;
     font-weight: 600; font-style: italic;
   }
   .wordmark { font-size: 28px; line-height: 34px; }
@@ -145,22 +139,15 @@
   .empty-state { max-width: 640px; padding: 40px 24px; border: 1px solid var(--color-stroke-subtle); border-radius: 16px; }
   .empty-state p { margin-top: 12px; color: var(--color-text-secondary); }
   .route-motif { width: 64px; height: 40px; margin-bottom: 20px; border-left: 2px solid var(--color-text-primary); border-bottom: 2px solid var(--color-accent-default); border-radius: 0 0 0 24px; transform: skewX(-20deg); }
-  .feed-list { display: grid; gap: 0; max-width: 800px; }
-  .feed-row { min-height: 88px; display: grid; grid-template-columns: 20px minmax(0,1fr) auto; gap: 16px; align-items: center; border-bottom: 1px solid var(--color-divider); }
-  .route-node { width: 12px; height: 12px; border: 2px solid var(--color-accent-default); border-radius: 50%; }
-  .feed-skeleton { height: 88px; border-bottom: 1px solid var(--color-divider); background: linear-gradient(90deg, transparent, var(--color-stroke-subtle), transparent); background-size: 200% 100%; animation: skeleton 1.2s ease-in-out infinite; }
   .status-panel { max-width: 800px; padding: 20px; background: var(--color-background-elevated); border-left: 3px solid var(--color-danger); border-radius: 8px; }
 }
 
-@keyframes skeleton { from { background-position: 100% 0; } to { background-position: -100% 0; } }
 
 @media (min-width: 600px) {
   .page-frame, .content-container { width: min(calc(100% - 48px), 1200px); }
 }
 @media (max-width: 599px) {
   .auth-card { padding: 24px; }
-  .feed-row { grid-template-columns: 16px minmax(0,1fr); padding-block: 16px; }
-  .feed-metadata { grid-column: 2; }
 }
 @media (hover: hover) and (pointer: fine) {
   .button-primary:hover { background: var(--color-accent-pressed); }

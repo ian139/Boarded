@@ -80,7 +80,7 @@ function LogClimbDialogContent({
   return (
     <Dialog open onOpenChange={onOpenChange}>
       <DialogContent
-        className="w-[calc(100%-2rem)] max-w-lg gap-0 overflow-hidden rounded-3xl border border-foreground/[0.12] bg-card/80 p-0 shadow-none backdrop-blur-xl motion-reduce:animate-none motion-reduce:transition-none"
+        className="w-[calc(100%-2rem)] max-w-lg gap-0 overflow-hidden rounded-xl border border-border bg-card p-0 shadow-none motion-reduce:animate-none motion-reduce:transition-none"
         aria-describedby="log-climb-description"
       >
         <DialogHeader className="border-b border-foreground/[0.12] p-5 pr-14">

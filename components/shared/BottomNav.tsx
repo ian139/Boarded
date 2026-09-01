@@ -15,15 +15,6 @@ const navItems = [
     ),
   },
   {
-    href: '/activity',
-    label: 'Activity',
-    icon: (active: boolean) => (
-      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4 18V9m5 9V5m5 13v-7m5 7V3" />
-      </svg>
-    ),
-  },
-  {
     href: '/editor',
     label: 'Log',
     icon: (active: boolean) => (
@@ -47,7 +38,7 @@ export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="Primary navigation" className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background px-2 pb-safe md:hidden">
+    <nav aria-label="Primary navigation" className="fixed bottom-0 left-0 right-0 z-50 border-t border-divider bg-background px-2 pb-safe md:hidden">
       <div className="flex items-center justify-evenly py-1">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
@@ -58,12 +49,12 @@ export function BottomNav() {
               href={item.href}
               aria-current={isActive ? 'page' : undefined}
               className={cn(
-                'relative flex min-h-14 min-w-16 flex-col items-center justify-center rounded-xl px-3 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                'relative flex min-h-14 min-w-20 flex-col items-center justify-center rounded-lg px-3 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                isActive ? 'text-primary' : 'text-muted-foreground'
               )}
             >
               {isActive && (
-                <div className="absolute inset-0 rounded-xl border border-primary/10 bg-primary/10" />
+                <div className="absolute inset-x-2 inset-y-1 rounded-lg border border-primary/40 bg-primary/10" />
               )}
               <div className="relative z-10">
                 {item.icon(isActive)}

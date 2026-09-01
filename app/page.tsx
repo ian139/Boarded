@@ -182,7 +182,7 @@ export default function Home() {
       {/* Header */}
       <header className="page-header px-4 md:px-8 pt-5 pb-4">
         {isOfflineMode && (
-          <div className="mb-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm text-amber-700 dark:text-amber-300">
+          <div className="mb-3 rounded-lg border border-border bg-secondary px-4 py-2 text-sm text-muted-foreground">
             Local-only mode. Cloud sync is unavailable.
           </div>
         )}
@@ -198,7 +198,7 @@ export default function Home() {
                 height={24}
                 className="rounded-md"
               />
-              <h1 className="text-xl font-bold tracking-[-0.02em]">Boarded</h1>
+              <h1 className="wordmark">Boarded</h1>
             </div>
 
             {/* Wall Selector - Desktop inline dropdown */}
@@ -215,9 +215,6 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-4">
-            <Link href="/activity" className="flex min-h-11 items-center px-2 font-medium text-muted-foreground hover:text-foreground">
-              Activity
-            </Link>
             <Link
               href="/settings"
               aria-label="Settings"
@@ -242,7 +239,7 @@ export default function Home() {
                 height={22}
                 className="rounded-md"
               />
-              <h1 className="text-xl font-bold tracking-[-0.02em]">Boarded</h1>
+              <h1 className="wordmark text-xl">Boarded</h1>
             </div>
 
             {/* Wall Selector - Mobile inline */}
@@ -277,7 +274,7 @@ export default function Home() {
       <main className="page-frame px-4 md:px-8 mt-5 md:mt-8">
         {!selectedWall ? (
           <div className="py-12 text-center max-w-sm mx-auto">
-            <div className="size-20 rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/20 mx-auto mb-6 flex items-center justify-center">
+            <div className="size-20 rounded-xl border border-border bg-card mx-auto mb-6 flex items-center justify-center">
               <svg className="w-10 h-10 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
               </svg>
@@ -329,7 +326,7 @@ export default function Home() {
               </div>
             ) : wallRoutes.length === 0 ? (
               <div className="py-12 text-center max-w-sm mx-auto">
-                <div className="size-20 rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/20 mx-auto mb-6 flex items-center justify-center">
+                <div className="size-20 rounded-xl border border-border bg-card mx-auto mb-6 flex items-center justify-center">
                   <svg className="w-10 h-10 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                   </svg>
@@ -376,7 +373,7 @@ export default function Home() {
                   onEditRoute={handleEditRoute}
                 />
                 {wallRoutes.length <= 3 && (
-                  <div className="mx-auto mt-8 flex max-w-md items-center justify-between gap-4 rounded-2xl border border-border/60 bg-card/55 px-4 py-3">
+                  <div className="mx-auto mt-8 flex max-w-md items-center justify-between gap-4 rounded-xl border border-border bg-card px-4 py-3">
                     <p className="text-sm text-muted-foreground">Add another problem to this wall.</p>
                     <Button onClick={handleNewRoute} variant="outline" size="sm">Create route</Button>
                   </div>

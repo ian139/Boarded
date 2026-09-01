@@ -218,7 +218,7 @@ export function RouteList({ routes, onViewRoute, onLogClimb, onDeleteRoute, onEd
                   className={cn(
                     "flex size-9 items-center justify-center rounded-lg transition-colors",
                     isLikedByUser(route.id, currentUserId || 'local-user')
-                      ? "text-red-500"
+                      ? "text-primary"
                       : "text-muted-foreground"
                   )}
                 >
@@ -291,8 +291,8 @@ export function RouteList({ routes, onViewRoute, onLogClimb, onDeleteRoute, onEd
                   className={cn(
                     "flex size-8 items-center justify-center rounded-lg transition-colors",
                     isLikedByUser(route.id, currentUserId || 'local-user')
-                      ? "text-red-500"
-                      : "text-muted-foreground hover:text-red-500"
+                      ? "text-primary"
+                      : "text-muted-foreground hover:text-primary"
                   )}
                 >
                   <svg
@@ -546,7 +546,7 @@ export function RouteList({ routes, onViewRoute, onLogClimb, onDeleteRoute, onEd
                       </div>
                       <div>
                         <p className="mb-1 text-xs text-muted-foreground">Likes</p>
-                        <p className="font-bold text-red-500">{getLikeCount(route.id)}</p>
+                        <p className="font-bold text-foreground">{getLikeCount(route.id)}</p>
                       </div>
                       <div>
                         <p className="mb-1 text-xs text-muted-foreground">Views</p>

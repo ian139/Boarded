@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist_Mono } from "next/font/google";
+import { Bodoni_Moda, Manrope } from "next/font/google";
 import "./globals.css";
 import { BottomNav } from "@/components/shared/BottomNav";
 import { Toaster } from "@/components/ui/sonner";
@@ -8,14 +8,22 @@ import { Analytics } from "@vercel/analytics/next";
 import Script from "next/script";
 
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const manrope = Manrope({
+  variable: "--font-manrope",
   subsets: ["latin"],
+  display: "swap",
+});
+
+const bodoni = Bodoni_Moda({
+  variable: "--font-bodoni",
+  subsets: ["latin"],
+  style: ["italic"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Boarded - Digital Route Setter",
-  description: "Document and share your climbing routes",
+  title: "Boarded board studio",
+  description: "Create, document, and share routes in the Boarded board studio.",
   manifest: "/manifest.json",
   icons: {
     icon: "/icon.png",
@@ -37,7 +45,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
-      <body className={`${geistMono.variable} antialiased font-sans`}>
+      <body className={`${manrope.variable} ${bodoni.variable} antialiased font-sans`}>
         <Providers>
           {children}
           <BottomNav />

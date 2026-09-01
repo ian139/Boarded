@@ -103,7 +103,7 @@ export function CommentsSection({ routeId, comments }: CommentsSectionProps) {
           )}
         </span>
         {betaCount > 0 && (
-          <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+          <span className="rounded-lg bg-accent/10 px-2 py-0.5 text-xs font-medium text-primary">
             {betaCount} beta
           </span>
         )}
@@ -127,7 +127,7 @@ export function CommentsSection({ routeId, comments }: CommentsSectionProps) {
                       className={cn(
                         'rounded-xl p-3',
                         comment.is_beta
-                          ? 'bg-amber-500/10 ring-1 ring-amber-500/30'
+                          ? 'bg-accent/10 ring-1 ring-primary/30'
                           : 'bg-muted/50'
                       )}
                     >
@@ -135,7 +135,7 @@ export function CommentsSection({ routeId, comments }: CommentsSectionProps) {
                         <div className="min-w-0 flex-1">
                           <div className="mb-1 flex items-center gap-2">
                             {comment.is_beta && (
-                              <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+                              <span className="rounded bg-accent/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
                                 Beta
                               </span>
                             )}
@@ -189,7 +189,7 @@ export function CommentsSection({ routeId, comments }: CommentsSectionProps) {
                     className={cn(
                       'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors motion-reduce:transition-none',
                       isBeta
-                        ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/30'
+                        ? 'bg-accent/10 text-primary ring-1 ring-primary/30'
                         : 'bg-muted text-muted-foreground hover:text-foreground'
                     )}
                   >
