@@ -32,6 +32,12 @@ final class BoardedUITests: XCTestCase {
         add(attachment)
     }
 
+    private func primaryTab(_ name: String) -> XCUIElement {
+        app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label == %@", name))
+            .firstMatch
+    }
+
     func testRenderedStateFixtures() throws {
         capture("home-list", after: app.staticTexts["Granite Drift"])
 
@@ -53,11 +59,16 @@ final class BoardedUITests: XCTestCase {
 
         relaunch()
         XCTAssertTrue(app.staticTexts["Granite Drift"].waitForExistence(timeout: 10))
-        app.buttons["Profile"].firstMatch.tap()
-        capture("profile", after: app.staticTexts["Fixture Climber"])
+        primaryTab("Profile").tap()
+        let settingsLink = app.staticTexts["Settings"]
+        app.swipeUp()
+        capture("profile", after: settingsLink)
 
-        app.staticTexts["Settings"].tap()
-        capture("settings", after: app.navigationBars["Settings"])
+        settingsLink.tap()
+        let dataSection = app.staticTexts["Your climbing data"]
+        app.swipeUp()
+        app.swipeUp()
+        capture("settings", after: dataSection)
 
         relaunch(fixture: "log-active")
         capture("log-active", after: app.staticTexts["ACTIVE SESSION"])
@@ -158,7 +169,7 @@ final class BoardedUITests: XCTestCase {
     func testFixtureTabsProfileSettingsAppearanceAndOrientation() throws {
         XCTAssertTrue(app.staticTexts["1 route"].waitForExistence(timeout: 10))
 
-        app.tabBars.buttons["Profile"].tap()
+        primaryTab("Profile").tap()
         app.buttons["Edit profile"].tap()
         XCTAssertTrue(app.navigationBars["Edit Profile"].waitForExistence(timeout: 3))
         let fullName = app.textFields["Full name"]
@@ -191,7 +202,7 @@ final class BoardedUITests: XCTestCase {
 
     func testFixtureEditorWallAndHoldControlsAreDeterministic() throws {
         XCTAssertTrue(app.staticTexts["1 route"].waitForExistence(timeout: 10))
-        app.tabBars.buttons["Topo"].tap()
+        primaryTab("Topo").tap()
         XCTAssertTrue(app.staticTexts["Hold count"].waitForExistence(timeout: 10))
 
         // Holds are inferred from canvas touches; the old explicit selectors are gone.
@@ -210,10 +221,13 @@ final class BoardedUITests: XCTestCase {
     func testFixtureWallCreateAndDeleteStayInMemory() throws {
         let name = "UI Fixture Wall \(UUID().uuidString)"
         XCTAssertTrue(app.staticTexts["1 route"].waitForExistence(timeout: 10))
-        app.tabBars.buttons["Profile"].tap()
+        primaryTab("Profile").tap()
         app.staticTexts["Settings"].tap()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
         let manageWalls = app.buttons["Manage Walls"]
+        for _ in 0..<6 where !manageWalls.isHittable {
+            app.swipeUp()
+        }
         XCTAssertTrue(manageWalls.waitForExistence(timeout: 5))
         XCTAssertTrue(manageWalls.label.localizedCaseInsensitiveContains("2 walls"))
         manageWalls.tap()
@@ -257,7 +271,7 @@ final class BoardedUITests: XCTestCase {
     func testFixtureEditorHoldGesturesAndRouteCreate() throws {
         let routeName = "UI Fixture Route \(UUID().uuidString)"
         XCTAssertTrue(app.staticTexts["1 route"].waitForExistence(timeout: 10))
-        app.tabBars.buttons["Topo"].tap()
+        primaryTab("Topo").tap()
         let canvas = app.descendants(matching: .any)["Editor canvas surface"]
         XCTAssertTrue(canvas.waitForExistence(timeout: 10))
 
@@ -397,8 +411,8 @@ final class BoardedUITests: XCTestCase {
         routeNameField.tap()
         routeNameField.typeText(routeName)
         app.buttons["Route form save"].tap()
-        XCTAssertTrue(app.tabBars.buttons["Home"].waitForExistence(timeout: 5))
-        app.tabBars.buttons["Home"].tap()
+        XCTAssertTrue(primaryTab("Home").waitForExistence(timeout: 5))
+        primaryTab("Home").tap()
         XCTAssertTrue(app.staticTexts[routeName].waitForExistence(timeout: 10))
         app.staticTexts[routeName].tap()
         XCTAssertTrue(app.otherElements["Route detail popup"].waitForExistence(timeout: 5))
@@ -457,7 +471,7 @@ final class BoardedUITests: XCTestCase {
     }
     func testFixtureLogoutAndSignInStayLocal() throws {
         XCTAssertTrue(app.staticTexts["1 route"].waitForExistence(timeout: 10))
-        app.tabBars.buttons["Profile"].tap()
+        primaryTab("Profile").tap()
         app.staticTexts["Settings"].tap()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
         let accountAccess = app.buttons.matching(

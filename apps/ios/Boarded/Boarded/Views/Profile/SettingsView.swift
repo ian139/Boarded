@@ -28,7 +28,9 @@ struct SettingsView: View {
         .scrollContentBackground(.hidden)
         .background(theme.background)
         .environment(\.colorScheme, .dark)
-        .padding(.bottom, AppSpacing.space64)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            Color.clear.frame(height: AppSpacing.space64 + AppSpacing.space48)
+        }
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
         .task {

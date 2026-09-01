@@ -108,6 +108,36 @@ enum EditorHoldInteraction {
         }
     }
 }
+
+struct EditorHoldHistory {
+    private(set) var undoSnapshots: [[Hold]] = []
+    private(set) var redoSnapshots: [[Hold]] = []
+
+    var canUndo: Bool { !undoSnapshots.isEmpty }
+    var canRedo: Bool { !redoSnapshots.isEmpty }
+
+    mutating func record(_ holds: [Hold]) {
+        undoSnapshots.append(holds)
+        redoSnapshots.removeAll()
+    }
+
+    mutating func undo(current: [Hold]) -> [Hold]? {
+        guard let snapshot = undoSnapshots.popLast() else { return nil }
+        redoSnapshots.append(current)
+        return snapshot
+    }
+
+    mutating func redo(current: [Hold]) -> [Hold]? {
+        guard let snapshot = redoSnapshots.popLast() else { return nil }
+        undoSnapshots.append(current)
+        return snapshot
+    }
+
+    mutating func clear() {
+        undoSnapshots.removeAll()
+        redoSnapshots.removeAll()
+    }
+}
 private struct EditorHeaderHeightPreferenceKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
 
@@ -191,8 +221,7 @@ struct EditorView: View {
     @State private var wallAspectRequestID: UUID? = nil
     @State private var headerHeight: CGFloat = 0
     @State private var editorTool: EditorTool = .add
-    @State private var undoHistory: [[Hold]] = []
-    @State private var redoHistory: [[Hold]] = []
+    @State private var holdHistory = EditorHoldHistory()
 
     @State private var markerMagnificationSession: MarkerMagnificationSession?
 
@@ -338,6 +367,7 @@ struct EditorView: View {
                   let wallID = notification.object as? String,
                   wallID == acceptedWallID else { return }
             holds.removeAll()
+            holdHistory.clear()
             announce("Wall image changed. Holds cleared.")
             resetZoom(animated: false)
             refreshWallMetadata()
@@ -903,8 +933,8 @@ struct EditorView: View {
             }
             HStack(spacing: AppSpacing.space4) {
                 toolButton(.connect, systemImage: "point.3.connected.trianglepath.dotted", action: selectNodeForEditing)
-                historyButton("Undo", systemImage: "arrow.uturn.backward", disabled: undoHistory.isEmpty, action: undo)
-                historyButton("Redo", systemImage: "arrow.uturn.forward", disabled: redoHistory.isEmpty, action: redo)
+                historyButton("Undo", systemImage: "arrow.uturn.backward", disabled: !holdHistory.canUndo, action: undo)
+                historyButton("Redo", systemImage: "arrow.uturn.forward", disabled: !holdHistory.canRedo, action: redo)
             }
             Text(editorTool == .add ? "Tap the wall or Add node to place a hold." : editorTool == .move ? "Select and drag a node, or use its Move menu." : "Select nodes and use Earlier or Later to shape the connected route path.")
                 .font(AppTypography.caption)
@@ -983,21 +1013,18 @@ struct EditorView: View {
     }
 
     private func recordUndoSnapshot() {
-        undoHistory.append(holds)
-        redoHistory.removeAll()
+        holdHistory.record(holds)
     }
 
     private func undo() {
-        guard let snapshot = undoHistory.popLast() else { return }
-        redoHistory.append(holds)
+        guard let snapshot = holdHistory.undo(current: holds) else { return }
         holds = snapshot
         selectedHoldID = nil
         announce("Undid the latest editor change.")
     }
 
     private func redo() {
-        guard let snapshot = redoHistory.popLast() else { return }
-        undoHistory.append(holds)
+        guard let snapshot = holdHistory.redo(current: holds) else { return }
         holds = snapshot
         selectedHoldID = nil
         announce("Redid the latest editor change.")
@@ -1371,6 +1398,7 @@ struct EditorView: View {
             return
         }
         if markerMagnificationSession == nil {
+            recordUndoSnapshot()
             markerMagnificationSession = MarkerMagnificationSession(
                 id: id,
                 originalRadius: holdRadiusValue(holds[index])
@@ -1409,7 +1437,9 @@ struct EditorView: View {
               let index = holds.firstIndex(where: { $0.id == id }) else { return }
         let current = holdRadiusValue(holds[index])
         let delta: CGFloat = direction == .increment ? 4 : -4
-        guard let radius = EditorHoldGeometry.clampedRadius(current + delta) else { return }
+        guard let radius = EditorHoldGeometry.clampedRadius(current + delta),
+              radius != current else { return }
+        recordUndoSnapshot()
         holds[index].radius = Double(radius)
         announce("Hold radius \(Int(radius.rounded())) image points.")
     }
@@ -1707,6 +1737,7 @@ struct EditorView: View {
         pendingWallID = nil
         hasPendingWallSelection = false
         holds.removeAll()
+        holdHistory.clear()
         announce("Wall changed. Holds cleared.")
         resetZoom(animated: false)
         resetWallImageState(for: acceptedWallID)
@@ -1717,6 +1748,7 @@ struct EditorView: View {
 
     private func acceptWallSelection(_ id: String?, announcement: String? = nil) {
         acceptedWallID = id
+        holdHistory.clear()
         pendingWallID = nil
         hasPendingWallSelection = false
         if let announcement {

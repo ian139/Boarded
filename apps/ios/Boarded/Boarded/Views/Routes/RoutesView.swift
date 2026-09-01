@@ -197,13 +197,15 @@ struct RoutesView: View {
             Text(title)
                 .font(AppTypography.caption)
                 .foregroundStyle(AppColor.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
 
             HStack(spacing: AppSpacing.space4) {
                 Text(selection)
                     .font(AppTypography.label)
                     .foregroundStyle(isActive ? AppColor.accentDefault : AppColor.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.down")
                     .font(AppTypography.caption)

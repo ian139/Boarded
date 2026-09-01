@@ -55,12 +55,12 @@ struct ProfileView: View {
                 settingsRow
             }
             .padding(theme.pagePadding)
-            .padding(.bottom, AppSpacing.space64)
+            .padding(.bottom, AppSpacing.space64 + AppSpacing.space48)
             .frame(maxWidth: AppLayout.contentMaxWidth)
             .frame(maxWidth: .infinity)
         }
         .safeAreaInset(edge: .bottom) {
-            Color.clear.frame(height: AppSpacing.space64)
+            Color.clear.frame(height: AppSpacing.space64 + AppSpacing.space48)
         }
         .boardedPageBackground()
         .task(id: session.userId) {

@@ -68,4 +68,46 @@ final class HoldRadiusTests: XCTestCase {
         let finger = CGPoint(x: 50, y: 70)
         XCTAssertEqual(EditorHoldGeometry.radius(from: center, to: finger), 50)
     }
+
+    func testResizeSnapshotUndoesResizeBeforeEarlierMutation() {
+        let original = hold(id: "a", x: 20, radius: 12)
+        let added = hold(id: "b", x: 40, radius: 12)
+        var history = EditorHoldHistory()
+        history.record([original])
+
+        let beforeResize = [original, added]
+        history.record(beforeResize)
+        var resized = beforeResize
+        resized[1].radius = 28
+
+        XCTAssertEqual(history.undo(current: resized), beforeResize)
+        XCTAssertEqual(history.undo(current: beforeResize), [original])
+    }
+
+    func testClearingHistoryPreventsOldWallCoordinatesFromReturning() {
+        let oldWallHolds = [hold(id: "old-wall", x: 88, radius: 18)]
+        var history = EditorHoldHistory()
+        history.record(oldWallHolds)
+        _ = history.undo(current: [])
+
+        history.clear()
+
+        XCTAssertFalse(history.canUndo)
+        XCTAssertFalse(history.canRedo)
+        XCTAssertNil(history.undo(current: []))
+        XCTAssertNil(history.redo(current: []))
+    }
+
+    private func hold(id: String, x: Double, radius: Double) -> Hold {
+        Hold(
+            id: id,
+            x: x,
+            y: 50,
+            type: .hand,
+            color: HoldType.hand.colorHex,
+            size: .medium,
+            radius: radius,
+            notes: nil
+        )
+    }
 }
