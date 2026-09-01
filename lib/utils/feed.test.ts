@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import type { FollowingFeedItem, Route, Wall } from '@boarded/shared/types';
-import { enrichFeedItems, mergeFeedPage } from '../social/feed';
+import type { FollowingFeedItem, Route, Wall } from '../../packages/shared/types/index.ts';
+import { enrichFeedItems, mergeFeedPage } from '../social/feed.ts';
 
 const item = (route_id: string, activity_at: string): FollowingFeedItem => ({
   route_id,

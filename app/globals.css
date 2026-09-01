@@ -45,7 +45,7 @@
   --color-surface-selected: rgba(50, 213, 131, 0.12);
   --color-text-primary: #F4F2EB;
   --color-text-secondary: rgba(244, 242, 235, 0.64);
-  --color-text-tertiary: rgba(244, 242, 235, 0.44);
+  --color-text-tertiary: rgba(244, 242, 235, 0.48);
   --color-text-disabled: rgba(244, 242, 235, 0.30);
   --color-stroke-default: rgba(244, 242, 235, 0.18);
   --color-stroke-subtle: rgba(244, 242, 235, 0.10);
@@ -148,7 +148,6 @@
   .feed-list { display: grid; gap: 0; max-width: 800px; }
   .feed-row { min-height: 88px; display: grid; grid-template-columns: 20px minmax(0,1fr) auto; gap: 16px; align-items: center; border-bottom: 1px solid var(--color-divider); }
   .route-node { width: 12px; height: 12px; border: 2px solid var(--color-accent-default); border-radius: 50%; }
-  .feed-route-id { color: var(--color-text-secondary); font-size: 13px; font-variant-numeric: tabular-nums; }
   .feed-skeleton { height: 88px; border-bottom: 1px solid var(--color-divider); background: linear-gradient(90deg, transparent, var(--color-stroke-subtle), transparent); background-size: 200% 100%; animation: skeleton 1.2s ease-in-out infinite; }
   .status-panel { max-width: 800px; padding: 20px; background: var(--color-background-elevated); border-left: 3px solid var(--color-danger); border-radius: 8px; }
 }
@@ -161,7 +160,7 @@
 @media (max-width: 599px) {
   .auth-card { padding: 24px; }
   .feed-row { grid-template-columns: 16px minmax(0,1fr); padding-block: 16px; }
-  .feed-route-id { grid-column: 2; }
+  .feed-metadata { grid-column: 2; }
 }
 @media (hover: hover) and (pointer: fine) {
   .button-primary:hover { background: var(--color-accent-pressed); }

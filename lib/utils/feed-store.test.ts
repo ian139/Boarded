@@ -1,8 +1,8 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { createStore } from 'zustand/vanilla';
-import type { FollowingFeedItem } from '@boarded/shared/types';
-import { createFeedState } from './feed-store';
+import type { FollowingFeedItem } from '../../packages/shared/types/index.ts';
+import { createFeedState } from '../stores/feed-store.ts';
 
 const item = (routeId: string): FollowingFeedItem => ({
   route_id: routeId,

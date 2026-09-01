@@ -100,7 +100,7 @@ export default function ActivityPage() {
                           <span className="block font-semibold text-primary">@{item.author_username || 'climber'} boarded {route.name}</span>
                           <time className="text-tertiary text-sm" dateTime={item.activity_at}>{formatActivityTime(item.activity_at)}</time>
                         </span>
-                        <span className="text-right text-sm">
+                        <span className="feed-metadata text-right text-sm">
                           {grade && <span className="block font-semibold text-primary">{grade}</span>}
                           {wall?.name && <span className="block text-tertiary">{wall.name}</span>}
                         </span>
@@ -112,7 +112,7 @@ export default function ActivityPage() {
                           <span className="block font-semibold text-primary">@{item.author_username || 'climber'} boarded a route</span>
                           <time className="text-tertiary text-sm" dateTime={item.activity_at}>{formatActivityTime(item.activity_at)}</time>
                         </span>
-                        <span className="text-tertiary text-sm">Route unavailable</span>
+                        <span className="feed-metadata text-tertiary text-sm">Route unavailable</span>
                       </div>
                     )}
                   </li>
