@@ -22,7 +22,6 @@
 		3CDD08D72F5A06EE00535751 /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = 3CDD08D62F5A06EE00535751 /* Realtime */; };
 		3CDD08D92F5A06EE00535751 /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = 3CDD08D82F5A06EE00535751 /* Storage */; };
 		3CDD08EE2F5A072900535751 /* SearchField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD08EA2F5A072900535751 /* SearchField.swift */; };
-		3CDD08F52F5A072900535751 /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD08E82F5A072900535751 /* EmptyStateView.swift */; };
 		3CDD08FF2F5A0A0300535751 /* AppSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD08F72F5A0A0300535751 /* AppSession.swift */; };
 		3CDD09152F5A200100535751 /* ProfileStatisticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD09142F5A200100535751 /* ProfileStatisticsTests.swift */; };
 		AA1100202F5B000100535751 /* NativeContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1100212F5B000100535751 /* NativeContractTests.swift */; };
@@ -41,10 +40,30 @@
 		CC1100142F5D000100535751 /* SessionLoggerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC1100132F5D000100535751 /* SessionLoggerViewModel.swift */; };
 		CC1100162F5D000100535751 /* PostDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC1100152F5D000100535751 /* PostDetailViewModel.swift */; };
 		CC1100182F5D000100535751 /* MeetupsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC1100172F5D000100535751 /* MeetupsViewModel.swift */; };
+		DD0000012F70000100535751 /* BoardedRouteLine.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001012F70000100535751 /* BoardedRouteLine.swift */; };
+		DD0000022F70000100535751 /* Formatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001022F70000100535751 /* Formatting.swift */; };
+		DD0000032F70000100535751 /* AuthenticationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001032F70000100535751 /* AuthenticationView.swift */; };
+		DD0000042F70000100535751 /* SendPostCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001042F70000100535751 /* SendPostCard.swift */; };
+		DD0000052F70000100535751 /* HomeFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001052F70000100535751 /* HomeFeedView.swift */; };
+		DD0000062F70000100535751 /* PostDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001062F70000100535751 /* PostDetailView.swift */; };
+		DD0000072F70000100535751 /* ActiveSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001072F70000100535751 /* ActiveSessionStore.swift */; };
+		DD0000082F70000100535751 /* LogViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001082F70000100535751 /* LogViews.swift */; };
+		DD0000092F70000100535751 /* ShareSendComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001092F70000100535751 /* ShareSendComposer.swift */; };
+		DD00000A2F70000100535751 /* MeetupViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00010A2F70000100535751 /* MeetupViews.swift */; };
+		DD00000B2F70000100535751 /* ProfileViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00010B2F70000100535751 /* ProfileViews.swift */; };
+		DD00000C2F70000100535751 /* UITestFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00010C2F70000100535751 /* UITestFixtures.swift */; };
+		AA1100102F5B000100535751 /* BoardedUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1100112F5B000100535751 /* BoardedUITests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
 		3CDD09212F5A200100535751 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3CDD081B2F59F69800535751 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 3CDD08222F59F69800535751;
+			remoteInfo = Boarded;
+		};
+		AA1100192F5B000100535751 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 3CDD081B2F59F69800535751 /* Project object */;
 			proxyType = 1;
@@ -63,7 +82,6 @@
 		3CDD09122F5A200100535751 /* ProfileStatistics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileStatistics.swift; sourceTree = "<group>"; };
 		3CDD08C82F5A064A00535751 /* SupabaseConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseConfig.swift; sourceTree = "<group>"; };
 		3CDD08CA2F5A067100535751 /* ProfileModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileModels.swift; sourceTree = "<group>"; };
-		3CDD08E82F5A072900535751 /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
 		3CDD08EA2F5A072900535751 /* SearchField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchField.swift; sourceTree = "<group>"; };
 		3CDD09142F5A200100535751 /* ProfileStatisticsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileStatisticsTests.swift; sourceTree = "<group>"; };
 		AA1100212F5B000100535751 /* NativeContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeContractTests.swift; sourceTree = "<group>"; };
@@ -84,6 +102,20 @@
 		CC1100132F5D000100535751 /* SessionLoggerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionLoggerViewModel.swift; sourceTree = "<group>"; };
 		CC1100152F5D000100535751 /* PostDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostDetailViewModel.swift; sourceTree = "<group>"; };
 		CC1100172F5D000100535751 /* MeetupsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetupsViewModel.swift; sourceTree = "<group>"; };
+		DD0001012F70000100535751 /* BoardedRouteLine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BoardedRouteLine.swift; path = Boarded/Views/Shared/BoardedRouteLine.swift; sourceTree = "<group>"; };
+		DD0001022F70000100535751 /* Formatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Formatting.swift; path = Boarded/Views/Shared/Formatting.swift; sourceTree = "<group>"; };
+		DD0001032F70000100535751 /* AuthenticationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AuthenticationView.swift; path = Boarded/Views/Auth/AuthenticationView.swift; sourceTree = "<group>"; };
+		DD0001042F70000100535751 /* SendPostCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SendPostCard.swift; path = Boarded/Views/Home/SendPostCard.swift; sourceTree = "<group>"; };
+		DD0001052F70000100535751 /* HomeFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = HomeFeedView.swift; path = Boarded/Views/Home/HomeFeedView.swift; sourceTree = "<group>"; };
+		DD0001062F70000100535751 /* PostDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PostDetailView.swift; path = Boarded/Views/Home/PostDetailView.swift; sourceTree = "<group>"; };
+		DD0001072F70000100535751 /* ActiveSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ActiveSessionStore.swift; path = Boarded/Views/Log/ActiveSessionStore.swift; sourceTree = "<group>"; };
+		DD0001082F70000100535751 /* LogViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LogViews.swift; path = Boarded/Views/Log/LogViews.swift; sourceTree = "<group>"; };
+		DD0001092F70000100535751 /* ShareSendComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ShareSendComposer.swift; path = Boarded/Views/Share/ShareSendComposer.swift; sourceTree = "<group>"; };
+		DD00010A2F70000100535751 /* MeetupViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MeetupViews.swift; path = Boarded/Views/Meetups/MeetupViews.swift; sourceTree = "<group>"; };
+		DD00010B2F70000100535751 /* ProfileViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ProfileViews.swift; path = Boarded/Views/Profile/ProfileViews.swift; sourceTree = "<group>"; };
+		DD00010C2F70000100535751 /* UITestFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = UITestFixtures.swift; path = Boarded/Services/UITestFixtures.swift; sourceTree = "<group>"; };
+		AA1100112F5B000100535751 /* BoardedUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardedUITests.swift; sourceTree = "<group>"; };
+		AA1100122F5B000100535751 /* BoardedUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BoardedUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -110,6 +142,7 @@
 				3CDD08942F59FD5E00535751 /* BoardedApp.swift */,
 				3CDD08992F59FD6900535751 /* RootView.swift */,
 				3CDD09182F5A200100535751 /* BoardedTests */,
+				AA1100132F5B000100535751 /* BoardedUITests */,
 				3CDD08EC2F5A072900535751 /* Views */,
 				3CDD08902F59FBD700535751 /* Theme.swift */,
 				3CDD08752F59FBB600535751 /* Models */,
@@ -127,6 +160,7 @@
 			children = (
 				3CDD08232F59F69900535751 /* Boarded.app */,
 				3CDD09192F5A200100535751 /* BoardedTests.xctest */,
+				AA1100122F5B000100535751 /* BoardedUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -170,7 +204,6 @@
 		3CDD08EB2F5A072900535751 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
-				3CDD08E82F5A072900535751 /* EmptyStateView.swift */,
 				3CDD08EA2F5A072900535751 /* SearchField.swift */,
 				BB2200132F5C000100535751 /* BoardedPrimitives.swift */,
 			);
@@ -181,6 +214,18 @@
 			isa = PBXGroup;
 			children = (
 				3CDD08EB2F5A072900535751 /* Shared */,
+				DD0001012F70000100535751 /* BoardedRouteLine.swift */,
+				DD0001022F70000100535751 /* Formatting.swift */,
+				DD0001032F70000100535751 /* AuthenticationView.swift */,
+				DD0001042F70000100535751 /* SendPostCard.swift */,
+				DD0001052F70000100535751 /* HomeFeedView.swift */,
+				DD0001062F70000100535751 /* PostDetailView.swift */,
+				DD0001072F70000100535751 /* ActiveSessionStore.swift */,
+				DD0001082F70000100535751 /* LogViews.swift */,
+				DD0001092F70000100535751 /* ShareSendComposer.swift */,
+				DD00010A2F70000100535751 /* MeetupViews.swift */,
+				DD00010B2F70000100535751 /* ProfileViews.swift */,
+				DD00010C2F70000100535751 /* UITestFixtures.swift */,
 			);
 			name = Views;
 			path = Boarded/Views;
@@ -205,6 +250,14 @@
 				AA1100212F5B000100535751 /* NativeContractTests.swift */,
 			);
 			path = BoardedTests;
+			sourceTree = "<group>";
+		};
+		AA1100132F5B000100535751 /* BoardedUITests */ = {
+			isa = PBXGroup;
+			children = (
+				AA1100112F5B000100535751 /* BoardedUITests.swift */,
+			);
+			path = BoardedUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -251,6 +304,21 @@
 			productReference = 3CDD09192F5A200100535751 /* BoardedTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		AA1100152F5B000100535751 /* BoardedUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA1100162F5B000100535751 /* Build configuration list for PBXNativeTarget "BoardedUITests" */;
+			buildPhases = (
+				AA1100142F5B000100535751 /* BoardedUITests Sources */,
+			);
+			buildRules = ();
+			dependencies = (
+				AA11001A2F5B000100535751 /* Boarded in Targets */,
+			);
+			name = BoardedUITests;
+			productName = BoardedUITests;
+			productReference = AA1100122F5B000100535751 /* BoardedUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -263,7 +331,11 @@
 				TargetAttributes = {
 					3CDD08222F59F69800535751 = {
 						CreatedOnToolsVersion = 26.2;
+						AA1100152F5B000100535751 = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = 3CDD08222F59F69800535751;
 					};
+				};
 					3CDD091B2F5A200100535751 = {
 						CreatedOnToolsVersion = 26.2;
 						TestTargetID = 3CDD08222F59F69800535751;
@@ -289,6 +361,7 @@
 			targets = (
 				3CDD08222F59F69800535751 /* Boarded */,
 				3CDD091B2F5A200100535751 /* BoardedTests */,
+				AA1100152F5B000100535751 /* BoardedUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -319,7 +392,6 @@
 				3CDD08CB2F5A067100535751 /* ProfileModels.swift in Sources */,
 				3CDD08EE2F5A072900535751 /* SearchField.swift in Sources */,
 				3CDD08FF2F5A0A0300535751 /* AppSession.swift in Sources */,
-				3CDD08F52F5A072900535751 /* EmptyStateView.swift in Sources */,
 				3CDD08C92F5A064A00535751 /* SupabaseConfig.swift in Sources */,
 				BB2200032F5C000100535751 /* BoardedPrimitives.swift in Sources */,
 				CC1100022F5D000100535751 /* SocialModels.swift in Sources */,
@@ -334,6 +406,18 @@
 				CC1100142F5D000100535751 /* SessionLoggerViewModel.swift in Sources */,
 				CC1100162F5D000100535751 /* PostDetailViewModel.swift in Sources */,
 				CC1100182F5D000100535751 /* MeetupsViewModel.swift in Sources */,
+				DD0000012F70000100535751 /* BoardedRouteLine.swift in Sources */,
+				DD0000022F70000100535751 /* Formatting.swift in Sources */,
+				DD0000032F70000100535751 /* AuthenticationView.swift in Sources */,
+				DD0000042F70000100535751 /* SendPostCard.swift in Sources */,
+				DD0000052F70000100535751 /* HomeFeedView.swift in Sources */,
+				DD0000062F70000100535751 /* PostDetailView.swift in Sources */,
+				DD0000072F70000100535751 /* ActiveSessionStore.swift in Sources */,
+				DD0000082F70000100535751 /* LogViews.swift in Sources */,
+				DD0000092F70000100535751 /* ShareSendComposer.swift in Sources */,
+				DD00000A2F70000100535751 /* MeetupViews.swift in Sources */,
+				DD00000B2F70000100535751 /* ProfileViews.swift in Sources */,
+				DD00000C2F70000100535751 /* UITestFixtures.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -346,6 +430,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AA1100142F5B000100535751 /* BoardedUITests Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA1100102F5B000100535751 /* BoardedUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -353,6 +445,11 @@
 			isa = PBXTargetDependency;
 			target = 3CDD08222F59F69800535751 /* Boarded */;
 			targetProxy = 3CDD09212F5A200100535751 /* PBXContainerItemProxy */;
+		};
+		AA11001A2F5B000100535751 /* Boarded in Targets */ = {
+			isa = PBXTargetDependency;
+			target = 3CDD08222F59F69800535751 /* Boarded */;
+			targetProxy = AA1100192F5B000100535751 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -576,6 +673,16 @@
 			};
 			name = Release;
 		};
+		AA1100172F5B000100535751 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = { CODE_SIGN_STYLE = Automatic; DEVELOPMENT_TEAM = UQ6DWXPFFY; GENERATE_INFOPLIST_FILE = YES; PRODUCT_BUNDLE_IDENTIFIER = com.ian.BoardedUITests; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2"; TEST_TARGET_NAME = Boarded; };
+			name = Debug;
+		};
+		AA1100182F5B000100535751 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = { CODE_SIGN_STYLE = Automatic; DEVELOPMENT_TEAM = UQ6DWXPFFY; GENERATE_INFOPLIST_FILE = YES; PRODUCT_BUNDLE_IDENTIFIER = com.ian.BoardedUITests; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2"; TEST_TARGET_NAME = Boarded; };
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -603,6 +710,12 @@
 				3CDD082F2F59F69A00535751 /* Debug */,
 				3CDD08302F59F69A00535751 /* Release */,
 			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AA1100162F5B000100535751 /* Build configuration list for PBXNativeTarget "BoardedUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = ( AA1100172F5B000100535751 /* Debug */, AA1100182F5B000100535751 /* Release */, );
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};

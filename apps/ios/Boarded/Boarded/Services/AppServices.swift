@@ -21,7 +21,7 @@ enum AppServices {
     static let feedRepository: any FeedRepository = {
         #if DEBUG
         if AppLaunchConfiguration.isUITestFixture || AppLaunchConfiguration.isOfflineFixture {
-            return MockFeedRepository()
+            return MockFeedRepository(items: UITestFixtures.feed, comments: UITestFixtures.comments, currentUserID: UITestFixtures.userID, now: UITestFixtures.now)
         }
         #endif
         #if canImport(Supabase)
@@ -34,7 +34,7 @@ enum AppServices {
     static let meetupRepository: any MeetupRepository = {
         #if DEBUG
         if AppLaunchConfiguration.isUITestFixture || AppLaunchConfiguration.isOfflineFixture {
-            return MockMeetupRepository()
+            return MockMeetupRepository(meetups: UITestFixtures.meetups, currentUserID: UITestFixtures.userID, now: UITestFixtures.now)
         }
         #endif
         #if canImport(Supabase)
@@ -47,7 +47,7 @@ enum AppServices {
     static let profileRepository: any ProfileRepository = {
         #if DEBUG
         if AppLaunchConfiguration.isUITestFixture || AppLaunchConfiguration.isOfflineFixture {
-            return MockProfileRepository()
+            return MockProfileRepository(profile: UITestFixtures.profile, statistics: UITestFixtures.statistics)
         }
         #endif
         #if canImport(Supabase)

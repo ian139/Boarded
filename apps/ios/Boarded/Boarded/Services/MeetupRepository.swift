@@ -6,6 +6,8 @@ protocol MeetupRepository {
     func fetchAttendees(meetupID: UUID) async throws -> [MeetupAttendee]
     func fetchComments(meetupID: UUID) async throws -> [MeetupComment]
     func createMeetup(_ draft: MeetupDraft) async throws -> Meetup
+    func updateMeetup(id: UUID, draft: MeetupDraft) async throws -> Meetup
+    func cancelMeetup(id: UUID) async throws -> Meetup
     func joinMeetup(id: UUID) async throws -> MeetupAttendee
     func leaveMeetup(id: UUID) async throws
     func createComment(meetupID: UUID, content: String) async throws -> MeetupComment
@@ -119,6 +121,27 @@ final class MockMeetupRepository: MeetupRepository, @unchecked Sendable {
         )
         meetups.append(meetup)
         return meetup
+    }
+
+    func updateMeetup(id: UUID, draft: MeetupDraft) async throws -> Meetup {
+        lock.lock(); defer { lock.unlock() }
+        guard let index = meetups.firstIndex(where: { $0.id == id }) else { throw MeetupRepositoryError.notFound }
+        let current = meetups[index]
+        guard current.organizerId == currentUserID else { throw MeetupRepositoryError.unauthenticated }
+        guard current.status == .scheduled else { throw MeetupRepositoryError.cancelled }
+        let updated = Meetup(id: current.id, organizerId: current.organizerId, title: draft.title, description: draft.description, venueName: draft.venueName, area: draft.area, startsAt: draft.startsAt, endsAt: draft.endsAt, capacity: draft.capacity, status: current.status, createdAt: current.createdAt, updatedAt: now)
+        meetups[index] = updated
+        return updated
+    }
+
+    func cancelMeetup(id: UUID) async throws -> Meetup {
+        lock.lock(); defer { lock.unlock() }
+        guard let index = meetups.firstIndex(where: { $0.id == id }) else { throw MeetupRepositoryError.notFound }
+        let current = meetups[index]
+        guard current.organizerId == currentUserID else { throw MeetupRepositoryError.unauthenticated }
+        let cancelled = Meetup(id: current.id, organizerId: current.organizerId, title: current.title, description: current.description, venueName: current.venueName, area: current.area, startsAt: current.startsAt, endsAt: current.endsAt, capacity: current.capacity, status: .cancelled, createdAt: current.createdAt, updatedAt: now)
+        meetups[index] = cancelled
+        return cancelled
     }
 
     func joinMeetup(id: UUID) async throws -> MeetupAttendee {
@@ -248,6 +271,21 @@ struct SupabaseMeetupRepository: MeetupRepository {
         return row
     }
 
+    func updateMeetup(id: UUID, draft: MeetupDraft) async throws -> Meetup {
+        guard let client else { throw MeetupRepositoryError.unavailable }
+        let payload = MeetupUpdate(title: draft.title, description: draft.description, venue_name: draft.venueName, area: draft.area, starts_at: draft.startsAt, ends_at: draft.endsAt, capacity: draft.capacity)
+        let rows: [Meetup] = try await client.from("meetups").update(payload).eq("id", value: id.uuidString).select("*").execute().value
+        guard let row = rows.first else { throw MeetupRepositoryError.notFound }
+        return row
+    }
+
+    func cancelMeetup(id: UUID) async throws -> Meetup {
+        guard let client else { throw MeetupRepositoryError.unavailable }
+        let rows: [Meetup] = try await client.from("meetups").update(MeetupStatusUpdate(status: .cancelled)).eq("id", value: id.uuidString).select("*").execute().value
+        guard let row = rows.first else { throw MeetupRepositoryError.notFound }
+        return row
+    }
+
     func joinMeetup(id: UUID) async throws -> MeetupAttendee {
         guard let client else { throw MeetupRepositoryError.unavailable }
         let rows: [MeetupAttendee] = try await client.rpc("join_meetup", params: JoinMeetupParameters(meetup_id: id))
@@ -290,6 +328,20 @@ private struct MeetupInsert: Encodable {
     let starts_at: Date
     let ends_at: Date?
     let capacity: Int?
+}
+
+private struct MeetupUpdate: Encodable {
+    let title: String
+    let description: String
+    let venue_name: String
+    let area: String
+    let starts_at: Date
+    let ends_at: Date?
+    let capacity: Int?
+}
+
+private struct MeetupStatusUpdate: Encodable {
+    let status: MeetupStatus
 }
 
 private struct JoinMeetupParameters: Encodable {

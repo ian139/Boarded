@@ -19,9 +19,25 @@ final class SessionLoggerViewModel: ObservableObject {
         self.modelContext = modelContext
         self.syncService = syncService
         self.userId = userId
+        restoreActiveSession()
     }
 
     var isActive: Bool { activeSession != nil }
+
+    private func restoreActiveSession() {
+        let sessions = (try? modelContext.fetch(FetchDescriptor<PendingSession>())) ?? []
+        guard let session = sessions
+            .filter({ $0.userId == userId && $0.endedAt == nil })
+            .max(by: { $0.startedAt < $1.startedAt }) else {
+            return
+        }
+        activeSession = session
+        let storedAttempts = (try? modelContext.fetch(FetchDescriptor<PendingAttempt>())) ?? []
+        attempts = storedAttempts
+            .filter { $0.sessionId == session.id }
+            .sorted { $0.occurredAt < $1.occurredAt }
+        syncState = syncService.state
+    }
 
     func startSession(venueName: String, at date: Date = Date()) {
         guard activeSession == nil else { return }

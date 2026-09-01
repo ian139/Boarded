@@ -7,9 +7,8 @@ struct RankedGrade: Hashable {
     let rank: Int
 }
 
-/// Session-derived profile statistics. There is deliberately no points value
-/// and no leaderboard: the social release derives stats from private sessions
-/// and attempts only.
+/// Session-derived profile statistics calculated from private sessions and
+/// attempts only.
 struct ProfileStatistics: Hashable {
     let sessionCount: Int
     let sendCount: Int

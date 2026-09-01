@@ -1,24 +1,11 @@
 import SwiftUI
+import UIKit
 
-struct BoardedTheme {
-    var background: Color { AppColor.backgroundBase }
-    var panelBackground: Color { AppColor.backgroundElevated }
-    var primaryText: Color { AppColor.textPrimary }
-    var secondaryText: Color { AppColor.textSecondary }
-    var primary: Color { AppColor.accentDefault }
-    var accent: Color { AppColor.accentDefault }
-    var border: Color { AppColor.strokeDefault }
-    var destructive: Color { AppColor.danger }
-    var actionForeground: Color { AppColor.accentOnAccent }
-
-    let pagePadding = AppSpacing.space20
-    let panelPadding = AppSpacing.space16
-    let panelCornerRadius = AppRadius.large
-    let controlCornerRadius = AppRadius.medium
-    let animationDuration = AppMotion.quick
-
-
-}
+// MARK: - Color system
+//
+// Semantic color tokens shared with the web design language. Components consume
+// semantic names only; palette hex values appear nowhere outside this file.
+// Boarded is dark-only: these values render regardless of system appearance.
 
 enum AppColor {
     static let backgroundBase = Color.hex("#0A0B10")
@@ -40,24 +27,11 @@ enum AppColor {
     static let warning = Color.hex("#F6C85F")
     static let information = Color.hex("#69A7FF")
     static let scrim = backgroundBase.opacity(0.72)
-
-    // Existing source compatibility. New owned code uses semantic names above.
-    static let background = backgroundBase
-    static let elevated = backgroundElevated
-    static let surface = surfaceCard
-    static let selectedSurface = surfaceSelected
-    static let text = textPrimary
-    static let muted = textSecondary
-    static let tertiaryText = textTertiary
-    static let disabledText = textDisabled
-    static let primary = accentDefault
-    static let pressed = accentPressed
-    static let actionForeground = accentOnAccent
-    static let accent = accentDefault
-    static let border = strokeDefault
-    static let subtleBorder = strokeSubtle
-    static let destructive = danger
 }
+
+// MARK: - Spacing
+//
+// 4-point base, 8-point primary rhythm.
 
 enum AppSpacing {
     static let space4: CGFloat = 4
@@ -72,51 +46,126 @@ enum AppSpacing {
     static let space64: CGFloat = 64
 }
 
+// MARK: - Shape
+
 enum AppRadius {
     static let small: CGFloat = 8
     static let medium: CGFloat = 12
     static let large: CGFloat = 16
-    static let capsule: CGFloat = 999
+    static let extraLarge: CGFloat = 24
+
+    static func card(cornerRadius: CGFloat = AppRadius.large) -> RoundedRectangle {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+    }
+
+    static let control = RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
+    static let sheet = RoundedRectangle(cornerRadius: AppRadius.extraLarge, style: .continuous)
 }
 
 enum AppStroke {
     static let hairline: CGFloat = 1
-    static let focus: CGFloat = 3
+    static let selected: CGFloat = 1.5
+    static let focusRing: CGFloat = 2
+    static let focusGap: CGFloat = 2
 }
+
+// MARK: - Motion
 
 enum AppMotion {
-    static let quick = 0.18
-    static let standard = 0.28
-    static let routeTrace = Animation.easeOut(duration: standard)
+    static let instant: TimeInterval = 0.10
+    static let fast: TimeInterval = 0.18
+    static let standard: TimeInterval = 0.28
+    static let expressive: TimeInterval = 0.42
+
+    /// Signature route-trace duration band: 280–420 ms.
+    static let routeTrace: TimeInterval = AppMotion.standard
+
+    static func easeOut(_ duration: TimeInterval) -> Animation { .easeOut(duration: duration) }
 }
+
+// MARK: - Typography
+//
+// Dual-family structure: Cormorant Garamond Semibold Italic for expressive
+// display moments (bundled, registered in UIAppFonts), native SF Pro through
+// system text styles for everything else. The serif falls back to the italic
+// system serif only when the bundled face fails to load.
 
 enum AppTypography {
-    static let displayLarge = Font.custom("CormorantGaramond-SemiBoldItalic", size: 48, relativeTo: .largeTitle)
-    static let largeTitle = Font.custom("CormorantGaramond-SemiBoldItalic", size: 40, relativeTo: .largeTitle)
-    static let display = Font.custom("CormorantGaramond-SemiBoldItalic", size: 32, relativeTo: .title)
-    static let title = Font.system(.title2).weight(.semibold)
-    static let headline = Font.system(.headline).weight(.semibold)
-    static let body = Font.system(.body)
-    static let label = Font.system(.subheadline).weight(.medium)
-    static let caption = Font.system(.caption)
-    static let dataLarge = Font.system(.largeTitle).monospacedDigit()
-    static let data = Font.system(.title2).monospacedDigit()
+    static let serifPostScriptName = "CormorantGaramond-SemiBoldItalic"
+
+    static func displaySerif(size: CGFloat, relativeTo style: Font.TextStyle) -> Font {
+        if UIFont(name: serifPostScriptName, size: size) != nil {
+            return .custom(serifPostScriptName, size: size, relativeTo: style)
+        }
+        return Font.system(size: size, weight: .semibold, design: .serif).italic()
+    }
+
+    // Display serif scale (weight 600 italic only).
+    static let displayXL = displaySerif(size: 64, relativeTo: .largeTitle)
+    static let displayL = displaySerif(size: 48, relativeTo: .largeTitle)
+    static let displayM = displaySerif(size: 40, relativeTo: .title)
+    static let displayS = displaySerif(size: 32, relativeTo: .title2)
+
+    // Interface sans scale (SF Pro via system text styles).
+    static let titleL = Font.system(.title).weight(.semibold)          // 28/34 screen title
+    static let titleM = Font.system(.title2).weight(.semibold)         // 22/28 section/sheet title
+    static let bodyL = Font.system(.body)                              // 17/24
+    static let bodyM = Font.system(.subheadline)                       // 15/21
+    static let labelL = Font.system(.subheadline).weight(.medium)      // 15/20
+    static let labelM = Font.system(.footnote).weight(.medium)         // 13/18
+    static let caption = Font.system(.caption)                         // 12/16
+
+    // Tabular data styles for timers, counters, and attempt rows.
+    static let dataL = Font.system(.largeTitle).monospacedDigit()      // 34/38
+    static let dataM = Font.system(.title2).monospacedDigit()          // 22/28
+    static let dataS = Font.system(.subheadline).monospacedDigit()     // 15/20
 }
+
+/// Uppercase tracked green eyebrow for editorial moments (TODAY, SESSION
+/// COMPLETE, NEW PERSONAL RECORD). Used sparingly.
+struct BoardedEyebrow: View {
+    let text: String
+    var body: some View {
+        Text(text)
+            .font(AppTypography.caption.weight(.semibold))
+            .textCase(.uppercase)
+            .kerning(1.2)
+            .foregroundStyle(AppColor.accentDefault)
+            .accessibilityAddTraits(.isHeader)
+    }
+}
+
+// MARK: - Layout
 
 enum AppLayout {
-    static let cornerRadius = AppRadius.large
-    static let controlCornerRadius = AppRadius.medium
-    static let horizontalPadding = AppSpacing.space20
-    static let verticalPadding = AppSpacing.space12
-    static let minimumControlHeight: CGFloat = 44
+    static let screenMargin: CGFloat = 20
+    static let wideScreenMargin: CGFloat = 24
+    static let cardPadding = AppSpacing.space16
+    static let featureCardPadding = AppSpacing.space20
+    static let cardGap = AppSpacing.space12
+    static let contentGap = AppSpacing.space16
+    static let sectionGap = AppSpacing.space32
+    static let eyebrowToTitle = AppSpacing.space8
+    static let titleToContent = AppSpacing.space16
     static let primaryControlHeight: CGFloat = 52
+    static let minimumTarget: CGFloat = 44
+    static let listRowMinHeight: CGFloat = 56
+    static let chipMinHeight: CGFloat = 34
     static let contentMaxWidth: CGFloat = 560
-    static let editorMaxWidth: CGFloat = 760
-    static let defaultWallAspectRatio: CGFloat = 3001.0 / 2733.0
+
+    /// Horizontal margin for the current width class: 20 pt on compact
+    /// iPhones, 24 pt on Pro Max / regular widths.
+    static func margin(for width: CGFloat) -> CGFloat {
+        width >= 428 ? wideScreenMargin : screenMargin
+    }
 }
 
+// MARK: - Surface modifiers
+
 private struct BoardedPageBackgroundModifier: ViewModifier {
-    func body(content: Content) -> some View { content.background(AppColor.backgroundBase.ignoresSafeArea()) }
+    func body(content: Content) -> some View {
+        content.background(AppColor.backgroundBase.ignoresSafeArea())
+    }
 }
 
 private struct BoardedSurfaceModifier<S: Shape>: ViewModifier {
@@ -130,6 +179,15 @@ private struct BoardedSurfaceModifier<S: Shape>: ViewModifier {
     }
 }
 
+private struct BoardedPanelModifier: ViewModifier {
+    let padding: CGFloat
+    func body(content: Content) -> some View {
+        content
+            .padding(padding)
+            .boardedSurface(in: AppRadius.card())
+    }
+}
+
 private struct BoardedFocusRingModifier<S: Shape>: ViewModifier {
     @Environment(\.accessibilityDifferentiateWithoutColor) private var differentiateWithoutColor
     let isFocused: Bool
@@ -137,47 +195,53 @@ private struct BoardedFocusRingModifier<S: Shape>: ViewModifier {
     func body(content: Content) -> some View {
         content.overlay {
             if isFocused {
-                shape.stroke(AppColor.accentDefault, lineWidth: AppStroke.focus)
+                shape
+                    .stroke(AppColor.accentDefault, lineWidth: AppStroke.focusRing)
                     .overlay {
                         if differentiateWithoutColor {
                             shape.stroke(AppColor.textPrimary, style: StrokeStyle(lineWidth: AppStroke.hairline, dash: [4, 4]))
                         }
                     }
-                    .padding(-AppSpacing.space4)
+                    .padding(-(AppStroke.focusRing + AppStroke.focusGap))
                     .accessibilityHidden(true)
             }
         }
     }
 }
 
-struct BoardedGlassContainer<Content: View>: View {
-    private let content: () -> Content
-    init(spacing: CGFloat? = nil, @ViewBuilder content: @escaping () -> Content) { self.content = content }
-    var body: some View { content() }
-}
-
-private struct BoardedPanelModifier: ViewModifier {
-    func body(content: Content) -> some View {
-        content.padding(AppSpacing.space16)
-            .boardedGlassSurface(in: RoundedRectangle(cornerRadius: AppRadius.large, style: .continuous))
-    }
-}
-
 extension View {
     func boardedPageBackground() -> some View { modifier(BoardedPageBackgroundModifier()) }
-    func boardedPanel() -> some View { modifier(BoardedPanelModifier()) }
-    func boardedGlassSurface<S: Shape>(in shape: S, interactive: Bool = false) -> some View { modifier(BoardedSurfaceModifier(shape: shape, interactive: interactive)) }
+
+    /// Card surface: 16 pt padding, card fill, hairline stroke, 16 pt radius.
+    func boardedPanel(padding: CGFloat = AppLayout.cardPadding) -> some View { modifier(BoardedPanelModifier(padding: padding)) }
+
+    func boardedSurface<S: Shape>(in shape: S, interactive: Bool = false) -> some View { modifier(BoardedSurfaceModifier(shape: shape, interactive: interactive)) }
+
     func boardedFocusRing<S: Shape>(isFocused: Bool, in shape: S) -> some View { modifier(BoardedFocusRingModifier(isFocused: isFocused, shape: shape)) }
+
+    /// Constrains readable content width on regular size classes.
+    func boardedContentWidth() -> some View { frame(maxWidth: AppLayout.contentMaxWidth) }
 }
+
+// MARK: - Shared components
 
 struct BoardedSectionHeading: View {
     let title: String
     var subtitle: String?
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.space4) {
-            Text(title).font(AppTypography.headline).foregroundStyle(AppColor.textPrimary).fixedSize(horizontal: false, vertical: true)
-            if let subtitle { Text(subtitle).font(AppTypography.body).foregroundStyle(AppColor.textSecondary).fixedSize(horizontal: false, vertical: true) }
-        }.frame(maxWidth: .infinity, alignment: .leading)
+            Text(title)
+                .font(AppTypography.titleM)
+                .foregroundStyle(AppColor.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+            if let subtitle {
+                Text(subtitle)
+                    .font(AppTypography.bodyM)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -186,45 +250,69 @@ struct BoardedFilterControl: View {
     let isSelected: Bool
     let action: () -> Void
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
         Button(action: action) {
             HStack(spacing: AppSpacing.space8) {
                 Text(title)
                 if isSelected { Image(systemName: "checkmark").accessibilityHidden(true) }
             }
-            .font(AppTypography.label).foregroundStyle(isSelected ? AppColor.accentDefault : AppColor.textPrimary)
-            .padding(.horizontal, AppSpacing.space12).frame(minHeight: AppLayout.minimumControlHeight)
-            .background(isSelected ? AppColor.surfaceSelected : AppColor.surfaceCard, in: shape)
-            .overlay { shape.stroke(isSelected ? AppColor.accentDefault : AppColor.strokeDefault, lineWidth: AppStroke.hairline) }
-        }.buttonStyle(.plain).accessibilityAddTraits(isSelected ? .isSelected : [])
+            .font(AppTypography.labelL)
+            .foregroundStyle(isSelected ? AppColor.accentDefault : AppColor.textPrimary)
+            .padding(.horizontal, AppSpacing.space12)
+            .frame(minHeight: AppLayout.chipMinHeight)
+            .background(isSelected ? AppColor.surfaceSelected : AppColor.surfaceCard, in: AppRadius.control)
+            .overlay {
+                AppRadius.control.stroke(
+                    isSelected ? AppColor.accentDefault.opacity(0.65) : AppColor.strokeDefault,
+                    lineWidth: isSelected ? AppStroke.selected : AppStroke.hairline
+                )
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 
 struct BoardedButtonStyle: ButtonStyle {
-    enum Kind { case primary, secondary }
+    enum Kind { case primary, secondary, destructive }
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.isEnabled) private var isEnabled
     let kind: Kind
     init(_ kind: Kind = .primary) { self.kind = kind }
+
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(AppTypography.headline)
-            .foregroundStyle(!isEnabled ? AppColor.textDisabled : kind == .primary ? AppColor.accentOnAccent : AppColor.textPrimary)
-            .frame(minHeight: AppLayout.primaryControlHeight).padding(.horizontal, AppSpacing.space16)
-            .background(kind == .primary ? (configuration.isPressed ? AppColor.accentPressed : AppColor.accentDefault) : AppColor.backgroundElevated)
-            .overlay { RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous).stroke(kind == .secondary ? AppColor.strokeDefault : .clear, lineWidth: AppStroke.hairline) }
-            .clipShape(RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous))
+        let backgroundColor: Color
+        let foregroundColor: Color
+        switch kind {
+        case .primary:
+            backgroundColor = configuration.isPressed ? AppColor.accentPressed : AppColor.accentDefault
+            foregroundColor = AppColor.accentOnAccent
+        case .secondary:
+            backgroundColor = configuration.isPressed ? AppColor.surfaceSelected : AppColor.backgroundElevated
+            foregroundColor = AppColor.textPrimary
+        case .destructive:
+            backgroundColor = configuration.isPressed ? AppColor.danger.opacity(0.18) : AppColor.backgroundElevated
+            foregroundColor = AppColor.danger
+        }
+        return configuration.label
+            .font(AppTypography.labelL)
+            .foregroundStyle(isEnabled ? foregroundColor : AppColor.textDisabled)
+            .frame(minHeight: AppLayout.primaryControlHeight)
+            .frame(maxWidth: kind == .primary ? .infinity : nil)
+            .padding(.horizontal, AppSpacing.space16)
+            .background(backgroundColor)
+            .overlay {
+                AppRadius.control.stroke(
+                    kind == .secondary ? AppColor.strokeDefault : (kind == .destructive ? AppColor.danger.opacity(0.5) : .clear),
+                    lineWidth: AppStroke.hairline
+                )
+            }
+            .clipShape(AppRadius.control)
             .scaleEffect(reduceMotion || !configuration.isPressed ? 1 : 0.98)
-            .animation(reduceMotion ? nil : .easeOut(duration: AppMotion.quick), value: configuration.isPressed)
+            .animation(reduceMotion ? nil : AppMotion.easeOut(AppMotion.instant), value: configuration.isPressed)
     }
 }
 
-enum AppAppearanceMode: String, CaseIterable, Identifiable {
-    case dark
-    var id: String { rawValue }
-    var title: String { "Dark" }
-    var colorScheme: ColorScheme? { .dark }
-}
+// MARK: - Color helpers
 
 private func hexToRGB(_ value: String) -> (r: Double, g: Double, b: Double) {
     let cleaned = value.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
