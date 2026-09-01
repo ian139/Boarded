@@ -185,7 +185,28 @@ Use **Cormorant Garamond Semibold Italic (weight 600, italic)** under the **SIL 
 - Session-result focal metrics.
 - Personal records.
 
-This is the sole Boarded display serif; do not substitute New York, Canela, Editorial New, or a “comparable” family. Bundle the licensed font files and OFL text in the iOS application. Self-host a subsetted WOFF2 on the Boarded web origin with `font-display: swap`; do not load it from a third-party font CDN. Both platforms expose weight 600 italic only. The fallback chain is `Georgia, "Times New Roman", serif`; fallback is a loading or font-failure behavior, not an alternate approved brand face.
+This is the sole Boarded display serif; do not substitute New York, Canela, Editorial New, or a “comparable” family. Both platforms expose weight 600 italic only. The fallback chain is `Georgia, "Times New Roman", serif`; fallback is a loading or font-failure behavior, not an alternate approved brand face.
+
+#### Deterministic font artifact contract
+
+The canonical input is pinned to `google/fonts` commit `5fcfd99f2fa4422991d29f4adae3f2f4b774f058`: `ofl/cormorantgaramond/CormorantGaramond-Italic[wght].ttf`, blob `0d914e7663b7a1429d06ec60a5c5bb026031a2ef`. Its upstream source commit is `6d210fd3550b7358ca62d6ba3e354ec1ec940813`, and its canonical license source is `ofl/cormorantgaramond/OFL.txt` at the pinned `google/fonts` commit.
+
+Derive only these artifacts from that canonical input:
+
+- **iOS:** `BoardedCormorant-SemiboldItalic.ttf`, a static instance at the 600 weight axis. Rename its internal family to `Boarded Cormorant` and its PostScript name to `BoardedCormorant-SemiboldItalic`. Register the file name in `UIAppFonts`; SwiftUI must address it with `.custom("Boarded Cormorant", size: ...)`.
+- **Web:** `BoardedCormorant-SemiboldItalic-Latin.woff2`, a Latin-subset static instance at the 600 weight axis. Self-host it on the Boarded web origin; do not load it from a third-party font CDN. Its declaration is exactly:
+
+```css
+@font-face {
+  font-family: "Boarded Cormorant";
+  src: url("BoardedCormorant-SemiboldItalic-Latin.woff2") format("woff2");
+  font-weight: 600;
+  font-style: italic;
+  font-display: swap;
+}
+```
+
+Both derived files are modified 600-axis/subset artifacts and must be renamed to remove the OFL Reserved Font Names. This naming, modification, and redistribution contract must satisfy the OFL and its Reserved Font Name requirements. Ship the license text as `licenses/Cormorant-Garamond-OFL.txt`; iOS must bundle it with the application, and web distribution must include it with the self-hosted artifact. When the assets land, record the deterministic generation command or script and the source and output checksums alongside the asset change.
 
 Do not use the serif for:
 
