@@ -34,9 +34,9 @@ PROTECTED_ROUTE_ID = "d2f7e93e-8a59-45a8-b3cb-4d5ef7bd2314"
 NULL_OWNER_ROUTE_ID = "f3c4a8d1-9b62-4f27-8a4c-6e0d2b1f8357"
 INSERTED_ROUTE_ID = "e8a1f57c-6d32-4bd1-9e48-2f0c7a6b9135"
 
-OWNER_EMAIL = "boarded-rls-harness-owner@local.invalid"
-OTHER_EMAIL = "boarded-rls-harness-other@local.invalid"
-ROUTE_MARKER = "__boarded_rls_harness__"
+OWNER_EMAIL = "climbset-rls-harness-owner@local.invalid"
+OTHER_EMAIL = "climbset-rls-harness-other@local.invalid"
+ROUTE_MARKER = "__climbset_rls_harness__"
 
 
 class HarnessError(RuntimeError):

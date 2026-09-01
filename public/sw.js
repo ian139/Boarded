@@ -1,6 +1,6 @@
 const versionParam = new URL(self.location.href).searchParams.get('v') || 'dev';
-const SHELL_CACHE = `boarded-shell-${versionParam}`;
-const IMAGE_CACHE = `boarded-images-${versionParam}`;
+const CACHE_NAME = `boarded-shell-${versionParam}`;
+const IMAGE_CACHE_NAME = `boarded-images-${versionParam}`;
 const SHELL_ROUTES = ['/', '/editor', '/profile', '/settings', '/login', '/signup'];
 const IMMUTABLE_ASSETS = new Set([
   '/manifest.json',
@@ -12,7 +12,7 @@ const IMMUTABLE_ASSETS = new Set([
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(SHELL_CACHE).then((cache) =>
+    caches.open(CACHE_NAME).then((cache) =>
       cache.addAll([...SHELL_ROUTES, ...IMMUTABLE_ASSETS].map((path) => new Request(path)))
     )
   );
@@ -25,10 +25,7 @@ self.addEventListener('activate', (event) => {
       caches.keys().then((keys) =>
         Promise.all(
           keys
-            .filter((key) =>
-              (key.startsWith('boarded-shell-') && key !== SHELL_CACHE) ||
-              (key.startsWith('boarded-images-') && key !== IMAGE_CACHE)
-            )
+            .filter((key) => key !== CACHE_NAME && key !== IMAGE_CACHE_NAME)
             .map((key) => caches.delete(key))
         )
       ),
@@ -43,7 +40,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (request.mode === 'navigate') {
     event.respondWith(
-      caches.open(SHELL_CACHE).then((cache) =>
+      caches.open(CACHE_NAME).then((cache) =>
         fetch(request)
           .then((response) => {
             if (response.ok) void cache.put(request, response.clone());
@@ -66,7 +63,7 @@ self.addEventListener('fetch', (event) => {
     (url.pathname.startsWith('/_next/static/') || IMMUTABLE_ASSETS.has(url.pathname));
 
   if (!isWallImage && !isImmutableAsset) return;
-  const cacheName = isWallImage ? IMAGE_CACHE : SHELL_CACHE;
+  const cacheName = isWallImage ? IMAGE_CACHE_NAME : CACHE_NAME;
   event.respondWith(
     caches.open(cacheName).then((cache) =>
       cache.match(request).then((cached) => {

@@ -96,6 +96,7 @@
 		3CDD09002F5A0E6D00535751 /* WallsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallsViewModel.swift; sourceTree = "<group>"; };
 		AA1100022F5B000100535751 /* WallsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallsRepository.swift; sourceTree = "<group>"; };
 		3CDD09022F5A0F8E00535751 /* WallPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallPickerView.swift; sourceTree = "<group>"; };
+		AA1100112F5B000100535751 /* BoardedUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardedUITests.swift; sourceTree = "<group>"; };
 		AA1100122F5B000100535751 /* BoardedUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BoardedUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA1100402F5B000100535751 /* CormorantGaramond-SemiBoldItalic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "CormorantGaramond-SemiBoldItalic.ttf"; path = "Boarded/CormorantGaramond-SemiBoldItalic.ttf"; sourceTree = "<group>"; };
 		AA1100412F5B000100535751 /* Cormorant-Garamond-OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; name = "Cormorant-Garamond-OFL.txt"; path = "Boarded/Cormorant-Garamond-OFL.txt"; sourceTree = "<group>"; };
