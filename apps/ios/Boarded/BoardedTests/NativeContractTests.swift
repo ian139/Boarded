@@ -1,487 +1,382 @@
 import XCTest
-import UIKit
-import SwiftUI
+import SwiftData
 @testable import Boarded
-#if canImport(Supabase)
-import Supabase
-#endif
+
 @MainActor
 final class NativeContractTests: XCTestCase {
-    func testRouteDecodingUsesCanonicalFieldsAndStringGrades() throws {
-        let route = try decodeRoute(Self.routeJSON())
-        XCTAssertEqual(route.id, "route-1")
-        XCTAssertEqual(route.userId, "user-1")
-        XCTAssertEqual(route.wallId, "wall-1")
-        XCTAssertEqual(route.name, "Canonical Route")
-        XCTAssertNil(route.description)
-        XCTAssertEqual(route.gradeV, "V4")
-        XCTAssertNil(route.gradeFont)
-        XCTAssertEqual(route.holds.count, 1)
-        XCTAssertTrue(route.isPublic)
-        XCTAssertEqual(route.viewCount, 12)
-        XCTAssertEqual(route.shareToken, "share-token")
-        XCTAssertEqual(route.userName, "Setter")
-        XCTAssertEqual(route.wallImageUrl, "https://cdn/wall.jpg")
-        XCTAssertEqual(route.wallImageWidth, 1600)
-        XCTAssertEqual(route.wallImageHeight, 900)
-        XCTAssertEqual(route.likeCount, 4)
-        XCTAssertEqual(route.isLiked, true)
-        XCTAssertEqual(route.ascents.count, 1)
-        XCTAssertEqual(route.ascents[0].gradeV, "V0")
-        XCTAssertEqual(route.comments, [])
+    // MARK: - Decoding
 
-        let encoded = try JSONEncoder().encode(route)
-        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
-        XCTAssertEqual(object["grade_v"] as? String, "V4")
-        XCTAssertEqual(object["wall_image_width"] as? Int, 1600)
-        XCTAssertEqual(object["wall_image_height"] as? Int, 900)
-    }
-
-
-    func testCanonicalGradeLookup() {
-        XCTAssertEqual(VGradeOption.value(for: "VB"), -1)
-        XCTAssertEqual(VGradeOption.value(for: " v7 "), 7)
-        XCTAssertEqual(VGradeOption.label(for: -1), "VB")
-        XCTAssertEqual(VGradeOption.label(for: 7), "V7")
-    }
-
-
-    func testMockRouteSnapshotPatchClearsURLAndDimensionsAtomically() async throws {
-        let repository = MockRoutesRepository(fixture: true)
-        let routes = try await repository.fetchRoutes(userId: nil)
-        let route = try XCTUnwrap(routes.first)
-        let updated = try await repository.updateRoute(
-            id: route.id,
-            patch: RoutePatch(
-                wallSnapshot: RouteWallSnapshotPatch(wallId: "replacement-wall", wallImageUrl: nil, wallImageWidth: nil, wallImageHeight: nil),
-                name: nil,
-                gradeV: nil,
-                holds: nil
-            )
-        )
-        XCTAssertEqual(updated.wallId, "replacement-wall")
-        XCTAssertNil(updated.wallImageUrl)
-        XCTAssertNil(updated.wallImageWidth)
-        XCTAssertNil(updated.wallImageHeight)
-    }
-
-    func testRouteDetailGeometryUsesContainerForInvalidOrMissingDimensions() {
-        let container = CGRect(x: 0, y: 0, width: 400, height: 300)
-        let fitted = RouteDetailGeometry.imageRect(imageWidth: 1000, imageHeight: 500, in: container)
-        XCTAssertEqual(fitted, CGRect(x: 0, y: 50, width: 400, height: 200))
-        let marker = CGPoint(x: fitted.minX + 0.25 * fitted.width, y: fitted.minY + 0.75 * fitted.height)
-        XCTAssertEqual(marker, CGPoint(x: 100, y: 200))
-        XCTAssertEqual(RouteDetailGeometry.imageRect(imageWidth: nil, imageHeight: nil, in: container), container)
-        XCTAssertEqual(RouteDetailGeometry.imageRect(imageWidth: 0, imageHeight: 500, in: container), container)
-    }
-
-    func testAppColorIsDarkOnlyForEverySystemTrait() {
-        let darkTraits = UITraitCollection(userInterfaceStyle: .dark)
-        let lightTraits = UITraitCollection(userInterfaceStyle: .light)
-        for traits in [darkTraits, lightTraits] {
-            assertRGB(UIColor(AppColor.background).resolvedColor(with: traits), red: 10.0 / 255, green: 11.0 / 255, blue: 16.0 / 255)
-            assertRGB(UIColor(AppColor.text).resolvedColor(with: traits), red: 244.0 / 255, green: 242.0 / 255, blue: 235.0 / 255)
-            assertRGB(UIColor(AppColor.primary).resolvedColor(with: traits), red: 50.0 / 255, green: 213.0 / 255, blue: 131.0 / 255)
-        }
-    }
-
-    func testFollowingFeedDecodesCanonicalWireFieldsAndMapsCursor() throws {
-        let data = Data("""
-        [{"route_id":"11111111-1111-4111-8111-111111111111","activity_at":"2026-08-31T12:30:00Z","author_id":"22222222-2222-4222-8222-222222222222","author_username":"mara"}]
-        """.utf8)
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        let item = try XCTUnwrap(try decoder.decode([FollowingFeedItem].self, from: data).first)
-        XCTAssertEqual(item.authorUsername, "mara")
-        XCTAssertEqual(item.cursor.routeId, item.routeId)
-        XCTAssertEqual(item.cursor.activityAt, item.activityAt)
-    }
-
-    func testProfileFollowCountsDecodeBigintJSONNumbers() throws {
-        let counts = try JSONDecoder().decode(
-            [ProfileFollowCounts].self,
-            from: Data("[{\"follower_count\":12,\"following_count\":4}]".utf8)
-        )
-        XCTAssertEqual(counts.first, ProfileFollowCounts(followerCount: 12, followingCount: 4))
-    }
-
-    func testFollowStateTransitionsAfterRepositoryMutation() async {
-        let target = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
-        let viewer = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
-        let model = ProfileViewModel(repository: MockProfileRepository(
-            profile: Profile(
-                id: target.uuidString,
-                username: "fixture",
-                fullName: "Fixture Climber",
-                avatarUrl: nil,
-                bio: nil,
-                createdAt: nil
-            )
-        ))
-        await model.load(userID: target)
-        await model.setFollowing(true, currentUserID: viewer)
-        XCTAssertTrue(model.isFollowing)
-        XCTAssertFalse(model.isUpdatingFollow)
-        await model.setFollowing(false, currentUserID: viewer)
-        XCTAssertFalse(model.isFollowing)
-    }
-
-    func testProfileSwitchClearsContentAndRejectsStaleFollowStatus() async {
-        let first = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
-        let second = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
-        let viewer = UUID(uuidString: "33333333-3333-4333-8333-333333333333")!
-        let repository = ControlledProfileRepository(slowUserID: first)
-        let model = ProfileViewModel(repository: repository)
-        model.setCurrentUserID(viewer)
-
-        let firstLoad = Task { await model.load(userID: first) }
-        try? await Task.sleep(nanoseconds: 20_000_000)
-        let secondLoad = Task { await model.selectAccount(userID: second) }
-        XCTAssertTrue(model.isLoading)
-        XCTAssertNil(model.profile)
-        XCTAssertEqual(model.followCounts.followerCount, 0)
-        await secondLoad.value
-        await firstLoad.value
-
-        XCTAssertEqual(model.selectedUserID, second)
-        XCTAssertEqual(model.profile?.id, second.uuidString)
-        XCTAssertFalse(model.isFollowing)
-    }
-
-    func testSelectedProfileFailureSuppressesIdentityAndSocialActions() async {
-        let viewer = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
-        let unavailable = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
-        let repository = ControlledProfileRepository(failProfileUserID: unavailable)
-        let model = ProfileViewModel(repository: repository)
-        model.setCurrentUserID(viewer)
-
-        await model.load(userID: viewer)
-        await model.selectAccount(userID: unavailable)
-
-        XCTAssertNotNil(model.errorMessage)
-        XCTAssertNil(model.profile)
-        XCTAssertFalse(model.hasLoadedSelectedProfile)
-        XCTAssertEqual(model.followCounts, ProfileFollowCounts(followerCount: 0, followingCount: 0))
-        await model.setFollowing(true, currentUserID: viewer)
-        XCTAssertEqual(repository.followCalls, 0)
-        XCTAssertFalse(model.isFollowing)
-    }
-
-    func testLeaderboardPersistsAcrossSelectionAndMyProfileRestoresPointsLookup() async {
-        let viewer = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
-        let other = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
-        let repository = ControlledProfileRepository(leaderboardUserID: viewer, leaderboardPoints: 42)
-        let model = ProfileViewModel(repository: repository)
-        model.setCurrentUserID(viewer)
-
-        await model.load(userID: viewer)
-        let loadedLeaderboard = model.leaderboard
-        await model.selectAccount(userID: other)
-        XCTAssertEqual(model.leaderboard, loadedLeaderboard)
-
-        await model.myProfile(currentUserID: viewer)
-        XCTAssertEqual(model.selectedUserID, viewer)
-        XCTAssertEqual(model.leaderboard, loadedLeaderboard)
-        XCTAssertEqual(model.points, 42)
-    }
-
-    func testSuccessfulFollowSurvivesFailedCountRefreshAndRetryReconciles() async {
-        let target = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
-        let viewer = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
-        let repository = ControlledProfileRepository(failSecondCountFetch: true)
-        let model = ProfileViewModel(repository: repository)
-        await model.load(userID: target)
-
-        await model.setFollowing(true, currentUserID: viewer)
-        XCTAssertTrue(model.isFollowing)
-        XCTAssertEqual(model.followCounts.followerCount, 1)
-        XCTAssertNotNil(model.followCountsRefreshErrorMessage)
-        XCTAssertNil(model.followErrorMessage)
-
-        await model.retryFollowCounts()
-        XCTAssertTrue(model.isFollowing)
-        XCTAssertEqual(model.followCounts.followerCount, 7)
-        XCTAssertNil(model.followCountsRefreshErrorMessage)
-    }
-
-    func testFeedAccountSwitchClearsRowsAndRejectsStaleCompletion() async {
-        let first = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
-        let second = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
-        let repository = ControlledProfileRepository(slowFeedUserID: first)
-        let model = FollowingFeedViewModel(
-            profileRepository: repository,
-            routesRepository: MockRoutesRepository(),
-            pageSize: 1
-        )
-
-        let firstLoad = Task { await model.load(userID: first) }
-        try? await Task.sleep(nanoseconds: 20_000_000)
-        let secondLoad = Task { await model.load(userID: second) }
-        XCTAssertTrue(model.items.isEmpty)
-        await secondLoad.value
-        await firstLoad.value
-
-        XCTAssertEqual(model.items.first?.authorId, second)
-        await model.load(userID: nil)
-        XCTAssertTrue(model.items.isEmpty)
-        XCTAssertFalse(model.canLoadMore)
-        XCTAssertNil(model.errorMessage)
-    }
-
-    func testPaginationErrorKeepsRowsAndClearsAfterRetry() async {
-        let user = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
-        let repository = ControlledProfileRepository(failFirstPagination: true)
-        let model = FollowingFeedViewModel(
-            profileRepository: repository,
-            routesRepository: MockRoutesRepository(),
-            pageSize: 1
-        )
-        await model.load(userID: user)
-        let initial = model.items
-
-        await model.loadMore(userID: user)
-        XCTAssertEqual(model.items, initial)
-        XCTAssertNotNil(model.paginationErrorMessage)
-        await model.loadMore(userID: user)
-        XCTAssertEqual(model.items.count, 2)
-        XCTAssertNil(model.paginationErrorMessage)
-    }
-
-    func testEditorGeometryUsesModestInitialZoomForMismatchedAspectRatios() {
-        let canvas = CGSize(width: 400, height: 300)
-        let nearMatchingImage = EditorHoldGeometry.initialImageRect(
-            imageAspectRatio: 1.2,
-            in: canvas
-        )
-        XCTAssertEqual(nearMatchingImage.minX, 0, accuracy: 0.001)
-        XCTAssertEqual(nearMatchingImage.width, 400, accuracy: 0.001)
-        XCTAssertEqual(nearMatchingImage.height, 333.333, accuracy: 0.001)
-
-        let extremePortraitImage = EditorHoldGeometry.initialImageRect(
-            imageAspectRatio: 0.5,
-            in: canvas
-        )
-        XCTAssertEqual(extremePortraitImage.width, 202.5, accuracy: 0.001)
-        XCTAssertEqual(extremePortraitImage.height, 405, accuracy: 0.001)
-        XCTAssertEqual(
-            extremePortraitImage.height / 300,
-            EditorHoldGeometry.maximumInitialImageScale,
-            accuracy: 0.001
-        )
-    }
-
-    func testWallUploadObjectPathUsesAuthenticatedOwnerPrefix() {
-        let userID = UUID(uuidString: "AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA")!
-        XCTAssertEqual(
-            wallUploadObjectPath(userId: userID, wallId: "wall-1", fileName: "upload.jpg"),
-            "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/wall-1/upload.jpg"
-        )
-    }
-
-    func testConsolidatedGradeRanksAndCanonicalDisplay() {
-        XCTAssertEqual(ProfileStatistics.gradeRank("VB"), 0)
-        XCTAssertEqual(ProfileStatistics.gradeRank(" v17 "), 18)
-        XCTAssertEqual(ProfileStatistics.gradeRank("V18"), -1)
-        XCTAssertEqual(ProfileStatistics.displayGrade(setterGrade: "v0", ascentGrades: []), "V0")
-        XCTAssertEqual(ProfileStatistics.displayGrade(setterGrade: "V0", ascentGrades: ["V2"]), "V1")
-        XCTAssertNil(ProfileStatistics.displayGrade(setterGrade: "V18", ascentGrades: ["unknown"]))
-    }
-
-#if canImport(Supabase)
-    func testRepositoryEnrichmentHandlesAbsentEqualAndDifferentSnapshotURLs() {
-        let repository = SupabaseRoutesRepository(client: nil)
-        let absent = repository.enrichRouteSnapshot(
-            Self.makeRoute(imageURL: nil, width: nil, height: nil),
-            wallImageById: ["wall": WallImageRecord(id: "wall", imageUrl: "https://cdn/wall.jpg", imageWidth: 1200, imageHeight: 800)]
-        )
-        XCTAssertEqual(absent.wallImageUrl, "https://cdn/wall.jpg")
-        XCTAssertEqual(absent.wallImageWidth, 1200)
-        XCTAssertEqual(absent.wallImageHeight, 800)
-
-        let equal = repository.enrichRouteSnapshot(
-            Self.makeRoute(imageURL: "  https://cdn/wall.jpg  ", width: nil, height: 700),
-            wallImageById: ["wall": WallImageRecord(id: "wall", imageUrl: "https://cdn/wall.jpg", imageWidth: 1200, imageHeight: 800)]
-        )
-        XCTAssertEqual(equal.wallImageUrl, "  https://cdn/wall.jpg  ")
-        XCTAssertEqual(equal.wallImageWidth, 1200)
-        XCTAssertEqual(equal.wallImageHeight, 700)
-
-        let different = repository.enrichRouteSnapshot(
-            Self.makeRoute(imageURL: "https://historical/wall.jpg", width: nil, height: nil),
-            wallImageById: ["wall": WallImageRecord(id: "wall", imageUrl: "https://cdn/wall.jpg", imageWidth: 1200, imageHeight: 800)]
-        )
-        XCTAssertEqual(different.wallImageUrl, "https://historical/wall.jpg")
-        XCTAssertNil(different.wallImageWidth)
-        XCTAssertNil(different.wallImageHeight)
-    }
-
-    func testSnapshotPatchPayloadDistinguishesAbsentFromExplicitNulls() throws {
-        let absent = try JSONSerialization.jsonObject(
-            with: JSONEncoder().encode(patchPayload(from: RoutePatch(wallSnapshot: nil, name: nil, gradeV: nil, holds: nil)))
-        ) as? [String: Any]
-        XCTAssertNil(absent?["wall_id"])
-        XCTAssertNil(absent?["wall_image_url"])
-
-        let clearing = try JSONSerialization.jsonObject(
-            with: JSONEncoder().encode(patchPayload(from: RoutePatch(
-                wallSnapshot: RouteWallSnapshotPatch(wallId: "wall-2", wallImageUrl: nil, wallImageWidth: nil, wallImageHeight: nil),
-                name: nil,
-                gradeV: nil,
-                holds: nil
-            )))
-        ) as? [String: Any]
-        XCTAssertEqual(clearing?["wall_id"] as? String, "wall-2")
-        XCTAssertTrue(clearing?["wall_image_url"] is NSNull)
-        XCTAssertTrue(clearing?["wall_image_width"] is NSNull)
-        XCTAssertTrue(clearing?["wall_image_height"] is NSNull)
-    }
-#endif
-
-    private func assertRGB(
-        _ color: UIColor,
-        red: CGFloat,
-        green: CGFloat,
-        blue: CGFloat,
-        file: StaticString = #filePath,
-        line: UInt = #line
-    ) {
-        var actualRed: CGFloat = 0
-        var actualGreen: CGFloat = 0
-        var actualBlue: CGFloat = 0
-        var actualAlpha: CGFloat = 0
-        XCTAssertTrue(
-            color.getRed(&actualRed, green: &actualGreen, blue: &actualBlue, alpha: &actualAlpha),
-            "Expected an RGB color, got \(color)",
-            file: file,
-            line: line
-        )
-        XCTAssertEqual(actualRed, red, accuracy: 0.001, file: file, line: line)
-        XCTAssertEqual(actualGreen, green, accuracy: 0.001, file: file, line: line)
-        XCTAssertEqual(actualBlue, blue, accuracy: 0.001, file: file, line: line)
-    }
-
-    private func decodeRoute(_ json: String) throws -> Route {
-        try JSONDecoder().decode(Route.self, from: Data(json.utf8))
-    }
-
-    private static func makeRoute(imageURL: String?, width: Int?, height: Int?) -> Route {
-        Route(
-            id: "route", userId: nil, wallId: "wall", name: "Route", description: nil,
-            gradeV: "V1", gradeFont: nil, holds: [], isPublic: true, viewCount: 0,
-            shareToken: nil, createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z",
-            userName: nil, wallImageUrl: imageURL, wallImageWidth: width, wallImageHeight: height,
-            likeCount: nil, isLiked: nil, ascents: [], comments: []
-        )
-    }
-
-    private static func routeJSON() -> String {
-        """
+    func testSendFeedItemDecodesCanonicalWireFields() throws {
+        let json = """
         {
-          "id":"route-1","user_id":"user-1","wall_id":"wall-1","name":"Canonical Route",
-          "description":null,"grade_v":"V4","grade_font":null,
-          "holds":[{"id":"hold-1","x":20,"y":30,"type":"hand","color":"#FFFFFF","size":"medium","radius":8,"notes":null}],
-          "is_public":true,"view_count":12,"share_token":"share-token",
-          "created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z",
-          "user_name":"Setter","wall_image_url":"https://cdn/wall.jpg",
-          "wall_image_width":1600,"wall_image_height":900,"like_count":4,"is_liked":true,
-          "ascents":[{"id":"ascent-1","route_id":"route-1","user_id":"user-1","user_name":"Climber","grade_v":"V0","rating":null,"notes":null,"flashed":true,"created_at":"2026-01-02T00:00:00Z"}],
-          "comments":[]
+          "id": "11111111-1111-4111-8111-111111111111",
+          "user_id": "22222222-2222-4222-8222-222222222222",
+          "attempt_id": "33333333-3333-4333-8333-333333333333",
+          "caption": "First of the grade",
+          "image_path": null,
+          "image_alt": null,
+          "created_at": "2026-08-31T12:30:00Z",
+          "updated_at": "2026-08-31T12:30:00Z",
+          "author": {
+            "id": "22222222-2222-4222-8222-222222222222",
+            "username": "mara",
+            "full_name": "Mara Climber",
+            "avatar_url": null,
+            "bio": null,
+            "home_area": "Boulder"
+          },
+          "attempt": {
+            "id": "33333333-3333-4333-8333-333333333333",
+            "board_route_id": null,
+            "route_name": "North Arete",
+            "discipline": "boulder",
+            "grade_system": "v_scale",
+            "grade_label": "V6",
+            "outcome": "sent",
+            "attempt_number": 3,
+            "occurred_at": "2026-08-31T12:20:00Z",
+            "created_at": "2026-08-31T12:20:00Z"
+          },
+          "like_count": 4,
+          "comment_count": 2,
+          "is_liked": true
         }
         """
+        let item = try JSONDecoder().boarded().decode(SendFeedItem.self, from: Data(json.utf8))
+        XCTAssertEqual(item.author.username, "mara")
+        XCTAssertEqual(item.author.homeArea, "Boulder")
+        XCTAssertEqual(item.attempt.gradeLabel, "V6")
+        XCTAssertEqual(item.attempt.discipline, .boulder)
+        XCTAssertEqual(item.attempt.gradeSystem, .vScale)
+        XCTAssertEqual(item.attempt.outcome, .sent)
+        XCTAssertEqual(item.likeCount, 4)
+        XCTAssertEqual(item.commentCount, 2)
+        XCTAssertTrue(item.isLiked)
+    }
+
+    func testClimbAttemptDecodesSnakeCaseAndEnums() throws {
+        let json = """
+        {
+          "id": "11111111-1111-4111-8111-111111111111",
+          "session_id": "22222222-2222-4222-8222-222222222222",
+          "user_id": "33333333-3333-4333-8333-333333333333",
+          "board_route_id": null,
+          "route_name": "Slab",
+          "discipline": "top_rope",
+          "grade_system": "yds",
+          "grade_label": "5.10a",
+          "outcome": "fell",
+          "attempt_number": 2,
+          "notes": "foot slip",
+          "occurred_at": "2026-08-31T12:20:00Z",
+          "created_at": "2026-08-31T12:20:00Z"
+        }
+        """
+        let attempt = try JSONDecoder().boarded().decode(ClimbAttempt.self, from: Data(json.utf8))
+        XCTAssertEqual(attempt.discipline, .topRope)
+        XCTAssertEqual(attempt.gradeSystem, .yds)
+        XCTAssertEqual(attempt.outcome, .fell)
+        XCTAssertEqual(attempt.notes, "foot slip")
+    }
+
+    func testProfileDecodesHomeArea() throws {
+        let json = """
+        {
+          "id": "11111111-1111-4111-8111-111111111111",
+          "username": "mara",
+          "full_name": "Mara Climber",
+          "avatar_url": null,
+          "bio": null,
+          "home_area": "Boulder",
+          "created_at": "2026-01-01T00:00:00Z"
+        }
+        """
+        let profile = try JSONDecoder().boarded().decode(Profile.self, from: Data(json.utf8))
+        XCTAssertEqual(profile.homeArea, "Boulder")
+        XCTAssertEqual(profile.displayName, "Mara Climber")
+    }
+
+    // MARK: - Sent-only eligibility
+
+    func testOnlySentAttemptsAreSendEligible() {
+        XCTAssertTrue(attempt(outcome: .sent).isSendEligible)
+        XCTAssertFalse(attempt(outcome: .fell).isSendEligible)
+        XCTAssertFalse(attempt(outcome: .stopped).isSendEligible)
+    }
+
+    // MARK: - Grade statistics
+
+    func testGradeStatsSendRateAndBestGrade() {
+        let attempts = [
+            attempt(outcome: .sent, label: "V3"),
+            attempt(outcome: .sent, label: "V7"),
+            attempt(outcome: .fell, label: "V10")
+        ]
+        let stats = ProfileStatisticsCalculator.calculate(sessions: [session()], attempts: attempts)
+        XCTAssertEqual(stats.sendCount, 2)
+        XCTAssertEqual(stats.attemptCount, 3)
+        XCTAssertEqual(stats.sendRate ?? 0, 2.0 / 3.0, accuracy: 0.0001)
+        XCTAssertEqual(stats.bestGrade?.label, "V7")
+    }
+
+    // MARK: - Session transitions
+
+    func testSessionLoggerTransitionsAndPersists() async throws {
+        let context = try makeContext()
+        let repository = MockSessionRepository()
+        let sync = SessionSyncService(repository: repository, modelContext: context)
+        let viewModel = SessionLoggerViewModel(modelContext: context, syncService: sync, userId: userID)
+
+        viewModel.startSession(venueName: "Gym")
+        XCTAssertTrue(viewModel.isActive)
+        XCTAssertNotNil(viewModel.activeSession)
+
+        viewModel.recordAttempt(
+            routeName: "Slab",
+            discipline: .boulder,
+            gradeSystem: .vScale,
+            gradeLabel: "V4",
+            outcome: .sent,
+            notes: nil
+        )
+        XCTAssertEqual(viewModel.attempts.count, 1)
+
+        viewModel.endSession()
+        XCTAssertFalse(viewModel.isActive)
+        XCTAssertNil(viewModel.activeSession)
+        XCTAssertTrue(viewModel.attempts.isEmpty)
+
+        let pendingSessions = try context.fetch(FetchDescriptor<PendingSession>())
+        let pendingAttempts = try context.fetch(FetchDescriptor<PendingAttempt>())
+        XCTAssertEqual(pendingSessions.count, 1)
+        XCTAssertEqual(pendingAttempts.count, 1)
+    }
+
+    // MARK: - Optimistic rollback
+
+    func testFeedLikeRollsBackOnFailure() async {
+        let item = feedItem()
+        let repository = FailingLikeFeedRepository(items: [item])
+        let viewModel = HomeFeedViewModel(repository: repository, pageSize: 20)
+        await viewModel.load()
+        XCTAssertEqual(viewModel.items.count, 1)
+        let before = viewModel.items[0]
+
+        await viewModel.toggleLike(postID: item.id)
+        XCTAssertEqual(viewModel.items[0], before)
+    }
+
+    // MARK: - Meetup capacity and open-state semantics
+
+    func testMeetupJoinEnforcesCapacityCancelledPastAndOrganizer() async throws {
+        let organizer = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
+        let joiner = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+
+        let full = Meetup(
+            id: UUID(), organizerId: organizer, title: "Full", description: "d", venueName: "v",
+            area: "a", startsAt: now.addingTimeInterval(3600), endsAt: nil, capacity: 2,
+            status: .scheduled, createdAt: now, updatedAt: now
+        )
+        let cancelled = Meetup(
+            id: UUID(), organizerId: organizer, title: "Cancelled", description: "d", venueName: "v",
+            area: "a", startsAt: now.addingTimeInterval(3600), endsAt: nil, capacity: nil,
+            status: .cancelled, createdAt: now, updatedAt: now
+        )
+        let past = Meetup(
+            id: UUID(), organizerId: organizer, title: "Past", description: "d", venueName: "v",
+            area: "a", startsAt: now.addingTimeInterval(-3600), endsAt: nil, capacity: nil,
+            status: .scheduled, createdAt: now, updatedAt: now
+        )
+        let own = Meetup(
+            id: UUID(), organizerId: joiner, title: "Own", description: "d", venueName: "v",
+            area: "a", startsAt: now.addingTimeInterval(3600), endsAt: nil, capacity: nil,
+            status: .scheduled, createdAt: now, updatedAt: now
+        )
+
+        let repository = MockMeetupRepository(
+            meetups: [full, cancelled, past, own],
+            currentUserID: joiner,
+            now: now
+        )
+
+        _ = try await repository.joinMeetup(id: full.id)
+        do {
+            _ = try await repository.joinMeetup(id: full.id)
+            XCTFail("Expected idempotent re-join, not a capacity error")
+        } catch let error as MeetupRepositoryError {
+            XCTAssertEqual(error, .full)
+        }
+
+        do {
+            _ = try await repository.joinMeetup(id: cancelled.id)
+            XCTFail("Expected cancelled error")
+        } catch let error as MeetupRepositoryError {
+            XCTAssertEqual(error, .cancelled)
+        }
+
+        do {
+            _ = try await repository.joinMeetup(id: past.id)
+            XCTFail("Expected past error")
+        } catch let error as MeetupRepositoryError {
+            XCTAssertEqual(error, .past)
+        }
+
+        do {
+            _ = try await repository.joinMeetup(id: own.id)
+            XCTFail("Expected organizer error")
+        } catch let error as MeetupRepositoryError {
+            XCTAssertEqual(error, .organizerJoin)
+        }
+    }
+
+    // MARK: - Draft persistence
+
+    func testDraftImageStoreRoundTrip() throws {
+        let fileName = "test-\(UUID().uuidString).jpg"
+        let data = Data([0x01, 0x02, 0x03])
+        let url = try DraftImageStore.write(data, fileName: fileName)
+        XCTAssertEqual(try Data(contentsOf: url), data)
+        XCTAssertEqual(DraftImageStore.read(fileName: fileName), data)
+        DraftImageStore.delete(fileName: fileName)
+        XCTAssertNil(DraftImageStore.read(fileName: fileName))
+    }
+
+    // MARK: - Offline replay and idempotency
+
+    func testReplayIsIdempotentAndNeverLosesAttempts() async throws {
+        let context = try makeContext()
+        let repository = MockSessionRepository()
+        let sync = SessionSyncService(repository: repository, modelContext: context)
+
+        let pendingSession = PendingSession(
+            id: UUID(uuidString: "11111111-1111-4111-8111-111111111111")!,
+            userId: userID,
+            venueName: "Gym",
+            startedAt: Date(timeIntervalSince1970: 100),
+            endedAt: Date(timeIntervalSince1970: 200)
+        )
+        let pendingAttempt = PendingAttempt(
+            id: UUID(uuidString: "22222222-2222-4222-8222-222222222222")!,
+            sessionId: pendingSession.id,
+            userId: userID,
+            boardRouteId: nil,
+            routeName: "Slab",
+            discipline: .boulder,
+            gradeSystem: .vScale,
+            gradeLabel: "V4",
+            outcome: .sent,
+            attemptNumber: 1,
+            notes: nil,
+            occurredAt: Date(timeIntervalSince1970: 150)
+        )
+        try sync.enqueue(session: pendingSession)
+        try sync.enqueue(attempt: pendingAttempt)
+
+        await sync.replay()
+        XCTAssertEqual(sync.state, .synced)
+        XCTAssertEqual(try await repository.fetchSessions(userID: userID).count, 1)
+        XCTAssertEqual(try await repository.fetchAttempts(sessionID: pendingSession.id).count, 1)
+
+        await sync.replay()
+        XCTAssertEqual(try await repository.fetchSessions(userID: userID).count, 1)
+        XCTAssertEqual(try await repository.fetchAttempts(sessionID: pendingSession.id).count, 1)
+    }
+
+    // MARK: - Helpers
+
+    private let userID = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
+
+    private func makeContext() throws -> ModelContext {
+        let schema = Schema([PendingSession.self, PendingAttempt.self, PendingSendDraft.self])
+        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: schema, configurations: [config])
+        return ModelContext(container)
+    }
+
+    private func session() -> ClimbingSession {
+        ClimbingSession(
+            id: UUID(uuidString: "00000000-0000-4000-8000-000000000001")!,
+            userId: userID,
+            venueName: "Gym",
+            startedAt: Date(timeIntervalSince1970: 100),
+            endedAt: Date(timeIntervalSince1970: 200),
+            createdAt: Date(timeIntervalSince1970: 100),
+            updatedAt: Date(timeIntervalSince1970: 200)
+        )
+    }
+
+    private func attempt(outcome: AttemptOutcome, label: String = "V3") -> ClimbAttempt {
+        ClimbAttempt(
+            id: UUID(),
+            sessionId: UUID(uuidString: "00000000-0000-4000-8000-000000000001")!,
+            userId: userID,
+            boardRouteId: nil,
+            routeName: "Route",
+            discipline: .boulder,
+            gradeSystem: .vScale,
+            gradeLabel: label,
+            outcome: outcome,
+            attemptNumber: 1,
+            notes: nil,
+            occurredAt: Date(timeIntervalSince1970: 150),
+            createdAt: Date(timeIntervalSince1970: 150)
+        )
+    }
+
+    private func feedItem() -> SendFeedItem {
+        SendFeedItem(
+            id: UUID(uuidString: "11111111-1111-4111-8111-111111111111")!,
+            userId: userID,
+            attemptId: UUID(uuidString: "33333333-3333-4333-8333-333333333333")!,
+            caption: nil,
+            imagePath: nil,
+            imageAlt: nil,
+            createdAt: Date(timeIntervalSince1970: 100),
+            updatedAt: Date(timeIntervalSince1970: 100),
+            author: FeedAuthor(id: userID, username: "mara", fullName: nil, avatarUrl: nil, bio: nil, homeArea: nil),
+            attempt: FeedAttempt(
+                id: UUID(uuidString: "33333333-3333-4333-8333-333333333333")!,
+                boardRouteId: nil,
+                routeName: "Slab",
+                discipline: .boulder,
+                gradeSystem: .vScale,
+                gradeLabel: "V4",
+                outcome: .sent,
+                attemptNumber: 1,
+                occurredAt: Date(timeIntervalSince1970: 90),
+                createdAt: Date(timeIntervalSince1970: 90)
+            ),
+            likeCount: 0,
+            commentCount: 0,
+            isLiked: false
+        )
     }
 }
 
-@MainActor
-private final class ControlledProfileRepository: ProfileRepository {
-    private let slowUserID: UUID?
-    private let slowFeedUserID: UUID?
-    private let failSecondCountFetch: Bool
-    private let failFirstPagination: Bool
-    private let failProfileUserID: UUID?
-    private let leaderboardUserID: UUID?
-    private let leaderboardPoints: Int
-    private(set) var followCalls = 0
-    private var countFetches = 0
-    private var feedFetches = 0
+/// A feed repository whose like toggle always fails, used to verify rollback.
+private final class FailingLikeFeedRepository: FeedRepository, @unchecked Sendable {
+    private let items: [SendFeedItem]
 
-    init(
-        slowUserID: UUID? = nil,
-        slowFeedUserID: UUID? = nil,
-        failSecondCountFetch: Bool = false,
-        failFirstPagination: Bool = false,
-        failProfileUserID: UUID? = nil,
-        leaderboardUserID: UUID? = nil,
-        leaderboardPoints: Int = 0
-    ) {
-        self.slowUserID = slowUserID
-        self.slowFeedUserID = slowFeedUserID
-        self.failSecondCountFetch = failSecondCountFetch
-        self.failFirstPagination = failFirstPagination
-        self.failProfileUserID = failProfileUserID
-        self.leaderboardUserID = leaderboardUserID
-        self.leaderboardPoints = leaderboardPoints
+    init(items: [SendFeedItem]) {
+        self.items = items
     }
 
-    func fetchProfile(userID: UUID) async throws -> Profile? {
-        if userID == slowUserID { try await Task.sleep(nanoseconds: 150_000_000) }
-        if userID == failProfileUserID { throw ProfileRepositoryError.unavailable }
-        return Profile(id: userID.uuidString, username: "climber", fullName: nil, avatarUrl: nil, bio: nil, createdAt: nil)
+    func fetchFeed(cursor: FeedCursor?, authorFilter: UUID?, pageSize: Int) async throws -> FeedPage {
+        FeedPage(items: items, nextCursor: nil, hasMore: false)
     }
 
-    func fetchLeaderboard() async throws -> [ProfileLeaderboardEntry] {
-        guard let leaderboardUserID else { return [] }
-        return [
-            ProfileLeaderboardEntry(
-                id: leaderboardUserID.uuidString,
-                displayName: "Leaderboard Climber",
-                points: leaderboardPoints,
-                sendsCount: 0,
-                highestGrade: nil,
-                profile: nil
-            )
-        ]
-    }
-    func fetchClimbHistory(userID: UUID) async throws -> [ProfileClimbHistoryItem] { [] }
-    func fetchMetrics(userID: UUID) async throws -> ProfileMetrics { ProfileMetrics(routesCount: 2, likesCount: 3) }
+    func fetchComments(postID: UUID) async throws -> [SendPostComment] { [] }
 
-    func fetchFollowCounts(profileID: UUID) async throws -> ProfileFollowCounts {
-        countFetches += 1
-        if failSecondCountFetch && countFetches == 2 { throw ProfileRepositoryError.unavailable }
-        return ProfileFollowCounts(followerCount: failSecondCountFetch && countFetches > 2 ? 7 : 0, followingCount: 0)
+    func createComment(postID: UUID, content: String) async throws -> SendPostComment {
+        throw FeedRepositoryError.unavailable
     }
 
-    func isFollowing(profileID: UUID, followerID: UUID) async throws -> Bool {
-        if profileID == slowUserID { try await Task.sleep(nanoseconds: 150_000_000) }
-        return profileID == slowUserID
+    func toggleLike(postID: UUID) async throws -> Bool {
+        throw FeedRepositoryError.unavailable
     }
 
-    func follow(profileID: UUID, followerID: UUID) async throws {
-        followCalls += 1
-    }
-    func unfollow(profileID: UUID, followerID: UUID) async throws {}
-
-    func fetchFollowingFeed(cursor: FollowingFeedCursor?, limit: Int) async throws -> [FollowingFeedItem] {
-        feedFetches += 1
-        if cursor != nil, failFirstPagination, feedFetches == 2 {
-            throw ProfileRepositoryError.unavailable
-        }
-        let author = slowFeedUserID ?? UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
-        if cursor == nil, author == slowFeedUserID, feedFetches == 1 {
-            try await Task.sleep(nanoseconds: 150_000_000)
-        }
-        let effectiveAuthor: UUID
-        if slowFeedUserID != nil, feedFetches > 1 {
-            effectiveAuthor = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
-        } else {
-            effectiveAuthor = author
-        }
-        return [
-            FollowingFeedItem(
-                routeId: UUID(),
-                activityAt: Date().addingTimeInterval(TimeInterval(-feedFetches)),
-                authorId: effectiveAuthor,
-                authorUsername: "climber"
-            )
-        ]
+    func createPost(attemptID: UUID, caption: String?, imagePath: String?, imageAlt: String?) async throws -> SendPost {
+        throw FeedRepositoryError.unavailable
     }
 }

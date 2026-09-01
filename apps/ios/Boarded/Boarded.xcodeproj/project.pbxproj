@@ -7,8 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		3CDD08882F59FBB600535751 /* RouteModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD08742F59FBB600535751 /* RouteModels.swift */; };
-		3CDD08892F59FBB600535751 /* RoutesRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD08762F59FBB600535751 /* RoutesRepository.swift */; };
 		3CDD08922F59FBD700535751 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD08902F59FBD700535751 /* Theme.swift */; };
 		3CDD08962F59FD5E00535751 /* BoardedApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD08942F59FD5E00535751 /* BoardedApp.swift */; };
 		3CDD08982F59FD5E00535751 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3CDD08932F59FD5E00535751 /* Assets.xcassets */; };
@@ -23,32 +21,26 @@
 		3CDD08D52F5A06EE00535751 /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = 3CDD08D42F5A06EE00535751 /* PostgREST */; };
 		3CDD08D72F5A06EE00535751 /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = 3CDD08D62F5A06EE00535751 /* Realtime */; };
 		3CDD08D92F5A06EE00535751 /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = 3CDD08D82F5A06EE00535751 /* Storage */; };
-		3CDD08ED2F5A072900535751 /* RouteRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD08E52F5A072900535751 /* RouteRow.swift */; };
-		AA1100302F5B000100535751 /* LogClimbSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1100312F5B000100535751 /* LogClimbSheet.swift */; };
 		3CDD08EE2F5A072900535751 /* SearchField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD08EA2F5A072900535751 /* SearchField.swift */; };
-		3CDD08EF2F5A072900535751 /* RoutesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD08E62F5A072900535751 /* RoutesView.swift */; };
-		3CDD08F12F5A072900535751 /* RouteDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD08E42F5A072900535751 /* RouteDetailView.swift */; };
-		3CDD08F22F5A072900535751 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD08E22F5A072900535751 /* SettingsView.swift */; };
-		3CDD08F32F5A072900535751 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD08E12F5A072900535751 /* ProfileView.swift */; };
 		3CDD08F52F5A072900535751 /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD08E82F5A072900535751 /* EmptyStateView.swift */; };
-		3CDD08F62F5A072900535751 /* EditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD08DF2F5A072900535751 /* EditorView.swift */; };
-		3CDD08FC2F5A0A0300535751 /* RoutesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD08FA2F5A0A0300535751 /* RoutesViewModel.swift */; };
-		3CDD08FD2F5A0A0300535751 /* CommentsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD08F82F5A0A0300535751 /* CommentsViewModel.swift */; };
-		3CDD08FE2F5A0A0300535751 /* ProfileViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD08F92F5A0A0300535751 /* ProfileViewModel.swift */; };
 		3CDD08FF2F5A0A0300535751 /* AppSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD08F72F5A0A0300535751 /* AppSession.swift */; };
 		3CDD09152F5A200100535751 /* ProfileStatisticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD09142F5A200100535751 /* ProfileStatisticsTests.swift */; };
-		3CDD09172F5A200100535751 /* HoldRadiusTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD09162F5A200100535751 /* HoldRadiusTests.swift */; };
 		AA1100202F5B000100535751 /* NativeContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1100212F5B000100535751 /* NativeContractTests.swift */; };
-		3CDD09012F5A0E6D00535751 /* WallsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD09002F5A0E6D00535751 /* WallsViewModel.swift */; };
-		3CDD09042F5A0F8E00535751 /* WallPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD09022F5A0F8E00535751 /* WallPickerView.swift */; };
-		AA1100012F5B000100535751 /* WallsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1100022F5B000100535751 /* WallsRepository.swift */; };
-		AA1100102F5B000100535751 /* BoardedUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1100112F5B000100535751 /* BoardedUITests.swift */; };
 		AA1100422F5B000100535751 /* CormorantGaramond-SemiBoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = AA1100402F5B000100535751 /* CormorantGaramond-SemiBoldItalic.ttf */; };
 		AA1100432F5B000100535751 /* Cormorant-Garamond-OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = AA1100412F5B000100535751 /* Cormorant-Garamond-OFL.txt */; };
-		BB2200012F5C000100535751 /* AttemptModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2200112F5C000100535751 /* AttemptModels.swift */; };
-		BB2200022F5C000100535751 /* AttemptRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2200122F5C000100535751 /* AttemptRepository.swift */; };
 		BB2200032F5C000100535751 /* BoardedPrimitives.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2200132F5C000100535751 /* BoardedPrimitives.swift */; };
-		BB2200042F5C000100535751 /* LogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2200142F5C000100535751 /* LogView.swift */; };
+		CC1100022F5D000100535751 /* SocialModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC1100012F5D000100535751 /* SocialModels.swift */; };
+		CC1100042F5D000100535751 /* GradeCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC1100032F5D000100535751 /* GradeCatalog.swift */; };
+		CC1100062F5D000100535751 /* AppServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC1100052F5D000100535751 /* AppServices.swift */; };
+		CC1100082F5D000100535751 /* SessionRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC1100072F5D000100535751 /* SessionRepository.swift */; };
+		CC11000A2F5D000100535751 /* FeedRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC1100092F5D000100535751 /* FeedRepository.swift */; };
+		CC11000C2F5D000100535751 /* MeetupRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC11000B2F5D000100535751 /* MeetupRepository.swift */; };
+		CC11000E2F5D000100535751 /* SessionSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC11000D2F5D000100535751 /* SessionSyncService.swift */; };
+		CC1100102F5D000100535751 /* PendingModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC11000F2F5D000100535751 /* PendingModels.swift */; };
+		CC1100122F5D000100535751 /* HomeFeedViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC1100112F5D000100535751 /* HomeFeedViewModel.swift */; };
+		CC1100142F5D000100535751 /* SessionLoggerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC1100132F5D000100535751 /* SessionLoggerViewModel.swift */; };
+		CC1100162F5D000100535751 /* PostDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC1100152F5D000100535751 /* PostDetailViewModel.swift */; };
+		CC1100182F5D000100535751 /* MeetupsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC1100172F5D000100535751 /* MeetupsViewModel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -59,19 +51,10 @@
 			remoteGlobalIDString = 3CDD08222F59F69800535751;
 			remoteInfo = Boarded;
 		};
-		AA1100192F5B000100535751 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 3CDD081B2F59F69800535751 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 3CDD08222F59F69800535751;
-			remoteInfo = Boarded;
-		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		3CDD08232F59F69900535751 /* Boarded.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Boarded.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		3CDD08742F59FBB600535751 /* RouteModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteModels.swift; sourceTree = "<group>"; };
-		3CDD08762F59FBB600535751 /* RoutesRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutesRepository.swift; sourceTree = "<group>"; };
 		3CDD08902F59FBD700535751 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Theme.swift; path = Boarded/Theme.swift; sourceTree = "<group>"; };
 		3CDD08932F59FD5E00535751 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = Boarded/Assets.xcassets; sourceTree = "<group>"; };
 		3CDD08942F59FD5E00535751 /* BoardedApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BoardedApp.swift; path = Boarded/BoardedApp.swift; sourceTree = "<group>"; };
@@ -80,34 +63,27 @@
 		3CDD09122F5A200100535751 /* ProfileStatistics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileStatistics.swift; sourceTree = "<group>"; };
 		3CDD08C82F5A064A00535751 /* SupabaseConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseConfig.swift; sourceTree = "<group>"; };
 		3CDD08CA2F5A067100535751 /* ProfileModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileModels.swift; sourceTree = "<group>"; };
-		3CDD08DF2F5A072900535751 /* EditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorView.swift; sourceTree = "<group>"; };
-		3CDD08E12F5A072900535751 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
-		3CDD08E22F5A072900535751 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
-		3CDD08E42F5A072900535751 /* RouteDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteDetailView.swift; sourceTree = "<group>"; };
-		3CDD08E52F5A072900535751 /* RouteRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteRow.swift; sourceTree = "<group>"; };
-		AA1100312F5B000100535751 /* LogClimbSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogClimbSheet.swift; sourceTree = "<group>"; };
-		3CDD08E62F5A072900535751 /* RoutesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutesView.swift; sourceTree = "<group>"; };
 		3CDD08E82F5A072900535751 /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
 		3CDD08EA2F5A072900535751 /* SearchField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchField.swift; sourceTree = "<group>"; };
 		3CDD09142F5A200100535751 /* ProfileStatisticsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileStatisticsTests.swift; sourceTree = "<group>"; };
-		3CDD09162F5A200100535751 /* HoldRadiusTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoldRadiusTests.swift; sourceTree = "<group>"; };
 		AA1100212F5B000100535751 /* NativeContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeContractTests.swift; sourceTree = "<group>"; };
 		3CDD09192F5A200100535751 /* BoardedTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BoardedTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3CDD08F72F5A0A0300535751 /* AppSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSession.swift; sourceTree = "<group>"; };
-		3CDD08F82F5A0A0300535751 /* CommentsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommentsViewModel.swift; sourceTree = "<group>"; };
-		3CDD08F92F5A0A0300535751 /* ProfileViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileViewModel.swift; sourceTree = "<group>"; };
-		3CDD08FA2F5A0A0300535751 /* RoutesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutesViewModel.swift; sourceTree = "<group>"; };
-		3CDD09002F5A0E6D00535751 /* WallsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallsViewModel.swift; sourceTree = "<group>"; };
-		AA1100022F5B000100535751 /* WallsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallsRepository.swift; sourceTree = "<group>"; };
-		3CDD09022F5A0F8E00535751 /* WallPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallPickerView.swift; sourceTree = "<group>"; };
-		AA1100112F5B000100535751 /* BoardedUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardedUITests.swift; sourceTree = "<group>"; };
-		AA1100122F5B000100535751 /* BoardedUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BoardedUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA1100402F5B000100535751 /* CormorantGaramond-SemiBoldItalic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "CormorantGaramond-SemiBoldItalic.ttf"; path = "Boarded/CormorantGaramond-SemiBoldItalic.ttf"; sourceTree = "<group>"; };
 		AA1100412F5B000100535751 /* Cormorant-Garamond-OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; name = "Cormorant-Garamond-OFL.txt"; path = "Boarded/Cormorant-Garamond-OFL.txt"; sourceTree = "<group>"; };
-		BB2200112F5C000100535751 /* AttemptModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttemptModels.swift; sourceTree = "<group>"; };
-		BB2200122F5C000100535751 /* AttemptRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttemptRepository.swift; sourceTree = "<group>"; };
 		BB2200132F5C000100535751 /* BoardedPrimitives.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardedPrimitives.swift; sourceTree = "<group>"; };
-		BB2200142F5C000100535751 /* LogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogView.swift; sourceTree = "<group>"; };
+		CC1100012F5D000100535751 /* SocialModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialModels.swift; sourceTree = "<group>"; };
+		CC1100032F5D000100535751 /* GradeCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GradeCatalog.swift; sourceTree = "<group>"; };
+		CC1100052F5D000100535751 /* AppServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppServices.swift; sourceTree = "<group>"; };
+		CC1100072F5D000100535751 /* SessionRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionRepository.swift; sourceTree = "<group>"; };
+		CC1100092F5D000100535751 /* FeedRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedRepository.swift; sourceTree = "<group>"; };
+		CC11000B2F5D000100535751 /* MeetupRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetupRepository.swift; sourceTree = "<group>"; };
+		CC11000D2F5D000100535751 /* SessionSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionSyncService.swift; sourceTree = "<group>"; };
+		CC11000F2F5D000100535751 /* PendingModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingModels.swift; sourceTree = "<group>"; };
+		CC1100112F5D000100535751 /* HomeFeedViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeFeedViewModel.swift; sourceTree = "<group>"; };
+		CC1100132F5D000100535751 /* SessionLoggerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionLoggerViewModel.swift; sourceTree = "<group>"; };
+		CC1100152F5D000100535751 /* PostDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostDetailViewModel.swift; sourceTree = "<group>"; };
+		CC1100172F5D000100535751 /* MeetupsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetupsViewModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -134,11 +110,11 @@
 				3CDD08942F59FD5E00535751 /* BoardedApp.swift */,
 				3CDD08992F59FD6900535751 /* RootView.swift */,
 				3CDD09182F5A200100535751 /* BoardedTests */,
-				AA1100132F5B000100535751 /* BoardedUITests */,
 				3CDD08EC2F5A072900535751 /* Views */,
 				3CDD08902F59FBD700535751 /* Theme.swift */,
 				3CDD08752F59FBB600535751 /* Models */,
 				3CDD08772F59FBB600535751 /* Services */,
+				CC1100192F5D000100535751 /* Persistence */,
 				3CDD08242F59F69900535751 /* Products */,
 				3CDD08FB2F5A0A0300535751 /* ViewModels */,
 				AA1100402F5B000100535751 /* CormorantGaramond-SemiBoldItalic.ttf */,
@@ -151,7 +127,6 @@
 			children = (
 				3CDD08232F59F69900535751 /* Boarded.app */,
 				3CDD09192F5A200100535751 /* BoardedTests.xctest */,
-				AA1100122F5B000100535751 /* BoardedUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -161,8 +136,8 @@
 			children = (
 				3CDD08CA2F5A067100535751 /* ProfileModels.swift */,
 				3CDD09122F5A200100535751 /* ProfileStatistics.swift */,
-				3CDD08742F59FBB600535751 /* RouteModels.swift */,
-				BB2200112F5C000100535751 /* AttemptModels.swift */,
+				CC1100012F5D000100535751 /* SocialModels.swift */,
+				CC1100032F5D000100535751 /* GradeCatalog.swift */,
 			);
 			name = Models;
 			path = Boarded/Models;
@@ -171,50 +146,25 @@
 		3CDD08772F59FBB600535751 /* Services */ = {
 			isa = PBXGroup;
 			children = (
-				3CDD08762F59FBB600535751 /* RoutesRepository.swift */,
-				AA1100022F5B000100535751 /* WallsRepository.swift */,
 				3CDD09102F5A200100535751 /* ProfileRepository.swift */,
 				3CDD08C82F5A064A00535751 /* SupabaseConfig.swift */,
-				BB2200122F5C000100535751 /* AttemptRepository.swift */,
+				CC1100052F5D000100535751 /* AppServices.swift */,
+				CC1100072F5D000100535751 /* SessionRepository.swift */,
+				CC1100092F5D000100535751 /* FeedRepository.swift */,
+				CC11000B2F5D000100535751 /* MeetupRepository.swift */,
+				CC11000D2F5D000100535751 /* SessionSyncService.swift */,
 			);
 			name = Services;
 			path = Boarded/Services;
 			sourceTree = "<group>";
 		};
-		3CDD08E02F5A072900535751 /* Editor */ = {
+		CC1100192F5D000100535751 /* Persistence */ = {
 			isa = PBXGroup;
 			children = (
-				3CDD08DF2F5A072900535751 /* EditorView.swift */,
+				CC11000F2F5D000100535751 /* PendingModels.swift */,
 			);
-			path = Editor;
-			sourceTree = "<group>";
-		};
-		3CDD08E32F5A072900535751 /* Profile */ = {
-			isa = PBXGroup;
-			children = (
-				3CDD08E12F5A072900535751 /* ProfileView.swift */,
-				3CDD08E22F5A072900535751 /* SettingsView.swift */,
-			);
-			path = Profile;
-			sourceTree = "<group>";
-		};
-		3CDD08E72F5A072900535751 /* Routes */ = {
-			isa = PBXGroup;
-			children = (
-				3CDD08E42F5A072900535751 /* RouteDetailView.swift */,
-				3CDD08E52F5A072900535751 /* RouteRow.swift */,
-				AA1100312F5B000100535751 /* LogClimbSheet.swift */,
-				3CDD08E62F5A072900535751 /* RoutesView.swift */,
-			);
-			path = Routes;
-			sourceTree = "<group>";
-		};
-		BB2200202F5C000100535751 /* Log */ = {
-			isa = PBXGroup;
-			children = (
-				BB2200142F5C000100535751 /* LogView.swift */,
-			);
-			path = Log;
+			name = Persistence;
+			path = Boarded/Persistence;
 			sourceTree = "<group>";
 		};
 		3CDD08EB2F5A072900535751 /* Shared */ = {
@@ -230,11 +180,6 @@
 		3CDD08EC2F5A072900535751 /* Views */ = {
 			isa = PBXGroup;
 			children = (
-				3CDD09032F5A0F8E00535751 /* Walls */,
-				3CDD08E02F5A072900535751 /* Editor */,
-				3CDD08E32F5A072900535751 /* Profile */,
-				3CDD08E72F5A072900535751 /* Routes */,
-				BB2200202F5C000100535751 /* Log */,
 				3CDD08EB2F5A072900535751 /* Shared */,
 			);
 			name = Views;
@@ -244,11 +189,11 @@
 		3CDD08FB2F5A0A0300535751 /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
-				3CDD09002F5A0E6D00535751 /* WallsViewModel.swift */,
 				3CDD08F72F5A0A0300535751 /* AppSession.swift */,
-				3CDD08F82F5A0A0300535751 /* CommentsViewModel.swift */,
-				3CDD08F92F5A0A0300535751 /* ProfileViewModel.swift */,
-				3CDD08FA2F5A0A0300535751 /* RoutesViewModel.swift */,
+				CC1100112F5D000100535751 /* HomeFeedViewModel.swift */,
+				CC1100132F5D000100535751 /* SessionLoggerViewModel.swift */,
+				CC1100152F5D000100535751 /* PostDetailViewModel.swift */,
+				CC1100172F5D000100535751 /* MeetupsViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -257,26 +202,9 @@
 			isa = PBXGroup;
 			children = (
 				3CDD09142F5A200100535751 /* ProfileStatisticsTests.swift */,
-				3CDD09162F5A200100535751 /* HoldRadiusTests.swift */,
 				AA1100212F5B000100535751 /* NativeContractTests.swift */,
 			);
 			path = BoardedTests;
-			sourceTree = "<group>";
-		};
-		3CDD09032F5A0F8E00535751 /* Walls */ = {
-			isa = PBXGroup;
-			children = (
-				3CDD09022F5A0F8E00535751 /* WallPickerView.swift */,
-			);
-			path = Walls;
-			sourceTree = "<group>";
-		};
-		AA1100132F5B000100535751 /* BoardedUITests */ = {
-			isa = PBXGroup;
-			children = (
-				AA1100112F5B000100535751 /* BoardedUITests.swift */,
-			);
-			path = BoardedUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -323,22 +251,6 @@
 			productReference = 3CDD09192F5A200100535751 /* BoardedTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		AA1100152F5B000100535751 /* BoardedUITests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = AA1100162F5B000100535751 /* Build configuration list for PBXNativeTarget "BoardedUITests" */;
-			buildPhases = (
-				AA1100142F5B000100535751 /* BoardedUITests Sources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				AA11001A2F5B000100535751 /* Boarded in Targets */,
-			);
-			name = BoardedUITests;
-			productName = BoardedUITests;
-			productReference = AA1100122F5B000100535751 /* BoardedUITests.xctest */;
-			productType = "com.apple.product-type.bundle.ui-testing";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -353,10 +265,6 @@
 						CreatedOnToolsVersion = 26.2;
 					};
 					3CDD091B2F5A200100535751 = {
-						CreatedOnToolsVersion = 26.2;
-						TestTargetID = 3CDD08222F59F69800535751;
-					};
-					AA1100152F5B000100535751 = {
 						CreatedOnToolsVersion = 26.2;
 						TestTargetID = 3CDD08222F59F69800535751;
 					};
@@ -381,7 +289,6 @@
 			targets = (
 				3CDD08222F59F69800535751 /* Boarded */,
 				3CDD091B2F5A200100535751 /* BoardedTests */,
-				AA1100152F5B000100535751 /* BoardedUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -404,35 +311,29 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3CDD08882F59FBB600535751 /* RouteModels.swift in Sources */,
 				3CDD09132F5A200100535751 /* ProfileStatistics.swift in Sources */,
 				3CDD09112F5A200100535751 /* ProfileRepository.swift in Sources */,
-				3CDD08892F59FBB600535751 /* RoutesRepository.swift in Sources */,
 				3CDD089A2F59FD6900535751 /* RootView.swift in Sources */,
 				3CDD08922F59FBD700535751 /* Theme.swift in Sources */,
-				3CDD09012F5A0E6D00535751 /* WallsViewModel.swift in Sources */,
 				3CDD08962F59FD5E00535751 /* BoardedApp.swift in Sources */,
 				3CDD08CB2F5A067100535751 /* ProfileModels.swift in Sources */,
-				3CDD09042F5A0F8E00535751 /* WallPickerView.swift in Sources */,
-				3CDD08ED2F5A072900535751 /* RouteRow.swift in Sources */,
-				AA1100302F5B000100535751 /* LogClimbSheet.swift in Sources */,
 				3CDD08EE2F5A072900535751 /* SearchField.swift in Sources */,
-				3CDD08EF2F5A072900535751 /* RoutesView.swift in Sources */,
-				3CDD08FC2F5A0A0300535751 /* RoutesViewModel.swift in Sources */,
-				3CDD08FD2F5A0A0300535751 /* CommentsViewModel.swift in Sources */,
-				3CDD08FE2F5A0A0300535751 /* ProfileViewModel.swift in Sources */,
 				3CDD08FF2F5A0A0300535751 /* AppSession.swift in Sources */,
-				3CDD08F12F5A072900535751 /* RouteDetailView.swift in Sources */,
-				3CDD08F22F5A072900535751 /* SettingsView.swift in Sources */,
-				3CDD08F32F5A072900535751 /* ProfileView.swift in Sources */,
 				3CDD08F52F5A072900535751 /* EmptyStateView.swift in Sources */,
-				3CDD08F62F5A072900535751 /* EditorView.swift in Sources */,
-				AA1100012F5B000100535751 /* WallsRepository.swift in Sources */,
 				3CDD08C92F5A064A00535751 /* SupabaseConfig.swift in Sources */,
-				BB2200012F5C000100535751 /* AttemptModels.swift in Sources */,
-				BB2200022F5C000100535751 /* AttemptRepository.swift in Sources */,
 				BB2200032F5C000100535751 /* BoardedPrimitives.swift in Sources */,
-				BB2200042F5C000100535751 /* LogView.swift in Sources */,
+				CC1100022F5D000100535751 /* SocialModels.swift in Sources */,
+				CC1100042F5D000100535751 /* GradeCatalog.swift in Sources */,
+				CC1100062F5D000100535751 /* AppServices.swift in Sources */,
+				CC1100082F5D000100535751 /* SessionRepository.swift in Sources */,
+				CC11000A2F5D000100535751 /* FeedRepository.swift in Sources */,
+				CC11000C2F5D000100535751 /* MeetupRepository.swift in Sources */,
+				CC11000E2F5D000100535751 /* SessionSyncService.swift in Sources */,
+				CC1100102F5D000100535751 /* PendingModels.swift in Sources */,
+				CC1100122F5D000100535751 /* HomeFeedViewModel.swift in Sources */,
+				CC1100142F5D000100535751 /* SessionLoggerViewModel.swift in Sources */,
+				CC1100162F5D000100535751 /* PostDetailViewModel.swift in Sources */,
+				CC1100182F5D000100535751 /* MeetupsViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -441,16 +342,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				3CDD09152F5A200100535751 /* ProfileStatisticsTests.swift in Sources */,
-				3CDD09172F5A200100535751 /* HoldRadiusTests.swift in Sources */,
 				AA1100202F5B000100535751 /* NativeContractTests.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		AA1100142F5B000100535751 /* BoardedUITests Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				AA1100102F5B000100535751 /* BoardedUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -461,11 +353,6 @@
 			isa = PBXTargetDependency;
 			target = 3CDD08222F59F69800535751 /* Boarded */;
 			targetProxy = 3CDD09212F5A200100535751 /* PBXContainerItemProxy */;
-		};
-		AA11001A2F5B000100535751 /* Boarded in Targets */ = {
-			isa = PBXTargetDependency;
-			target = 3CDD08222F59F69800535751 /* Boarded */;
-			targetProxy = AA1100192F5B000100535751 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -689,34 +576,6 @@
 			};
 			name = Release;
 		};
-		AA1100172F5B000100535751 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = UQ6DWXPFFY;
-				GENERATE_INFOPLIST_FILE = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ian.BoardedUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = Boarded;
-			};
-			name = Debug;
-		};
-		AA1100182F5B000100535751 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = UQ6DWXPFFY;
-				GENERATE_INFOPLIST_FILE = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ian.BoardedUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = Boarded;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -743,15 +602,6 @@
 			buildConfigurations = (
 				3CDD082F2F59F69A00535751 /* Debug */,
 				3CDD08302F59F69A00535751 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		AA1100162F5B000100535751 /* Build configuration list for PBXNativeTarget "BoardedUITests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				AA1100172F5B000100535751 /* Debug */,
-				AA1100182F5B000100535751 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

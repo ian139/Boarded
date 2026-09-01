@@ -14,6 +14,19 @@ enum AppLaunchConfiguration {
     #endif
 }
 
+/// Recoverable configuration error surfaced when Supabase is not configured.
+/// Production code throws this instead of silently falling back to fixtures.
+enum SupabaseConfigError: LocalizedError {
+    case unconfigured
+
+    var errorDescription: String? {
+        switch self {
+        case .unconfigured:
+            return "Supabase is not configured. Add SUPABASE_URL and SUPABASE_ANON_KEY to the app's Info.plist."
+        }
+    }
+}
+
 enum SupabaseConfig {
     static var current: (url: URL, anonKey: String)? {
         guard

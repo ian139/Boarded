@@ -4,16 +4,22 @@ import Supabase
 
 @MainActor
 final class AppSession: ObservableObject {
-    @Published var userId: UUID? = nil
-    @Published var userEmail: String? = nil
-    @Published var profile: Profile? = nil
-    @Published var isLoading = false
-    @Published var errorMessage: String? = nil
+    @Published private(set) var userId: UUID? = nil
+    @Published private(set) var userEmail: String? = nil
+    @Published private(set) var profile: Profile? = nil
+    @Published private(set) var isLoading = false
+    @Published private(set) var errorMessage: String? = nil
 
+    private let profileRepository: any ProfileRepository
     private let fixture: Bool
 
-    init(fixture: Bool = false) {
+    init(profileRepository: any ProfileRepository, fixture: Bool = false) {
+        self.profileRepository = profileRepository
         self.fixture = fixture
+    }
+
+    @MainActor convenience init(fixture: Bool = false) {
+        self.init(profileRepository: AppServices.profileRepository, fixture: fixture)
     }
 
     var displayName: String {
@@ -21,6 +27,12 @@ final class AppSession: ObservableObject {
         ?? profile?.username
         ?? userEmail
         ?? "Climber"
+    }
+
+    /// True when a signed-in user has no profile row yet (legacy auth accounts
+    /// created before profile provisioning). Gates profile-dependent UI.
+    var needsProfileSetup: Bool {
+        userId != nil && profile == nil
     }
 
     private var sessionGeneration = 0
@@ -31,12 +43,13 @@ final class AppSession: ObservableObject {
             userId = UUID(uuidString: "11111111-1111-4111-8111-111111111111")
             userEmail = "fixture@boarded.test"
             profile = Profile(
-                id: "11111111-1111-4111-8111-111111111111",
+                id: userId!,
                 username: "fixture",
                 fullName: "Fixture Climber",
                 avatarUrl: nil,
                 bio: "Building a climbing journal, one line at a time.",
-                createdAt: "2026-01-01T00:00:00Z"
+                homeArea: nil,
+                createdAt: parseISO8601Date("2026-01-01T00:00:00Z")
             )
             isLoading = false
             return
@@ -48,6 +61,7 @@ final class AppSession: ObservableObject {
             userId = nil
             userEmail = nil
             profile = nil
+            errorMessage = SupabaseConfigError.unconfigured.localizedDescription
             return
         }
         isLoading = true
@@ -77,7 +91,10 @@ final class AppSession: ObservableObject {
             return
         }
         #endif
-        guard let client = SupabaseClientProvider.client else { return }
+        guard let client = SupabaseClientProvider.client else {
+            errorMessage = SupabaseConfigError.unconfigured.localizedDescription
+            return
+        }
         sessionGeneration += 1
         let generation = sessionGeneration
         isLoading = true
@@ -97,14 +114,20 @@ final class AppSession: ObservableObject {
         }
     }
 
-    func signUp(email: String, password: String) async {
+    /// Creates the auth account, then provisions the profile row with the
+    /// requested username/display name. Profile creation is a separate step so
+    /// a profile failure never leaves a half-provisioned account.
+    func signUp(email: String, password: String, username: String, displayName: String) async {
         #if DEBUG
         if fixture {
             await load()
             return
         }
         #endif
-        guard let client = SupabaseClientProvider.client else { return }
+        guard let client = SupabaseClientProvider.client else {
+            errorMessage = SupabaseConfigError.unconfigured.localizedDescription
+            return
+        }
         sessionGeneration += 1
         let generation = sessionGeneration
         isLoading = true
@@ -117,7 +140,19 @@ final class AppSession: ObservableObject {
         do {
             _ = try await client.auth.signUp(email: email, password: password)
             guard generation == sessionGeneration else { return }
-            await load()
+            let session = try await client.auth.session
+            guard generation == sessionGeneration else { return }
+            userId = session.user.id
+            userEmail = session.user.email
+            let trimmedUsername = username.trimmingCharacters(in: .whitespacesAndNewlines)
+            let trimmedDisplayName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+            let update = ProfileUpdate(
+                fullName: trimmedDisplayName.isEmpty ? nil : trimmedDisplayName,
+                username: trimmedUsername.isEmpty ? nil : trimmedUsername,
+                bio: nil,
+                homeArea: nil
+            )
+            profile = try await profileRepository.updateProfile(userID: session.user.id, update: update)
         } catch {
             guard generation == sessionGeneration else { return }
             errorMessage = error.localizedDescription
@@ -136,7 +171,10 @@ final class AppSession: ObservableObject {
             return
         }
         #endif
-        guard let client = SupabaseClientProvider.client else { return }
+        guard let client = SupabaseClientProvider.client else {
+            errorMessage = SupabaseConfigError.unconfigured.localizedDescription
+            return
+        }
         sessionGeneration += 1
         let generation = sessionGeneration
         userId = nil
@@ -157,19 +195,13 @@ final class AppSession: ObservableObject {
     }
 
     private func fetchProfile(userId: UUID, generation: Int? = nil) async {
-        guard let client = SupabaseClientProvider.client else { return }
         do {
-            let profiles: [Profile] = try await client.from("profiles")
-                .select("*")
-                .eq("id", value: userId.uuidString)
-                .limit(1)
-                .execute()
-                .value
+            let fetched = try await profileRepository.fetchProfile(userID: userId)
             guard generation == nil || generation == sessionGeneration,
                   self.userId == userId else {
                 return
             }
-            profile = profiles.first
+            profile = fetched
         } catch {
             guard generation == nil || generation == sessionGeneration,
                   self.userId == userId else {
@@ -179,7 +211,7 @@ final class AppSession: ObservableObject {
         }
     }
 
-    func updateProfile(fullName: String?, username: String?, bio: String?) async throws {
+    func updateProfile(fullName: String?, username: String?, bio: String?, homeArea: String?) async throws {
         #if DEBUG
         if fixture {
             guard let userId else {
@@ -188,22 +220,18 @@ final class AppSession: ObservableObject {
                 throw error
             }
             profile = Profile(
-                id: userId.uuidString,
+                id: userId,
                 username: username?.trimmingCharacters(in: .whitespacesAndNewlines),
                 fullName: fullName?.trimmingCharacters(in: .whitespacesAndNewlines),
                 avatarUrl: profile?.avatarUrl,
                 bio: bio?.trimmingCharacters(in: .whitespacesAndNewlines),
+                homeArea: homeArea?.trimmingCharacters(in: .whitespacesAndNewlines),
                 createdAt: profile?.createdAt
             )
             errorMessage = nil
             return
         }
         #endif
-        guard let client = SupabaseClientProvider.client else {
-            let error = ProfileRepositoryError.unavailable
-            errorMessage = error.localizedDescription
-            throw error
-        }
         guard let userId else {
             let error = ProfileRepositoryError.invalidUserID
             errorMessage = error.localizedDescription
@@ -220,29 +248,20 @@ final class AppSession: ObservableObject {
             }
         }
 
-        let payload = ProfileUpdate(
-            id: userId.uuidString,
+        let update = ProfileUpdate(
             fullName: fullName?.trimmingCharacters(in: .whitespacesAndNewlines),
             username: username?.trimmingCharacters(in: .whitespacesAndNewlines),
-            bio: bio?.trimmingCharacters(in: .whitespacesAndNewlines)
+            bio: bio?.trimmingCharacters(in: .whitespacesAndNewlines),
+            homeArea: homeArea?.trimmingCharacters(in: .whitespacesAndNewlines)
         )
 
         do {
-            _ = try await client.from("profiles")
-                .upsert(payload)
-                .execute()
+            let updated = try await profileRepository.updateProfile(userID: userId, update: update)
             try Task.checkCancellation()
             guard generation == sessionGeneration, self.userId == userId else {
                 throw CancellationError()
             }
-            profile = Profile(
-                id: userId.uuidString,
-                username: payload.username,
-                fullName: payload.fullName,
-                avatarUrl: profile?.avatarUrl,
-                bio: payload.bio,
-                createdAt: profile?.createdAt
-            )
+            profile = updated
         } catch {
             if generation == sessionGeneration, !(error is CancellationError) {
                 errorMessage = error.localizedDescription

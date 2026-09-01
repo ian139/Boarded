@@ -1,31 +1,9 @@
 import Foundation
-import Supabase
-
-struct ProfileMetrics: Hashable, Codable {
-    let routesCount: Int
-    let likesCount: Int
-}
-
-private nonisolated struct ProfileFollowCountsParameters: Encodable, Sendable {
-    let target_profile_id: UUID
-}
-
-private nonisolated struct FollowingFeedParameters: Encodable, Sendable {
-    let p_cursor_activity_at: Date?
-    let p_cursor_route_id: UUID?
-    let p_limit: Int
-}
 
 protocol ProfileRepository {
     func fetchProfile(userID: UUID) async throws -> Profile?
-    func fetchLeaderboard() async throws -> [ProfileLeaderboardEntry]
-    func fetchClimbHistory(userID: UUID) async throws -> [ProfileClimbHistoryItem]
-    func fetchMetrics(userID: UUID) async throws -> ProfileMetrics
-    func fetchFollowCounts(profileID: UUID) async throws -> ProfileFollowCounts
-    func isFollowing(profileID: UUID, followerID: UUID) async throws -> Bool
-    func follow(profileID: UUID, followerID: UUID) async throws
-    func unfollow(profileID: UUID, followerID: UUID) async throws
-    func fetchFollowingFeed(cursor: FollowingFeedCursor?, limit: Int) async throws -> [FollowingFeedItem]
+    func fetchStatistics(userID: UUID) async throws -> ProfileStatistics
+    func updateProfile(userID: UUID, update: ProfileUpdate) async throws -> Profile
 }
 
 enum ProfileRepositoryError: LocalizedError {
@@ -34,11 +12,53 @@ enum ProfileRepositoryError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .unavailable: return "Profile data is unavailable right now."
+        case .unavailable: return "Profile data is unavailable. Check your Supabase configuration."
         case .invalidUserID: return "The selected account is invalid."
         }
     }
 }
+
+/// Deterministic data source for previews and unit tests only. Production code
+/// always uses SupabaseProfileRepository and surfaces configuration/network errors.
+final class MockProfileRepository: ProfileRepository, @unchecked Sendable {
+    private let lock = NSLock()
+    private var profile: Profile?
+    private let statistics: ProfileStatistics
+
+    init(profile: Profile? = nil, statistics: ProfileStatistics = .empty) {
+        self.profile = profile
+        self.statistics = statistics
+    }
+
+    func fetchProfile(userID: UUID) async throws -> Profile? {
+        lock.lock(); defer { lock.unlock() }
+        return profile
+    }
+
+    func fetchStatistics(userID: UUID) async throws -> ProfileStatistics {
+        lock.lock(); defer { lock.unlock() }
+        return statistics
+    }
+
+    func updateProfile(userID: UUID, update: ProfileUpdate) async throws -> Profile {
+        lock.lock(); defer { lock.unlock() }
+        guard let current = profile else { throw ProfileRepositoryError.invalidUserID }
+        let updated = Profile(
+            id: current.id,
+            username: update.username,
+            fullName: update.fullName,
+            avatarUrl: current.avatarUrl,
+            bio: update.bio,
+            homeArea: update.homeArea,
+            createdAt: current.createdAt
+        )
+        profile = updated
+        return updated
+    }
+}
+
+#if canImport(Supabase)
+import Supabase
 
 struct SupabaseProfileRepository: ProfileRepository {
     private let client: SupabaseClient?
@@ -54,7 +74,7 @@ struct SupabaseProfileRepository: ProfileRepository {
     func fetchProfile(userID: UUID) async throws -> Profile? {
         guard let client else { throw ProfileRepositoryError.unavailable }
         let profiles: [Profile] = try await client.from("profiles")
-            .select("id,username,full_name,avatar_url,bio,created_at")
+            .select("id,username,full_name,avatar_url,bio,home_area,created_at")
             .eq("id", value: userID.uuidString)
             .limit(1)
             .execute()
@@ -62,240 +82,32 @@ struct SupabaseProfileRepository: ProfileRepository {
         return profiles.first
     }
 
-    func fetchLeaderboard() async throws -> [ProfileLeaderboardEntry] {
+    func fetchStatistics(userID: UUID) async throws -> ProfileStatistics {
         guard let client else { throw ProfileRepositoryError.unavailable }
-        let ascents: [Ascent] = try await client.from("ascents")
-            .select("id,route_id,user_id,user_name,grade_v,rating,notes,flashed,created_at")
-            .order("created_at", ascending: false)
+        async let sessions: [ClimbingSession] = client.from("climbing_sessions")
+            .select("*")
+            .eq("user_id", value: userID.uuidString)
             .execute()
             .value
-        let routes = try await fetchRoutes(for: Set(ascents.map(\.routeId)), client: client)
-        let profiles = try await fetchProfiles(for: Set(ascents.compactMap(\.userId)), client: client)
-        let records = makeRecords(ascents: ascents, routes: routes)
-        return ProfileStatistics.calculate(
-            records: records,
-            profiles: profiles,
-            selectedUserID: "__leaderboard__"
-        ).leaderboard
-    }
-
-    func fetchClimbHistory(userID: UUID) async throws -> [ProfileClimbHistoryItem] {
-        guard let client else { throw ProfileRepositoryError.unavailable }
-        let userIDString = userID.uuidString
-        let ascents: [Ascent] = try await client.from("ascents")
-            .select("id,route_id,user_id,user_name,grade_v,rating,notes,flashed,created_at")
-            .eq("user_id", value: userIDString)
-            .order("created_at", ascending: false)
+        async let attempts: [ClimbAttempt] = client.from("climb_attempts")
+            .select("*")
+            .eq("user_id", value: userID.uuidString)
             .execute()
             .value
-        let routes = try await fetchRoutes(for: Set(ascents.map(\.routeId)), client: client)
-        return makeRecords(ascents: ascents, routes: routes)
-            .sorted { lhs, rhs in
-                let left = lhs.completedAt ?? .distantPast
-                let right = rhs.completedAt ?? .distantPast
-                if left != right { return left > right }
-                return lhs.id < rhs.id
-            }
-            .map { record in
-                ProfileClimbHistoryItem(
-                    id: record.id,
-                    routeId: record.routeId,
-                    routeName: record.routeName,
-                    wallId: record.route?.wallId,
-                    grade: record.scoringGrade,
-                    flashed: record.flashed,
-                    completedAt: record.completedAt,
-                    route: record.route
-                )
-            }
+        let (fetchedSessions, fetchedAttempts) = try await (sessions, attempts)
+        return ProfileStatisticsCalculator.calculate(sessions: fetchedSessions, attempts: fetchedAttempts)
     }
 
-    func fetchMetrics(userID: UUID) async throws -> ProfileMetrics {
+    func updateProfile(userID: UUID, update: ProfileUpdate) async throws -> Profile {
         guard let client else { throw ProfileRepositoryError.unavailable }
-        let userIDString = userID.uuidString
-
-        struct RouteID: Decodable {
-            let id: String
-        }
-
-        let routeIDs: [RouteID] = try await client.from("routes")
-            .select("id")
-            .eq("user_id", value: userIDString)
+        let rows: [Profile] = try await client.from("profiles")
+            .update(update)
+            .eq("id", value: userID.uuidString)
+            .select("*")
             .execute()
             .value
-
-        let routeIDStrings = routeIDs.map(\.id)
-        let likes: [RouteLike]
-        if routeIDStrings.isEmpty {
-            likes = []
-        } else {
-            likes = try await client.from("route_likes")
-                .select("route_id")
-                .in("route_id", values: routeIDStrings)
-                .execute()
-                .value
-        }
-
-        return ProfileMetrics(routesCount: routeIDStrings.count, likesCount: likes.count)
-    }
-
-    func fetchFollowCounts(profileID: UUID) async throws -> ProfileFollowCounts {
-        guard let client else { throw ProfileRepositoryError.unavailable }
-        let rows: [ProfileFollowCounts] = try await client
-            .rpc("get_profile_follow_counts", params: ProfileFollowCountsParameters(target_profile_id: profileID))
-            .execute()
-            .value
-        return rows.first ?? ProfileFollowCounts(followerCount: 0, followingCount: 0)
-    }
-
-    func isFollowing(profileID: UUID, followerID: UUID) async throws -> Bool {
-        guard let client else { throw ProfileRepositoryError.unavailable }
-        let rows: [ProfileFollow] = try await client.from("follows")
-            .select("follower_id,following_id,created_at")
-            .eq("follower_id", value: followerID.uuidString)
-            .eq("following_id", value: profileID.uuidString)
-            .limit(1)
-            .execute()
-            .value
-        return !rows.isEmpty
-    }
-
-    func follow(profileID: UUID, followerID: UUID) async throws {
-        guard let client else { throw ProfileRepositoryError.unavailable }
-        struct Insert: Encodable {
-            let follower_id: UUID
-            let following_id: UUID
-        }
-        _ = try await client.from("follows")
-            .insert(Insert(follower_id: followerID, following_id: profileID))
-            .execute()
-    }
-
-    func unfollow(profileID: UUID, followerID: UUID) async throws {
-        guard let client else { throw ProfileRepositoryError.unavailable }
-        _ = try await client.from("follows")
-            .delete()
-            .eq("follower_id", value: followerID.uuidString)
-            .eq("following_id", value: profileID.uuidString)
-            .execute()
-    }
-
-    func fetchFollowingFeed(cursor: FollowingFeedCursor?, limit: Int) async throws -> [FollowingFeedItem] {
-        guard let client else { throw ProfileRepositoryError.unavailable }
-        return try await client.rpc(
-            "get_following_feed",
-            params: FollowingFeedParameters(
-                p_cursor_activity_at: cursor?.activityAt,
-                p_cursor_route_id: cursor?.routeId,
-                p_limit: min(max(limit, 1), 50)
-            )
-        ).execute().value
-    }
-
-    private func fetchRoutes(for ids: Set<String>, client: SupabaseClient) async throws -> [Route] {
-        guard !ids.isEmpty else { return [] }
-        return try await client.from("routes")
-            .select("id,user_id,user_name,wall_id,name,description,grade_v,grade_font,holds,is_public,view_count,share_token,created_at,updated_at,wall_image_url,wall_image_width,wall_image_height,ascents(id,route_id,user_id,user_name,grade_v,rating,notes,flashed,created_at),comments(id,route_id,user_id,user_name,content,is_beta,created_at)")
-            .in("id", values: Array(ids))
-            .execute()
-            .value
-    }
-
-    private func fetchProfiles(for ids: Set<String>, client: SupabaseClient) async throws -> [String: Profile] {
-        guard !ids.isEmpty else { return [:] }
-        let profiles: [Profile] = try await client.from("profiles")
-            .select("id,username,full_name,avatar_url,bio,created_at")
-            .in("id", values: Array(ids))
-            .execute()
-            .value
-        return Dictionary(uniqueKeysWithValues: profiles.map { ($0.id, $0) })
-    }
-
-    private func makeRecords(ascents: [Ascent], routes: [Route]) -> [ProfileScoringRecord] {
-        let routesByID = Dictionary(uniqueKeysWithValues: routes.map { ($0.id, $0) })
-        return ascents.compactMap { ascent in
-            guard let userID = ascent.userId, !userID.isEmpty else { return nil }
-            let route = routesByID[ascent.routeId]
-            return ProfileScoringRecord(
-                id: ascent.id,
-                userId: userID,
-                userName: ascent.userName,
-                routeId: ascent.routeId,
-                routeName: route?.name ?? "Unavailable Route",
-                routeGrade: route?.gradeV,
-                ascentGrade: ascent.gradeV,
-                flashed: ascent.flashed ?? false,
-                completedAt: parseISO8601Date(ascent.createdAt),
-                route: route
-            )
-        }
-    }
-
-}
-
-/// Deterministic data source for previews and unit tests only. Production code
-/// always uses SupabaseProfileRepository and surfaces configuration/network errors.
-struct MockProfileRepository: ProfileRepository {
-    let profile: Profile?
-    let leaderboard: [ProfileLeaderboardEntry]
-    let history: [ProfileClimbHistoryItem]
-    let metrics: ProfileMetrics
-    let error: Error?
-
-    init(
-        profile: Profile? = nil,
-        leaderboard: [ProfileLeaderboardEntry] = [],
-        history: [ProfileClimbHistoryItem] = [],
-        metrics: ProfileMetrics = ProfileMetrics(routesCount: 0, likesCount: 0),
-        error: Error? = nil
-    ) {
-        self.profile = profile
-        self.leaderboard = leaderboard
-        self.history = history
-        self.metrics = metrics
-        self.error = error
-    }
-
-    func fetchProfile(userID: UUID) async throws -> Profile? {
-        if let error { throw error }
-        return profile
-    }
-
-    func fetchLeaderboard() async throws -> [ProfileLeaderboardEntry] {
-        if let error { throw error }
-        return leaderboard
-    }
-
-    func fetchClimbHistory(userID: UUID) async throws -> [ProfileClimbHistoryItem] {
-        if let error { throw error }
-        return history
-    }
-
-    func fetchMetrics(userID: UUID) async throws -> ProfileMetrics {
-        if let error { throw error }
-        return metrics
-    }
-
-    func fetchFollowCounts(profileID: UUID) async throws -> ProfileFollowCounts {
-        if let error { throw error }
-        return ProfileFollowCounts(followerCount: 0, followingCount: 0)
-    }
-
-    func isFollowing(profileID: UUID, followerID: UUID) async throws -> Bool {
-        if let error { throw error }
-        return false
-    }
-
-    func follow(profileID: UUID, followerID: UUID) async throws {
-        if let error { throw error }
-    }
-
-    func unfollow(profileID: UUID, followerID: UUID) async throws {
-        if let error { throw error }
-    }
-
-    func fetchFollowingFeed(cursor: FollowingFeedCursor?, limit: Int) async throws -> [FollowingFeedItem] {
-        if let error { throw error }
-        return []
+        guard let row = rows.first else { throw ProfileRepositoryError.invalidUserID }
+        return row
     }
 }
+#endif

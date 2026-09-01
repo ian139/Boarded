@@ -17,14 +17,7 @@ struct BoardedTheme {
     let controlCornerRadius = AppRadius.medium
     let animationDuration = AppMotion.quick
 
-    func holdColor(for type: HoldType) -> Color {
-        switch type {
-        case .start: return AppColor.accentDefault
-        case .finish: return AppColor.textPrimary
-        case .hand: return AppColor.textSecondary
-        case .foot: return AppColor.textTertiary
-        }
-    }
+
 }
 
 enum AppColor {
