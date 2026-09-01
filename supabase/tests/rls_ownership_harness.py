@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Exercise route ownership RLS against only the disposable local Supabase stack.
+"""Exercise the disposable local Supabase social/session security boundary.
 
-The harness deliberately uses the local Auth password endpoint to obtain normal
-user JWTs. Database access is limited to fixture setup/cleanup through the local
-Docker Postgres container; no service-role credential is read or sent to the API.
+The harness uses two ordinary password-authenticated users and an anonymous
+client. Postgres is used only for deterministic fixture setup/cleanup; every
+assertion of RLS, triggers, RPCs, and storage policies goes through local HTTP.
 """
 
 from __future__ import annotations
@@ -29,19 +29,28 @@ INSTANCE_ID = "00000000-0000-0000-0000-000000000000"
 
 OWNER_ID = "2c6f6f39-3b0e-4d8b-8b8d-2c8a9f6b4c11"
 OTHER_ID = "7a4e2d80-6c35-49d2-8d2e-51ec2dd09322"
-OWNER_ROUTE_ID = "b5f0d878-5d47-4db8-90a5-3c5bc73f7c31"
-PROTECTED_ROUTE_ID = "d2f7e93e-8a59-45a8-b3cb-4d5ef7bd2314"
-NULL_OWNER_ROUTE_ID = "f3c4a8d1-9b62-4f27-8a4c-6e0d2b1f8357"
-INSERTED_ROUTE_ID = "e8a1f57c-6d32-4bd1-9e48-2f0c7a6b9135"
-OTHER_PUBLIC_ROUTE_ID = "c1d2e3f4-1111-4a2b-8c3d-9e0f1a2b3c4d"
-OTHER_PUBLIC_ROUTE_2_ID = "c1d2e3f4-2222-4a2b-8c3d-9e0f1a2b3c4d"
-OTHER_PUBLIC_ROUTE_3_ID = "c1d2e3f4-3333-4a2b-8c3d-9e0f1a2b3c4d"
-OTHER_PRIVATE_ROUTE_ID = "c1d2e3f4-4444-4a2b-8c3d-9e0f1a2b3c4d"
-OTHER_NULL_CREATED_ROUTE_ID = "c1d2e3f4-5555-4a2b-8c3d-9e0f1a2b3c4d"
-
+# A fixture-only profile fills a capacity slot; it never authenticates.
+FILLER_ID = "8f4d2e10-4c68-44af-90c5-11d7b8e3aa19"
 OWNER_EMAIL = "boarded-rls-harness-owner@local.invalid"
 OTHER_EMAIL = "boarded-rls-harness-other@local.invalid"
+FILLER_EMAIL = "boarded-rls-harness-filler@local.invalid"
+
+OWNER_ROUTE_ID = "b5f0d878-5d47-4db8-90a5-3c5bc73f7c31"
+OWNER_SESSION_ID = "a5f0d878-5d47-4db8-90a5-3c5bc73f7c31"
+OTHER_SESSION_ID = "a6f0d878-5d47-4db8-90a5-3c5bc73f7c31"
+OWNER_SENT_ATTEMPT_ID = "a7f0d878-5d47-4db8-90a5-3c5bc73f7c31"
+OWNER_FELL_ATTEMPT_ID = "a8f0d878-5d47-4db8-90a5-3c5bc73f7c31"
+OTHER_SENT_ATTEMPT_ID = "a9f0d878-5d47-4db8-90a5-3c5bc73f7c31"
+UNPOSTED_ATTEMPT_ID = "aa0d8780-5d47-4db8-90a5-3c5bc73f7c31"
+OWNER_POST_ID = "ab0d8780-5d47-4db8-90a5-3c5bc73f7c31"
+OTHER_POST_ID = "ac0d8780-5d47-4db8-90a5-3c5bc73f7c31"
+OWNER_MEETUP_ID = "ad0d8780-5d47-4db8-90a5-3c5bc73f7c31"
+OTHER_MEETUP_ID = "ae0d8780-5d47-4db8-90a5-3c5bc73f7c31"
+CANCELLED_MEETUP_ID = "af0d8780-5d47-4db8-90a5-3c5bc73f7c31"
+FILLER_MEETUP_ID = "b00d8780-5d47-4db8-90a5-3c5bc73f7c31"
+
 ROUTE_MARKER = "__boarded_rls_harness__"
+SECRET_NOTES = "__boarded_private_attempt_notes__"
 
 
 class HarnessError(RuntimeError):
@@ -71,25 +80,12 @@ def sql_quote(value: str) -> str:
 def run_psql(sql: str) -> str:
     container = os.environ.get(DB_CONTAINER_ENV, DEFAULT_DB_CONTAINER)
     if not container.startswith("supabase_db_"):
-        fail(
-            f"refusing database container {container!r}; "
-            "BOARDED_LOCAL_DB_CONTAINER must name the disposable supabase_db_* container"
-        )
+        fail(f"refusing database container {container!r}; expected disposable supabase_db_*")
     try:
         completed = subprocess.run(
             [
-                "docker",
-                "exec",
-                container,
-                "psql",
-                "-v",
-                "ON_ERROR_STOP=1",
-                "-U",
-                "postgres",
-                "-d",
-                "postgres",
-                "-Atqc",
-                sql,
+                "docker", "exec", container, "psql", "-v", "ON_ERROR_STOP=1",
+                "-U", "postgres", "-d", "postgres", "-Atqc", sql,
             ],
             check=False,
             capture_output=True,
@@ -99,40 +95,32 @@ def run_psql(sql: str) -> str:
     except (OSError, subprocess.TimeoutExpired) as exc:
         fail(f"local disposable database unavailable: {exc}")
     if completed.returncode != 0:
-        detail = (completed.stderr or completed.stdout).strip()
-        fail(f"local disposable database unavailable or SQL failed: {detail}")
+        fail(f"local disposable database unavailable or SQL failed: {(completed.stderr or completed.stdout).strip()}")
     return completed.stdout.strip()
 
 
-def ensure_backend(url: str) -> None:
-    parsed = urlparse(url)
-    if parsed.scheme != "http" or parsed.hostname not in {"127.0.0.1", "localhost", "::1"}:
-        fail(
-            f"refusing Supabase URL {url!r}; this harness only permits an HTTP loopback URL "
-            "and cannot target production"
-        )
-    base = url.rstrip("/")
+def expect_api_result(result: ApiResult | object, description: str) -> ApiResult:
+    if not isinstance(result, ApiResult):
+        fail(f"{description}: expected HTTP result, got {result!r}")
+    return result
+
+
+def decode_response(response: HTTPResponse) -> ApiResult:
+    raw = response.read().decode("utf-8", errors="replace")
+    if not raw:
+        return ApiResult(response.status, None)
     try:
-        health = expect_api_result(
-            request_json("GET", f"{base}/auth/v1/health"),
-            "local Auth health",
-        )
-        if health.status != 200 or not isinstance(health.body, dict) or health.body.get("name") != "GoTrue":
-            fail(f"unexpected local Auth health response: HTTP {health.status} {health.body!r}")
-        rest = expect_api_result(
-            request_json("GET", f"{base}/rest/v1/routes?select=id&limit=1"),
-            "local PostgREST health",
-        )
-        if rest.status != 200:
-            fail(f"unexpected local PostgREST health response: HTTP {rest.status} {rest.body!r}")
-    except Exception as exc:
-        fail(
-            f"local disposable Supabase backend unavailable at {url}: {exc}. "
-            "Start supabase_db_boarded-supabase and its local API gateway first"
-        )
+        return ApiResult(response.status, json.loads(raw))
+    except json.JSONDecodeError:
+        return ApiResult(response.status, raw)
 
 
-def request_json(method: str, url: str, token: str | None = None, payload: object | None = None) -> ApiResult | object:
+def request_json(
+    method: str,
+    url: str,
+    token: str | None = None,
+    payload: object | None = None,
+) -> ApiResult | object:
     headers = {"Accept": "application/json"}
     if method in {"POST", "PATCH", "DELETE"}:
         headers["Prefer"] = "return=representation"
@@ -157,16 +145,6 @@ def request_json(method: str, url: str, token: str | None = None, payload: objec
         fail(f"HTTP {method} {url} failed: {exc}")
 
 
-def decode_response(response: HTTPResponse) -> ApiResult | object:
-    raw = response.read().decode("utf-8", errors="replace")
-    if not raw:
-        return ApiResult(response.status, None)
-    try:
-        return ApiResult(response.status, json.loads(raw))
-    except json.JSONDecodeError:
-        return ApiResult(response.status, raw)
-
-
 def request_storage(
     method: str,
     base: str,
@@ -179,7 +157,7 @@ def request_storage(
         headers["Content-Type"] = "image/jpeg"
     if token:
         headers["Authorization"] = f"Bearer {token}"
-    url = f"{base}/storage/v1/object/walls/{quote(key, safe='/')}"
+    url = f"{base}/storage/v1/object/social-media/{quote(key, safe='/')}"
     request = Request(url, data=payload, headers=headers, method=method)
     try:
         with urlopen(request, timeout=15) as response:
@@ -192,101 +170,25 @@ def request_storage(
             body = raw
         return ApiResult(exc.code, body)
     except (URLError, TimeoutError, OSError) as exc:
-        fail(f"Storage HTTP {method} {url} failed: {exc}")
+        fail(f"Storage HTTP {method} failed: {exc}")
 
 
-def storage_metadata_count(key: str) -> int:
-    result = run_psql(
-        "SELECT count(*) FROM storage.objects "
-        f"WHERE bucket_id = 'walls' AND name = {sql_quote(key)};"
-    )
-    try:
-        return int(result)
-    except ValueError:
-        fail(f"unexpected Storage metadata count for {key!r}: {result!r}")
-
-
-def assert_storage_absent(base: str, key: str, description: str) -> None:
-    result = expect_api_result(
-        request_storage("GET", base, key),
-        f"{description} object lookup",
-    )
-    if result.status not in {400, 404}:
-        fail(f"{description}: expected missing object, HTTP {result.status} {result.body!r}")
-    count = storage_metadata_count(key)
-    if count != 0:
-        fail(f"{description}: rejected upload left {count} Storage metadata row(s)")
-
-
-def assert_storage_ownership(base: str, owner_token: str, other_token: str) -> None:
-    wall_id = f"rls-harness-wall-{uuid.uuid4().hex}"
-    owner_key = f"{OWNER_ID}/{wall_id}/owner.jpg"
-    non_owner_key = f"{OWNER_ID}/{wall_id}/non-owner.jpg"
-    legacy_key = f"{wall_id}/legacy.jpg"
-    upload = b"boarded-storage-rls-harness"
-    created_keys: list[str] = []
-
-    for key in (owner_key, non_owner_key, legacy_key):
-        assert_storage_absent(base, key, f"unique fixture key {key}")
-
-    try:
-        owner_result = expect_api_result(
-            request_storage("POST", base, owner_key, owner_token, upload),
-            "owner-prefixed owner upload",
-        )
-        if owner_result.status not in {200, 201}:
-            fail(f"owner-prefixed owner upload failed: HTTP {owner_result.status} {owner_result.body!r}")
-        created_keys.append(owner_key)
-        if storage_metadata_count(owner_key) != 1:
-            fail("owner-prefixed owner upload did not create exactly one metadata row")
-
-        owner_object = expect_api_result(
-            request_storage("GET", base, owner_key),
-            "owner-prefixed owner object read",
-        )
-        if owner_object.status != 200:
-            fail(f"owner-prefixed owner object is not readable: HTTP {owner_object.status} {owner_object.body!r}")
-
-        non_owner_result = expect_api_result(
-            request_storage("POST", base, non_owner_key, other_token, upload),
-            "non-owner owner-prefix upload",
-        )
-        if 200 <= non_owner_result.status < 300:
-            created_keys.append(non_owner_key)
-            fail(f"non-owner owner-prefix upload unexpectedly succeeded: HTTP {non_owner_result.status}")
-        assert_storage_absent(base, non_owner_key, "non-owner owner-prefix rejection")
-
-        legacy_result = expect_api_result(
-            request_storage("POST", base, legacy_key, owner_token, upload),
-            "owner legacy-prefix upload",
-        )
-        if 200 <= legacy_result.status < 300:
-            created_keys.append(legacy_key)
-            fail(f"owner legacy-prefix upload unexpectedly succeeded: HTTP {legacy_result.status}")
-        assert_storage_absent(base, legacy_key, "owner legacy-prefix rejection")
-        print("PASS: owner-prefixed Storage upload succeeded; non-owner and legacy-prefix uploads were rejected cleanly")
-    finally:
-        for key in created_keys:
-            delete_result = expect_api_result(
-                request_storage("DELETE", base, key, owner_token),
-                f"cleanup Storage object {key}",
-            )
-            if delete_result.status not in {200, 204}:
-                fail(f"cleanup Storage object {key} failed: HTTP {delete_result.status} {delete_result.body!r}")
-            assert_storage_absent(base, key, f"cleanup Storage object {key}")
-
-
-def expect_api_result(result: ApiResult | object, description: str) -> ApiResult:
-    if not isinstance(result, ApiResult):
-        fail(f"{description}: expected HTTP result, got {result!r}")
-    return result
+def ensure_backend(base: str) -> None:
+    parsed = urlparse(base)
+    if parsed.scheme != "http" or parsed.hostname not in {"127.0.0.1", "localhost", "::1"}:
+        fail(f"refusing non-loopback Supabase URL {base!r}")
+    health = expect_api_result(request_json("GET", f"{base}/auth/v1/health"), "local Auth health")
+    if health.status != 200 or not isinstance(health.body, dict) or health.body.get("name") != "GoTrue":
+        fail(f"unexpected local Auth health: HTTP {health.status} {health.body!r}")
+    rest = expect_api_result(request_json("GET", f"{base}/rest/v1/routes?select=id&limit=1"), "local PostgREST health")
+    if rest.status != 200:
+        fail(f"unexpected local PostgREST health: HTTP {rest.status} {rest.body!r}")
 
 
 def login(base: str, user: User) -> str:
     result = expect_api_result(
         request_json(
-            "POST",
-            f"{base}/auth/v1/token?grant_type=password",
+            "POST", f"{base}/auth/v1/token?grant_type=password",
             payload={"email": user.email, "password": PASSWORD},
         ),
         f"login for {user.email}",
@@ -294,210 +196,220 @@ def login(base: str, user: User) -> str:
     if result.status != 200 or not isinstance(result.body, dict) or not result.body.get("access_token"):
         fail(f"login for {user.email} failed: HTTP {result.status} {result.body!r}")
     if result.body.get("user", {}).get("id") != user.id:
-        fail(f"login for {user.email} returned wrong user ID: {result.body!r}")
+        fail(f"login returned wrong user ID: {result.body!r}")
     return str(result.body["access_token"])
 
 
 def setup_fixtures() -> None:
-    users = [(OWNER_ID, OWNER_EMAIL), (OTHER_ID, OTHER_EMAIL)]
-    user_ids = ", ".join(sql_quote(user_id) for user_id, _ in users)
-    route_ids = ", ".join(
-        sql_quote(route_id)
-        for route_id in (
-            OWNER_ROUTE_ID,
-            PROTECTED_ROUTE_ID,
-            NULL_OWNER_ROUTE_ID,
-            INSERTED_ROUTE_ID,
-            OTHER_PUBLIC_ROUTE_ID,
-            OTHER_PUBLIC_ROUTE_2_ID,
-            OTHER_PUBLIC_ROUTE_3_ID,
-            OTHER_PRIVATE_ROUTE_ID,
-            OTHER_NULL_CREATED_ROUTE_ID,
+    users = ((OWNER_ID, OWNER_EMAIL), (OTHER_ID, OTHER_EMAIL), (FILLER_ID, FILLER_EMAIL))
+    user_ids = ", ".join(sql_quote(item[0]) for item in users)
+    social_ids = ", ".join(
+        sql_quote(item)
+        for item in (
+            OWNER_POST_ID, OTHER_POST_ID, OWNER_SENT_ATTEMPT_ID, OWNER_FELL_ATTEMPT_ID,
+            OTHER_SENT_ATTEMPT_ID, UNPOSTED_ATTEMPT_ID, OWNER_SESSION_ID, OTHER_SESSION_ID,
         )
     )
-    expected_emails = ", ".join(sql_quote(email) for _, email in users)
-    marker = sql_quote(ROUTE_MARKER)
-    app_metadata = sql_quote(json.dumps({"provider": "email", "providers": ["email"]}, separators=(",", ":")))
-    owner_metadata = sql_quote(
-        json.dumps({"sub": OWNER_ID, "email": OWNER_EMAIL, "email_verified": True}, separators=(",", ":"))
-    )
-    other_metadata = sql_quote(
-        json.dumps({"sub": OTHER_ID, "email": OTHER_EMAIL, "email_verified": True}, separators=(",", ":"))
-    )
+    metadata = sql_quote(json.dumps({"provider": "email", "providers": ["email"]}, separators=(",", ":")))
+    raw_metadata = {
+        OWNER_ID: sql_quote(json.dumps({"sub": OWNER_ID, "email": OWNER_EMAIL, "email_verified": True}, separators=(",", ":"))),
+        OTHER_ID: sql_quote(json.dumps({"sub": OTHER_ID, "email": OTHER_EMAIL, "email_verified": True}, separators=(",", ":"))),
+        FILLER_ID: sql_quote(json.dumps({"sub": FILLER_ID, "email": FILLER_EMAIL, "email_verified": True}, separators=(",", ":"))),
+    }
+    emails = (OWNER_EMAIL, OTHER_EMAIL, FILLER_EMAIL)
     sql = f"""
 BEGIN;
-DO $$
-BEGIN
-  IF EXISTS (
-    SELECT 1 FROM auth.users
-    WHERE id IN ({user_ids}) AND email NOT IN ({expected_emails})
-  ) THEN
-    RAISE EXCEPTION 'fixed RLS harness user ID is already occupied by a different user';
-  END IF;
-  IF EXISTS (
-    SELECT 1 FROM public.routes
-    WHERE id IN ({route_ids})
-      AND position({marker} IN name) <> 1
-  ) THEN
-    RAISE EXCEPTION 'fixed RLS harness route ID is already occupied by a different route';
-  END IF;
-END $$;
-DELETE FROM public.routes WHERE id IN ({route_ids});
+DELETE FROM public.send_post_comments WHERE post_id IN ({sql_quote(OWNER_POST_ID)}, {sql_quote(OTHER_POST_ID)});
+DELETE FROM public.send_post_likes WHERE post_id IN ({sql_quote(OWNER_POST_ID)}, {sql_quote(OTHER_POST_ID)});
+DELETE FROM public.send_posts WHERE id IN ({social_ids});
+DELETE FROM public.meetup_comments WHERE meetup_id IN ({sql_quote(OWNER_MEETUP_ID)}, {sql_quote(OTHER_MEETUP_ID)}, {sql_quote(CANCELLED_MEETUP_ID)}, {sql_quote(FILLER_MEETUP_ID)});
+DELETE FROM public.meetup_attendees WHERE meetup_id IN ({sql_quote(OWNER_MEETUP_ID)}, {sql_quote(OTHER_MEETUP_ID)}, {sql_quote(CANCELLED_MEETUP_ID)}, {sql_quote(FILLER_MEETUP_ID)});
+DELETE FROM public.meetups WHERE id IN ({sql_quote(OWNER_MEETUP_ID)}, {sql_quote(OTHER_MEETUP_ID)}, {sql_quote(CANCELLED_MEETUP_ID)}, {sql_quote(FILLER_MEETUP_ID)});
+DELETE FROM public.climb_attempts WHERE id IN ({sql_quote(OWNER_SENT_ATTEMPT_ID)}, {sql_quote(OWNER_FELL_ATTEMPT_ID)}, {sql_quote(OTHER_SENT_ATTEMPT_ID)}, {sql_quote(UNPOSTED_ATTEMPT_ID)});
+DELETE FROM public.climbing_sessions WHERE id IN ({sql_quote(OWNER_SESSION_ID)}, {sql_quote(OTHER_SESSION_ID)});
+DELETE FROM public.routes WHERE id = {sql_quote(OWNER_ROUTE_ID)};
 DELETE FROM auth.users WHERE id IN ({user_ids});
-INSERT INTO auth.users (
-  instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
-  confirmation_token, recovery_token, email_change_token_new, email_change,
-  email_change_token_current, phone_change, raw_app_meta_data, raw_user_meta_data,
-  is_super_admin, created_at, updated_at, is_anonymous
-) VALUES
-  ({sql_quote(INSTANCE_ID)}, {sql_quote(OWNER_ID)}, 'authenticated', 'authenticated',
-   {sql_quote(OWNER_EMAIL)}, crypt({sql_quote(PASSWORD)}, gen_salt('bf')), now(),
-   '', '', '', '', '', '', {app_metadata}::jsonb,
-   {owner_metadata}::jsonb,
-   false, now(), now(), false),
-  ({sql_quote(INSTANCE_ID)}, {sql_quote(OTHER_ID)}, 'authenticated', 'authenticated',
-   {sql_quote(OTHER_EMAIL)}, crypt({sql_quote(PASSWORD)}, gen_salt('bf')), now(),
-   '', '', '', '', '', '', {app_metadata}::jsonb,
-   {other_metadata}::jsonb,
-   false, now(), now(), false);
-INSERT INTO auth.identities (provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+INSERT INTO auth.users (instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,confirmation_token,recovery_token,email_change_token_new,email_change,email_change_token_current,phone_change,raw_app_meta_data,raw_user_meta_data,is_super_admin,created_at,updated_at,is_anonymous)
 VALUES
-  ({sql_quote(OWNER_ID)}, {sql_quote(OWNER_ID)},
-   jsonb_build_object('sub', {sql_quote(OWNER_ID)}, 'email', {sql_quote(OWNER_EMAIL)}),
-   'email', now(), now(), now()),
-  ({sql_quote(OTHER_ID)}, {sql_quote(OTHER_ID)},
-   jsonb_build_object('sub', {sql_quote(OTHER_ID)}, 'email', {sql_quote(OTHER_EMAIL)}),
-   'email', now(), now(), now());
-INSERT INTO public.profiles (id, username, is_public)
+ ({sql_quote(INSTANCE_ID)},{sql_quote(OWNER_ID)},'authenticated','authenticated',{sql_quote(OWNER_EMAIL)},crypt({sql_quote(PASSWORD)},gen_salt('bf')),now(),'','','','','','',{metadata}::jsonb,{raw_metadata[OWNER_ID]}::jsonb,false,now(),now(),false),
+ ({sql_quote(INSTANCE_ID)},{sql_quote(OTHER_ID)},'authenticated','authenticated',{sql_quote(OTHER_EMAIL)},crypt({sql_quote(PASSWORD)},gen_salt('bf')),now(),'','','','','','',{metadata}::jsonb,{raw_metadata[OTHER_ID]}::jsonb,false,now(),now(),false),
+ ({sql_quote(INSTANCE_ID)},{sql_quote(FILLER_ID)},'authenticated','authenticated',{sql_quote(FILLER_EMAIL)},crypt({sql_quote(PASSWORD)},gen_salt('bf')),now(),'','','','','','',{metadata}::jsonb,{raw_metadata[FILLER_ID]}::jsonb,false,now(),now(),false);
+INSERT INTO auth.identities (provider_id,user_id,identity_data,provider,last_sign_in_at,created_at,updated_at)
 VALUES
-  ({sql_quote(OWNER_ID)}, 'rls-harness-owner', true),
-  ({sql_quote(OTHER_ID)}, 'rls-harness-other', true)
-ON CONFLICT (id) DO UPDATE SET username = EXCLUDED.username, is_public = EXCLUDED.is_public;
-INSERT INTO public.routes (id, user_id, wall_id, name, grade_v, holds, is_public, created_at)
+ ({sql_quote(OWNER_ID)},{sql_quote(OWNER_ID)},jsonb_build_object('sub',{sql_quote(OWNER_ID)},'email',{sql_quote(OWNER_EMAIL)}),'email',now(),now(),now()),
+ ({sql_quote(OTHER_ID)},{sql_quote(OTHER_ID)},jsonb_build_object('sub',{sql_quote(OTHER_ID)},'email',{sql_quote(OTHER_EMAIL)}),'email',now(),now(),now()),
+ ({sql_quote(FILLER_ID)},{sql_quote(FILLER_ID)},jsonb_build_object('sub',{sql_quote(FILLER_ID)},'email',{sql_quote(FILLER_EMAIL)}),'email',now(),now(),now());
+INSERT INTO public.profiles (id,username,home_area) VALUES
+ ({sql_quote(OWNER_ID)},'rls-harness-owner','Boulder'),
+ ({sql_quote(OTHER_ID)},'rls-harness-other','Golden'),
+ ({sql_quote(FILLER_ID)},'rls-harness-filler','Denver');
+INSERT INTO public.routes (id,user_id,wall_id,name,grade_v,holds,is_public,created_at)
+VALUES ({sql_quote(OWNER_ROUTE_ID)},{sql_quote(OWNER_ID)},'rls-harness-wall',{sql_quote(ROUTE_MARKER + 'route')},'V3','[]'::jsonb,true,now());
+INSERT INTO public.climbing_sessions (id,user_id,venue_name,started_at,ended_at)
 VALUES
-  ({sql_quote(OWNER_ROUTE_ID)}, {sql_quote(OWNER_ID)}, 'rls-harness-wall', {sql_quote(ROUTE_MARKER + 'owner')}, 'VB', '[]'::jsonb, true, now()),
-  ({sql_quote(PROTECTED_ROUTE_ID)}, {sql_quote(OWNER_ID)}, 'rls-harness-wall', {sql_quote(ROUTE_MARKER + 'protected')}, 'V1', '[]'::jsonb, true, now()),
-  ({sql_quote(NULL_OWNER_ROUTE_ID)}, NULL, 'rls-harness-wall', {sql_quote(ROUTE_MARKER + 'null-owner')}, 'V0', '[]'::jsonb, true, now()),
-  ({sql_quote(OTHER_PUBLIC_ROUTE_ID)}, {sql_quote(OTHER_ID)}, 'rls-harness-wall', {sql_quote(ROUTE_MARKER + 'other-public')}, 'V2', '[]'::jsonb, true, now()),
-  ({sql_quote(OTHER_PUBLIC_ROUTE_2_ID)}, {sql_quote(OTHER_ID)}, 'rls-harness-wall', {sql_quote(ROUTE_MARKER + 'other-public-2')}, 'V3', '[]'::jsonb, true, now()),
-  ({sql_quote(OTHER_PUBLIC_ROUTE_3_ID)}, {sql_quote(OTHER_ID)}, 'rls-harness-wall', {sql_quote(ROUTE_MARKER + 'other-public-3')}, 'V4', '[]'::jsonb, true, now()),
-  ({sql_quote(OTHER_PRIVATE_ROUTE_ID)}, {sql_quote(OTHER_ID)}, 'rls-harness-wall', {sql_quote(ROUTE_MARKER + 'other-private')}, 'V5', '[]'::jsonb, false, now()),
-  ({sql_quote(OTHER_NULL_CREATED_ROUTE_ID)}, {sql_quote(OTHER_ID)}, 'rls-harness-wall', {sql_quote(ROUTE_MARKER + 'other-null-created')}, 'V6', '[]'::jsonb, true, NULL);
+ ({sql_quote(OWNER_SESSION_ID)},{sql_quote(OWNER_ID)},'Owner Gym',now()-interval '1 hour',now()),
+ ({sql_quote(OTHER_SESSION_ID)},{sql_quote(OTHER_ID)},'Other Gym',now()-interval '1 hour',now());
+INSERT INTO public.climb_attempts (id,session_id,user_id,board_route_id,route_name,discipline,grade_system,grade_label,outcome,attempt_number,notes,occurred_at)
+VALUES
+ ({sql_quote(OWNER_SENT_ATTEMPT_ID)},{sql_quote(OWNER_SESSION_ID)},{sql_quote(OWNER_ID)},{sql_quote(OWNER_ROUTE_ID)},'Harness Send','board','v_scale','V3','sent',1,'owner public-safe note',now()),
+ ({sql_quote(OWNER_FELL_ATTEMPT_ID)},{sql_quote(OWNER_SESSION_ID)},{sql_quote(OWNER_ID)},NULL,'Harness Fell','boulder','v_scale','V4','fell',1,{sql_quote(SECRET_NOTES)},now()),
+ ({sql_quote(OTHER_SENT_ATTEMPT_ID)},{sql_quote(OTHER_SESSION_ID)},{sql_quote(OTHER_ID)},NULL,'Other Send','sport','yds','5.10a','sent',1,'other private note',now()),
+ ({sql_quote(UNPOSTED_ATTEMPT_ID)},{sql_quote(OWNER_SESSION_ID)},{sql_quote(OWNER_ID)},NULL,'Unposted Secret','board','v_scale','V5','sent',2,{sql_quote(SECRET_NOTES)},now());
+INSERT INTO public.send_posts (id,user_id,attempt_id,caption,image_alt)
+VALUES
+ ({sql_quote(OWNER_POST_ID)},{sql_quote(OWNER_ID)},{sql_quote(OWNER_SENT_ATTEMPT_ID)},'Owner send','Owner send image alt'),
+ ({sql_quote(OTHER_POST_ID)},{sql_quote(OTHER_ID)},{sql_quote(OTHER_SENT_ATTEMPT_ID)},'Other send','Other send image alt');
+INSERT INTO public.meetups (id,organizer_id,title,description,venue_name,area,starts_at,ends_at,capacity,status)
+VALUES
+ ({sql_quote(OWNER_MEETUP_ID)},{sql_quote(OWNER_ID)},'Owner meetup','A public owner meetup','Owner Gym','Boulder',now()+interval '2 days',now()+interval '2 days 2 hours',2,'scheduled'),
+ ({sql_quote(OTHER_MEETUP_ID)},{sql_quote(OTHER_ID)},'Other meetup','A public other meetup','Other Gym','Golden',now()+interval '3 days',now()+interval '3 days 2 hours',2,'scheduled'),
+ ({sql_quote(CANCELLED_MEETUP_ID)},{sql_quote(OWNER_ID)},'Cancelled meetup','A public cancelled meetup','Owner Gym','Boulder',now()+interval '4 days',now()+interval '4 days 2 hours',2,'cancelled'),
+ ({sql_quote(FILLER_MEETUP_ID)},{sql_quote(FILLER_ID)},'Filler meetup','A public capacity fixture','Filler Gym','Denver',now()+interval '5 days',now()+interval '5 days 2 hours',2,'scheduled');
 COMMIT;
 """
     run_psql(sql)
 
 
 def cleanup_fixtures() -> None:
-    user_ids = ", ".join(sql_quote(user_id) for user_id in (OWNER_ID, OTHER_ID))
-    route_ids = ", ".join(
-        sql_quote(route_id)
-        for route_id in (
-            OWNER_ROUTE_ID,
-            PROTECTED_ROUTE_ID,
-            NULL_OWNER_ROUTE_ID,
-            INSERTED_ROUTE_ID,
-            OTHER_PUBLIC_ROUTE_ID,
-            OTHER_PUBLIC_ROUTE_2_ID,
-            OTHER_PUBLIC_ROUTE_3_ID,
-            OTHER_PRIVATE_ROUTE_ID,
-            OTHER_NULL_CREATED_ROUTE_ID,
-        )
-    )
-    emails = ", ".join(sql_quote(email) for email in (OWNER_EMAIL, OTHER_EMAIL))
+    user_ids = ", ".join(sql_quote(item) for item in (OWNER_ID, OTHER_ID, FILLER_ID))
     run_psql(
-        f"DELETE FROM public.routes WHERE id IN ({route_ids}) AND position({sql_quote(ROUTE_MARKER)} IN name) = 1;"
-        f" DELETE FROM auth.users WHERE id IN ({user_ids}) AND email IN ({emails});"
+        f"DELETE FROM storage.objects WHERE bucket_id = 'social-media' AND name LIKE {sql_quote(OWNER_ID + '/rls-harness-%')};"
+        f" DELETE FROM storage.objects WHERE bucket_id = 'social-media' AND name LIKE {sql_quote(OTHER_ID + '/rls-harness-%')};"
+        f" DELETE FROM public.routes WHERE id = {sql_quote(OWNER_ROUTE_ID)};"
+        f" DELETE FROM auth.users WHERE id IN ({user_ids});"
     )
-    remaining = run_psql(
-        f"SELECT count(*) FROM public.routes WHERE id IN ({route_ids});"
-        f" SELECT count(*) FROM auth.users WHERE id IN ({user_ids});"
-    ).splitlines()
-    if remaining != ["0", "0"]:
-        fail(f"fixture cleanup incomplete; remaining fixed-ID rows: {remaining!r}")
+    remaining = run_psql(f"SELECT count(*) FROM auth.users WHERE id IN ({user_ids});")
+    if remaining != "0":
+        fail(f"fixture cleanup incomplete; remaining users: {remaining!r}")
 
 
-def get_route(base: str, route_id: str, token: str | None = None) -> dict | None:
-    result = expect_api_result(
-        request_json(
-            "GET",
-            f"{base}/rest/v1/routes?id=eq.{route_id}&select=id,user_id,name,grade_v,holds,wall_image_width,wall_image_height",
-            token,
-        ),
-        f"read route {route_id}",
-    )
+def rows(result: ApiResult, description: str) -> list[dict]:
     if result.status != 200 or not isinstance(result.body, list):
-        fail(f"read route {route_id} failed: HTTP {result.status} {result.body!r}")
-    return result.body[0] if result.body else None
+        fail(f"{description} failed: HTTP {result.status} {result.body!r}")
+    return [item for item in result.body if isinstance(item, dict)]
 
 
-def insert_owner_route(base: str, token: str) -> dict:
-    width = 1600
-    height = 900
-    result = expect_api_result(
-        request_json(
-            "POST",
-            f"{base}/rest/v1/routes?select=id,user_id,name,wall_image_width,wall_image_height",
-            token,
-            {
-                "id": INSERTED_ROUTE_ID,
-                "user_id": OWNER_ID,
-                "wall_id": "rls-harness-wall",
-                "name": ROUTE_MARKER + "inserted",
-                "grade_v": "V3",
-                "holds": [],
-                "is_public": True,
-                "wall_image_width": width,
-                "wall_image_height": height,
-            },
-        ),
-        "owner route insert",
+def assert_rejected(result: ApiResult, description: str) -> None:
+    if 200 <= result.status < 300:
+        fail(f"{description} unexpectedly succeeded: HTTP {result.status} {result.body!r}")
+
+
+def assert_route_ownership(base: str, owner_token: str, other_token: str) -> None:
+    owner_patch = expect_api_result(
+        request_json("PATCH", f"{base}/rest/v1/routes?id=eq.{OWNER_ROUTE_ID}", owner_token, {"name": ROUTE_MARKER + "route-updated"}),
+        "route owner update",
     )
-    if result.status not in {200, 201} or not isinstance(result.body, list) or len(result.body) != 1:
-        fail(f"owner route insert failed: HTTP {result.status} {result.body!r}")
-    inserted = result.body[0]
-    if not isinstance(inserted, dict):
-        fail(f"owner route insert returned unexpected body: {result.body!r}")
-    if (
-        inserted.get("id") != INSERTED_ROUTE_ID
-        or inserted.get("user_id") != OWNER_ID
-        or inserted.get("wall_image_width") != width
-        or inserted.get("wall_image_height") != height
-    ):
-        fail(f"owner route insert returned unexpected dimensions: {inserted!r}")
-    return inserted
-
-
-def assert_update(base: str, route_id: str, token: str, name: str, expected_count: int, description: str) -> None:
-    result = expect_api_result(
-        request_json(
-            "PATCH",
-            f"{base}/rest/v1/routes?id=eq.{route_id}",
-            token,
-            {"name": name, "grade_v": "V2"},
-        ),
-        description,
+    if owner_patch.status != 200:
+        fail(f"route owner update failed: HTTP {owner_patch.status} {owner_patch.body!r}")
+    other_patch = expect_api_result(
+        request_json("PATCH", f"{base}/rest/v1/routes?id=eq.{OWNER_ROUTE_ID}", other_token, {"name": ROUTE_MARKER + "cross-update"}),
+        "route cross-user update",
     )
-    if result.status != 200 or not isinstance(result.body, list) or len(result.body) != expected_count:
-        fail(f"{description}: expected {expected_count} affected row(s), HTTP {result.status} {result.body!r}")
-
-
-def assert_delete(base: str, route_id: str, token: str, expected_count: int, description: str) -> None:
-    result = expect_api_result(
-        request_json(
-            "DELETE",
-            f"{base}/rest/v1/routes?id=eq.{route_id}",
-            token,
-            None,
-        ),
-        description,
+    if other_patch.status != 200 or other_patch.body:
+        fail(f"route cross-user update changed a row: HTTP {other_patch.status} {other_patch.body!r}")
+    public_read = expect_api_result(
+        request_json("GET", f"{base}/rest/v1/routes?id=eq.{OWNER_ROUTE_ID}&select=id,name"),
+        "anonymous route read",
     )
-    if result.status not in {200, 204}:
-        fail(f"{description}: unexpected HTTP {result.status} {result.body!r}")
-    if expected_count == 1 and get_route(base, route_id) is not None:
-        fail(f"{description}: owner delete returned success but the row remains")
-    if expected_count == 0 and get_route(base, route_id) is None:
-        fail(f"{description}: rejected delete removed the row")
+    if not rows(public_read, "anonymous route read"):
+        fail("anonymous route read did not return the public route")
+    print("PASS: existing Boarded route owner and cross-user RLS remained intact")
+
+
+def assert_public_profiles_and_feed(base: str) -> None:
+    profile = expect_api_result(
+        request_json("GET", f"{base}/rest/v1/profiles?id=eq.{OWNER_ID}&select=id,username,home_area"),
+        "anonymous public profile read",
+    )
+    profile_rows = rows(profile, "anonymous public profile read")
+    if len(profile_rows) != 1 or profile_rows[0].get("home_area") != "Boulder":
+        fail(f"public profile/home_area read was wrong: {profile_rows!r}")
+    feed = rows(rpc(base, "get_send_feed", payload={"page_size": 50}), "anonymous send feed")
+    post_ids = [item.get("id") for item in feed]
+    if OWNER_POST_ID not in post_ids or OTHER_POST_ID not in post_ids:
+        fail(f"anonymous feed missed public posts: {post_ids!r}")
+    serialized = json.dumps(feed, sort_keys=True)
+    if UNPOSTED_ATTEMPT_ID in serialized or SECRET_NOTES in serialized:
+        fail(f"feed leaked unposted/private attempt data: {serialized}")
+    for item in feed:
+        if "notes" in item or "session_id" in item or "venue_name" in item:
+            fail(f"feed exposed owner-only field: {item!r}")
+        if not isinstance(item.get("author"), dict) or not isinstance(item.get("attempt"), dict):
+            fail(f"feed omitted nested author/attempt: {item!r}")
+        if "like_count" not in item or "comment_count" not in item or "is_liked" not in item:
+            fail(f"feed omitted engagement fields: {item!r}")
+    owner_feed = rows(rpc(base, "get_send_feed", payload={"author_filter": OWNER_ID, "page_size": 1}), "filtered send feed")
+    if len(owner_feed) != 1 or owner_feed[0].get("user_id") != OWNER_ID:
+        fail(f"author-filtered feed was wrong: {owner_feed!r}")
+    print("PASS: anonymous public profile/feed, nested author/attempt, pagination fields, and non-leakage verified")
+
+
+def assert_private_sessions_and_attempts(base: str, owner_token: str, other_token: str) -> None:
+    owner_sessions = rows(
+        expect_api_result(request_json("GET", f"{base}/rest/v1/climbing_sessions?id=eq.{OWNER_SESSION_ID}&select=*", owner_token), "owner session read"),
+        "owner session read",
+    )
+    if len(owner_sessions) != 1:
+        fail(f"owner could not read own session: {owner_sessions!r}")
+    other_session = rows(
+        expect_api_result(request_json("GET", f"{base}/rest/v1/climbing_sessions?id=eq.{OWNER_SESSION_ID}&select=*", other_token), "other session read"),
+        "other session read",
+    )
+    if other_session:
+        fail(f"other user read owner session: {other_session!r}")
+    anon = expect_api_result(request_json("GET", f"{base}/rest/v1/climbing_sessions?id=eq.{OWNER_SESSION_ID}&select=*"), "anonymous session read")
+    if anon.status not in {200, 401, 403} or (anon.status == 200 and anon.body):
+        fail(f"anonymous session read leaked private data: HTTP {anon.status} {anon.body!r}")
+    owner_attempts = rows(
+        expect_api_result(request_json("GET", f"{base}/rest/v1/climb_attempts?session_id=eq.{OWNER_SESSION_ID}&select=*", owner_token), "owner attempt read"),
+        "owner attempt read",
+    )
+    if not any(item.get("id") == OWNER_FELL_ATTEMPT_ID and item.get("notes") == SECRET_NOTES for item in owner_attempts):
+        fail(f"owner could not read private attempt notes: {owner_attempts!r}")
+    other_attempts = rows(
+        expect_api_result(request_json("GET", f"{base}/rest/v1/climb_attempts?session_id=eq.{OWNER_SESSION_ID}&select=*", other_token), "other attempt read"),
+        "other attempt read",
+    )
+    if other_attempts:
+        fail(f"other user read owner attempts: {other_attempts!r}")
+    print("PASS: sessions and attempts are owner-only while public send projection stays safe")
+
+
+def assert_social_mutations(base: str, owner_token: str, other_token: str) -> None:
+    def post(table: str, token: str | None, body: object, description: str) -> ApiResult:
+        return expect_api_result(request_json("POST", f"{base}/rest/v1/{table}", token, body), description)
+
+    assert_rejected(post("climbing_sessions", other_token, {"user_id": OWNER_ID, "venue_name": "cross", "started_at": "2030-01-01T00:00:00Z"}, "cross-user session insert"), "cross-user session insert")
+    assert_rejected(expect_api_result(request_json("PATCH", f"{base}/rest/v1/climbing_sessions?id=eq.{OWNER_SESSION_ID}", other_token, {"venue_name": "cross"}), "cross-user session update"), "cross-user session update")
+    assert_rejected(post("climb_attempts", owner_token, {"session_id": OTHER_SESSION_ID, "user_id": OWNER_ID, "route_name": "cross", "discipline": "board", "grade_system": "v_scale", "grade_label": "V1", "outcome": "fell", "attempt_number": 1, "occurred_at": "2030-01-01T00:00:00Z"}, "attempt in another session"), "attempt in another session")
+    assert_rejected(expect_api_result(request_json("PATCH", f"{base}/rest/v1/climb_attempts?id=eq.{OWNER_SENT_ATTEMPT_ID}", other_token, {"notes": "cross"}), "cross-user attempt update"), "cross-user attempt update")
+    assert_rejected(post("send_posts", owner_token, {"user_id": OWNER_ID, "attempt_id": OWNER_FELL_ATTEMPT_ID, "caption": "fell post", "image_alt": "alt"}, "unsent post trigger"), "unsent post trigger")
+    assert_rejected(expect_api_result(request_json("PATCH", f"{base}/rest/v1/send_posts?id=eq.{OWNER_POST_ID}", other_token, {"caption": "cross"}), "cross-user post update"), "cross-user post update")
+    assert_rejected(expect_api_result(request_json("DELETE", f"{base}/rest/v1/send_posts?id=eq.{OWNER_POST_ID}", other_token), "cross-user post delete"), "cross-user post delete")
+    assert_rejected(post("send_post_likes", other_token, {"post_id": OWNER_POST_ID, "user_id": OWNER_ID}, "cross-user like insert"), "cross-user like insert")
+    owner_like = post("send_post_likes", owner_token, {"post_id": OWNER_POST_ID, "user_id": OWNER_ID}, "owner like insert")
+    if owner_like.status not in {200, 201}:
+        fail(f"owner like insert failed: HTTP {owner_like.status} {owner_like.body!r}")
+    assert_rejected(expect_api_result(request_json("DELETE", f"{base}/rest/v1/send_post_likes?post_id=eq.{OWNER_POST_ID}&user_id=eq.{OWNER_ID}", other_token), "cross-user like delete"), "cross-user like delete")
+    post_comment = post("send_post_comments", owner_token, {"post_id": OWNER_POST_ID, "user_id": OWNER_ID, "content": "owner comment"}, "owner post comment")
+    comment_rows = rows(post_comment, "owner post comment")
+    if len(comment_rows) != 1:
+        fail(f"owner post comment did not return one row: {comment_rows!r}")
+    comment_id = comment_rows[0]["id"]
+    assert_rejected(post("send_post_comments", other_token, {"post_id": OWNER_POST_ID, "user_id": OWNER_ID, "content": "cross comment"}, "cross-user post comment"), "cross-user post comment")
+    assert_rejected(expect_api_result(request_json("PATCH", f"{base}/rest/v1/send_post_comments?id=eq.{comment_id}", other_token, {"content": "cross"}), "cross-user comment update"), "cross-user comment update")
+    assert_rejected(expect_api_result(request_json("DELETE", f"{base}/rest/v1/send_post_comments?id=eq.{comment_id}", other_token), "cross-user comment delete"), "cross-user comment delete")
+    assert_rejected(post("meetups", other_token, {"organizer_id": OWNER_ID, "title": "cross", "description": "cross", "venue_name": "venue", "area": "area", "starts_at": "2030-01-01T00:00:00Z"}, "cross-user meetup insert"), "cross-user meetup insert")
+    assert_rejected(expect_api_result(request_json("PATCH", f"{base}/rest/v1/meetups?id=eq.{OWNER_MEETUP_ID}", other_token, {"title": "cross"}), "cross-user meetup update"), "cross-user meetup update")
+    assert_rejected(expect_api_result(request_json("DELETE", f"{base}/rest/v1/meetups?id=eq.{OWNER_MEETUP_ID}", other_token), "cross-user meetup delete"), "cross-user meetup delete")
+    assert_rejected(post("meetup_attendees", other_token, {"meetup_id": OWNER_MEETUP_ID, "user_id": OTHER_ID}, "direct attendee insert"), "direct attendee insert")
+    meetup_comment = post("meetup_comments", owner_token, {"meetup_id": OWNER_MEETUP_ID, "user_id": OWNER_ID, "content": "owner meetup comment"}, "owner meetup comment")
+    meetup_comment_rows = rows(meetup_comment, "owner meetup comment")
+    comment_id = meetup_comment_rows[0]["id"]
+    assert_rejected(post("meetup_comments", other_token, {"meetup_id": OWNER_MEETUP_ID, "user_id": OWNER_ID, "content": "cross meetup comment"}, "cross-user meetup comment"), "cross-user meetup comment")
+    assert_rejected(expect_api_result(request_json("PATCH", f"{base}/rest/v1/meetup_comments?id=eq.{comment_id}", other_token, {"content": "cross"}), "cross-user meetup comment update"), "cross-user meetup comment update")
+    assert_rejected(expect_api_result(request_json("DELETE", f"{base}/rest/v1/meetup_comments?id=eq.{comment_id}", other_token), "cross-user meetup comment delete"), "cross-user meetup comment delete")
+    print("PASS: owner-matching inserts, immutable parents, and every cross-user social mutation were denied")
 
 
 def rpc(base: str, function: str, token: str | None = None, payload: object | None = None) -> ApiResult:
@@ -507,176 +419,59 @@ def rpc(base: str, function: str, token: str | None = None, payload: object | No
     )
 
 
-def assert_social_graph(base: str, owner_token: str, other_token: str) -> None:
-    # Cross-user impersonation: OTHER attempts to create a follow on behalf of
-    # OWNER before any legitimate OWNER->OTHER row exists. RLS must reject it;
-    # a PK conflict cannot satisfy this assertion because the pair is absent.
-    cross_follow = expect_api_result(
-        request_json(
-            "POST",
-            f"{base}/rest/v1/follows",
-            other_token,
-            {"follower_id": OWNER_ID, "following_id": OTHER_ID},
-        ),
-        "cross-user follow",
+def assert_public_meetups_and_joins(base: str, owner_token: str, other_token: str) -> None:
+    public = rows(
+        expect_api_result(request_json("GET", f"{base}/rest/v1/meetups?id=in.({OWNER_MEETUP_ID},{CANCELLED_MEETUP_ID})&select=id,status"), "anonymous meetup read"),
+        "anonymous meetup read",
     )
-    if 200 <= cross_follow.status < 300:
-        fail(f"cross-user follow unexpectedly succeeded: HTTP {cross_follow.status}")
-    # Verify the impersonated row was not created.
-    cross_read = expect_api_result(
-        request_json(
-            "GET",
-            f"{base}/rest/v1/follows?follower_id=eq.{OWNER_ID}&following_id=eq.{OTHER_ID}&select=*",
-            owner_token,
-        ),
-        "cross-user follow row absence",
-    )
-    if cross_read.status != 200 or not isinstance(cross_read.body, list) or cross_read.body:
-        fail(f"cross-user follow left a row behind: HTTP {cross_read.status} {cross_read.body!r}")
+    if {item.get("id") for item in public} != {OWNER_MEETUP_ID, CANCELLED_MEETUP_ID}:
+        fail(f"public meetup read omitted status variants: {public!r}")
+    assert_rejected(rpc(base, "join_meetup", owner_token, {"meetup_id": OWNER_MEETUP_ID}), "organizer join")
+    first = rpc(base, "join_meetup", other_token, {"meetup_id": OWNER_MEETUP_ID})
+    if first.status != 200:
+        fail(f"first meetup join failed: HTTP {first.status} {first.body!r}")
+    second = rpc(base, "join_meetup", other_token, {"meetup_id": OWNER_MEETUP_ID})
+    if second.status != 200 or second.body != first.body:
+        fail(f"meetup join was not idempotent: first={first.body!r} second={second.body!r}")
+    assert_rejected(rpc(base, "join_meetup", payload={"meetup_id": OWNER_MEETUP_ID}), "anonymous meetup join")
+    owner_other = rpc(base, "join_meetup", owner_token, {"meetup_id": OTHER_MEETUP_ID})
+    if owner_other.status != 200:
+        fail(f"owner join of other meetup failed: HTTP {owner_other.status} {owner_other.body!r}")
+    owner_filler = rpc(base, "join_meetup", owner_token, {"meetup_id": FILLER_MEETUP_ID})
+    if owner_filler.status != 200:
+        fail(f"owner join of filler meetup failed: HTTP {owner_filler.status} {owner_filler.body!r}")
+    assert_rejected(rpc(base, "join_meetup", other_token, {"meetup_id": FILLER_MEETUP_ID}), "full meetup join")
+    assert_rejected(rpc(base, "join_meetup", other_token, {"meetup_id": CANCELLED_MEETUP_ID}), "cancelled meetup join")
+    cancelled_update = expect_api_result(request_json("PATCH", f"{base}/rest/v1/meetups?id=eq.{OWNER_MEETUP_ID}", owner_token, {"status": "cancelled"}), "organizer cancellation")
+    if cancelled_update.status != 200:
+        fail(f"organizer cancellation failed: HTTP {cancelled_update.status} {cancelled_update.body!r}")
+    # Existing attendance remains idempotent after cancellation.
+    if rpc(base, "join_meetup", other_token, {"meetup_id": OWNER_MEETUP_ID}).status != 200:
+        fail("existing attendee lost idempotence after cancellation")
+    print("PASS: public scheduled/cancelled reads, organizer authority, idempotent joins, and locked capacity verified")
 
-    # Owner follows OTHER (legitimate).
-    follow = expect_api_result(
-        request_json(
-            "POST",
-            f"{base}/rest/v1/follows?select=*",
-            owner_token,
-            {"follower_id": OWNER_ID, "following_id": OTHER_ID},
-        ),
-        "owner follow other",
-    )
-    if follow.status not in {200, 201}:
-        fail(f"owner follow other failed: HTTP {follow.status} {follow.body!r}")
 
-    # Duplicate follow surfaces as a clean 409 conflict (idempotent/clean conflict).
-    duplicate = expect_api_result(
-        request_json(
-            "POST",
-            f"{base}/rest/v1/follows",
-            owner_token,
-            {"follower_id": OWNER_ID, "following_id": OTHER_ID},
-        ),
-        "duplicate follow",
-    )
-    if duplicate.status != 409:
-        fail(f"duplicate follow expected 409, got HTTP {duplicate.status} {duplicate.body!r}")
-
-    # Self-follow is forbidden by the CHECK constraint.
-    self_follow = expect_api_result(
-        request_json(
-            "POST",
-            f"{base}/rest/v1/follows",
-            owner_token,
-            {"follower_id": OWNER_ID, "following_id": OWNER_ID},
-        ),
-        "self follow",
-    )
-    if 200 <= self_follow.status < 300:
-        fail(f"self-follow unexpectedly succeeded: HTTP {self_follow.status}")
-
-    # Anonymous users cannot read the social graph.
-    anon_read = expect_api_result(
-        request_json("GET", f"{base}/rest/v1/follows?select=*"),
-        "anon follows read",
-    )
-    if anon_read.status not in {401, 403}:
-        fail(f"anon follows read expected 401/403, got HTTP {anon_read.status}")
-
-    # Anonymous users cannot call the feed RPC.
-    anon_feed = rpc(base, "get_following_feed")
-    if anon_feed.status not in {401, 403}:
-        fail(f"anon feed expected 401/403, got HTTP {anon_feed.status}")
-
-    # Follower/following counts are exact for the authenticated caller.
-    counts = rpc(base, "get_profile_follow_counts", owner_token, {"target_profile_id": OTHER_ID})
-    if counts.status != 200 or not isinstance(counts.body, list) or len(counts.body) != 1:
-        fail(f"counts RPC failed: HTTP {counts.status} {counts.body!r}")
-    count_row = counts.body[0]
-    if count_row.get("follower_count") != 1 or count_row.get("following_count") != 0:
-        fail(f"counts wrong: {count_row!r}")
-
-    # Feed returns only OTHER's public routes; private and own routes are excluded.
-    feed = rpc(base, "get_following_feed", owner_token, {"p_limit": 10})
-    if feed.status != 200 or not isinstance(feed.body, list):
-        fail(f"feed RPC failed: HTTP {feed.status} {feed.body!r}")
-    feed_ids = [item["route_id"] for item in feed.body]
-    if OTHER_PRIVATE_ROUTE_ID in feed_ids:
-        fail(f"feed leaked private route: {feed_ids!r}")
-    if OWNER_ROUTE_ID in feed_ids or PROTECTED_ROUTE_ID in feed_ids:
-        fail(f"feed included own routes: {feed_ids!r}")
-    if OTHER_NULL_CREATED_ROUTE_ID in feed_ids:
-        fail(f"feed leaked NULL-created route: {feed_ids!r}")
-    for route_id in (OTHER_PUBLIC_ROUTE_ID, OTHER_PUBLIC_ROUTE_2_ID, OTHER_PUBLIC_ROUTE_3_ID):
-        if route_id not in feed_ids:
-            fail(f"feed missing public route {route_id}: {feed_ids!r}")
-    for item in feed.body:
-        if item.get("activity_at") is None:
-            fail(f"feed returned a NULL activity_at: {item!r}")
-        if item.get("author_id") != OTHER_ID or item.get("author_username") != "rls-harness-other":
-            fail(f"feed item has wrong author enrichment: {item!r}")
-
-    # Deterministic keyset pagination on (activity_at, route_id), newest first.
-    page1 = rpc(base, "get_following_feed", owner_token, {"p_limit": 2})
-    if page1.status != 200 or not isinstance(page1.body, list) or len(page1.body) != 2:
-        fail(f"feed page1 failed: HTTP {page1.status} {page1.body!r}")
-    second = page1.body[1]
-    page2 = rpc(
-        base,
-        "get_following_feed",
-        owner_token,
-        {
-            "p_cursor_activity_at": second["activity_at"],
-            "p_cursor_route_id": second["route_id"],
-            "p_limit": 2,
-        },
-    )
-    if page2.status != 200 or not isinstance(page2.body, list) or len(page2.body) != 1:
-        fail(f"feed page2 failed: HTTP {page2.status} {page2.body!r}")
-    if page2.body[0]["route_id"] != OTHER_PUBLIC_ROUTE_ID:
-        fail(f"feed page2 returned wrong item: {page2.body!r}")
-    page1_ids = {item["route_id"] for item in page1.body}
-    page2_ids = {item["route_id"] for item in page2.body}
-    if page1_ids & page2_ids:
-        fail(f"feed pages overlap: {page1_ids} & {page2_ids}")
-
-    # Owner can unfollow.
-    unfollow = expect_api_result(
-        request_json(
-            "DELETE",
-            f"{base}/rest/v1/follows?follower_id=eq.{OWNER_ID}&following_id=eq.{OTHER_ID}",
-            owner_token,
-        ),
-        "owner unfollow",
-    )
-    if unfollow.status not in {200, 204}:
-        fail(f"owner unfollow failed: HTTP {unfollow.status} {unfollow.body!r}")
-
-    # Re-follow, then verify OTHER cannot remove OWNER's follow.
-    refollow = expect_api_result(
-        request_json(
-            "POST",
-            f"{base}/rest/v1/follows",
-            owner_token,
-            {"follower_id": OWNER_ID, "following_id": OTHER_ID},
-        ),
-        "owner refollow",
-    )
-    if refollow.status not in {200, 201}:
-        fail(f"owner refollow failed: HTTP {refollow.status} {refollow.body!r}")
-    # OTHER attempts to remove OWNER's follow; RLS filters the row so the
-    # follow must survive regardless of the HTTP status (RLS is a filter).
-    cross_unfollow = expect_api_result(
-        request_json(
-            "DELETE",
-            f"{base}/rest/v1/follows?follower_id=eq.{OWNER_ID}&following_id=eq.{OTHER_ID}",
-            other_token,
-        ),
-        "cross-user unfollow",
-    )
-    still = rpc(base, "get_profile_follow_counts", owner_token, {"target_profile_id": OTHER_ID})
-    if still.status != 200 or not isinstance(still.body, list) or still.body[0].get("follower_count") != 1:
-        fail(f"cross-user unfollow removed owner's follow: HTTP {cross_unfollow.status} {still.body!r}")
-
-    print("PASS: social graph follow/unfollow, self-follow denial, cross-user denial, anon denial, counts, feed visibility, and pagination verified")
+def assert_storage_ownership(base: str, owner_token: str, other_token: str) -> None:
+    marker = f"rls-harness-{uuid.uuid4().hex}"
+    owner_key = f"{OWNER_ID}/{marker}/owner.jpg"
+    cross_key = f"{OWNER_ID}/{marker}/cross.jpg"
+    legacy_key = f"{marker}/legacy.jpg"
+    upload = b"boarded-social-storage-harness"
+    owner_upload = expect_api_result(request_storage("POST", base, owner_key, owner_token, upload), "owner social-media upload")
+    if owner_upload.status not in {200, 201}:
+        fail(f"owner social-media upload failed: HTTP {owner_upload.status} {owner_upload.body!r}")
+    try:
+        public_read = expect_api_result(request_storage("GET", base, owner_key), "public social-media read")
+        if public_read.status != 200:
+            fail(f"public social-media read failed: HTTP {public_read.status} {public_read.body!r}")
+        assert_rejected(expect_api_result(request_storage("POST", base, cross_key, other_token, upload), "cross-prefix upload"), "cross-prefix upload")
+        assert_rejected(expect_api_result(request_storage("POST", base, legacy_key, owner_token, upload), "legacy-prefix upload"), "legacy-prefix upload")
+        assert_rejected(expect_api_result(request_storage("POST", base, cross_key, payload=upload), "anonymous upload"), "anonymous upload")
+    finally:
+        deleted = expect_api_result(request_storage("DELETE", base, owner_key, owner_token), "owner social-media cleanup")
+        if deleted.status not in {200, 204}:
+            fail(f"owner social-media cleanup failed: HTTP {deleted.status} {deleted.body!r}")
+    print("PASS: social-media public read and first-path authenticated ownership verified")
 
 
 def run() -> None:
@@ -685,75 +480,17 @@ def run() -> None:
     run_psql("SELECT 1;")
     try:
         setup_fixtures()
-        owner = login(base, User(OWNER_ID, OWNER_EMAIL))
-        other = login(base, User(OTHER_ID, OTHER_EMAIL))
-        inserted = insert_owner_route(base, owner)
-        inserted_read = get_route(base, INSERTED_ROUTE_ID, owner)
-        if (
-            not inserted_read
-            or inserted_read.get("wall_image_width") != inserted["wall_image_width"]
-            or inserted_read.get("wall_image_height") != inserted["wall_image_height"]
-        ):
-            fail(f"owner route read did not preserve inserted dimensions: {inserted_read!r}")
-        assert_storage_ownership(base, owner, other)
-
-        assert_update(
-            base,
-            OWNER_ROUTE_ID,
-            owner,
-            ROUTE_MARKER + "owner-updated",
-            1,
-            "owner update",
-        )
-        updated = get_route(base, OWNER_ROUTE_ID)
-        if not updated or updated["name"] != ROUTE_MARKER + "owner-updated" or updated["grade_v"] != "V2":
-            fail(f"owner update did not persist expected values: {updated!r}")
-
-        original_protected = get_route(base, PROTECTED_ROUTE_ID)
-        if not original_protected:
-            fail("protected route fixture is missing")
-        assert_update(
-            base,
-            PROTECTED_ROUTE_ID,
-            other,
-            ROUTE_MARKER + "non-owner-update",
-            0,
-            "non-owner update rejection",
-        )
-        if get_route(base, PROTECTED_ROUTE_ID) != original_protected:
-            fail("non-owner update changed the protected row")
-
-        assert_delete(base, PROTECTED_ROUTE_ID, other, 0, "non-owner delete rejection")
-        if get_route(base, PROTECTED_ROUTE_ID) != original_protected:
-            fail("non-owner delete changed the protected row")
-
-        original_null = get_route(base, NULL_OWNER_ROUTE_ID)
-        if not original_null:
-            fail("NULL-owner route fixture is missing")
-        assert_update(
-            base,
-            NULL_OWNER_ROUTE_ID,
-            owner,
-            ROUTE_MARKER + "null-owner-update",
-            0,
-            "NULL user_id update rejection",
-        )
-        if get_route(base, NULL_OWNER_ROUTE_ID) != original_null:
-            fail("update against NULL user_id changed the row")
-
-        assert_delete(base, NULL_OWNER_ROUTE_ID, owner, 0, "NULL user_id delete rejection")
-        if get_route(base, NULL_OWNER_ROUTE_ID) != original_null:
-            fail("delete against NULL user_id changed the row")
-
-        assert_delete(base, OWNER_ROUTE_ID, owner, 1, "owner delete")
-        if get_route(base, PROTECTED_ROUTE_ID) is None or get_route(base, NULL_OWNER_ROUTE_ID) is None:
-            fail("a rejected mutation did not preserve its route")
-        print("PASS: owner update/delete succeeded; non-owner and NULL user_id mutations were rejected with rows preserved")
-
-        assert_social_graph(base, owner, other)
+        owner_token = login(base, User(OWNER_ID, OWNER_EMAIL))
+        other_token = login(base, User(OTHER_ID, OTHER_EMAIL))
+        assert_route_ownership(base, owner_token, other_token)
+        assert_public_profiles_and_feed(base)
+        assert_private_sessions_and_attempts(base, owner_token, other_token)
+        assert_social_mutations(base, owner_token, other_token)
+        assert_public_meetups_and_joins(base, owner_token, other_token)
+        assert_storage_ownership(base, owner_token, other_token)
     finally:
         cleanup_fixtures()
-        print("PASS: fixed UUID auth users and route fixtures cleaned up")
+        print("PASS: fixed UUID auth and social fixtures cleaned up")
 
 
 def main() -> int:
