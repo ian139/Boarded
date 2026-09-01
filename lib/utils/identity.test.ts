@@ -11,10 +11,10 @@ const FONT_SHA256 = '6a9d9b79e12d1bacf936714597f04053de53c3728fefa926629856e82c6
 const OFL_SHA256 = '60700d351cac4650c51f3f9db318d2a420f8b45052dba2715eb5fec41f0f6956';
 
 const ICON_SHA256 = {
-  native1024: '376894365de8563635bb3e2767021ed5c62fe52c7d4613516e54b4ced1945530',
-  web512: 'a43b36faa188d2542dfbd066581fe2f811df29ab43bac8f97284a687de966a69',
-  web192: '2590cb3c43d3e2e1f48fd5c63a7d2bbb811957bc2281a2e22cdb319477813fee',
-  apple180: '653f704e09bfc67f4f5900f5593c548771a15b9a86d6c35241cf04e175353157',
+  native1024: '5b76290fddc4d1c8d01b002dcd434c89faabf8c3ccef42be1562d45570eb2909',
+  web512: '2445299c695d265bd600734586147274174e8eda14d2c7ce7032c79f76e0c2e9',
+  web192: '3c53985f1220f3415713abf67b5cb499b2988c85e7236d05ac1fa37613aa13e5',
+  apple180: '0083f2ef4059d633bcedbfdca4ea66c5a41c49b9db5efd5781068d3599f1fcfa',
 } as const;
 
 const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
@@ -26,6 +26,20 @@ function assertOpaquePng(path: string, width: number, height: number): void {
   assert.equal(png.readUInt32BE(16), width, `${path} width mismatch`);
   assert.equal(png.readUInt32BE(20), height, `${path} height mismatch`);
   assert.equal(png[25], 2, `${path} must be opaque truecolor`);
+
+  let offset = 8;
+  let hasStandardSrgb = false;
+  while (offset + 12 <= png.length) {
+    const chunkLength = png.readUInt32BE(offset);
+    const chunkType = png.subarray(offset + 4, offset + 8).toString('ascii');
+    assert.ok(offset + 12 + chunkLength <= png.length, `${path} has a truncated ${chunkType} chunk`);
+    if (chunkType === 'sRGB') {
+      hasStandardSrgb = chunkLength === 1 && png[offset + 8] === 0;
+    }
+    offset += 12 + chunkLength;
+    if (chunkType === 'IEND') break;
+  }
+  assert.equal(hasStandardSrgb, true, `${path} must declare standard sRGB intent`);
 }
 
 function sha256(path: string): string {
