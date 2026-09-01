@@ -9,6 +9,8 @@ import { cn } from '@/lib/utils';
 import { useIsClient } from '@/lib/hooks/useIsClient';
 import { gradeToNumber, calculateDisplayGrade } from '@boarded/shared/utils/grades';
 import { toast } from 'sonner';
+import { getProfileFollowCounts } from '@/lib/social/api';
+import type { ProfileFollowCounts } from '@boarded/shared/types';
 
 export default function ProfilePage() {
   const { user, isAuthenticated, profile, syncProfile, uploadAvatar } = useUserStore();
@@ -16,6 +18,9 @@ export default function ProfilePage() {
   const currentUserDisplayName = user?.displayName || 'Guest';
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [followCounts, setFollowCounts] = useState<ProfileFollowCounts | null>(null);
+  const [followCountsError, setFollowCountsError] = useState(false);
+  const followCountsGeneration = useRef(0);
   const { routes, fetchRoutes } = useRoutesStore();
   const isClient = useIsClient();
 
@@ -28,6 +33,29 @@ export default function ProfilePage() {
       syncProfile();
     }
   }, [isAuthenticated, syncProfile]);
+
+  useEffect(() => {
+    const profileId = user?.id;
+    const generation = ++followCountsGeneration.current;
+    setFollowCounts(null);
+    setFollowCountsError(false);
+    if (!profileId) return;
+
+    void getProfileFollowCounts(profileId)
+      .then((counts) => {
+        if (generation === followCountsGeneration.current && user?.id === profileId) {
+          setFollowCounts(counts);
+        }
+      })
+      .catch(() => {
+        if (generation === followCountsGeneration.current && user?.id === profileId) {
+          setFollowCountsError(true);
+        }
+      });
+    return () => {
+      if (generation === followCountsGeneration.current) followCountsGeneration.current += 1;
+    };
+  }, [user?.id]);
 
   const handleAvatarSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const input = event.currentTarget;
@@ -207,6 +235,20 @@ export default function ProfilePage() {
             )}
             {profile?.bio && (
               <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{profile.bio}</p>
+            )}
+            {isAuthenticated && (
+              <div className="mt-3 flex gap-5 text-sm tabular-nums" aria-label="Social counts">
+                {followCounts ? (
+                  <>
+                    <span><strong>{followCounts.follower_count}</strong> <span className="text-muted-foreground">followers</span></span>
+                    <span><strong>{followCounts.following_count}</strong> <span className="text-muted-foreground">following</span></span>
+                  </>
+                ) : followCountsError ? (
+                  <span className="text-muted-foreground" role="status">Social counts unavailable</span>
+                ) : (
+                  <span className="text-muted-foreground" role="status">Loading social counts…</span>
+                )}
+              </div>
             )}
             {isAuthenticated && (
               <div className="mt-2">

@@ -1,7 +1,7 @@
 const versionParam = new URL(self.location.href).searchParams.get('v') || 'dev';
 const CACHE_NAME = `boarded-shell-${versionParam}`;
 const IMAGE_CACHE_NAME = `boarded-images-${versionParam}`;
-const SHELL_ROUTES = ['/', '/editor', '/profile', '/settings', '/login', '/signup'];
+const SHELL_ROUTES = ['/', '/activity', '/editor', '/profile', '/settings', '/login', '/signup'];
 const IMMUTABLE_ASSETS = new Set([
   '/manifest.json',
   '/apple-touch-icon.png',

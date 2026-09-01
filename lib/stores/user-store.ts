@@ -3,6 +3,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { createClient } from '@/lib/supabase/client';
+import { useFeedStore } from '@/lib/stores/feed-store';
 import { useRoutesStore } from '@/lib/stores/routes-store';
 import { useWallsStore } from '@/lib/stores/walls-store';
 import type { Profile } from '@boarded/shared/types';
@@ -88,6 +89,7 @@ function reconcileDataForAuthChange(currentUserId?: string): Promise<void> {
   const wallsStore = useWallsStore.getState();
   routesStore.clearRemoteRoutes(currentUserId);
   wallsStore.clearRemoteWalls();
+  useFeedStore.getState().reset();
   const run = async () => {
     const supabase = createClient();
     try {
@@ -238,6 +240,7 @@ export const useUserStore = create<UserState>()(
       logout: async () => {
         useRoutesStore.getState().clearRemoteRoutes();
         useWallsStore.getState().clearRemoteWalls();
+        useFeedStore.getState().reset();
         const supabase = createClient();
 
         try {
