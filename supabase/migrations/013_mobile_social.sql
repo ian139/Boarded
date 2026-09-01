@@ -89,6 +89,11 @@ CREATE TABLE public.send_posts (
     CHECK (caption IS NULL OR char_length(btrim(caption)) BETWEEN 1 AND 2000),
   CONSTRAINT send_posts_image_path_nonempty
     CHECK (image_path IS NULL OR char_length(btrim(image_path)) BETWEEN 1 AND 500),
+  CONSTRAINT send_posts_image_path_canonical
+    CHECK (
+      image_path IS NULL
+      OR image_path = user_id::text || '/' || id::text || '.jpg'
+    ),
   CONSTRAINT send_posts_image_alt_length
     CHECK (image_alt IS NULL OR char_length(btrim(image_alt)) BETWEEN 1 AND 300),
   CONSTRAINT send_posts_image_alt_required
@@ -246,7 +251,9 @@ BEGIN
   SELECT ca.user_id, ca.outcome
     INTO attempt_owner, attempt_outcome
     FROM public.climb_attempts AS ca
-   WHERE ca.id = NEW.attempt_id;
+   WHERE ca.id = NEW.attempt_id
+   FOR UPDATE;
+
   IF attempt_owner IS DISTINCT FROM NEW.user_id OR attempt_outcome IS DISTINCT FROM 'sent' THEN
     RAISE EXCEPTION 'send post requires a sent attempt owned by its author'
       USING ERRCODE = '23514';
@@ -254,6 +261,29 @@ BEGIN
   RETURN NEW;
 END;
 $$;
+CREATE OR REPLACE FUNCTION public.prevent_published_attempt_downgrade()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public, pg_temp
+AS $$
+BEGIN
+  IF OLD.outcome = 'sent' AND NEW.outcome IS DISTINCT FROM 'sent'
+     AND EXISTS (
+       SELECT 1
+         FROM public.send_posts AS sp
+        WHERE sp.attempt_id = NEW.id
+     ) THEN
+    RAISE EXCEPTION 'published attempts cannot change outcome away from sent'
+      USING ERRCODE = '23514';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS prevent_published_attempt_downgrade ON public.climb_attempts;
+CREATE TRIGGER prevent_published_attempt_downgrade
+  BEFORE UPDATE OF outcome ON public.climb_attempts
+  FOR EACH ROW EXECUTE FUNCTION public.prevent_published_attempt_downgrade();
 
 DROP TRIGGER IF EXISTS prevent_climbing_session_parent_change ON public.climbing_sessions;
 CREATE TRIGGER prevent_climbing_session_parent_change
@@ -263,6 +293,7 @@ DROP TRIGGER IF EXISTS prevent_climb_attempt_parent_change ON public.climb_attem
 CREATE TRIGGER prevent_climb_attempt_parent_change
   BEFORE UPDATE ON public.climb_attempts
   FOR EACH ROW EXECUTE FUNCTION public.prevent_social_parent_change();
+
 DROP TRIGGER IF EXISTS prevent_send_post_parent_change ON public.send_posts;
 CREATE TRIGGER prevent_send_post_parent_change
   BEFORE UPDATE ON public.send_posts
