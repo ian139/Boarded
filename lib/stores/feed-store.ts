@@ -2,8 +2,8 @@
 
 import { create, type StateCreator } from 'zustand';
 import type { FollowingFeedItem } from '@boarded/shared/types';
-import { getFollowingFeed } from '@/lib/social/api';
-import { mergeFeedPage, type FeedCursor } from '@/lib/social/feed';
+import { getFollowingFeed } from '../social/api';
+import { mergeFeedPage, type FeedCursor } from '../social/feed';
 
 const PAGE_SIZE = 20;
 type FeedFetcher = (cursor: FeedCursor | null, limit: number) => Promise<FollowingFeedItem[]>;
