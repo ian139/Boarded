@@ -1,6 +1,6 @@
 'use client';
 
-import { Hold, HOLD_SIZES, HOLD_BORDER_WIDTH } from '@climbset/shared/types';
+import { Hold, HOLD_SIZES, HOLD_BORDER_WIDTH } from '@boarded/shared/types';
 
 interface HoldMarkerProps {
   hold: Hold;

@@ -1,16 +1,16 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Hold, HoldType, HoldSize } from '@climbset/shared/types';
+import { Hold, HoldType, HoldSize } from '@boarded/shared/types';
 import {
 	addHold as addHoldUtil,
 	removeHold as removeHoldUtil,
 	toggleSequencing,
 	findHoldNearPoint,
 	cycleHoldType as cycleHoldTypeUtil
-} from '@climbset/shared/utils/holds';
+} from '@boarded/shared/utils/holds';
 
-const STORAGE_KEY = 'climbset-draft';
+const STORAGE_KEY = 'boarded-draft';
 
 export function useHolds() {
 	const getStoredHolds = () => {

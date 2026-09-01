@@ -7,7 +7,7 @@ import { useUserStore } from '@/lib/stores/user-store';
 import { useRoutesStore } from '@/lib/stores/routes-store';
 import { cn } from '@/lib/utils';
 import { useIsClient } from '@/lib/hooks/useIsClient';
-import { gradeToNumber, calculateDisplayGrade } from '@climbset/shared/utils/grades';
+import { gradeToNumber, calculateDisplayGrade } from '@boarded/shared/utils/grades';
 import { toast } from 'sonner';
 
 export default function ProfilePage() {

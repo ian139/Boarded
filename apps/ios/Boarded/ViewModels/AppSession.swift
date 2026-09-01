@@ -29,7 +29,7 @@ final class AppSession: ObservableObject {
         #if DEBUG
         if fixture {
             userId = UUID(uuidString: "11111111-1111-4111-8111-111111111111")
-            userEmail = "fixture@climbset.test"
+            userEmail = "fixture@boarded.test"
             profile = Profile(
                 id: "11111111-1111-4111-8111-111111111111",
                 username: "fixture",

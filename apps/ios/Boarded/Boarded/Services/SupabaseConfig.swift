@@ -7,7 +7,7 @@ import Supabase
 enum AppLaunchConfiguration {
     #if DEBUG
     static var isUITestFixture: Bool {
-        ProcessInfo.processInfo.arguments.contains("--climbset-ui-fixture")
+        ProcessInfo.processInfo.arguments.contains("--boarded-ui-fixture")
     }
     #else
     static let isUITestFixture = false

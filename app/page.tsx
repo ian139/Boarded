@@ -8,7 +8,7 @@ import { useTheme } from 'next-themes';
 import { useWallsStore, DEFAULT_WALL } from '@/lib/stores/walls-store';
 import { useRoutesStore } from '@/lib/stores/routes-store';
 import { useIsClient } from '@/lib/hooks/useIsClient';
-import { gradeToNumber, calculateDisplayGrade } from '@climbset/shared/utils/grades';
+import { gradeToNumber, calculateDisplayGrade } from '@boarded/shared/utils/grades';
 import { Button } from '@/components/ui/button';
 import { InstallPrompt } from '@/components/shared/InstallPrompt';
 import { ConfirmDialog } from '@/components/home/ConfirmDialog';
@@ -18,7 +18,7 @@ import { SearchFilterBar, type SortOption } from '@/components/home/SearchFilter
 import { WallPickerDialog } from '@/components/home/WallPickerDialog';
 import { RouteList } from '@/components/home/RouteList';
 import { toast } from 'sonner';
-import type { Route, Wall } from '@climbset/shared/types';
+import type { Route, Wall } from '@boarded/shared/types';
 
 
 export default function Home() {

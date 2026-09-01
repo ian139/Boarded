@@ -75,7 +75,7 @@ struct MockWallsRepository: WallsRepository {
 
 struct SupabaseWallsRepository: WallsRepository {
     private let client: SupabaseClient?
-    let selectionKey: String? = "climbset.selectedWallId"
+    let selectionKey: String? = "boarded.selectedWallId"
 
     init(client: SupabaseClient?) {
         self.client = client

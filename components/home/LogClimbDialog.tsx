@@ -9,8 +9,8 @@ import { useRoutesStore } from '@/lib/stores/routes-store';
 import { useUserStore } from '@/lib/stores/user-store';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import type { Route, Ascent } from '@climbset/shared/types';
-import { V_GRADES } from '@climbset/shared/types';
+import type { Route, Ascent } from '@boarded/shared/types';
+import { V_GRADES } from '@boarded/shared/types';
 
 interface LogClimbDialogProps {
   route: Route | null;

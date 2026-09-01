@@ -1,5 +1,5 @@
 import XCTest
-@testable import ClimbSet
+@testable import Boarded
 
 final class HoldRadiusTests: XCTestCase {
     func testDefaultTypeIsStart() {

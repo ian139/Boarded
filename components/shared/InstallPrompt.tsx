@@ -24,7 +24,7 @@ export function InstallPrompt() {
 
   useEffect(() => {
     let isMounted = true;
-    const dismissed = sessionStorage.getItem('climbset-install-dismissed') === '1';
+    const dismissed = sessionStorage.getItem('boarded-install-dismissed') === '1';
     if (dismissed) return;
 
     queueMicrotask(() => {
@@ -53,11 +53,11 @@ export function InstallPrompt() {
     setDeferredPrompt(null);
     setIsVisible(false);
     setShowIOS(false);
-    sessionStorage.setItem('climbset-install-dismissed', '1');
+    sessionStorage.setItem('boarded-install-dismissed', '1');
   };
 
   const handleDismiss = () => {
-    sessionStorage.setItem('climbset-install-dismissed', '1');
+    sessionStorage.setItem('boarded-install-dismissed', '1');
     setIsVisible(false);
     setShowIOS(false);
   };

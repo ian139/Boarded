@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useRoutesStore } from '@/lib/stores/routes-store';
 import { useUserStore } from '@/lib/stores/user-store';
-import { type Comment } from '@climbset/shared/types';
+import { type Comment } from '@boarded/shared/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 

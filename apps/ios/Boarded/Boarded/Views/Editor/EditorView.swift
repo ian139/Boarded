@@ -1257,7 +1257,7 @@ struct EditorView: View {
                 let (data, _) = try await URLSession.shared.data(from: url)
                 guard let image = UIImage(data: data), image.size.height > 0 else {
                     throw NSError(
-                        domain: "ClimbSet.EditorView",
+                        domain: "Boarded.EditorView",
                         code: 1,
                         userInfo: [NSLocalizedDescriptionKey: "The wall image dimensions could not be read."]
                     )

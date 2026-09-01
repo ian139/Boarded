@@ -20,11 +20,11 @@ from urllib.parse import quote, urlparse
 from urllib.request import Request, urlopen
 
 
-LOCAL_URL_ENV = "CLIMBSET_LOCAL_SUPABASE_URL"
+LOCAL_URL_ENV = "BOARDED_LOCAL_SUPABASE_URL"
 DEFAULT_LOCAL_URL = "http://127.0.0.1:54321"
-DB_CONTAINER_ENV = "CLIMBSET_LOCAL_DB_CONTAINER"
+DB_CONTAINER_ENV = "BOARDED_LOCAL_DB_CONTAINER"
 DEFAULT_DB_CONTAINER = "supabase_db_climbset-supabase"
-PASSWORD = "ClimbSetHarness-2026!"
+PASSWORD = "BoardedHarness-2026!"
 INSTANCE_ID = "00000000-0000-0000-0000-000000000000"
 
 OWNER_ID = "2c6f6f39-3b0e-4d8b-8b8d-2c8a9f6b4c11"
@@ -34,9 +34,9 @@ PROTECTED_ROUTE_ID = "d2f7e93e-8a59-45a8-b3cb-4d5ef7bd2314"
 NULL_OWNER_ROUTE_ID = "f3c4a8d1-9b62-4f27-8a4c-6e0d2b1f8357"
 INSERTED_ROUTE_ID = "e8a1f57c-6d32-4bd1-9e48-2f0c7a6b9135"
 
-OWNER_EMAIL = "climbset-rls-harness-owner@local.invalid"
-OTHER_EMAIL = "climbset-rls-harness-other@local.invalid"
-ROUTE_MARKER = "__climbset_rls_harness__"
+OWNER_EMAIL = "boarded-rls-harness-owner@local.invalid"
+OTHER_EMAIL = "boarded-rls-harness-other@local.invalid"
+ROUTE_MARKER = "__boarded_rls_harness__"
 
 
 class HarnessError(RuntimeError):
@@ -68,7 +68,7 @@ def run_psql(sql: str) -> str:
     if not container.startswith("supabase_db_"):
         fail(
             f"refusing database container {container!r}; "
-            "CLIMBSET_LOCAL_DB_CONTAINER must name the disposable supabase_db_* container"
+            "BOARDED_LOCAL_DB_CONTAINER must name the disposable supabase_db_* container"
         )
     try:
         completed = subprocess.run(
@@ -220,7 +220,7 @@ def assert_storage_ownership(base: str, owner_token: str, other_token: str) -> N
     owner_key = f"{OWNER_ID}/{wall_id}/owner.jpg"
     non_owner_key = f"{OWNER_ID}/{wall_id}/non-owner.jpg"
     legacy_key = f"{wall_id}/legacy.jpg"
-    upload = b"climbset-storage-rls-harness"
+    upload = b"boarded-storage-rls-harness"
     created_keys: list[str] = []
 
     for key in (owner_key, non_owner_key, legacy_key):

@@ -1169,7 +1169,7 @@ struct RouteDetailView: View {
             }
             return publicURL
         }
-        guard let deepLink = URL(string: "climbset://share/\(token)") else {
+        guard let deepLink = URL(string: "boarded://share/\(token)") else {
             shareError = "Unable to create a share link."
             return nil
         }

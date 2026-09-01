@@ -5,8 +5,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useHolds } from '@/lib/hooks/useHolds';
-import { HoldType, Route, V_GRADES, HOLD_COLORS, HOLD_BORDER_WIDTH, Hold } from '@climbset/shared/types';
-import { getNextHoldType, getNextHoldSize, pixelToPercentage } from '@climbset/shared/utils/holds';
+import { HoldType, Route, V_GRADES, HOLD_COLORS, HOLD_BORDER_WIDTH, Hold } from '@boarded/shared/types';
+import { getNextHoldType, getNextHoldSize, pixelToPercentage } from '@boarded/shared/utils/holds';
 import { HoldMarker } from '@/components/wall/HoldMarker';
 import { nanoid } from 'nanoid';
 import { cn } from '@/lib/utils';
@@ -321,7 +321,7 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
       setEditingRoute(route);
       setAllHolds(route.holds);
       setEditResolution('ready');
-      localStorage.removeItem('climbset-draft');
+      localStorage.removeItem('boarded-draft');
       loadedEditRef.current = editRouteId;
     };
 

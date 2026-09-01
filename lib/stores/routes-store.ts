@@ -3,8 +3,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { createClient, type BrowserSupabaseClient } from '@/lib/supabase/client';
-import type { Route, Ascent, Comment } from '@climbset/shared/types';
-import { canonicalizeGrade, normalizeRouteGrades } from '@climbset/shared/utils/grades';
+import type { Route, Ascent, Comment } from '@boarded/shared/types';
+import { canonicalizeGrade, normalizeRouteGrades } from '@boarded/shared/utils/grades';
 import { nanoid } from 'nanoid';
 import { getWallStoragePathFromUrl } from '@/lib/utils/storage';
 
@@ -718,7 +718,7 @@ export const useRoutesStore = create<RoutesState>()(
       },
     }),
     {
-      name: 'climbset-routes',
+      name: 'boarded-routes',
       partialize: (state) => ({
         routes: state.routes,
       }),

@@ -160,7 +160,7 @@ struct NativeShareRequest: Identifiable {
 
 enum NativeShareLinkParser {
     static func token(from url: URL) -> String? {
-        guard url.scheme?.lowercased() == "climbset",
+        guard url.scheme?.lowercased() == "boarded",
               url.host?.lowercased() == "share",
               url.query == nil,
               url.fragment == nil,

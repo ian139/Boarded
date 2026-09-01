@@ -1,6 +1,6 @@
 const versionParam = new URL(self.location.href).searchParams.get('v') || 'dev';
-const SHELL_CACHE = `climbset-shell-${versionParam}`;
-const IMAGE_CACHE = `climbset-images-${versionParam}`;
+const SHELL_CACHE = `boarded-shell-${versionParam}`;
+const IMAGE_CACHE = `boarded-images-${versionParam}`;
 const SHELL_ROUTES = ['/', '/editor', '/profile', '/settings', '/login', '/signup'];
 const IMMUTABLE_ASSETS = new Set([
   '/manifest.json',
@@ -26,8 +26,8 @@ self.addEventListener('activate', (event) => {
         Promise.all(
           keys
             .filter((key) =>
-              (key.startsWith('climbset-shell-') && key !== SHELL_CACHE) ||
-              (key.startsWith('climbset-images-') && key !== IMAGE_CACHE)
+              (key.startsWith('boarded-shell-') && key !== SHELL_CACHE) ||
+              (key.startsWith('boarded-images-') && key !== IMAGE_CACHE)
             )
             .map((key) => caches.delete(key))
         )

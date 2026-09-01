@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import type { Route } from '@climbset/shared/types';
-import { calculateDisplayGrade, normalizeRouteGrades } from '@climbset/shared/utils/grades';
+import type { Route } from '@boarded/shared/types';
+import { calculateDisplayGrade, normalizeRouteGrades } from '@boarded/shared/utils/grades';
 import { RouteViewer } from '@/components/wall/RouteViewer';
 import { DEFAULT_WALL } from '@/lib/stores/walls-store';
 

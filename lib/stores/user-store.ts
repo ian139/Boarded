@@ -5,7 +5,7 @@ import { persist } from 'zustand/middleware';
 import { createClient } from '@/lib/supabase/client';
 import { useRoutesStore } from '@/lib/stores/routes-store';
 import { useWallsStore } from '@/lib/stores/walls-store';
-import type { Profile } from '@climbset/shared/types';
+import type { Profile } from '@boarded/shared/types';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 
@@ -372,7 +372,7 @@ export const useUserStore = create<UserState>()(
       },
     }),
     {
-      name: 'climbset-user',
+      name: 'boarded-user',
       partialize: (state) => ({
         profile: state.profile,
       }),

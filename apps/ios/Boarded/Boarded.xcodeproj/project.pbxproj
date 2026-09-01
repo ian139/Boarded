@@ -10,7 +10,7 @@
 		3CDD08882F59FBB600535751 /* RouteModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD08742F59FBB600535751 /* RouteModels.swift */; };
 		3CDD08892F59FBB600535751 /* RoutesRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD08762F59FBB600535751 /* RoutesRepository.swift */; };
 		3CDD08922F59FBD700535751 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD08902F59FBD700535751 /* Theme.swift */; };
-		3CDD08962F59FD5E00535751 /* ClimbSetApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD08942F59FD5E00535751 /* ClimbSetApp.swift */; };
+		3CDD08962F59FD5E00535751 /* BoardedApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD08942F59FD5E00535751 /* BoardedApp.swift */; };
 		3CDD08982F59FD5E00535751 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3CDD08932F59FD5E00535751 /* Assets.xcassets */; };
 		3CDD089A2F59FD6900535751 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD08992F59FD6900535751 /* RootView.swift */; };
 		3CDD08C72F5A00C800535751 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 3CDD08C62F5A00C800535751 /* Supabase */; };
@@ -42,7 +42,9 @@
 		3CDD09012F5A0E6D00535751 /* WallsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD09002F5A0E6D00535751 /* WallsViewModel.swift */; };
 		3CDD09042F5A0F8E00535751 /* WallPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CDD09022F5A0F8E00535751 /* WallPickerView.swift */; };
 		AA1100012F5B000100535751 /* WallsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1100022F5B000100535751 /* WallsRepository.swift */; };
-		AA1100102F5B000100535751 /* ClimbSetUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1100112F5B000100535751 /* ClimbSetUITests.swift */; };
+		AA1100102F5B000100535751 /* BoardedUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1100112F5B000100535751 /* BoardedUITests.swift */; };
+		AA1100422F5B000100535751 /* CormorantGaramond-SemiBoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = AA1100402F5B000100535751 /* CormorantGaramond-SemiBoldItalic.ttf */; };
+		AA1100432F5B000100535751 /* Cormorant-Garamond-OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = AA1100412F5B000100535751 /* Cormorant-Garamond-OFL.txt */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -51,25 +53,25 @@
 			containerPortal = 3CDD081B2F59F69800535751 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 3CDD08222F59F69800535751;
-			remoteInfo = ClimbSet;
+			remoteInfo = Boarded;
 		};
 		AA1100192F5B000100535751 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 3CDD081B2F59F69800535751 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 3CDD08222F59F69800535751;
-			remoteInfo = ClimbSet;
+			remoteInfo = Boarded;
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		3CDD08232F59F69900535751 /* ClimbSet.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClimbSet.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3CDD08232F59F69900535751 /* Boarded.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Boarded.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3CDD08742F59FBB600535751 /* RouteModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteModels.swift; sourceTree = "<group>"; };
 		3CDD08762F59FBB600535751 /* RoutesRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutesRepository.swift; sourceTree = "<group>"; };
-		3CDD08902F59FBD700535751 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Theme.swift; path = ClimbSet/Theme.swift; sourceTree = "<group>"; };
-		3CDD08932F59FD5E00535751 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = ClimbSet/Assets.xcassets; sourceTree = "<group>"; };
-		3CDD08942F59FD5E00535751 /* ClimbSetApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ClimbSetApp.swift; path = ClimbSet/ClimbSetApp.swift; sourceTree = "<group>"; };
-		3CDD08992F59FD6900535751 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RootView.swift; path = ClimbSet/RootView.swift; sourceTree = "<group>"; };
+		3CDD08902F59FBD700535751 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Theme.swift; path = Boarded/Theme.swift; sourceTree = "<group>"; };
+		3CDD08932F59FD5E00535751 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = Boarded/Assets.xcassets; sourceTree = "<group>"; };
+		3CDD08942F59FD5E00535751 /* BoardedApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BoardedApp.swift; path = Boarded/BoardedApp.swift; sourceTree = "<group>"; };
+		3CDD08992F59FD6900535751 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RootView.swift; path = Boarded/RootView.swift; sourceTree = "<group>"; };
 		3CDD09102F5A200100535751 /* ProfileRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileRepository.swift; sourceTree = "<group>"; };
 		3CDD09122F5A200100535751 /* ProfileStatistics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileStatistics.swift; sourceTree = "<group>"; };
 		3CDD08C82F5A064A00535751 /* SupabaseConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseConfig.swift; sourceTree = "<group>"; };
@@ -86,7 +88,7 @@
 		3CDD09142F5A200100535751 /* ProfileStatisticsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileStatisticsTests.swift; sourceTree = "<group>"; };
 		3CDD09162F5A200100535751 /* HoldRadiusTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoldRadiusTests.swift; sourceTree = "<group>"; };
 		AA1100212F5B000100535751 /* NativeContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeContractTests.swift; sourceTree = "<group>"; };
-		3CDD09192F5A200100535751 /* ClimbSetTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ClimbSetTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		3CDD09192F5A200100535751 /* BoardedTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BoardedTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3CDD08F72F5A0A0300535751 /* AppSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSession.swift; sourceTree = "<group>"; };
 		3CDD08F82F5A0A0300535751 /* CommentsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommentsViewModel.swift; sourceTree = "<group>"; };
 		3CDD08F92F5A0A0300535751 /* ProfileViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileViewModel.swift; sourceTree = "<group>"; };
@@ -94,8 +96,9 @@
 		3CDD09002F5A0E6D00535751 /* WallsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallsViewModel.swift; sourceTree = "<group>"; };
 		AA1100022F5B000100535751 /* WallsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallsRepository.swift; sourceTree = "<group>"; };
 		3CDD09022F5A0F8E00535751 /* WallPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallPickerView.swift; sourceTree = "<group>"; };
-		AA1100112F5B000100535751 /* ClimbSetUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClimbSetUITests.swift; sourceTree = "<group>"; };
-		AA1100122F5B000100535751 /* ClimbSetUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ClimbSetUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA1100122F5B000100535751 /* BoardedUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BoardedUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA1100402F5B000100535751 /* CormorantGaramond-SemiBoldItalic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "CormorantGaramond-SemiBoldItalic.ttf"; path = "Boarded/CormorantGaramond-SemiBoldItalic.ttf"; sourceTree = "<group>"; };
+		AA1100412F5B000100535751 /* Cormorant-Garamond-OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; name = "Cormorant-Garamond-OFL.txt"; path = "Boarded/Cormorant-Garamond-OFL.txt"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -119,25 +122,27 @@
 			isa = PBXGroup;
 			children = (
 				3CDD08932F59FD5E00535751 /* Assets.xcassets */,
-				3CDD08942F59FD5E00535751 /* ClimbSetApp.swift */,
+				3CDD08942F59FD5E00535751 /* BoardedApp.swift */,
 				3CDD08992F59FD6900535751 /* RootView.swift */,
-				3CDD09182F5A200100535751 /* ClimbSetTests */,
-				AA1100132F5B000100535751 /* ClimbSetUITests */,
+				3CDD09182F5A200100535751 /* BoardedTests */,
+				AA1100132F5B000100535751 /* BoardedUITests */,
 				3CDD08EC2F5A072900535751 /* Views */,
 				3CDD08902F59FBD700535751 /* Theme.swift */,
 				3CDD08752F59FBB600535751 /* Models */,
 				3CDD08772F59FBB600535751 /* Services */,
 				3CDD08242F59F69900535751 /* Products */,
 				3CDD08FB2F5A0A0300535751 /* ViewModels */,
+				AA1100402F5B000100535751 /* CormorantGaramond-SemiBoldItalic.ttf */,
+				AA1100412F5B000100535751 /* Cormorant-Garamond-OFL.txt */,
 			);
 			sourceTree = "<group>";
 		};
 		3CDD08242F59F69900535751 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				3CDD08232F59F69900535751 /* ClimbSet.app */,
-				3CDD09192F5A200100535751 /* ClimbSetTests.xctest */,
-				AA1100122F5B000100535751 /* ClimbSetUITests.xctest */,
+				3CDD08232F59F69900535751 /* Boarded.app */,
+				3CDD09192F5A200100535751 /* BoardedTests.xctest */,
+				AA1100122F5B000100535751 /* BoardedUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -150,7 +155,7 @@
 				3CDD08742F59FBB600535751 /* RouteModels.swift */,
 			);
 			name = Models;
-			path = ClimbSet/Models;
+			path = Boarded/Models;
 			sourceTree = "<group>";
 		};
 		3CDD08772F59FBB600535751 /* Services */ = {
@@ -162,7 +167,7 @@
 				3CDD08C82F5A064A00535751 /* SupabaseConfig.swift */,
 			);
 			name = Services;
-			path = ClimbSet/Services;
+			path = Boarded/Services;
 			sourceTree = "<group>";
 		};
 		3CDD08E02F5A072900535751 /* Editor */ = {
@@ -212,7 +217,7 @@
 				3CDD08EB2F5A072900535751 /* Shared */,
 			);
 			name = Views;
-			path = ClimbSet/Views;
+			path = Boarded/Views;
 			sourceTree = "<group>";
 		};
 		3CDD08FB2F5A0A0300535751 /* ViewModels */ = {
@@ -227,14 +232,14 @@
 			path = ViewModels;
 			sourceTree = "<group>";
 		};
-		3CDD09182F5A200100535751 /* ClimbSetTests */ = {
+		3CDD09182F5A200100535751 /* BoardedTests */ = {
 			isa = PBXGroup;
 			children = (
 				3CDD09142F5A200100535751 /* ProfileStatisticsTests.swift */,
 				3CDD09162F5A200100535751 /* HoldRadiusTests.swift */,
 				AA1100212F5B000100535751 /* NativeContractTests.swift */,
 			);
-			path = ClimbSetTests;
+			path = BoardedTests;
 			sourceTree = "<group>";
 		};
 		3CDD09032F5A0F8E00535751 /* Walls */ = {
@@ -245,20 +250,20 @@
 			path = Walls;
 			sourceTree = "<group>";
 		};
-		AA1100132F5B000100535751 /* ClimbSetUITests */ = {
+		AA1100132F5B000100535751 /* BoardedUITests */ = {
 			isa = PBXGroup;
 			children = (
-				AA1100112F5B000100535751 /* ClimbSetUITests.swift */,
+				AA1100112F5B000100535751 /* BoardedUITests.swift */,
 			);
-			path = ClimbSetUITests;
+			path = BoardedUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		3CDD08222F59F69800535751 /* ClimbSet */ = {
+		3CDD08222F59F69800535751 /* Boarded */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 3CDD082E2F59F69A00535751 /* Build configuration list for PBXNativeTarget "ClimbSet" */;
+			buildConfigurationList = 3CDD082E2F59F69A00535751 /* Build configuration list for PBXNativeTarget "Boarded" */;
 			buildPhases = (
 				3CDD081F2F59F69800535751 /* Sources */,
 				3CDD08202F59F69800535751 /* Frameworks */,
@@ -268,7 +273,7 @@
 			);
 			dependencies = (
 			);
-			name = ClimbSet;
+			name = Boarded;
 			packageProductDependencies = (
 				3CDD08C62F5A00C800535751 /* Supabase */,
 				3CDD08D02F5A06EE00535751 /* Auth */,
@@ -277,40 +282,40 @@
 				3CDD08D62F5A06EE00535751 /* Realtime */,
 				3CDD08D82F5A06EE00535751 /* Storage */,
 			);
-			productName = ClimbSet;
-			productReference = 3CDD08232F59F69900535751 /* ClimbSet.app */;
+			productName = Boarded;
+			productReference = 3CDD08232F59F69900535751 /* Boarded.app */;
 			productType = "com.apple.product-type.application";
 		};
-		3CDD091B2F5A200100535751 /* ClimbSetTests */ = {
+		3CDD091B2F5A200100535751 /* BoardedTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 3CDD091F2F5A200100535751 /* Build configuration list for PBXNativeTarget "ClimbSetTests" */;
+			buildConfigurationList = 3CDD091F2F5A200100535751 /* Build configuration list for PBXNativeTarget "BoardedTests" */;
 			buildPhases = (
-				3CDD091A2F5A200100535751 /* ClimbSetTests Sources */,
+				3CDD091A2F5A200100535751 /* BoardedTests Sources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				3CDD09202F5A200100535751 /* ClimbSet in Targets */,
+				3CDD09202F5A200100535751 /* Boarded in Targets */,
 			);
-			name = ClimbSetTests;
-			productName = ClimbSetTests;
-			productReference = 3CDD09192F5A200100535751 /* ClimbSetTests.xctest */;
+			name = BoardedTests;
+			productName = BoardedTests;
+			productReference = 3CDD09192F5A200100535751 /* BoardedTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		AA1100152F5B000100535751 /* ClimbSetUITests */ = {
+		AA1100152F5B000100535751 /* BoardedUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = AA1100162F5B000100535751 /* Build configuration list for PBXNativeTarget "ClimbSetUITests" */;
+			buildConfigurationList = AA1100162F5B000100535751 /* Build configuration list for PBXNativeTarget "BoardedUITests" */;
 			buildPhases = (
-				AA1100142F5B000100535751 /* ClimbSetUITests Sources */,
+				AA1100142F5B000100535751 /* BoardedUITests Sources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				AA11001A2F5B000100535751 /* ClimbSet in Targets */,
+				AA11001A2F5B000100535751 /* Boarded in Targets */,
 			);
-			name = ClimbSetUITests;
-			productName = ClimbSetUITests;
-			productReference = AA1100122F5B000100535751 /* ClimbSetUITests.xctest */;
+			name = BoardedUITests;
+			productName = BoardedUITests;
+			productReference = AA1100122F5B000100535751 /* BoardedUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
@@ -336,7 +341,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 3CDD081E2F59F69800535751 /* Build configuration list for PBXProject "ClimbSet" */;
+			buildConfigurationList = 3CDD081E2F59F69800535751 /* Build configuration list for PBXProject "Boarded" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -353,9 +358,9 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				3CDD08222F59F69800535751 /* ClimbSet */,
-				3CDD091B2F5A200100535751 /* ClimbSetTests */,
-				AA1100152F5B000100535751 /* ClimbSetUITests */,
+				3CDD08222F59F69800535751 /* Boarded */,
+				3CDD091B2F5A200100535751 /* BoardedTests */,
+				AA1100152F5B000100535751 /* BoardedUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -366,6 +371,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				3CDD08982F59FD5E00535751 /* Assets.xcassets in Resources */,
+				AA1100422F5B000100535751 /* CormorantGaramond-SemiBoldItalic.ttf in Resources */,
+				AA1100432F5B000100535751 /* Cormorant-Garamond-OFL.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -383,7 +390,7 @@
 				3CDD089A2F59FD6900535751 /* RootView.swift in Sources */,
 				3CDD08922F59FBD700535751 /* Theme.swift in Sources */,
 				3CDD09012F5A0E6D00535751 /* WallsViewModel.swift in Sources */,
-				3CDD08962F59FD5E00535751 /* ClimbSetApp.swift in Sources */,
+				3CDD08962F59FD5E00535751 /* BoardedApp.swift in Sources */,
 				3CDD08CB2F5A067100535751 /* ProfileModels.swift in Sources */,
 				3CDD09042F5A0F8E00535751 /* WallPickerView.swift in Sources */,
 				3CDD08ED2F5A072900535751 /* RouteRow.swift in Sources */,
@@ -404,7 +411,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		3CDD091A2F5A200100535751 /* ClimbSetTests Sources */ = {
+		3CDD091A2F5A200100535751 /* BoardedTests Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -414,25 +421,25 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		AA1100142F5B000100535751 /* ClimbSetUITests Sources */ = {
+		AA1100142F5B000100535751 /* BoardedUITests Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AA1100102F5B000100535751 /* ClimbSetUITests.swift in Sources */,
+				AA1100102F5B000100535751 /* BoardedUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		3CDD09202F5A200100535751 /* ClimbSet in Targets */ = {
+		3CDD09202F5A200100535751 /* Boarded in Targets */ = {
 			isa = PBXTargetDependency;
-			target = 3CDD08222F59F69800535751 /* ClimbSet */;
+			target = 3CDD08222F59F69800535751 /* Boarded */;
 			targetProxy = 3CDD09212F5A200100535751 /* PBXContainerItemProxy */;
 		};
-		AA11001A2F5B000100535751 /* ClimbSet in Targets */ = {
+		AA11001A2F5B000100535751 /* Boarded in Targets */ = {
 			isa = PBXTargetDependency;
-			target = 3CDD08222F59F69800535751 /* ClimbSet */;
+			target = 3CDD08222F59F69800535751 /* Boarded */;
 			targetProxy = AA1100192F5B000100535751 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -570,7 +577,7 @@
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Boarded;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = ClimbSet/Info.plist;
+				INFOPLIST_FILE = Boarded/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -581,7 +588,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.3;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ian.ClimbSet;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ian.Boarded;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -604,7 +611,7 @@
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Boarded;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = ClimbSet/Info.plist;
+				INFOPLIST_FILE = Boarded/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -615,7 +622,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.3;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ian.ClimbSet;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ian.Boarded;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -634,10 +641,10 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = UQ6DWXPFFY;
 				GENERATE_INFOPLIST_FILE = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ian.ClimbSetTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ian.BoardedTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ClimbSet.app/ClimbSet";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Boarded.app/Boarded";
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -649,10 +656,10 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = UQ6DWXPFFY;
 				GENERATE_INFOPLIST_FILE = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ian.ClimbSetTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ian.BoardedTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ClimbSet.app/ClimbSet";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Boarded.app/Boarded";
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -663,11 +670,11 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = UQ6DWXPFFY;
 				GENERATE_INFOPLIST_FILE = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ian.ClimbSetUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ian.BoardedUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = ClimbSet;
+				TEST_TARGET_NAME = Boarded;
 			};
 			name = Debug;
 		};
@@ -677,18 +684,18 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = UQ6DWXPFFY;
 				GENERATE_INFOPLIST_FILE = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ian.ClimbSetUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ian.BoardedUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = ClimbSet;
+				TEST_TARGET_NAME = Boarded;
 			};
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		3CDD091F2F5A200100535751 /* Build configuration list for PBXNativeTarget "ClimbSetTests" */ = {
+		3CDD091F2F5A200100535751 /* Build configuration list for PBXNativeTarget "BoardedTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				3CDD091D2F5A200100535751 /* Debug */,
@@ -697,7 +704,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		3CDD081E2F59F69800535751 /* Build configuration list for PBXProject "ClimbSet" */ = {
+		3CDD081E2F59F69800535751 /* Build configuration list for PBXProject "Boarded" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				3CDD082C2F59F69A00535751 /* Debug */,
@@ -706,7 +713,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		3CDD082E2F59F69A00535751 /* Build configuration list for PBXNativeTarget "ClimbSet" */ = {
+		3CDD082E2F59F69A00535751 /* Build configuration list for PBXNativeTarget "Boarded" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				3CDD082F2F59F69A00535751 /* Debug */,
@@ -715,7 +722,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		AA1100162F5B000100535751 /* Build configuration list for PBXNativeTarget "ClimbSetUITests" */ = {
+		AA1100162F5B000100535751 /* Build configuration list for PBXNativeTarget "BoardedUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				AA1100172F5B000100535751 /* Debug */,

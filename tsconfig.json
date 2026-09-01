@@ -27,7 +27,7 @@
       "@/*": [
         "./*"
       ],
-      "@climbset/shared/*": [
+      "@boarded/shared/*": [
         "./packages/shared/*"
       ]
     }

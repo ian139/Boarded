@@ -1,7 +1,7 @@
 import XCTest
 import UIKit
 import SwiftUI
-@testable import ClimbSet
+@testable import Boarded
 #if canImport(Supabase)
 import Supabase
 #endif

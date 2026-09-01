@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { createClient } from '@/lib/supabase/client';
-import type { Wall } from '@climbset/shared/types';
+import type { Wall } from '@boarded/shared/types';
 
 // Default wall
 export const DEFAULT_WALL: Wall = {
@@ -229,7 +229,7 @@ export const useWallsStore = create<WallsState>()(
       getWallById: (id) => get().walls.find((w) => w.id === id),
     }),
     {
-      name: 'climbset-walls',
+      name: 'boarded-walls',
       partialize: (state) => ({
         walls: state.walls,
         selectedWall: state.selectedWall,

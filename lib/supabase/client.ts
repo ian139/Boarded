@@ -18,7 +18,7 @@ export function createClient(): BrowserSupabaseClient {
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
-        storageKey: 'climbset-auth',
+        storageKey: 'boarded-auth',
       },
     }
   );

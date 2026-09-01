@@ -2,8 +2,8 @@
 
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { RouteViewer } from '@/components/wall/RouteViewer';
-import { calculateDisplayGrade } from '@climbset/shared/utils/grades';
-import type { Route } from '@climbset/shared/types';
+import { calculateDisplayGrade } from '@boarded/shared/utils/grades';
+import type { Route } from '@boarded/shared/types';
 
 interface RouteViewerDialogProps {
   route: Route | null;

@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "3CDD08222F59F69800535751"
-               BuildableName = "ClimbSet.app"
-               BlueprintName = "ClimbSet"
-               ReferencedContainer = "container:ClimbSet.xcodeproj">
+               BuildableName = "Boarded.app"
+               BlueprintName = "Boarded"
+               ReferencedContainer = "container:Boarded.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -29,9 +29,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "3CDD091B2F5A200100535751"
-               BuildableName = "ClimbSetTests.xctest"
-               BlueprintName = "ClimbSetTests"
-               ReferencedContainer = "container:ClimbSet.xcodeproj">
+               BuildableName = "BoardedTests.xctest"
+               BlueprintName = "BoardedTests"
+               ReferencedContainer = "container:Boarded.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -43,9 +43,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "AA1100152F5B000100535751"
-               BuildableName = "ClimbSetUITests.xctest"
-               BlueprintName = "ClimbSetUITests"
-               ReferencedContainer = "container:ClimbSet.xcodeproj">
+               BuildableName = "BoardedUITests.xctest"
+               BlueprintName = "BoardedUITests"
+               ReferencedContainer = "container:Boarded.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -61,9 +61,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "3CDD091B2F5A200100535751"
-               BuildableName = "ClimbSetTests.xctest"
-               BlueprintName = "ClimbSetTests"
-               ReferencedContainer = "container:ClimbSet.xcodeproj">
+               BuildableName = "BoardedTests.xctest"
+               BlueprintName = "BoardedTests"
+               ReferencedContainer = "container:Boarded.xcodeproj">
             </BuildableReference>
          </TestableReference>
          <TestableReference
@@ -71,9 +71,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "AA1100152F5B000100535751"
-               BuildableName = "ClimbSetUITests.xctest"
-               BlueprintName = "ClimbSetUITests"
-               ReferencedContainer = "container:ClimbSet.xcodeproj">
+               BuildableName = "BoardedUITests.xctest"
+               BlueprintName = "BoardedUITests"
+               ReferencedContainer = "container:Boarded.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -94,9 +94,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "3CDD08222F59F69800535751"
-            BuildableName = "ClimbSet.app"
-            BlueprintName = "ClimbSet"
-            ReferencedContainer = "container:ClimbSet.xcodeproj">
+            BuildableName = "Boarded.app"
+            BlueprintName = "Boarded"
+            ReferencedContainer = "container:Boarded.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>

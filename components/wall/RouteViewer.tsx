@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type SyntheticEvent } from 'react';
 import Image from 'next/image';
 import { nanoid } from 'nanoid';
-import { HOLD_BORDER_WIDTH, HOLD_COLORS, type Comment, type Hold, type Route } from '@climbset/shared/types';
-import { calculateDisplayGrade } from '@climbset/shared/utils/grades';
+import { HOLD_BORDER_WIDTH, HOLD_COLORS, type Comment, type Hold, type Route } from '@boarded/shared/types';
+import { calculateDisplayGrade } from '@boarded/shared/utils/grades';
 import { CommentsSection } from '@/components/route/CommentsSection';
 import { LogClimbDialog } from '@/components/home/LogClimbDialog';
 import { useRoutesStore } from '@/lib/stores/routes-store';

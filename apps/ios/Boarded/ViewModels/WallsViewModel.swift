@@ -143,7 +143,7 @@ final class WallsViewModel: ObservableObject {
 }
 
 extension Notification.Name {
-    static let wallImageDidChange = Notification.Name("ClimbSet.wallImageDidChange")
+    static let wallImageDidChange = Notification.Name("Boarded.wallImageDidChange")
 }
 
 struct AnyEncodable: Encodable {

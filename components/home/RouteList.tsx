@@ -9,9 +9,9 @@ import { useWallsStore, DEFAULT_WALL } from '@/lib/stores/walls-store';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { StarRating } from '@/components/ui/star-rating';
-import { HOLD_COLORS } from '@climbset/shared/types';
-import { calculateDisplayGrade } from '@climbset/shared/utils/grades';
-import type { Route } from '@climbset/shared/types';
+import { HOLD_COLORS } from '@boarded/shared/types';
+import { calculateDisplayGrade } from '@boarded/shared/utils/grades';
+import type { Route } from '@boarded/shared/types';
 import Image from 'next/image';
 
 interface RouteListProps {

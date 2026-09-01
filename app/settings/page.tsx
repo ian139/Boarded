@@ -95,9 +95,9 @@ export default function SettingsPage() {
   };
 
   const handleClearData = () => {
-    localStorage.removeItem('climbset-routes');
-    localStorage.removeItem('climbset-walls');
-    localStorage.removeItem('climbset-draft');
+    localStorage.removeItem('boarded-routes');
+    localStorage.removeItem('boarded-walls');
+    localStorage.removeItem('boarded-draft');
     window.location.reload();
   };
 
@@ -136,7 +136,7 @@ export default function SettingsPage() {
       try {
         const supabase = createClient();
         if (storageHistory.length === 0) {
-          const historyKey = 'climbset-storage-history';
+          const historyKey = 'boarded-storage-history';
           const rawHistory = localStorage.getItem(historyKey);
           if (rawHistory) {
             try {
@@ -163,7 +163,7 @@ export default function SettingsPage() {
         setStorageByWall(breakdown);
         setStorageBytes(totalBytes);
 
-        const historyKey = 'climbset-storage-history';
+        const historyKey = 'boarded-storage-history';
         const now = new Date();
         const nowIso = now.toISOString();
         const rawHistory = localStorage.getItem(historyKey);

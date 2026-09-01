@@ -1,13 +1,13 @@
 import XCTest
 
-final class ClimbSetUITests: XCTestCase {
+final class BoardedUITests: XCTestCase {
     private var app: XCUIApplication!
 
     override func setUpWithError() throws {
         continueAfterFailure = false
         XCUIDevice.shared.orientation = .portrait
         app = XCUIApplication()
-        app.launchArguments = ["--climbset-ui-fixture"]
+        app.launchArguments = ["--boarded-ui-fixture"]
         app.launch()
     }
 
@@ -409,7 +409,7 @@ final class ClimbSetUITests: XCTestCase {
         let email = app.textFields["you@example.com"]
         let password = app.secureTextFields["password"]
         email.tap()
-        email.typeText("fixture@climbset.test")
+        email.typeText("fixture@boarded.test")
         password.tap()
         password.typeText("fixture-password")
         app.buttons["Log In"].tap()

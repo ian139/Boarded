@@ -1,5 +1,5 @@
 import XCTest
-@testable import ClimbSet
+@testable import Boarded
 
 final class ProfileStatisticsTests: XCTestCase {
     private let userID = "00000000-0000-0000-0000-000000000001"
