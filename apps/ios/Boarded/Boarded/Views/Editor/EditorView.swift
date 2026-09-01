@@ -140,6 +140,12 @@ private enum TopoPresentationMode {
     case edit
 }
 
+private enum EditorTool: String {
+    case add = "Add node"
+    case move = "Move node"
+    case connect = "Connect path"
+}
+
 struct EditorView: View {
     let routeToEdit: Route?
     let onRouteUpdated: (Route) -> Void
@@ -184,6 +190,9 @@ struct EditorView: View {
     @State private var loadedWallAspectRatio: CGFloat? = nil
     @State private var wallAspectRequestID: UUID? = nil
     @State private var headerHeight: CGFloat = 0
+    @State private var editorTool: EditorTool = .add
+    @State private var undoHistory: [[Hold]] = []
+    @State private var redoHistory: [[Hold]] = []
 
     @State private var markerMagnificationSession: MarkerMagnificationSession?
 
@@ -260,19 +269,25 @@ struct EditorView: View {
                 }
                 .zIndex(2000)
 
-            if zoomScale > 1.01 || abs(panOffset.width) > 0.5 || abs(panOffset.height) > 0.5 {
+            if presentationMode == .browse || zoomScale > 1.01 || abs(panOffset.width) > 0.5 || abs(panOffset.height) > 0.5 {
                 zoomControls
-                    .padding(.top, headerHeight + 10)
-                    .padding(.horizontal, 10)
+                    .padding(.top, headerHeight + AppSpacing.space8)
+                    .padding(.horizontal, AppLayout.horizontalPadding)
                     .frame(maxHeight: .infinity, alignment: .top)
                     .zIndex(2001)
             }
         }
         .boardedPageBackground()
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if !holds.isEmpty {
-                topoNodeActionList
+            VStack(alignment: .leading, spacing: 0) {
+                if presentationMode == .edit {
+                    editorToolbar
+                }
+                if !holds.isEmpty {
+                    topoNodeActionList
+                }
             }
+            .background(AppColor.backgroundElevated)
         }
         .sheet(isPresented: $isSavePresented) {
             SaveRouteSheet(
@@ -332,6 +347,8 @@ struct EditorView: View {
             focusedHoldID = nil
             if mode == .browse {
                 resetZoom()
+            } else {
+                editorTool = .add
             }
         }
         .onChange(of: holds) { _, updatedHolds in
@@ -538,13 +555,12 @@ struct EditorView: View {
             saveErrorMessage = nil
             isSavePresented = true
         } label: {
-            Text("Save")
+            Label("Save", systemImage: "checkmark")
                 .font(AppTypography.label)
-                .foregroundColor(AppColor.primary)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(AppColor.primary.opacity(0.12))
-                .clipShape(Capsule())
+                .foregroundColor(AppColor.accentOnAccent)
+                .frame(minHeight: AppLayout.minimumControlHeight)
+                .padding(.horizontal, AppSpacing.space12)
+                .background(AppColor.accentDefault, in: Capsule())
         }
         .disabled(holds.isEmpty || !wallIsUsable)
         .opacity((holds.isEmpty || !wallIsUsable) ? 0.4 : 1)
@@ -609,7 +625,7 @@ struct EditorView: View {
                 .offset(panOffset)
                 .allowsHitTesting(false)
                 .zIndex(1)
-            if presentationMode == .browse, holds.count > 1 {
+            if holds.count > 1 {
                 topoRouteTrace(in: imageRect)
                     .frame(width: size.width, height: size.height)
                     .scaleEffect(zoomScale)
@@ -879,6 +895,114 @@ struct EditorView: View {
         return holds.first(where: { $0.id == selectedHoldID })
     }
 
+    private var editorToolbar: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.space8) {
+            HStack(spacing: AppSpacing.space4) {
+                toolButton(.add, systemImage: "plus.circle", action: addNodeAtCenter)
+                toolButton(.move, systemImage: "move.3d", action: selectNodeForEditing)
+            }
+            HStack(spacing: AppSpacing.space4) {
+                toolButton(.connect, systemImage: "point.3.connected.trianglepath.dotted", action: selectNodeForEditing)
+                historyButton("Undo", systemImage: "arrow.uturn.backward", disabled: undoHistory.isEmpty, action: undo)
+                historyButton("Redo", systemImage: "arrow.uturn.forward", disabled: redoHistory.isEmpty, action: redo)
+            }
+            Text(editorTool == .add ? "Tap the wall or Add node to place a hold." : editorTool == .move ? "Select and drag a node, or use its Move menu." : "Select nodes and use Earlier or Later to shape the connected route path.")
+                .font(AppTypography.caption)
+                .foregroundStyle(AppColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, AppLayout.horizontalPadding)
+        .padding(.vertical, AppSpacing.space8)
+        .overlay(alignment: .top) {
+            Rectangle().fill(AppColor.strokeSubtle).frame(height: AppStroke.hairline)
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    private func addNodeAtCenter() {
+        guard wallIsUsable else { return }
+        recordUndoSnapshot()
+        let type: HoldType = holds.isEmpty ? .start : .hand
+        let offset = Double((holds.count % 5) * 6)
+        let hold = Hold(
+            id: UUID().uuidString,
+            x: min(92, 50 + offset),
+            y: min(92, 50 + offset),
+            type: type,
+            color: type.colorHex,
+            size: .medium,
+            notes: nil
+        )
+        holds.append(hold)
+        selectHold(hold.id)
+        announce("Added \(typeDisplayName(type).lowercased()) node at the wall center.")
+    }
+
+    private func selectNodeForEditing() {
+        if selectedHoldID == nil, let first = holds.first {
+            selectHold(first.id)
+        }
+        if editorTool == .connect {
+            announce("Connect path mode. Use Earlier and Later to set the route line.")
+        }
+    }
+
+    private func toolButton(_ tool: EditorTool, systemImage: String, action: @escaping () -> Void) -> some View {
+        Button {
+            editorTool = tool
+            action()
+        } label: {
+            Label(tool.rawValue, systemImage: systemImage)
+                .font(AppTypography.label)
+                .frame(minHeight: AppLayout.minimumControlHeight)
+                .padding(.horizontal, AppSpacing.space12)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(editorTool == tool ? AppColor.accentOnAccent : AppColor.textPrimary)
+        .background(editorTool == tool ? AppColor.accentDefault : AppColor.surfaceCard, in: Capsule())
+        .overlay {
+            if editorTool != tool {
+                Capsule().stroke(AppColor.strokeDefault, lineWidth: AppStroke.hairline)
+            }
+        }
+        .accessibilityAddTraits(editorTool == tool ? .isSelected : [])
+    }
+
+    private func historyButton(_ title: String, systemImage: String, disabled: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(AppTypography.label)
+                .frame(minHeight: AppLayout.minimumControlHeight)
+                .padding(.horizontal, AppSpacing.space12)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(disabled ? AppColor.textDisabled : AppColor.textPrimary)
+        .background(AppColor.surfaceCard, in: Capsule())
+        .overlay { Capsule().stroke(AppColor.strokeDefault, lineWidth: AppStroke.hairline) }
+        .disabled(disabled)
+    }
+
+    private func recordUndoSnapshot() {
+        undoHistory.append(holds)
+        redoHistory.removeAll()
+    }
+
+    private func undo() {
+        guard let snapshot = undoHistory.popLast() else { return }
+        redoHistory.append(holds)
+        holds = snapshot
+        selectedHoldID = nil
+        announce("Undid the latest editor change.")
+    }
+
+    private func redo() {
+        guard let snapshot = redoHistory.popLast() else { return }
+        undoHistory.append(holds)
+        holds = snapshot
+        selectedHoldID = nil
+        announce("Redid the latest editor change.")
+    }
+
     private var topoNodeActionList: some View {
         VStack(alignment: .leading, spacing: AppSpacing.space8) {
             nodeSelectionMenu
@@ -1058,6 +1182,7 @@ struct EditorView: View {
     private func setHoldType(id: String, type: HoldType) {
         guard presentationMode == .edit,
               let index = holds.firstIndex(where: { $0.id == id }) else { return }
+        recordUndoSnapshot()
         holds[index].type = type
         holds[index].color = type.colorHex
         announce("Node \(index + 1) changed to \(typeDisplayName(type).lowercased()).")
@@ -1068,6 +1193,7 @@ struct EditorView: View {
               let index = holds.firstIndex(where: { $0.id == id }) else { return }
         let destination = index + offset
         guard holds.indices.contains(destination) else { return }
+        recordUndoSnapshot()
         holds.swapAt(index, destination)
         announce("Node moved to position \(destination + 1).")
     }
@@ -1075,6 +1201,7 @@ struct EditorView: View {
     private func moveHold(id: String, x: Double, y: Double) {
         guard presentationMode == .edit,
               let index = holds.firstIndex(where: { $0.id == id }) else { return }
+        recordUndoSnapshot()
         holds[index].x = min(100, max(0, holds[index].x + x))
         holds[index].y = min(100, max(0, holds[index].y + y))
         announce("Node \(index + 1) moved to \(Int(holds[index].x.rounded())) percent x, \(Int(holds[index].y.rounded())) percent y.")
@@ -1083,6 +1210,7 @@ struct EditorView: View {
     private func deleteHold(id: String) {
         guard presentationMode == .edit,
               let index = holds.firstIndex(where: { $0.id == id }) else { return }
+        recordUndoSnapshot()
         holds.remove(at: index)
         selectedHoldID = nil
         focusedHoldID = nil
@@ -1121,9 +1249,20 @@ struct EditorView: View {
         return Button {
             handleMarkerTap(id: hold.id)
         } label: {
-            holdView(for: hold, isSelected: selectedHoldID == hold.id)
-                .frame(width: targetSize, height: targetSize)
-                .contentShape(Rectangle())
+            ZStack(alignment: .bottom) {
+                holdView(for: hold, isSelected: selectedHoldID == hold.id)
+                    .frame(width: targetSize, height: targetSize)
+                if hold.type == .start || hold.type == .finish {
+                    Text(hold.type == .start ? "Start" : "Top")
+                        .font(AppTypography.caption.weight(.semibold))
+                        .foregroundStyle(AppColor.textPrimary)
+                        .padding(.horizontal, AppSpacing.space4)
+                        .background(AppColor.backgroundBase.opacity(0.84), in: Capsule())
+                        .fixedSize()
+                        .offset(y: AppSpacing.space16)
+                }
+            }
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .focused($focusedHoldID, equals: hold.id)
@@ -1181,6 +1320,7 @@ struct EditorView: View {
             return
         }
         guard let index = holds.firstIndex(where: { $0.id == id }) else { return }
+        recordUndoSnapshot()
         let currentType = holds[index].type
         guard let nextType = EditorHoldInteraction.nextType(after: currentType) else {
             holds.remove(at: index)
@@ -1511,6 +1651,7 @@ struct EditorView: View {
         guard presentationMode == .edit,
               imageRect.width > 0,
               imageRect.height > 0 else { return }
+        recordUndoSnapshot()
         let x = max(2, min(98, ((imagePoint.x - imageRect.minX) / imageRect.width) * 100))
         let y = max(2, min(98, ((imagePoint.y - imageRect.minY) / imageRect.height) * 100))
         let newHold = Hold(

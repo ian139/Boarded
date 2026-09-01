@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct SettingsView: View {
     @EnvironmentObject var session: AppSession
@@ -18,6 +19,8 @@ struct SettingsView: View {
         List {
             accountSection
             appearanceSection
+            climbingPreferencesSection
+            privacyAccessibilitySection
             wallsSection
             dataSection
         }
@@ -25,8 +28,9 @@ struct SettingsView: View {
         .scrollContentBackground(.hidden)
         .background(theme.background)
         .environment(\.colorScheme, .dark)
+        .padding(.bottom, AppSpacing.space64)
         .navigationTitle("Settings")
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
         .task {
             await metrics.load(userID: session.userId)
             await wallsViewModel.load(userId: session.userId)
@@ -74,14 +78,14 @@ struct SettingsView: View {
 
     private var dataSection: some View {
         Section {
-            LabeledContent("Connection", value: supabaseStatus)
+            LabeledContent("Sync", value: syncStatus)
             LabeledContent("Routes", value: metrics.routesCount.formatted())
             LabeledContent("Sends", value: metrics.sendsCount.formatted())
             LabeledContent("Likes", value: metrics.likesCount.formatted())
         } header: {
-            Text("Data")
+            Text("Your climbing data")
         } footer: {
-            Text("Counts reflect the profile currently stored for this account.")
+            Text("Counts reflect the climbing journal stored for this account.")
         }
         .foregroundStyle(theme.primaryText)
         .listRowBackground(theme.panelBackground)
@@ -109,6 +113,45 @@ struct SettingsView: View {
         } footer: {
             Text("Boarded always uses its high-contrast dark field. System Reduce Motion and Reduce Transparency settings are respected.")
         }
+        .listRowBackground(theme.panelBackground)
+    }
+
+    private var climbingPreferencesSection: some View {
+        Section {
+            LabeledContent {
+                Text("Shown per route")
+                    .foregroundStyle(theme.secondaryText)
+            } label: {
+                Label("Grades & units", systemImage: "ruler")
+                    .foregroundStyle(theme.primaryText)
+            }
+            .frame(minHeight: AppLayout.minimumControlHeight)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Grades and units, shown as supplied by each climbing route")
+        } header: {
+            Text("Climbing")
+        } footer: {
+            Text("Boarded preserves each route’s grading system and recorded measurements; there is no separate conversion preference yet.")
+        }
+        .listRowBackground(theme.panelBackground)
+    }
+
+    private var privacyAccessibilitySection: some View {
+        Section {
+            Link(destination: URL(string: UIApplication.openSettingsURLString)!) {
+                Label("Privacy", systemImage: "hand.raised")
+                    .frame(minHeight: AppLayout.minimumControlHeight)
+            }
+            Link(destination: URL(string: UIApplication.openSettingsURLString)!) {
+                Label("Accessibility", systemImage: "accessibility")
+                    .frame(minHeight: AppLayout.minimumControlHeight)
+            }
+        } header: {
+            Text("System settings")
+        } footer: {
+            Text("Manage Boarded permissions in Settings. Text size, VoiceOver, Reduce Motion, and Reduce Transparency follow your iPhone or iPad settings.")
+        }
+        .foregroundStyle(theme.primaryText)
         .listRowBackground(theme.panelBackground)
     }
 
@@ -144,8 +187,8 @@ struct SettingsView: View {
         .listRowBackground(theme.panelBackground)
     }
 
-    private var supabaseStatus: String {
-        SupabaseClientProvider.client == nil ? "Supabase not configured" : "Supabase connected"
+    private var syncStatus: String {
+        SupabaseClientProvider.client == nil ? "On-device only" : "Ready"
     }
 
     private var appVersion: String {

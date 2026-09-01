@@ -9,9 +9,12 @@ struct RouteRow: View {
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityDifferentiateWithoutColor) private var differentiateWithoutColor
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @FocusState private var isKeyboardFocused: Bool
 
-    private var usesVerticalLayout: Bool { dynamicTypeSize.isAccessibilitySize }
+    private var usesVerticalLayout: Bool {
+        horizontalSizeClass == .compact || dynamicTypeSize >= .xxLarge
+    }
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
@@ -62,44 +65,58 @@ struct RouteRow: View {
         }
     }
 
+    @ViewBuilder
     private var routeSummary: some View {
-        HStack(alignment: .center, spacing: AppSpacing.space12) {
-            Text(displayGrade)
-                .font(AppTypography.display)
-                .foregroundStyle(route.gradeV == nil ? AppColor.textSecondary : AppColor.textPrimary)
-                .fixedSize(horizontal: true, vertical: false)
-                .frame(minWidth: AppSpacing.space48, minHeight: AppLayout.minimumControlHeight)
-
-            wallThumbnail
-
-            VStack(alignment: .leading, spacing: AppSpacing.space4) {
-                Text(route.name)
-                    .font(AppTypography.headline)
-                    .foregroundStyle(AppColor.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text("\(route.userName ?? "Anonymous") • \(route.holds.count) holds")
-                    .font(AppTypography.label)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text("\(metricsText) • \(timeAgo)")
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+        if usesVerticalLayout {
+            VStack(alignment: .leading, spacing: AppSpacing.space12) {
+                HStack(alignment: .center, spacing: AppSpacing.space12) {
+                    Text(displayGrade)
+                        .font(AppTypography.display)
+                        .foregroundStyle(route.gradeV == nil ? AppColor.textSecondary : AppColor.textPrimary)
+                        .fixedSize(horizontal: true, vertical: false)
+                        .frame(minWidth: AppSpacing.space48, minHeight: AppLayout.minimumControlHeight)
+                    wallThumbnail
+                }
+                routeText
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .layoutPriority(1)
-
-            if !usesVerticalLayout {
+            .accessibilityHidden(true)
+            .allowsHitTesting(false)
+        } else {
+            HStack(alignment: .center, spacing: AppSpacing.space12) {
+                Text(displayGrade)
+                    .font(AppTypography.display)
+                    .foregroundStyle(route.gradeV == nil ? AppColor.textSecondary : AppColor.textPrimary)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .frame(minWidth: AppSpacing.space48, minHeight: AppLayout.minimumControlHeight)
+                wallThumbnail
+                routeText
                 Image(systemName: "chevron.right")
                     .font(AppTypography.caption.weight(.semibold))
                     .foregroundStyle(AppColor.textSecondary)
                     .accessibilityHidden(true)
             }
+            .accessibilityHidden(true)
+            .allowsHitTesting(false)
         }
-        .accessibilityHidden(true)
-        .allowsHitTesting(false)
+    }
+
+    private var routeText: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.space4) {
+            Text(route.name)
+                .font(AppTypography.headline)
+                .foregroundStyle(AppColor.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("\(route.userName ?? "Anonymous") • \(route.holds.count) holds")
+                .font(AppTypography.label)
+                .foregroundStyle(AppColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("\(metricsText) • \(timeAgo)")
+                .font(AppTypography.caption)
+                .foregroundStyle(AppColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .layoutPriority(1)
     }
 
     private var actions: some View {

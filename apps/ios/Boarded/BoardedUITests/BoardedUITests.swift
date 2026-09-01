@@ -175,6 +175,9 @@ final class BoardedUITests: XCTestCase {
         XCTAssertTrue(appearance.waitForExistence(timeout: 3))
         XCTAssertEqual(appearance.value as? String, "Dark")
         let manageWalls = app.buttons["Manage Walls"]
+        if !manageWalls.exists {
+            app.swipeUp()
+        }
         XCTAssertTrue(manageWalls.waitForExistence(timeout: 5))
         XCTAssertTrue(manageWalls.label.localizedCaseInsensitiveContains("2 walls"))
 
@@ -327,7 +330,7 @@ final class BoardedUITests: XCTestCase {
         XCTAssertTrue(survivingMarker.label.localizedCaseInsensitiveContains("hand"))
 
         // A further empty-canvas tap still defaults to Start.
-        canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.6)).tap()
+        canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.4)).tap()
         XCTAssertTrue((canvas.value as? String)?.contains("2 holds") == true)
 
         let addedMarker = app.descendants(matching: .any)["Editor hold 2"]

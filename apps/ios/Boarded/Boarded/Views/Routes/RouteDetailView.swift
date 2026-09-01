@@ -605,8 +605,9 @@ struct RouteDetailView: View {
         routeActionButton(
             title: "Log Send",
             systemImage: "checkmark.circle",
-            tint: AppColor.accentDefault,
+            tint: AppColor.accentOnAccent,
             isEnabled: session.userId != nil,
+            isPrimary: true,
             accessibilityHint: session.userId == nil ? "Sign in to log sends." : nil
         ) { isLogSheetPresented = true }
     }
@@ -625,19 +626,22 @@ struct RouteDetailView: View {
         systemImage: String,
         tint: Color,
         isEnabled: Bool = true,
+        isPrimary: Bool = false,
         accessibilityHint: String? = nil,
         action: @escaping () -> Void
     ) -> some View {
-        Button(action: action) {
+        let shape = RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
+        return Button(action: action) {
             Label(title, systemImage: systemImage)
                 .font(AppTypography.label)
                 .foregroundStyle(tint)
                 .frame(maxWidth: .infinity, minHeight: AppLayout.primaryControlHeight)
                 .padding(.horizontal, AppSpacing.space12)
-                .background(AppColor.backgroundElevated, in: RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous))
+                .background(isPrimary ? AppColor.accentDefault : AppColor.backgroundElevated, in: shape)
                 .overlay {
-                    RoundedRectangle(cornerRadius: AppRadius.medium, style: .continuous)
-                        .stroke(AppColor.strokeDefault, lineWidth: AppStroke.hairline)
+                    if !isPrimary {
+                        shape.stroke(AppColor.strokeDefault, lineWidth: AppStroke.hairline)
+                    }
                 }
                 .contentShape(Rectangle())
         }

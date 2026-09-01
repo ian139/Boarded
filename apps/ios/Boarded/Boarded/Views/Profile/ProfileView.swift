@@ -32,11 +32,14 @@ struct ProfileView: View {
                     profileLoadingPanel
                 } else if let errorMessage = viewModel.errorMessage {
                     errorPanel(errorMessage)
+                } else if viewModel.sendsCount == 0 {
+                    journalEmptyState
+                    historySection
                 } else {
                     pointsPanel
-                    leaderboardSection
                     highlightsSection
                     historySection
+                    leaderboardSection
                 }
                 if viewModel.hasLoadedSelectedProfile, let countError = viewModel.followCountsRefreshErrorMessage {
                     VStack(alignment: .leading, spacing: 8) {
@@ -52,8 +55,12 @@ struct ProfileView: View {
                 settingsRow
             }
             .padding(theme.pagePadding)
+            .padding(.bottom, AppSpacing.space64)
             .frame(maxWidth: AppLayout.contentMaxWidth)
             .frame(maxWidth: .infinity)
+        }
+        .safeAreaInset(edge: .bottom) {
+            Color.clear.frame(height: AppSpacing.space64)
         }
         .boardedPageBackground()
         .task(id: session.userId) {
@@ -190,6 +197,24 @@ struct ProfileView: View {
         .accessibilityElement(children: .combine)
     }
 
+
+    private var journalEmptyState: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.space16) {
+            Label("YOUR CLIMBING LINE", systemImage: "point.3.connected.trianglepath.dotted")
+                .font(AppTypography.caption)
+                .foregroundStyle(theme.primary)
+            Text("Your journal starts at the wall.")
+                .font(AppTypography.display)
+                .foregroundStyle(theme.primaryText)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("Log a completed climb to begin a truthful record of progression, volume, and memorable sends.")
+                .font(AppTypography.body)
+                .foregroundStyle(theme.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .boardedPanel()
+        .accessibilityElement(children: .combine)
+    }
     private var pointsPanel: some View {
         VStack(alignment: .leading, spacing: AppSpacing.space12) {
             BoardedSectionHeading(title: "Climbing facts", subtitle: "A concise record of completed climbs")

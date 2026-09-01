@@ -50,7 +50,7 @@ struct LogView: View {
         } message: { Text("The session result will be saved to your timeline.") }
         .sheet(item: Binding(get: { store.presentedResult }, set: { if $0 == nil { store.dismissResult() } })) { session in
             SessionResultView(session: session) { store.dismissResult() }
-                .presentationDetents([.medium])
+                .presentationDetents([.large])
         }
     }
 
@@ -117,8 +117,16 @@ struct LogView: View {
             VStack(alignment: .leading, spacing: AppSpacing.space12) {
                 BoardedSectionHeading(title: "Record attempt", subtitle: "Outcome is always shown with a name and symbol.")
                 ViewThatFits(in: .horizontal) {
-                    HStack(spacing: AppSpacing.space8) { outcomeButtons }
-                    VStack(spacing: AppSpacing.space8) { outcomeButtons }
+                    HStack(spacing: AppSpacing.space8) {
+                        outcomeButtons
+                    }
+                    VStack(spacing: AppSpacing.space8) {
+                        HStack(spacing: AppSpacing.space8) {
+                            outcomeButton(.sent)
+                            outcomeButton(.fell)
+                        }
+                        outcomeButton(.stopped)
+                    }
                 }
             }
 
@@ -132,17 +140,24 @@ struct LogView: View {
 
     @ViewBuilder private var outcomeButtons: some View {
         ForEach(AttemptOutcome.allCases) { outcome in
-            Button {
-                store.record(outcome)
-                outcome == .sent ? successHaptic() : selectionHaptic()
-            } label: {
-                Label(outcome.title, systemImage: outcome.symbol).frame(maxWidth: .infinity)
-            }
-            .buttonStyle(BoardedButtonStyle(outcome == .sent ? .primary : .secondary))
-            .accessibilityLabel("Record \(outcome.title)")
-            .accessibilityHint("Adds a \(outcome.title.lowercased()) outcome to this session")
-            .keyboardShortcut(keyboardShortcut(for: outcome), modifiers: [])
+            outcomeButton(outcome)
         }
+    }
+
+    private func outcomeButton(_ outcome: AttemptOutcome) -> some View {
+        Button {
+            store.record(outcome)
+            outcome == .sent ? successHaptic() : selectionHaptic()
+        } label: {
+            Label(outcome.title, systemImage: outcome.symbol)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .frame(maxWidth: .infinity, minHeight: AppLayout.primaryControlHeight)
+        }
+        .buttonStyle(BoardedButtonStyle(outcome == .sent ? .primary : .secondary))
+        .accessibilityLabel("Record \(outcome.title)")
+        .accessibilityHint("Adds a \(outcome.title.lowercased()) outcome to this session")
+        .keyboardShortcut(keyboardShortcut(for: outcome), modifiers: [])
     }
 
     private func attemptTimeline(_ session: ClimbSession) -> some View {
@@ -179,7 +194,7 @@ struct LogView: View {
                                 }
                             }.accessibilityHidden(true)
                             VStack(alignment: .leading, spacing: AppSpacing.space4) {
-                                Label(attempt.outcome.title, systemImage: attempt.outcome.symbol).font(AppTypography.headline)
+                                Text(attempt.outcome.title).font(AppTypography.headline)
                                 Text(attempt.occurredAt, style: .time).font(AppTypography.caption).foregroundStyle(AppColor.textSecondary)
                             }.padding(.bottom, AppSpacing.space12)
                             Spacer()
@@ -222,10 +237,11 @@ struct LogView: View {
     }
 
     private func sessionTimer(_ session: ClimbSession) -> some View {
-        TimelineView(.periodic(from: session.startedAt, by: 1)) { context in
-            Text(AttemptFormatting.duration(from: session.startedAt, to: context.date, abbreviated: true))
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            let boundedStart = max(session.startedAt, context.date.addingTimeInterval(-86_399))
+            Text(AttemptFormatting.duration(from: boundedStart, to: context.date, abbreviated: true))
                 .font(AppTypography.data).foregroundStyle(AppColor.textPrimary).monospacedDigit()
-                .accessibilityLabel("Elapsed time \(AttemptFormatting.duration(from: session.startedAt, to: context.date, abbreviated: false))")
+                .accessibilityLabel("Elapsed time \(AttemptFormatting.duration(from: boundedStart, to: context.date, abbreviated: false))")
         }
     }
 

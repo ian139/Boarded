@@ -136,12 +136,23 @@ final class AttemptLogStore: ObservableObject {
         switch fixture {
         case .empty, .loading, .error, .success:
             return (.empty, false)
-        case .active:
-            return (AttemptLogSnapshot(activeSession: session, history: [], syncState: .synced), false)
-        case .offline:
-            return (AttemptLogSnapshot(activeSession: session, history: [], syncState: .queued), true)
-        case .queued:
-            return (AttemptLogSnapshot(activeSession: session, history: [], syncState: .queued), false)
+        case .active, .offline, .queued:
+            let liveStart = Date().addingTimeInterval(-137)
+            let liveFell = ClimbAttempt(
+                id: fell.id,
+                occurredAt: liveStart.addingTimeInterval(42),
+                outcome: .fell
+            )
+            session = ClimbSession(
+                id: session.id,
+                startedAt: liveStart,
+                routeName: session.routeName,
+                grade: session.grade,
+                attempts: [liveFell]
+            )
+            let isOffline = fixture == .offline
+            let syncState: SyncState = fixture == .active ? .synced : .queued
+            return (AttemptLogSnapshot(activeSession: session, history: [], syncState: syncState), isOffline)
         case .sent:
             session.attempts.append(sent)
             return (AttemptLogSnapshot(activeSession: session, history: [], syncState: .queued), false)

@@ -43,6 +43,7 @@ struct RootView: View {
             }
             .toolbarBackground(AppColor.backgroundElevated, for: .tabBar)
             .toolbarBackground(.visible, for: .tabBar)
+            .toolbar(routeDetailPresenter.presentation == nil ? .visible : .hidden, for: .tabBar)
             .allowsHitTesting(routeDetailPresenter.presentation == nil)
             .background {
                 TabBarAccessibilityBridge(isHidden: routeDetailPresenter.presentation != nil)

@@ -35,7 +35,7 @@ final class AppSession: ObservableObject {
                 username: "fixture",
                 fullName: "Fixture Climber",
                 avatarUrl: nil,
-                bio: "Deterministic simulator account",
+                bio: "Building a climbing journal, one line at a time.",
                 createdAt: "2026-01-01T00:00:00Z"
             )
             isLoading = false
