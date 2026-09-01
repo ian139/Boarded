@@ -29,6 +29,21 @@ struct Profile: Codable, Identifiable, Hashable {
         return "Anonymous"
     }
 }
+struct ProfileDraft: Encodable {
+    let id: UUID
+    let username: String
+    let displayName: String?
+    let homeArea: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case username
+        case displayName = "full_name"
+        case homeArea = "home_area"
+    }
+}
+
+
 
 struct ProfileUpdate: Encodable {
     let fullName: String?

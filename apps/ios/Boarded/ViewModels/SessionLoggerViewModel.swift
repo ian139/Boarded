@@ -78,9 +78,16 @@ final class SessionLoggerViewModel: ObservableObject {
     }
 
     func undoLatestAttempt() {
-        guard let last = attempts.popLast() else { return }
-        modelContext.delete(last)
-        try? modelContext.save()
+        guard let last = attempts.last else { return }
+        do {
+            try syncService.delete(attempt: last)
+            attempts.removeLast()
+            syncState = syncService.state
+            errorMessage = nil
+            scheduleOnlineReplay()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 
     func endSession(at date: Date = Date()) {

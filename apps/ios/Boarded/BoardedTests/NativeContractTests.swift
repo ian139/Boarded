@@ -96,6 +96,32 @@ final class NativeContractTests: XCTestCase {
         XCTAssertEqual(profile.displayName, "Mara Climber")
     }
 
+    func testProfileRepositoryCreateTrimsFieldsAndRejectsDuplicate() async throws {
+        let repository = MockProfileRepository()
+        let created = try await repository.createProfile(
+            ProfileDraft(
+                id: userID,
+                username: "  mara ",
+                displayName: "  Mara Climber ",
+                homeArea: "  Boulder "
+            )
+        )
+
+        XCTAssertEqual(created.id, userID)
+        XCTAssertEqual(created.username, "mara")
+        XCTAssertEqual(created.fullName, "Mara Climber")
+        XCTAssertEqual(created.homeArea, "Boulder")
+
+        do {
+            _ = try await repository.createProfile(
+                ProfileDraft(id: userID, username: "other", displayName: nil, homeArea: nil)
+            )
+            XCTFail("A second profile must be rejected")
+        } catch let error as ProfileRepositoryError {
+            XCTAssertEqual(error, .alreadyExists)
+        }
+    }
+
     // MARK: - Sent-only eligibility
 
     func testOnlySentAttemptsAreSendEligible() {
@@ -181,6 +207,128 @@ final class NativeContractTests: XCTestCase {
         let sessionID = try XCTUnwrap(viewModel.activeSession?.id)
         XCTAssertEqual(try await repository.fetchAttempts(sessionID: sessionID).count, 1)
         XCTAssertEqual(viewModel.syncState, .synced)
+    }
+
+    func testUndoQueuedAttemptRemovesLocallyWithoutRemoteUpload() async throws {
+        let context = try makeContext()
+        let repository = MockSessionRepository()
+        let sync = SessionSyncService(
+            repository: repository,
+            modelContext: context,
+            connectivityOverride: false
+        )
+        let viewModel = SessionLoggerViewModel(modelContext: context, syncService: sync, userId: userID)
+
+        viewModel.startSession(venueName: "Gym")
+        let sessionID = try XCTUnwrap(viewModel.activeSession?.id)
+        viewModel.recordAttempt(
+            routeName: "Slab",
+            discipline: .boulder,
+            gradeSystem: .vScale,
+            gradeLabel: "V4",
+            outcome: .fell,
+            notes: nil
+        )
+
+        viewModel.undoLatestAttempt()
+
+        XCTAssertTrue(viewModel.attempts.isEmpty)
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingAttempt>()).isEmpty)
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingAttemptDeletion>()).isEmpty)
+        XCTAssertTrue(try await repository.fetchAttempts(sessionID: sessionID).isEmpty)
+    }
+
+    func testUndoSyncedAttemptReplaysRemoteDeleteAndIsIdempotent() async throws {
+        let context = try makeContext()
+        let repository = MockSessionRepository()
+        let sync = SessionSyncService(
+            repository: repository,
+            modelContext: context,
+            connectivityOverride: false
+        )
+        let pending = pendingAttempt(id: UUID(uuidString: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")!, syncState: .synced)
+        context.insert(pending)
+        try context.save()
+        _ = try await repository.upsertAttempt(pending.remote)
+
+        try sync.delete(attempt: pending)
+        let tombstones = try context.fetch(FetchDescriptor<PendingAttemptDeletion>())
+        XCTAssertEqual(tombstones.map(\.id), [pending.id])
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingAttempt>()).isEmpty)
+
+        let onlineSync = SessionSyncService(
+            repository: repository,
+            modelContext: context,
+            connectivityOverride: true
+        )
+        await onlineSync.replay()
+        await onlineSync.replay()
+
+        XCTAssertTrue(try await repository.fetchAttempts(sessionID: pending.sessionId).isEmpty)
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingAttemptDeletion>()).isEmpty)
+        XCTAssertEqual(onlineSync.state, .synced)
+    }
+
+    func testFailedRemoteDeleteRetainsTombstoneForRetry() async throws {
+        let context = try makeContext()
+        let repository = DeletionRecordingSessionRepository()
+        let sync = SessionSyncService(
+            repository: repository,
+            modelContext: context,
+            connectivityOverride: false
+        )
+        let pending = pendingAttempt(id: UUID(uuidString: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb")!, syncState: .synced)
+        context.insert(pending)
+        try context.save()
+        _ = try await repository.upsertAttempt(pending.remote)
+
+        try sync.delete(attempt: pending)
+        repository.failDelete = true
+        await sync.replay()
+
+        let retained = try XCTUnwrap(try context.fetch(FetchDescriptor<PendingAttemptDeletion>()).first)
+        XCTAssertEqual(retained.id, pending.id)
+        XCTAssertEqual(retained.syncState, .failed)
+        XCTAssertEqual(sync.state, .failed)
+
+        repository.failDelete = false
+        await sync.replay()
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingAttemptDeletion>()).isEmpty)
+        XCTAssertTrue(try await repository.fetchAttempts(sessionID: pending.sessionId).isEmpty)
+    }
+
+    func testUndoDuringInFlightReplayUploadsThenDeletesAttempt() async throws {
+        let context = try makeContext()
+        let repository = BlockingSessionRepository()
+        let sync = SessionSyncService(
+            repository: repository,
+            modelContext: context,
+            connectivityOverride: false
+        )
+        let viewModel = SessionLoggerViewModel(modelContext: context, syncService: sync, userId: userID)
+        viewModel.startSession(venueName: "Gym")
+        let sessionID = try XCTUnwrap(viewModel.activeSession?.id)
+        viewModel.recordAttempt(
+            routeName: "Slab",
+            discipline: .boulder,
+            gradeSystem: .vScale,
+            gradeLabel: "V4",
+            outcome: .sent,
+            notes: nil
+        )
+        let replayTask = Task { await sync.replay() }
+        await repository.waitForSessionUpsert()
+
+        let claimed = try XCTUnwrap(try context.fetch(FetchDescriptor<PendingAttempt>()).first)
+        XCTAssertEqual(claimed.syncState, .syncing)
+        viewModel.undoLatestAttempt()
+        XCTAssertEqual(try context.fetch(FetchDescriptor<PendingAttemptDeletion>()).count, 1)
+
+        await repository.releaseSessionUpsert()
+        await replayTask.value
+
+        XCTAssertTrue(try await repository.fetchAttempts(sessionID: sessionID).isEmpty)
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingAttemptDeletion>()).isEmpty)
     }
 
     // MARK: - Optimistic rollback
@@ -444,7 +592,7 @@ final class NativeContractTests: XCTestCase {
     private let userID = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
 
     private func makeContext() throws -> ModelContext {
-        let schema = Schema([PendingSession.self, PendingAttempt.self, PendingSendDraft.self])
+        let schema = Schema([PendingSession.self, PendingAttempt.self, PendingAttemptDeletion.self, PendingSendDraft.self])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         let container = try ModelContainer(for: schema, configurations: [config])
         return ModelContext(container)
@@ -459,6 +607,24 @@ final class NativeContractTests: XCTestCase {
             endedAt: Date(timeIntervalSince1970: 200),
             createdAt: Date(timeIntervalSince1970: 100),
             updatedAt: Date(timeIntervalSince1970: 200)
+        )
+    }
+
+    private func pendingAttempt(id: UUID, syncState: SyncState) -> PendingAttempt {
+        PendingAttempt(
+            id: id,
+            sessionId: UUID(uuidString: "00000000-0000-4000-8000-000000000001")!,
+            userId: userID,
+            boardRouteId: nil,
+            routeName: "Route",
+            discipline: .boulder,
+            gradeSystem: .vScale,
+            gradeLabel: "V4",
+            outcome: .sent,
+            attemptNumber: 1,
+            notes: nil,
+            occurredAt: Date(timeIntervalSince1970: 150),
+            syncState: syncState
         )
     }
 
@@ -532,6 +698,7 @@ private final class FailingLikeFeedRepository: FeedRepository, @unchecked Sendab
         throw FeedRepositoryError.unavailable
     }
 
+
     func createPost(attemptID: UUID, caption: String?, imagePath: String?, imageAlt: String?) async throws -> SendPost {
         throw FeedRepositoryError.unavailable
     }
@@ -548,6 +715,117 @@ private final class FailingLikeFeedRepository: FeedRepository, @unchecked Sendab
 
     func uploadPostImage(data: Data, path: String) async throws {
         throw FeedRepositoryError.unavailable
+    }
+}
+
+private final class DeletionRecordingSessionRepository: SessionRepository, @unchecked Sendable {
+    private let base = MockSessionRepository()
+    private let lock = NSLock()
+    private var shouldFailDelete = false
+
+    var failDelete: Bool {
+        get {
+            lock.lock(); defer { lock.unlock() }
+            return shouldFailDelete
+        }
+        set {
+            lock.lock(); defer { lock.unlock() }
+            shouldFailDelete = newValue
+        }
+    }
+
+    func fetchSessions(userID: UUID) async throws -> [ClimbingSession] {
+        try await base.fetchSessions(userID: userID)
+    }
+
+    func fetchAttempts(sessionID: UUID) async throws -> [ClimbAttempt] {
+        try await base.fetchAttempts(sessionID: sessionID)
+    }
+
+    func upsertSession(_ session: ClimbingSession) async throws -> ClimbingSession {
+        try await base.upsertSession(session)
+    }
+
+    func upsertAttempt(_ attempt: ClimbAttempt) async throws -> ClimbAttempt {
+        try await base.upsertAttempt(attempt)
+    }
+
+    func deleteAttempt(id: UUID) async throws {
+        lock.lock()
+        let shouldFailDelete = self.shouldFailDelete
+        lock.unlock()
+        if shouldFailDelete {
+            throw SessionRepositoryError.unavailable
+        }
+        try await base.deleteAttempt(id: id)
+    }
+}
+
+private actor ReplayGate {
+    private var started = false
+    private var released = false
+    private var startWaiter: CheckedContinuation<Void, Never>?
+    private var releaseWaiter: CheckedContinuation<Void, Never>?
+
+    func markStarted() {
+        started = true
+        startWaiter?.resume()
+        startWaiter = nil
+    }
+
+    func waitForStart() async {
+        if started { return }
+        await withCheckedContinuation { continuation in
+            startWaiter = continuation
+        }
+    }
+
+    func release() {
+        released = true
+        releaseWaiter?.resume()
+        releaseWaiter = nil
+    }
+
+    func waitForRelease() async {
+        if released { return }
+        await withCheckedContinuation { continuation in
+            releaseWaiter = continuation
+        }
+    }
+}
+
+private final class BlockingSessionRepository: SessionRepository, @unchecked Sendable {
+    private let base = MockSessionRepository()
+    private let gate = ReplayGate()
+
+    func waitForSessionUpsert() async {
+        await gate.waitForStart()
+    }
+
+    func releaseSessionUpsert() async {
+        await gate.release()
+    }
+
+    func fetchSessions(userID: UUID) async throws -> [ClimbingSession] {
+        try await base.fetchSessions(userID: userID)
+    }
+
+    func fetchAttempts(sessionID: UUID) async throws -> [ClimbAttempt] {
+        try await base.fetchAttempts(sessionID: sessionID)
+    }
+
+    func upsertSession(_ session: ClimbingSession) async throws -> ClimbingSession {
+        await gate.markStarted()
+        await gate.waitForRelease()
+        return try await base.upsertSession(session)
+    }
+
+    func upsertAttempt(_ attempt: ClimbAttempt) async throws -> ClimbAttempt {
+        try await base.upsertAttempt(attempt)
+    }
+
+    func deleteAttempt(id: UUID) async throws {
+        try await base.deleteAttempt(id: id)
     }
 }
 

@@ -144,15 +144,14 @@ final class AppSession: ObservableObject {
             guard generation == sessionGeneration else { return }
             userId = session.user.id
             userEmail = session.user.email
-            let trimmedUsername = username.trimmingCharacters(in: .whitespacesAndNewlines)
-            let trimmedDisplayName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
-            let update = ProfileUpdate(
-                fullName: trimmedDisplayName.isEmpty ? nil : trimmedDisplayName,
-                username: trimmedUsername.isEmpty ? nil : trimmedUsername,
-                bio: nil,
+            let draft = ProfileDraft(
+                id: session.user.id,
+                username: username,
+                displayName: displayName,
                 homeArea: nil
             )
-            profile = try await profileRepository.updateProfile(userID: session.user.id, update: update)
+            profile = nil
+            profile = try await profileRepository.createProfile(draft)
         } catch {
             guard generation == sessionGeneration else { return }
             errorMessage = error.localizedDescription

@@ -7,7 +7,7 @@ import SwiftData
 enum AppServices {
     static let sessionRepository: any SessionRepository = {
         #if DEBUG
-        if AppLaunchConfiguration.isUITestFixture {
+        if AppLaunchConfiguration.isUITestFixture || AppLaunchConfiguration.isOfflineFixture {
             return MockSessionRepository()
         }
         #endif
@@ -20,7 +20,7 @@ enum AppServices {
 
     static let feedRepository: any FeedRepository = {
         #if DEBUG
-        if AppLaunchConfiguration.isUITestFixture {
+        if AppLaunchConfiguration.isUITestFixture || AppLaunchConfiguration.isOfflineFixture {
             return MockFeedRepository()
         }
         #endif
@@ -33,7 +33,7 @@ enum AppServices {
 
     static let meetupRepository: any MeetupRepository = {
         #if DEBUG
-        if AppLaunchConfiguration.isUITestFixture {
+        if AppLaunchConfiguration.isUITestFixture || AppLaunchConfiguration.isOfflineFixture {
             return MockMeetupRepository()
         }
         #endif
@@ -46,7 +46,7 @@ enum AppServices {
 
     static let profileRepository: any ProfileRepository = {
         #if DEBUG
-        if AppLaunchConfiguration.isUITestFixture {
+        if AppLaunchConfiguration.isUITestFixture || AppLaunchConfiguration.isOfflineFixture {
             return MockProfileRepository()
         }
         #endif
@@ -62,7 +62,8 @@ enum AppServices {
         SessionSyncService(
             repository: sessionRepository,
             feedRepository: feedRepository,
-            modelContext: modelContext
+            modelContext: modelContext,
+            connectivityOverride: AppLaunchConfiguration.isOfflineFixture ? false : nil
         )
     }
 }

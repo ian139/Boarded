@@ -40,35 +40,45 @@ final class SessionSyncService: ObservableObject {
 
     var isOnline: Bool { hasConnectivity }
 
-    convenience init(repository: any SessionRepository, modelContext: ModelContext) {
+    convenience init(
+        repository: any SessionRepository,
+        modelContext: ModelContext,
+        connectivityOverride: Bool? = nil
+    ) {
         self.init(
             repository: repository,
             feedRepository: AppServices.feedRepository,
-            modelContext: modelContext
+            modelContext: modelContext,
+            connectivityOverride: connectivityOverride
         )
     }
 
     init(
         repository: any SessionRepository,
         feedRepository: any FeedRepository,
-        modelContext: ModelContext
+        modelContext: ModelContext,
+        connectivityOverride: Bool? = nil
     ) {
         self.repository = repository
         self.feedRepository = feedRepository
         self.modelContext = modelContext
         self.pathMonitor = NWPathMonitor()
-        pathMonitor.pathUpdateHandler = { [weak self] path in
-            let online = path.status == .satisfied
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                let wasOffline = !self.hasConnectivity
-                self.hasConnectivity = online
-                if online && wasOffline {
-                    await self.replay()
+        self.hasConnectivity = connectivityOverride ?? true
+
+        if connectivityOverride == nil {
+            pathMonitor.pathUpdateHandler = { [weak self] path in
+                let online = path.status == .satisfied
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    let wasOffline = !self.hasConnectivity
+                    self.hasConnectivity = online
+                    if online && wasOffline {
+                        await self.replay()
+                    }
                 }
             }
+            pathMonitor.start(queue: monitorQueue)
         }
-        pathMonitor.start(queue: monitorQueue)
 
         #if canImport(UIKit)
         appActiveObserver = NotificationCenter.default.addObserver(
@@ -136,6 +146,26 @@ final class SessionSyncService: ObservableObject {
         errorMessage = nil
     }
 
+    /// Removes an attempt from the local timeline. Attempts that have entered
+    /// replay are represented by a durable tombstone so an undo cannot be
+    /// lost between an in-flight upsert and a later retry.
+    func delete(attempt: PendingAttempt) throws {
+        let requiresRemoteDelete = attempt.syncState != .queued
+        if requiresRemoteDelete, !fetchAllAttemptDeletions().contains(where: { $0.id == attempt.id }) {
+            modelContext.insert(
+                PendingAttemptDeletion(id: attempt.id, userId: attempt.userId)
+            )
+        }
+        modelContext.delete(attempt)
+        try modelContext.save()
+        let hasPendingWork = !fetchPendingSessions().isEmpty
+            || !fetchPendingAttempts().isEmpty
+            || !fetchPendingDrafts().isEmpty
+            || !fetchPendingAttemptDeletions().isEmpty
+        state = requiresRemoteDelete || hasPendingWork ? .queued : .synced
+        errorMessage = nil
+    }
+
     func replay() async {
         guard !isSyncing else { return }
         isSyncing = true
@@ -143,18 +173,39 @@ final class SessionSyncService: ObservableObject {
 
         let pendingSessions = fetchPendingSessions()
         let pendingAttempts = fetchPendingAttempts()
+        let pendingAttemptPayloads = pendingAttempts.map { (id: $0.id, remote: $0.remote) }
         let pendingDrafts = fetchPendingDrafts()
+        let pendingDeletions = fetchPendingAttemptDeletions()
 
-        guard !pendingSessions.isEmpty || !pendingAttempts.isEmpty || !pendingDrafts.isEmpty else {
+        guard !pendingSessions.isEmpty
+                || !pendingAttempts.isEmpty
+                || !pendingDrafts.isEmpty
+                || !pendingDeletions.isEmpty else {
             state = .synced
             errorMessage = nil
             return
         }
 
+        // Claim every attempt before the first network await. Undo can
+        // interleave with a session upsert, so a queued snapshot must already
+        // be considered potentially remote when the user removes it.
+        for attempt in pendingAttempts {
+            attempt.syncState = .syncing
+        }
+        do {
+            try modelContext.save()
+        } catch {
+            state = .failed
+            errorMessage = error.localizedDescription
+            return
+        }
+
         state = .syncing
         errorMessage = nil
+        var replayFailed = false
 
         // Sessions first so attempts always have a parent row to reference.
+        var sessionsReady = true
         for session in pendingSessions {
             session.syncState = .syncing
             try? modelContext.save()
@@ -165,25 +216,56 @@ final class SessionSyncService: ObservableObject {
             } catch {
                 session.syncState = .failed
                 try? modelContext.save()
-                state = .failed
+                replayFailed = true
+                sessionsReady = false
                 errorMessage = error.localizedDescription
-                return
+                break
             }
         }
 
-        for attempt in pendingAttempts {
-            attempt.syncState = .syncing
+        if sessionsReady {
+            for payload in pendingAttemptPayloads {
+                do {
+                    _ = try await repository.upsertAttempt(payload.remote)
+                    // An undo can happen while the upsert is in flight. In
+                    // that case leave the tombstone to the delete phase below
+                    // instead of resurrecting the local attempt as synced.
+                    if !fetchAllAttemptDeletions().contains(where: { $0.id == payload.id }),
+                       let attempt = fetchAllAttempts().first(where: { $0.id == payload.id }) {
+                        attempt.syncState = .synced
+                        try? modelContext.save()
+                    }
+                } catch {
+                    // The attempt may have been deleted while the request was
+                    // in flight. Its tombstone, not the deleted model, owns
+                    // the retry in that case.
+                    if !fetchAllAttemptDeletions().contains(where: { $0.id == payload.id }),
+                       let attempt = fetchAllAttempts().first(where: { $0.id == payload.id }) {
+                        attempt.syncState = .failed
+                        try? modelContext.save()
+                    }
+                    replayFailed = true
+                    errorMessage = error.localizedDescription
+                }
+            }
+        }
+
+        // Deletions intentionally follow every upsert, including an upsert
+        // which failed locally after the network request began. This closes
+        // the race where undo lands while a request is in flight.
+        var deletionFailed = false
+        for deletion in fetchPendingAttemptDeletions() {
+            deletion.syncState = .syncing
             try? modelContext.save()
             do {
-                _ = try await repository.upsertAttempt(attempt.remote)
-                attempt.syncState = .synced
-                try? modelContext.save()
+                try await repository.deleteAttempt(id: deletion.id)
+                modelContext.delete(deletion)
+                try modelContext.save()
             } catch {
-                attempt.syncState = .failed
+                deletion.syncState = .failed
                 try? modelContext.save()
-                state = .failed
+                deletionFailed = true
                 errorMessage = error.localizedDescription
-                return
             }
         }
 
@@ -236,11 +318,12 @@ final class SessionSyncService: ObservableObject {
             }
         }
 
-        if draftFailed {
+        if replayFailed || deletionFailed || draftFailed {
             state = .failed
         } else if !fetchPendingSessions().isEmpty
                     || !fetchPendingAttempts().isEmpty
-                    || !fetchPendingDrafts().isEmpty {
+                    || !fetchPendingDrafts().isEmpty
+                    || !fetchPendingAttemptDeletions().isEmpty {
             // Drafts whose attempts are not synced remain queued for a later
             // replay; they must not be published out of order.
             state = .queued
@@ -268,6 +351,17 @@ final class SessionSyncService: ObservableObject {
             predicate: #Predicate { $0.syncStateRaw != "synced" }
         )
         return (try? modelContext.fetch(descriptor)) ?? []
+    }
+
+    private func fetchPendingAttemptDeletions() -> [PendingAttemptDeletion] {
+        let descriptor = FetchDescriptor<PendingAttemptDeletion>(
+            predicate: #Predicate { $0.syncStateRaw != "synced" }
+        )
+        return (try? modelContext.fetch(descriptor)) ?? []
+    }
+
+    private func fetchAllAttemptDeletions() -> [PendingAttemptDeletion] {
+        (try? modelContext.fetch(FetchDescriptor<PendingAttemptDeletion>())) ?? []
     }
 
     private func fetchAllAttempts() -> [PendingAttempt] {

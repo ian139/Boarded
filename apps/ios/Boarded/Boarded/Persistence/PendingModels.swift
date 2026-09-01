@@ -110,6 +110,37 @@ final class PendingAttempt {
     }
 }
 
+/// Durable tombstone for an attempt that may already have reached the server.
+/// The attempt UUID is the tombstone identity, so replaying a deletion is
+/// idempotent across retries and app restarts.
+@Model
+final class PendingAttemptDeletion {
+    @Attribute(.unique) var id: UUID
+    var userId: UUID
+    var createdAt: Date
+    var syncStateRaw: String
+
+    init(
+        id: UUID,
+        userId: UUID,
+        createdAt: Date = Date(),
+        syncState: SyncState = .queued
+    ) {
+        self.id = id
+        self.userId = userId
+        self.createdAt = createdAt
+        self.syncStateRaw = syncState.rawValue
+    }
+
+    var attemptId: UUID { id }
+
+    var syncState: SyncState {
+        get { SyncState(rawValue: syncStateRaw) ?? .queued }
+        set { syncStateRaw = newValue.rawValue }
+    }
+}
+
+
 /// A send-post draft awaiting publication. The image is stored on disk under
 /// Application Support and referenced by `imageFileName`; the post is only
 /// created after the attempt has synced and is confirmed `sent`.

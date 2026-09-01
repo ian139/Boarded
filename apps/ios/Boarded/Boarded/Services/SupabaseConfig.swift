@@ -9,8 +9,13 @@ enum AppLaunchConfiguration {
     static var isUITestFixture: Bool {
         ProcessInfo.processInfo.arguments.contains("--boarded-ui-fixture")
     }
+
+    static var isOfflineFixture: Bool {
+        ProcessInfo.processInfo.arguments.contains("--boarded-ui-offline")
+    }
     #else
     static let isUITestFixture = false
+    static let isOfflineFixture = false
     #endif
 }
 

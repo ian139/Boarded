@@ -65,7 +65,7 @@ final class MockSessionRepository: SessionRepository, @unchecked Sendable {
     func deleteAttempt(id: UUID) async throws {
         lock.lock(); defer { lock.unlock() }
         guard let index = attempts.firstIndex(where: { $0.id == id }) else {
-            throw SessionRepositoryError.notFound
+            return
         }
         attempts.remove(at: index)
     }
