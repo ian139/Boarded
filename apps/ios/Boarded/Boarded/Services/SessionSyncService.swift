@@ -25,6 +25,20 @@ final class SessionSyncService: ObservableObject {
             }
         }
     }
+
+    private enum DraftImageCleanupError: LocalizedError {
+        case invalidFileName(String)
+        case failed(String, String)
+
+        var errorDescription: String? {
+            switch self {
+            case .invalidFileName(let fileName):
+                return "The draft image file name is invalid: \(fileName)."
+            case .failed(let fileName, let reason):
+                return "Failed to remove draft image \(fileName): \(reason)"
+            }
+        }
+    }
     @Published private(set) var state: SyncState = .synced
     @Published private(set) var errorMessage: String?
 
@@ -152,10 +166,9 @@ final class SessionSyncService: ObservableObject {
     /// and their draft images are cleaned up so sync cannot remain queued.
     func delete(attempt: PendingAttempt) throws {
         let linkedDrafts = fetchAllDrafts().filter { $0.attemptId == attempt.id }
+        let imageFileNames = linkedDrafts.compactMap(\.imageFileName)
+
         for draft in linkedDrafts {
-            if let fileName = draft.imageFileName {
-                DraftImageStore.delete(fileName: fileName)
-            }
             modelContext.delete(draft)
         }
 
@@ -166,13 +179,36 @@ final class SessionSyncService: ObservableObject {
             )
         }
         modelContext.delete(attempt)
-        try modelContext.save()
+
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            state = .failed
+            errorMessage = error.localizedDescription
+            throw error
+        }
+
         let hasPendingWork = !fetchPendingSessions().isEmpty
             || !fetchPendingAttempts().isEmpty
             || !fetchPendingDrafts().isEmpty
             || !fetchPendingAttemptDeletions().isEmpty
         state = requiresRemoteDelete || hasPendingWork ? .queued : .synced
         errorMessage = nil
+
+        var cleanupError: DraftImageCleanupError?
+        for fileName in imageFileNames {
+            do {
+                try cleanupDraftImage(fileName: fileName)
+            } catch let error as DraftImageCleanupError {
+                cleanupError = cleanupError ?? error
+            }
+        }
+        if let cleanupError {
+            state = .failed
+            errorMessage = cleanupError.localizedDescription
+            throw cleanupError
+        }
     }
 
     func replay() async {
@@ -379,6 +415,33 @@ final class SessionSyncService: ObservableObject {
 
     private func fetchAllDrafts() -> [PendingSendDraft] {
         (try? modelContext.fetch(FetchDescriptor<PendingSendDraft>())) ?? []
+    }
+
+    private func cleanupDraftImage(fileName: String) throws {
+        guard isSafeDraftImageFileName(fileName) else {
+            throw DraftImageCleanupError.invalidFileName(fileName)
+        }
+
+        let url = DraftImageStore.directory.appendingPathComponent(fileName, isDirectory: false)
+        guard FileManager.default.fileExists(atPath: url.path) else { return }
+
+        do {
+            try FileManager.default.removeItem(at: url)
+        } catch {
+            throw DraftImageCleanupError.failed(fileName, error.localizedDescription)
+        }
+
+        if FileManager.default.fileExists(atPath: url.path) {
+            throw DraftImageCleanupError.failed(fileName, "The file is still present.")
+        }
+    }
+
+    private func isSafeDraftImageFileName(_ fileName: String) -> Bool {
+        !fileName.isEmpty
+            && fileName != "."
+            && fileName != ".."
+            && fileName == URL(fileURLWithPath: fileName).lastPathComponent
+            && !fileName.contains("\0")
     }
 
     private func canonicalImagePath(userID: UUID, postID: UUID) -> String {

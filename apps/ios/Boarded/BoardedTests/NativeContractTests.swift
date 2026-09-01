@@ -406,9 +406,10 @@ final class NativeContractTests: XCTestCase {
 
         try sync.delete(attempt: attempt1)
 
-        // Draft 1 and image 1 deleted
+        // Draft 1 and its image are deleted after the model save.
         let remainingDraftsAfterDelete1 = try context.fetch(FetchDescriptor<PendingSendDraft>())
         XCTAssertEqual(remainingDraftsAfterDelete1.map(\.id), [draft2ID])
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingAttempt>()).contains(where: { $0.id == attempt2ID }))
         XCTAssertNil(DraftImageStore.read(fileName: fileName1))
 
         // Draft 2 and image 2 preserved
@@ -417,11 +418,82 @@ final class NativeContractTests: XCTestCase {
 
         try sync.delete(attempt: attempt2)
 
-        // Draft 2 and image 2 deleted
+        // Draft 2 and its image are deleted after the model save.
         let remainingDraftsAfterDelete2 = try context.fetch(FetchDescriptor<PendingSendDraft>())
         XCTAssertTrue(remainingDraftsAfterDelete2.isEmpty)
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingAttempt>()).isEmpty)
         XCTAssertNil(DraftImageStore.read(fileName: fileName2))
         XCTAssertEqual(sync.state, .synced)
+    }
+
+    func testUndoAttemptSaveFailureRetainsLinkedRowsAndImage() throws {
+        let context = try makeContext()
+        let repository = MockSessionRepository()
+        let sync = SessionSyncService(repository: repository, modelContext: context, connectivityOverride: false)
+
+        let attemptID = UUID()
+        let draftID = UUID()
+        let conflictID = UUID()
+        let fileName = "draft-\(draftID.uuidString).jpg"
+        let imageData = Data([0x0a, 0x0b])
+        let attempt = pendingAttempt(id: attemptID, syncState: .queued)
+        let draft = PendingSendDraft(
+            id: draftID,
+            attemptId: attemptID,
+            caption: "Retry me",
+            imageFileName: fileName,
+            imageAlt: nil
+        )
+        let conflict = pendingAttempt(id: conflictID, syncState: .queued)
+
+        context.insert(attempt)
+        context.insert(draft)
+        context.insert(conflict)
+        try context.save()
+        try DraftImageStore.write(imageData, fileName: fileName)
+        defer { DraftImageStore.delete(fileName: fileName) }
+
+        // A duplicate unique ID makes the model save fail after the delete
+        // mutations have been staged.
+        context.insert(pendingAttempt(id: conflictID, syncState: .queued))
+
+        XCTAssertThrowsError(try sync.delete(attempt: attempt))
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingAttempt>()).contains(where: { $0.id == attemptID }))
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSendDraft>()).contains(where: { $0.id == draftID }))
+        XCTAssertEqual(DraftImageStore.read(fileName: fileName), imageData)
+    }
+
+    func testUndoAttemptReportsImageCleanupFailureAfterRowsSave() throws {
+        let context = try makeContext()
+        let repository = MockSessionRepository()
+        let sync = SessionSyncService(repository: repository, modelContext: context, connectivityOverride: false)
+        let attemptID = UUID()
+        let draftID = UUID()
+        let fileName = "draft-\(draftID.uuidString).jpg"
+        let attempt = pendingAttempt(id: attemptID, syncState: .queued)
+        let draft = PendingSendDraft(
+            id: draftID,
+            attemptId: attemptID,
+            caption: "Cleanup me",
+            imageFileName: fileName,
+            imageAlt: nil
+        )
+
+        try sync.enqueue(attempt: attempt)
+        try sync.enqueue(draft: draft)
+        let imageURL = DraftImageStore.directory.appendingPathComponent(fileName, isDirectory: false)
+        try FileManager.default.createDirectory(at: imageURL, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: imageURL) }
+        try Data([0x01]).write(to: imageURL.appendingPathComponent("retained.bin"))
+
+        XCTAssertThrowsError(try sync.delete(attempt: attempt)) { error in
+            XCTAssertTrue(error.localizedDescription.contains(fileName))
+            XCTAssertEqual(sync.errorMessage, error.localizedDescription)
+        }
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingAttempt>()).isEmpty)
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSendDraft>()).isEmpty)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: imageURL.path))
+        XCTAssertEqual(sync.state, .failed)
     }
 
     func testUndoSyncedAttemptCleansLinkedDraftAndPreventsOrphanPublish() async throws {
