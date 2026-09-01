@@ -125,12 +125,7 @@ struct RouteDetailView: View {
     @StateObject private var wallsViewModel: WallsViewModel
     @State private var isLiked = false
     @State private var likeCount: Int = 0
-    @State private var isSharing = false
-    @State private var shareError: String? = nil
-    @State private var shareItem: ShareItem?
-    @State private var pendingShareToken: String?
     @State private var ascents: [Ascent]
-    @State private var isShareConfirmationPresented = false
     @State private var isWallPickerPresented = false
     @State private var isEditPresented = false
     @State private var isDeleteConfirmationPresented = false
@@ -306,9 +301,6 @@ struct RouteDetailView: View {
             .environmentObject(session)
             .environmentObject(routesViewModel)
         }
-        .sheet(item: $shareItem) { item in
-            RouteShareActivityView(activityItems: [item.url])
-        }
         .confirmationDialog(
             "Delete \(route.name)?",
             isPresented: $isDeleteConfirmationPresented,
@@ -320,18 +312,6 @@ struct RouteDetailView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This permanently deletes \(route.name).")
-        }
-        .confirmationDialog(
-            "Make this route public to share it?",
-            isPresented: $isShareConfirmationPresented,
-            titleVisibility: .visible
-        ) {
-            Button("Make Public & Share") {
-                Task { await shareRoute() }
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("This will list the route publicly and make it viewable by anyone with the link.")
         }
     }
 
@@ -425,18 +405,6 @@ struct RouteDetailView: View {
                         Spacer()
 
                         Menu {
-                            Button {
-                                requestShare()
-                            } label: {
-                                Label("Share Route", systemImage: "square.and.arrow.up")
-                            }
-                            .disabled(isSharing)
-                            .accessibilityHint(
-                                isOwner && !route.isPublic
-                                    ? "This route is private and requires confirmation before sharing."
-                                    : ""
-                            )
-
                             Button {
                                 wallUpdateError = nil
                                 isWallPickerPresented = true
@@ -579,12 +547,10 @@ struct RouteDetailView: View {
             HStack(spacing: AppSpacing.space12) {
                 likeAction(canLike: canLike)
                 logAction
-                shareAction
             }
             VStack(spacing: AppSpacing.space8) {
                 likeAction(canLike: canLike)
                 logAction
-                shareAction
             }
         }
         .accessibilityElement(children: .contain)
@@ -612,14 +578,6 @@ struct RouteDetailView: View {
         ) { isLogSheetPresented = true }
     }
 
-    private var shareAction: some View {
-        routeActionButton(
-            title: "Share",
-            systemImage: "square.and.arrow.up",
-            tint: AppColor.accentDefault,
-            isEnabled: !isSharing
-        ) { requestShare() }
-    }
 
     private func routeActionButton(
         title: String,
@@ -690,16 +648,6 @@ struct RouteDetailView: View {
     }
     @ViewBuilder
     private var operationFeedback: some View {
-        if let shareError, !shareError.isEmpty {
-            operationError(
-                message: shareError,
-                retryTitle: "Retry Share",
-                isDisabled: isSharing
-            ) {
-                self.shareError = nil
-                requestShare()
-            }
-        }
 
         if let deleteError, !deleteError.isEmpty {
             operationError(
@@ -1115,111 +1063,6 @@ struct RouteDetailView: View {
     }
 
 
-    private func requestShare() {
-        shareError = nil
-        if isOwner && !route.isPublic {
-            isShareConfirmationPresented = true
-        } else {
-            Task { await shareRoute() }
-        }
-    }
-
-    private func shareRoute() async {
-        guard !isSharing else { return }
-        let token = route.shareToken ?? pendingShareToken ?? (isOwner ? UUID().uuidString : nil)
-        guard let token, !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            shareError = "Only the route owner can enable sharing for this route."
-            return
-        }
-        guard route.isPublic || isOwner else {
-            shareError = "Only the route owner can enable sharing for this route."
-            return
-        }
-        guard isValidShareToken(token) else {
-            shareError = "The share token is invalid."
-            return
-        }
-        guard makeShareURL(for: token) != nil else { return }
-
-        pendingShareToken = token
-        isSharing = true
-        shareError = nil
-        defer { isSharing = false }
-        do {
-            var sharedRoute = route
-            if isOwner && (!route.isPublic || route.shareToken == nil) {
-                sharedRoute = try await AppServices.routesRepository.enableSharing(
-                    id: route.id,
-                    shareToken: token
-                )
-            }
-
-            let authoritativeToken = sharedRoute.shareToken ?? token
-            guard isValidShareToken(authoritativeToken) else {
-                shareError = "The share token is invalid."
-                return
-            }
-            if isOwner && (!route.isPublic || route.shareToken == nil) {
-                onRouteChanged(routeWithSharing(sharedRoute))
-            }
-            guard let url = makeShareURL(for: authoritativeToken) else { return }
-            pendingShareToken = nil
-            shareItem = ShareItem(url: url)
-        } catch {
-            shareError = error.localizedDescription
-        }
-    }
-
-    private func makeShareURL(for token: String) -> URL? {
-        guard isValidShareToken(token) else {
-            shareError = "The share token is invalid."
-            return nil
-        }
-        let configuredBase = (Bundle.main.object(forInfoDictionaryKey: "PUBLIC_APP_URL") as? String)?
-            .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-        if let base = configuredBase.flatMap({ $0.isEmpty ? nil : $0 }) {
-            guard let configuredURL = URL(string: base),
-                  configuredURL.host != nil,
-                  configuredURL.user == nil,
-                  configuredURL.password == nil,
-                  configuredURL.query == nil,
-                  configuredURL.fragment == nil,
-                  configuredURL.path.isEmpty || configuredURL.path == "/",
-                  configuredURL.scheme == "http" || configuredURL.scheme == "https" else {
-                shareError = "The configured public share URL is invalid."
-                return nil
-            }
-            guard let publicURL = URL(string: "\(base)/share/\(token)") else {
-                shareError = "Unable to create a share link."
-                return nil
-            }
-            return publicURL
-        }
-        guard let deepLink = URL(string: "boarded://share/\(token)") else {
-            shareError = "Unable to create a share link."
-            return nil
-        }
-        return deepLink
-    }
-
-
-    private func routeWithSharing(_ sharedRoute: Route) -> Route {
-        let currentRoute = latestRoute
-        let usesSharedSnapshot = sharedRoute.wallImageUrl != nil
-        return routeWithState(
-            base: sharedRoute,
-            likeCount: sharedRoute.likeCount ?? likeCount,
-            isLiked: sharedRoute.isLiked ?? isLiked,
-            ascents: sharedRoute.ascents,
-            wallImageUrl: sharedRoute.wallImageUrl ?? currentRoute.wallImageUrl,
-            wallImageWidth: usesSharedSnapshot
-                ? sharedRoute.wallImageWidth
-                : currentRoute.wallImageWidth,
-            wallImageHeight: usesSharedSnapshot
-                ? sharedRoute.wallImageHeight
-                : currentRoute.wallImageHeight
-        )
-    }
 
     private var latestRoute: Route {
         routesViewModel.routes.first(where: { $0.id == route.id }) ?? route
@@ -1283,20 +1126,6 @@ struct RouteDetailView: View {
         }
     }
 
-}
-private struct ShareItem: Identifiable {
-    let id = UUID()
-    let url: URL
-}
-
-private struct RouteShareActivityView: UIViewControllerRepresentable {
-    let activityItems: [Any]
-
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
-    }
-
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 

@@ -23,7 +23,7 @@ from urllib.request import Request, urlopen
 LOCAL_URL_ENV = "BOARDED_LOCAL_SUPABASE_URL"
 DEFAULT_LOCAL_URL = "http://127.0.0.1:54321"
 DB_CONTAINER_ENV = "BOARDED_LOCAL_DB_CONTAINER"
-DEFAULT_DB_CONTAINER = "supabase_db_climbset-supabase"
+DEFAULT_DB_CONTAINER = "supabase_db_boarded-supabase"
 PASSWORD = "BoardedHarness-2026!"
 INSTANCE_ID = "00000000-0000-0000-0000-000000000000"
 
@@ -39,9 +39,9 @@ OTHER_PUBLIC_ROUTE_3_ID = "c1d2e3f4-3333-4a2b-8c3d-9e0f1a2b3c4d"
 OTHER_PRIVATE_ROUTE_ID = "c1d2e3f4-4444-4a2b-8c3d-9e0f1a2b3c4d"
 OTHER_NULL_CREATED_ROUTE_ID = "c1d2e3f4-5555-4a2b-8c3d-9e0f1a2b3c4d"
 
-OWNER_EMAIL = "climbset-rls-harness-owner@local.invalid"
-OTHER_EMAIL = "climbset-rls-harness-other@local.invalid"
-ROUTE_MARKER = "__climbset_rls_harness__"
+OWNER_EMAIL = "boarded-rls-harness-owner@local.invalid"
+OTHER_EMAIL = "boarded-rls-harness-other@local.invalid"
+ROUTE_MARKER = "__boarded_rls_harness__"
 
 
 class HarnessError(RuntimeError):
@@ -128,7 +128,7 @@ def ensure_backend(url: str) -> None:
     except Exception as exc:
         fail(
             f"local disposable Supabase backend unavailable at {url}: {exc}. "
-            "Start supabase_db_climbset-supabase and its local API gateway first"
+            "Start supabase_db_boarded-supabase and its local API gateway first"
         )
 
 
