@@ -208,9 +208,18 @@ BEGIN
     RAISE EXCEPTION 'session user_id is immutable' USING ERRCODE = '42501';
   ELSIF TG_TABLE_NAME = 'climb_attempts'
      AND (NEW.user_id IS DISTINCT FROM OLD.user_id
-       OR NEW.session_id IS DISTINCT FROM OLD.session_id
-       OR NEW.board_route_id IS DISTINCT FROM OLD.board_route_id) THEN
+       OR NEW.session_id IS DISTINCT FROM OLD.session_id) THEN
     RAISE EXCEPTION 'attempt ownership and parent keys are immutable' USING ERRCODE = '42501';
+  ELSIF TG_TABLE_NAME = 'climb_attempts'
+     AND NEW.board_route_id IS DISTINCT FROM OLD.board_route_id
+     AND NOT (
+       OLD.board_route_id IS NOT NULL
+       AND NEW.board_route_id IS NULL
+       AND NOT EXISTS (
+         SELECT 1 FROM public.routes AS r WHERE r.id = OLD.board_route_id
+       )
+     ) THEN
+    RAISE EXCEPTION 'attempt board_route_id is immutable while the route exists' USING ERRCODE = '42501';
   ELSIF TG_TABLE_NAME = 'send_posts'
      AND (NEW.user_id IS DISTINCT FROM OLD.user_id
        OR NEW.attempt_id IS DISTINCT FROM OLD.attempt_id) THEN

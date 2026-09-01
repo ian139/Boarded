@@ -403,6 +403,22 @@ def assert_social_mutations(base: str, owner_token: str, other_token: str) -> No
     assert_rejected(patch("climb_attempts", f"id=eq.{OWNER_SENT_ATTEMPT_ID}", owner_token, {"user_id": OTHER_ID}, "owner attempt user mutation"), "owner attempt user mutation")
     assert_rejected(patch("climb_attempts", f"id=eq.{OWNER_SENT_ATTEMPT_ID}", owner_token, {"session_id": OTHER_SESSION_ID}, "owner attempt session mutation"), "owner attempt session mutation")
     assert_rejected(patch("climb_attempts", f"id=eq.{OWNER_SENT_ATTEMPT_ID}", owner_token, {"board_route_id": None}, "owner attempt board route mutation"), "owner attempt board route mutation")
+    assert_rejected(patch("climb_attempts", f"id=eq.{OWNER_SENT_ATTEMPT_ID}", owner_token, {"board_route_id": "c00d8780-5d47-4db8-90a5-3c5bc73f7c31"}, "owner attempt board route reparent"), "owner attempt board route reparent")
+    route_delete = expect_api_result(
+        request_json("DELETE", f"{base}/rest/v1/routes?id=eq.{OWNER_ROUTE_ID}", owner_token),
+        "route owner delete",
+    )
+    if route_delete.status != 200:
+        fail(f"route owner delete failed: HTTP {route_delete.status} {route_delete.body!r}")
+    attempt_after_route_delete = rows(
+        expect_api_result(
+            request_json("GET", f"{base}/rest/v1/climb_attempts?id=eq.{OWNER_SENT_ATTEMPT_ID}&select=board_route_id", owner_token),
+            "attempt board_route_id after route delete",
+        ),
+        "attempt board_route_id after route delete",
+    )
+    if len(attempt_after_route_delete) != 1 or attempt_after_route_delete[0].get("board_route_id") is not None:
+        fail(f"route delete did not null the child board_route_id: {attempt_after_route_delete!r}")
     assert_no_rows(patch("climb_attempts", f"id=eq.{OWNER_SENT_ATTEMPT_ID}", other_token, {"notes": "cross"}, "cross-user attempt update"), "cross-user attempt update")
     assert_rejected(post("send_posts", owner_token, {"user_id": OWNER_ID, "attempt_id": OWNER_FELL_ATTEMPT_ID, "caption": "fell post", "image_alt": "alt"}, "unsent post trigger"), "unsent post trigger")
     assert_rejected(patch("climb_attempts", f"id=eq.{OWNER_SENT_ATTEMPT_ID}", owner_token, {"outcome": "fell"}, "published attempt outcome downgrade"), "published attempt outcome downgrade")
@@ -434,8 +450,8 @@ def assert_social_mutations(base: str, owner_token: str, other_token: str) -> No
     liked_feed = rows(rpc(base, "get_send_feed", owner_token, {"author_filter": OWNER_ID, "page_size": 1}), "authenticated liked feed")
     if len(liked_feed) != 1 or liked_feed[0].get("id") != OWNER_POST_ID or liked_feed[0].get("is_liked") is not True:
         fail(f"authenticated viewer did not see is_liked=true: {liked_feed!r}")
-    assert_rejected(patch("send_post_likes", f"post_id=eq.{OWNER_POST_ID}&user_id=eq.{OWNER_ID}", owner_token, {"post_id": OTHER_POST_ID}, "owner like parent mutation"), "owner like parent mutation")
-    assert_rejected(patch("send_post_likes", f"post_id=eq.{OWNER_POST_ID}&user_id=eq.{OWNER_ID}", owner_token, {"user_id": OTHER_ID}, "owner like user mutation"), "owner like user mutation")
+    assert_no_rows(patch("send_post_likes", f"post_id=eq.{OWNER_POST_ID}&user_id=eq.{OWNER_ID}", owner_token, {"post_id": OTHER_POST_ID}, "owner like parent mutation"), "owner like parent mutation")
+    assert_no_rows(patch("send_post_likes", f"post_id=eq.{OWNER_POST_ID}&user_id=eq.{OWNER_ID}", owner_token, {"user_id": OTHER_ID}, "owner like user mutation"), "owner like user mutation")
     assert_no_rows(expect_api_result(request_json("DELETE", f"{base}/rest/v1/send_post_likes?post_id=eq.{OWNER_POST_ID}&user_id=eq.{OWNER_ID}", other_token), "cross-user like delete"), "cross-user like delete")
 
     post_comment = post("send_post_comments", owner_token, {"post_id": OWNER_POST_ID, "user_id": OWNER_ID, "content": "owner comment"}, "owner post comment")
@@ -450,6 +466,7 @@ def assert_social_mutations(base: str, owner_token: str, other_token: str) -> No
     assert_rejected(patch("send_post_comments", f"id=eq.{comment_id}", owner_token, {"user_id": OTHER_ID}, "owner comment user mutation"), "owner comment user mutation")
     assert_rejected(post("send_post_comments", other_token, {"post_id": OWNER_POST_ID, "user_id": OWNER_ID, "content": "cross comment"}, "cross-user post comment"), "cross-user post comment")
     assert_no_rows(patch("send_post_comments", f"id=eq.{comment_id}", other_token, {"content": "cross"}, "cross-user comment update"), "cross-user comment update")
+
     assert_no_rows(expect_api_result(request_json("DELETE", f"{base}/rest/v1/send_post_comments?id=eq.{comment_id}", other_token), "cross-user comment delete"), "cross-user comment delete")
 
     assert_rejected(post("meetups", other_token, {"organizer_id": OWNER_ID, "title": "cross", "description": "cross", "venue_name": "venue", "area": "area", "starts_at": "2030-01-01T00:00:00Z"}, "cross-user meetup insert"), "cross-user meetup insert")
@@ -466,6 +483,47 @@ def assert_social_mutations(base: str, owner_token: str, other_token: str) -> No
     assert_no_rows(patch("meetup_comments", f"id=eq.{comment_id}", other_token, {"content": "cross"}, "cross-user meetup comment update"), "cross-user meetup comment update")
     assert_no_rows(expect_api_result(request_json("DELETE", f"{base}/rest/v1/meetup_comments?id=eq.{comment_id}", other_token), "cross-user meetup comment delete"), "cross-user meetup comment delete")
     print("PASS: owner matching, canonical images, immutable parents, engagement, and cross-user social mutations verified")
+
+def assert_concurrent_publish_downgrade(base: str, owner_token: str) -> None:
+    barrier = threading.Barrier(2)
+
+    def publish() -> ApiResult:
+        barrier.wait(timeout=15)
+        return expect_api_result(
+            request_json(
+                "POST",
+                f"{base}/rest/v1/send_posts",
+                owner_token,
+                {"user_id": OWNER_ID, "attempt_id": UNPOSTED_ATTEMPT_ID, "caption": "race publish"},
+            ),
+            "concurrent publish",
+        )
+
+    def downgrade() -> ApiResult:
+        barrier.wait(timeout=15)
+        return expect_api_result(
+            request_json(
+                "PATCH",
+                f"{base}/rest/v1/climb_attempts?id=eq.{UNPOSTED_ATTEMPT_ID}",
+                owner_token,
+                {"outcome": "fell"},
+            ),
+            "concurrent downgrade",
+        )
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        futures = [executor.submit(publish), executor.submit(downgrade)]
+        race_results = [future.result() for future in futures]
+    successes = [result for result in race_results if 200 <= result.status < 300]
+    rejections = [result for result in race_results if not 200 <= result.status < 300]
+    if len(successes) != 1 or len(rejections) != 1:
+        fail(f"concurrent publish/downgrade was not one success/one rejection: {race_results!r}")
+    feed = rows(rpc(base, "get_send_feed", payload={"page_size": 50}), "post-race send feed")
+    for item in feed:
+        attempt = item.get("attempt")
+        if not isinstance(attempt, dict) or attempt.get("outcome") != "sent":
+            fail(f"public post joined to non-sent attempt: {item!r}")
+    print("PASS: concurrent publish-vs-downgrade never exposes a non-sent attempt")
 
 
 def rpc(base: str, function: str, token: str | None = None, payload: object | None = None) -> ApiResult:
@@ -618,6 +676,7 @@ def run() -> None:
         assert_public_profiles_and_feed(base)
         assert_private_sessions_and_attempts(base, owner_token, other_token)
         assert_social_mutations(base, owner_token, other_token)
+        assert_concurrent_publish_downgrade(base, owner_token)
         assert_public_meetups_and_joins(base, owner_token, other_token)
         assert_storage_ownership(base, owner_token, other_token)
     finally:
