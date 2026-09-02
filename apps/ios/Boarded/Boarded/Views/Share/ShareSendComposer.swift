@@ -228,6 +228,7 @@ struct SessionArtworkFacts: View {
 
     @ViewBuilder private var facts: some View {
         Label(BoardedFormat.duration(model.duration), systemImage: "clock")
+            .accessibilityLabel(BoardedFormat.duration(model.duration))
             .accessibilityIdentifier("session-duration")
         Label("\(model.attemptCount) attempts", systemImage: "number")
             .accessibilityIdentifier("session-attempt-count")
