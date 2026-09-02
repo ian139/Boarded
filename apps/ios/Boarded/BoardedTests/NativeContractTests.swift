@@ -892,15 +892,277 @@ final class NativeContractTests: XCTestCase {
         )
         XCTAssertEqual(DraftImageStore.read(fileName: fileName), Data([0x01, 0x02]))
 
-        try sync.delete(draft: draft)
-        feed.failCreatePost = false
-        await sync.replay()
+        try await sync.delete(draft: draft)
+        XCTAssertEqual(
+            feed.deletedImagePaths(),
+            ["\(userID.uuidString.lowercased())/\(draftID.uuidString.lowercased()).jpg"]
+        )
+         feed.failCreatePost = false
+         await sync.replay()
+ 
+         XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSendDraft>()).isEmpty)
+         XCTAssertNil(DraftImageStore.read(fileName: fileName))
+         XCTAssertTrue(feed.createdPosts().isEmpty)
+     }
 
-        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSendDraft>()).isEmpty)
-        XCTAssertNil(DraftImageStore.read(fileName: fileName))
-        XCTAssertTrue(feed.createdPosts().isEmpty)
+    // MARK: - Account switch and feed reset
+
+    func testHomeFeedIdentityResetAndActiveSessionAccountSwitch() async throws {
+        let context = try makeContext()
+        let userA = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
+        let userB = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
+
+        let sessionA = PendingSession(
+            id: UUID(uuidString: "aaaaaaaa-0000-4000-8000-000000000001")!,
+            userId: userA,
+            venueName: "Gym A",
+            startedAt: Date(timeIntervalSince1970: 100),
+            endedAt: nil
+        )
+        let sessionB = PendingSession(
+            id: UUID(uuidString: "bbbbbbbb-0000-4000-8000-000000000002")!,
+            userId: userB,
+            venueName: "Gym B",
+            startedAt: Date(timeIntervalSince1970: 200),
+            endedAt: nil
+        )
+        context.insert(sessionA)
+        context.insert(sessionB)
+        try context.save()
+
+        let item1 = feedItem()
+        var item2 = feedItem()
+        item2.id = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
+
+        let feedRepo = UserAwareFeedRepository(
+            items: [item1, item2],
+            likesByUser: [
+                userA: [item1.id],
+                userB: [item2.id]
+            ],
+            activeUserID: userA
+        )
+
+        let viewModel = HomeFeedViewModel(repository: feedRepo, pageSize: 20)
+
+        // 1. Under Account A: active session is A's, feed reflects A's likes (item1 is liked).
+        let activeForA = ActiveSessionStore.fetchActive(userID: userA, in: context)
+        XCTAssertEqual(activeForA?.id, sessionA.id)
+        await viewModel.load()
+        XCTAssertEqual(viewModel.items.count, 2)
+        XCTAssertEqual(viewModel.items.first(where: { $0.id == item1.id })?.isLiked, true)
+        XCTAssertEqual(viewModel.items.first(where: { $0.id == item2.id })?.isLiked, false)
+
+        // 2. Sign-out to guest: active session is nil, feed state resets and reloads without likes.
+        feedRepo.activeUserID = nil
+        let activeForGuest = ActiveSessionStore.fetchActive(userID: nil, in: context)
+        XCTAssertNil(activeForGuest)
+
+        viewModel.reset()
+        XCTAssertTrue(viewModel.items.isEmpty)
+        XCTAssertFalse(viewModel.isLoading)
+        XCTAssertFalse(viewModel.isLoadingMore)
+        XCTAssertNil(viewModel.errorMessage)
+
+        await viewModel.load()
+        XCTAssertEqual(viewModel.items.count, 2)
+        XCTAssertEqual(viewModel.items.first(where: { $0.id == item1.id })?.isLiked, false)
+        XCTAssertEqual(viewModel.items.first(where: { $0.id == item2.id })?.isLiked, false)
+
+        // 3. Switch to Account B: active session is B's (not A's), feed reloads with B's likes (item2 is liked).
+        feedRepo.activeUserID = userB
+        let activeForB = ActiveSessionStore.fetchActive(userID: userB, in: context)
+        XCTAssertEqual(activeForB?.id, sessionB.id)
+
+        viewModel.reset()
+        await viewModel.load()
+        XCTAssertEqual(viewModel.items.count, 2)
+        XCTAssertEqual(viewModel.items.first(where: { $0.id == item1.id })?.isLiked, false)
+        XCTAssertEqual(viewModel.items.first(where: { $0.id == item2.id })?.isLiked, true)
     }
 
+    func testHomeFeedViewModelResetClearsAllStateAndInvalidatesInFlightRequests() async {
+        let item = feedItem()
+        let repository = UserAwareFeedRepository(items: [item])
+        let viewModel = HomeFeedViewModel(repository: repository, pageSize: 20)
+
+        await viewModel.load()
+        XCTAssertEqual(viewModel.items.count, 1)
+
+        viewModel.reset()
+        XCTAssertTrue(viewModel.items.isEmpty)
+        XCTAssertFalse(viewModel.isLoading)
+        XCTAssertFalse(viewModel.isLoadingMore)
+        XCTAssertTrue(viewModel.canLoadMore)
+        XCTAssertNil(viewModel.errorMessage)
+        XCTAssertNil(viewModel.paginationErrorMessage)
+    }
+
+    // MARK: - Draft discard and media retention
+
+    func testDraftDiscardDeletesUploadedRemoteMediaAndLocalDraft() async throws {
+        let context = try makeContext()
+        let feed = RecordingDraftFeedRepository(currentUserID: userID)
+        feed.failCreatePost = true
+        let sync = SessionSyncService(
+            repository: MockSessionRepository(),
+            feedRepository: feed,
+            modelContext: context,
+            userID: userID
+        )
+        let attempt = pendingAttempt(
+            id: UUID(uuidString: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")!,
+            syncState: .synced
+        )
+        let draftID = UUID(uuidString: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb")!
+        let fileName = "discard-\(draftID.uuidString).jpg"
+        let draft = PendingSendDraft(
+            id: draftID,
+            attemptId: attempt.id,
+            caption: "Discard uploaded",
+            imageFileName: fileName,
+            imageAlt: "A send"
+        )
+        context.insert(attempt)
+        try context.save()
+        try sync.enqueue(draft: draft, imageData: Data([0x01, 0x02]))
+
+        await sync.replay()
+        XCTAssertEqual(sync.state, .failed)
+        let canonicalPath = "\(userID.uuidString.lowercased())/\(draftID.uuidString.lowercased()).jpg"
+        XCTAssertTrue(feed.uploadedPaths().contains(canonicalPath))
+        XCTAssertNotNil(DraftImageStore.read(fileName: fileName))
+
+        try await sync.delete(draft: draft)
+        XCTAssertEqual(feed.deletedImagePaths(), [canonicalPath])
+        XCTAssertFalse(feed.uploadedPaths().contains(canonicalPath))
+        XCTAssertNil(DraftImageStore.read(fileName: fileName))
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSendDraft>()).isEmpty)
+        XCTAssertEqual(sync.state, .synced)
+    }
+
+    func testDraftDiscardTreatsAbsentRemoteImageIdempotently() async throws {
+        let context = try makeContext()
+        let feed = RecordingDraftFeedRepository(currentUserID: userID)
+        let sync = SessionSyncService(
+            repository: MockSessionRepository(),
+            feedRepository: feed,
+            modelContext: context,
+            userID: userID
+        )
+        let attempt = pendingAttempt(
+            id: UUID(uuidString: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")!,
+            syncState: .synced
+        )
+        let draftID = UUID(uuidString: "cccccccc-cccc-4ccc-8ccc-cccccccccccc")!
+        let fileName = "discard-absent-\(draftID.uuidString).jpg"
+        let draft = PendingSendDraft(
+            id: draftID,
+            attemptId: attempt.id,
+            caption: "Discard absent",
+            imageFileName: fileName,
+            imageAlt: "A send"
+        )
+        context.insert(attempt)
+        try context.save()
+        try sync.enqueue(draft: draft, imageData: Data([0x03, 0x04]))
+
+        let canonicalPath = "\(userID.uuidString.lowercased())/\(draftID.uuidString.lowercased()).jpg"
+        try await sync.delete(draft: draft)
+
+        XCTAssertEqual(feed.deletedImagePaths(), [canonicalPath])
+        XCTAssertNil(DraftImageStore.read(fileName: fileName))
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSendDraft>()).isEmpty)
+        XCTAssertEqual(sync.state, .synced)
+    }
+
+    func testDraftDiscardRetainsDraftAndLocalImageWhenRemoteDeleteFails() async throws {
+        let context = try makeContext()
+        let feed = RecordingDraftFeedRepository(currentUserID: userID)
+        feed.failCreatePost = true
+        let sync = SessionSyncService(
+            repository: MockSessionRepository(),
+            feedRepository: feed,
+            modelContext: context,
+            userID: userID
+        )
+        let attempt = pendingAttempt(
+            id: UUID(uuidString: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")!,
+            syncState: .synced
+        )
+        let draftID = UUID(uuidString: "dddddddd-dddd-4ddd-8ddd-dddddddddddd")!
+        let fileName = "discard-fail-\(draftID.uuidString).jpg"
+        let draft = PendingSendDraft(
+            id: draftID,
+            attemptId: attempt.id,
+            caption: "Discard fail",
+            imageFileName: fileName,
+            imageAlt: "A send"
+        )
+        context.insert(attempt)
+        try context.save()
+        try sync.enqueue(draft: draft, imageData: Data([0x05, 0x06]))
+
+        await sync.replay()
+        XCTAssertEqual(sync.state, .failed)
+
+        feed.failDeletePostImage = true
+        do {
+            try await sync.delete(draft: draft)
+            XCTFail("Remote deletion failure must throw")
+        } catch {
+            XCTAssertEqual(sync.state, .failed)
+            XCTAssertNotNil(sync.errorMessage)
+        }
+
+        // Local draft and local image file are retained on remote deletion failure.
+        XCTAssertEqual(try context.fetch(FetchDescriptor<PendingSendDraft>()).map(\.id), [draftID])
+        XCTAssertEqual(DraftImageStore.read(fileName: fileName), Data([0x05, 0x06]))
+    }
+
+    func testPublishFailureRetainsRemoteMediaForRetry() async throws {
+        let context = try makeContext()
+        let feed = RecordingDraftFeedRepository(currentUserID: userID)
+        feed.failCreatePost = true
+        let sync = SessionSyncService(
+            repository: MockSessionRepository(),
+            feedRepository: feed,
+            modelContext: context,
+            userID: userID
+        )
+        let attempt = pendingAttempt(
+            id: UUID(uuidString: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")!,
+            syncState: .synced
+        )
+        let draftID = UUID(uuidString: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee")!
+        let fileName = "publish-fail-\(draftID.uuidString).jpg"
+        let draft = PendingSendDraft(
+            id: draftID,
+            attemptId: attempt.id,
+            caption: "Retryable publish",
+            imageFileName: fileName,
+            imageAlt: "A send"
+        )
+        context.insert(attempt)
+        try context.save()
+        try sync.enqueue(draft: draft, imageData: Data([0x07, 0x08]))
+
+        await sync.replay()
+        XCTAssertEqual(sync.state, .failed)
+        let canonicalPath = "\(userID.uuidString.lowercased())/\(draftID.uuidString.lowercased()).jpg"
+        XCTAssertTrue(feed.uploadedPaths().contains(canonicalPath))
+        XCTAssertTrue(feed.deletedImagePaths().isEmpty)
+        XCTAssertEqual(DraftImageStore.read(fileName: fileName), Data([0x07, 0x08]))
+        XCTAssertEqual(try context.fetch(FetchDescriptor<PendingSendDraft>()).map(\.id), [draftID])
+
+        // Retry succeeds without losing the remote media.
+        feed.failCreatePost = false
+        await sync.replay()
+        XCTAssertEqual(sync.state, .synced)
+        XCTAssertEqual(feed.createdPosts().count, 1)
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSendDraft>()).isEmpty)
+        XCTAssertNil(DraftImageStore.read(fileName: fileName))
+    }
     func testSessionSyncReplaysOnlyRowsOwnedByActiveUser() async throws {
         let context = try makeContext()
         let otherID = UUID(uuidString: "00000000-0000-0000-0000-000000000002")!
@@ -1133,6 +1395,8 @@ private final class FailingLikeFeedRepository: FeedRepository, @unchecked Sendab
     func uploadPostImage(data: Data, path: String) async throws {
         throw FeedRepositoryError.unavailable
     }
+
+    func deletePostImage(path: String) async throws {}
 }
 
 private final class DeletionRecordingSessionRepository: SessionRepository, @unchecked Sendable {
@@ -1252,8 +1516,9 @@ private final class RecordingDraftFeedRepository: FeedRepository, @unchecked Sen
     private let now = Date(timeIntervalSince1970: 1_700_000_000)
     private var posts: [SendPost] = []
     private var paths: [String] = []
+    private var deletedPaths: [String] = []
     private var shouldFailCreatePost = false
-
+    private var shouldFailDeletePostImage = false
     init(currentUserID: UUID) {
         self.currentUserID = currentUserID
     }
@@ -1269,11 +1534,26 @@ private final class RecordingDraftFeedRepository: FeedRepository, @unchecked Sen
         }
     }
 
+    var failDeletePostImage: Bool {
+        get {
+            lock.lock(); defer { lock.unlock() }
+            return shouldFailDeletePostImage
+        }
+        set {
+            lock.lock(); defer { lock.unlock() }
+            shouldFailDeletePostImage = newValue
+        }
+    }
+
     func uploadedPaths() -> [String] {
         lock.lock(); defer { lock.unlock() }
         return paths
     }
 
+    func deletedImagePaths() -> [String] {
+        lock.lock(); defer { lock.unlock() }
+        return deletedPaths
+    }
     func createdPosts() -> [SendPost] {
         lock.lock(); defer { lock.unlock() }
         return posts
@@ -1336,6 +1616,72 @@ private final class RecordingDraftFeedRepository: FeedRepository, @unchecked Sen
         lock.lock(); defer { lock.unlock() }
         paths.append(path)
     }
+
+    func deletePostImage(path: String) async throws {
+        lock.lock(); defer { lock.unlock() }
+        if shouldFailDeletePostImage {
+            throw FeedRepositoryError.unavailable
+        }
+        deletedPaths.append(path)
+        paths.removeAll { $0 == path }
+    }
+}
+
+private final class UserAwareFeedRepository: FeedRepository, @unchecked Sendable {
+    private let lock = NSLock()
+    private var items: [SendFeedItem]
+    private var likesByUser: [UUID: Set<UUID>] = [:]
+    var activeUserID: UUID?
+
+    init(items: [SendFeedItem], likesByUser: [UUID: Set<UUID>] = [:], activeUserID: UUID? = nil) {
+        self.items = items
+        self.likesByUser = likesByUser
+        self.activeUserID = activeUserID
+    }
+
+    func setLikes(for user: UUID, postIDs: Set<UUID>) {
+        lock.lock(); defer { lock.unlock() }
+        likesByUser[user] = postIDs
+    }
+
+    func fetchFeed(cursor: FeedCursor?, authorFilter: UUID?, pageSize: Int) async throws -> FeedPage {
+        lock.lock(); defer { lock.unlock() }
+        let currentLikes = activeUserID.flatMap { likesByUser[$0] } ?? []
+        let mapped = items.map { item in
+            var copy = item
+            copy.isLiked = currentLikes.contains(item.id)
+            return copy
+        }
+        return FeedPage(items: mapped, nextCursor: nil, hasMore: false)
+    }
+
+    func fetchComments(postID: UUID) async throws -> [SendPostComment] { [] }
+    func createComment(postID: UUID, content: String) async throws -> SendPostComment {
+        throw FeedRepositoryError.unavailable
+    }
+    func toggleLike(postID: UUID) async throws -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        guard let userID = activeUserID else { throw FeedRepositoryError.unauthenticated }
+        var userLikes = likesByUser[userID] ?? []
+        let nowLiked: Bool
+        if userLikes.contains(postID) {
+            userLikes.remove(postID)
+            nowLiked = false
+        } else {
+            userLikes.insert(postID)
+            nowLiked = true
+        }
+        likesByUser[userID] = userLikes
+        return nowLiked
+    }
+    func createPost(attemptID: UUID, caption: String?, imagePath: String?, imageAlt: String?) async throws -> SendPost {
+        throw FeedRepositoryError.unavailable
+    }
+    func createPost(id: UUID, attemptID: UUID, caption: String?, imagePath: String?, imageAlt: String?) async throws -> SendPost {
+        throw FeedRepositoryError.unavailable
+    }
+    func uploadPostImage(data: Data, path: String) async throws {}
+    func deletePostImage(path: String) async throws {}
 }
 
 private final class MissingProfileFailingCreateRepository: ProfileRepository, @unchecked Sendable {

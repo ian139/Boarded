@@ -20,6 +20,19 @@ final class HomeFeedViewModel: ObservableObject {
         self.pageSize = pageSize
     }
 
+    /// Resets the feed state, clearing items, cursors, loading flags,
+    /// and errors while invalidating any in-flight requests.
+    func reset() {
+        generation += 1
+        items = []
+        nextCursor = nil
+        canLoadMore = true
+        errorMessage = nil
+        paginationErrorMessage = nil
+        isLoading = false
+        isLoadingMore = false
+    }
+
     func load() async {
         generation += 1
         let request = generation

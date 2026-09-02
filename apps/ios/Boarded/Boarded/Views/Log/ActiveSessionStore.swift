@@ -35,6 +35,10 @@ enum ActiveSessionStore {
     }
 }
 
+extension Notification.Name {
+    static let activeSessionDidChange = Notification.Name("BoardedActiveSessionDidChangeNotification")
+}
+
 struct SessionSummary {
     let venue: String
     let startedAt: Date

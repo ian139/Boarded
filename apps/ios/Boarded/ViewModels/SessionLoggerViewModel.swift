@@ -52,6 +52,7 @@ final class SessionLoggerViewModel: ObservableObject {
             errorMessage = nil
             syncState = syncService.state
             scheduleOnlineReplay()
+            NotificationCenter.default.post(name: .activeSessionDidChange, object: nil)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -114,6 +115,7 @@ final class SessionLoggerViewModel: ObservableObject {
             errorMessage = nil
             syncState = syncService.state
             scheduleOnlineReplay()
+            NotificationCenter.default.post(name: .activeSessionDidChange, object: nil)
         } catch {
             errorMessage = error.localizedDescription
         }

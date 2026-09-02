@@ -57,12 +57,33 @@ struct HomeFeedView: View {
         .navigationDestination(for: SendFeedItem.self) { item in
             PostDetailView(item: item)
         }
-        .task {
-            activeSession = ActiveSessionStore.fetchActive(userID: session.userId, in: modelContext)
-            if viewModel.items.isEmpty {
-                await viewModel.load()
+        .onAppear {
+            refreshActiveSession()
+        }
+        .onChange(of: navigation.selectedTab) { _, tab in
+            if tab == .home {
+                refreshActiveSession()
             }
         }
+        .onChange(of: session.userId) { _, _ in
+            activeSession = nil
+            viewModel.reset()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .activeSessionDidChange)) { _ in
+            refreshActiveSession()
+        }
+        .task(id: session.userId) {
+            refreshActiveSession()
+            await viewModel.load()
+        }
+    }
+
+    private func refreshActiveSession() {
+        guard let userID = session.userId else {
+            activeSession = nil
+            return
+        }
+        activeSession = ActiveSessionStore.fetchActive(userID: userID, in: modelContext)
     }
 
     private func activeSessionCard(_ session: PendingSession) -> some View {

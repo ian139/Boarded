@@ -14,6 +14,7 @@ protocol FeedRepository {
         imageAlt: String?
     ) async throws -> SendPost
     func uploadPostImage(data: Data, path: String) async throws
+    func deletePostImage(path: String) async throws
 }
 
 enum FeedRepositoryError: LocalizedError {
@@ -158,6 +159,16 @@ final class MockFeedRepository: FeedRepository, @unchecked Sendable {
         lock.lock(); defer { lock.unlock() }
         uploadedImages[path] = data
     }
+
+    func deletePostImage(path: String) async throws {
+        lock.lock(); defer { lock.unlock() }
+        uploadedImages.removeValue(forKey: path)
+    }
+
+    func hasUploadedImage(at path: String) -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        return uploadedImages[path] != nil
+    }
 }
 
 #if canImport(Supabase)
@@ -287,6 +298,13 @@ struct SupabaseFeedRepository: FeedRepository {
                     upsert: true
                 )
             )
+    }
+
+    func deletePostImage(path: String) async throws {
+        guard let client else { throw FeedRepositoryError.unavailable }
+        _ = try await client.storage
+            .from("social-media")
+            .remove(paths: [path])
     }
 }
 private struct FeedParameters: Encodable {

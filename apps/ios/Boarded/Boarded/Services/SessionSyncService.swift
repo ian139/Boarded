@@ -218,13 +218,29 @@ final class SessionSyncService: ObservableObject {
 
     /// Removes a pending or failed send-post draft without touching its
     /// already-synced climbing attempt. This is used when the composer replaces
-    /// a saved draft with a different send.
-    func delete(draft: PendingSendDraft) throws {
+    /// a saved draft with a different send, or when a draft is explicitly discarded.
+    /// If an image is associated with the draft, its remote storage object is deleted
+    /// idempotently before the local database row and cached image are removed.
+    /// If remote deletion fails, the local draft and image are retained with a
+    /// retryable error.
+    func delete(draft: PendingSendDraft) async throws {
         guard let attempt = fetchAllAttemptsIncludingSynced().first(where: { $0.id == draft.attemptId }),
               attempt.userId == userID else {
             return
         }
         let fileName = draft.imageFileName
+        let path = canonicalImagePath(userID: attempt.userId, postID: draft.id)
+
+        if fileName != nil {
+            do {
+                try await feedRepository.deletePostImage(path: path)
+            } catch {
+                state = .failed
+                errorMessage = error.localizedDescription
+                throw error
+            }
+        }
+
         modelContext.delete(draft)
         do {
             try modelContext.save()

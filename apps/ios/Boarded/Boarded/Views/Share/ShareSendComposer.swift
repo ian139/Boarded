@@ -283,7 +283,7 @@ struct ShareSendComposer: View {
         let id = replacementAttemptID
         Task {
             do {
-                try sync.delete(draft: existing)
+                try await sync.delete(draft: existing)
                 pendingDraft = nil
                 draft = ShareDraft(attemptID: id, caption: "", imageAlt: "", image: nil)
                 replacementAttemptID = nil
