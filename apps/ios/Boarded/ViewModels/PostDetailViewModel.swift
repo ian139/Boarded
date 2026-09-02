@@ -3,8 +3,8 @@ import Combine
 
 @MainActor
 final class PostDetailViewModel: ObservableObject {
-    @Published private(set) var post: SendFeedItem?
-    @Published private(set) var comments: [SendPostComment] = []
+    @Published private(set) var post: SessionFeedItem?
+    @Published private(set) var comments: [SessionPostComment] = []
     @Published private(set) var isLoading = false
     @Published private(set) var isPosting = false
     @Published private(set) var errorMessage: String?
@@ -14,9 +14,10 @@ final class PostDetailViewModel: ObservableObject {
     private let postID: UUID
     private var generation = 0
 
-    init(repository: any FeedRepository, postID: UUID) {
+    init(repository: any FeedRepository, postID: UUID, post: SessionFeedItem? = nil) {
         self.repository = repository
         self.postID = postID
+        self.post = post
     }
 
     func load() async {

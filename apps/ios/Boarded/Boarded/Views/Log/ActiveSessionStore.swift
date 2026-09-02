@@ -11,6 +11,15 @@ enum ActiveSessionStore {
         descriptor.fetchLimit = 1
         return (try? context.fetch(descriptor))?.first
     }
+    static func completedSessions(userID: UUID?, in context: ModelContext) -> [PendingSession] {
+        guard let userID else { return [] }
+        let descriptor = FetchDescriptor<PendingSession>(
+            predicate: #Predicate { $0.userId == userID && $0.endedAt != nil },
+            sortBy: [SortDescriptor(\.startedAt, order: .reverse)]
+        )
+        return (try? context.fetch(descriptor)) ?? []
+    }
+
 
     static func attempts(sessionID: UUID, userID: UUID?, in context: ModelContext) -> [PendingAttempt] {
         guard let userID else { return [] }
@@ -40,10 +49,25 @@ extension Notification.Name {
 }
 
 struct SessionSummary {
+    let sessionID: UUID
     let venue: String
     let startedAt: Date
     let endedAt: Date
     let attempts: [PendingAttempt]
+
+    init(
+        sessionID: UUID = UUID(),
+        venue: String,
+        startedAt: Date,
+        endedAt: Date,
+        attempts: [PendingAttempt]
+    ) {
+        self.sessionID = sessionID
+        self.venue = venue
+        self.startedAt = startedAt
+        self.endedAt = endedAt
+        self.attempts = attempts
+    }
 
     var duration: TimeInterval { endedAt.timeIntervalSince(startedAt) }
     var sendCount: Int { attempts.filter { $0.outcome == .sent }.count }

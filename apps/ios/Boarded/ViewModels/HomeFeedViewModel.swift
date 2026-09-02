@@ -3,7 +3,7 @@ import Combine
 
 @MainActor
 final class HomeFeedViewModel: ObservableObject {
-    @Published private(set) var items: [SendFeedItem] = []
+    @Published private(set) var items: [SessionFeedItem] = []
     @Published private(set) var isLoading = false
     @Published private(set) var isLoadingMore = false
     @Published private(set) var canLoadMore = true
