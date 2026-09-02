@@ -51,7 +51,7 @@ final class NativeContractTests: XCTestCase {
           "is_liked": true
         }
         """
-        let item = try JSONDecoder().boarded().decode(SessionFeedItem.self, from: Data(json.utf8))
+        let item = try JSONDecoder.boarded().decode(SessionFeedItem.self, from: Data(json.utf8))
         XCTAssertEqual(item.id, UUID(uuidString: "11111111-1111-4111-8111-111111111111")!)
         XCTAssertEqual(item.userId, UUID(uuidString: "22222222-2222-4222-8222-222222222222")!)
         XCTAssertEqual(item.sessionId, UUID(uuidString: "33333333-3333-4333-8333-333333333333")!)
@@ -120,7 +120,7 @@ final class NativeContractTests: XCTestCase {
           "is_liked": false
         }
         """
-        let item = try JSONDecoder().boarded().decode(SessionFeedItem.self, from: Data(json.utf8))
+        let item = try JSONDecoder.boarded().decode(SessionFeedItem.self, from: Data(json.utf8))
         XCTAssertEqual(item.overlayStyle, .attemptTimeline)
         XCTAssertEqual(item.session.featuredAttempt.outcome, .fell)
         XCTAssertEqual(item.session.featuredAttempt.gradeSystem, .yds)
@@ -145,7 +145,7 @@ final class NativeContractTests: XCTestCase {
           "created_at": "2026-08-31T12:20:00Z"
         }
         """
-        let attempt = try JSONDecoder().boarded().decode(ClimbAttempt.self, from: Data(json.utf8))
+        let attempt = try JSONDecoder.boarded().decode(ClimbAttempt.self, from: Data(json.utf8))
         XCTAssertEqual(attempt.discipline, .topRope)
         XCTAssertEqual(attempt.gradeSystem, .yds)
         XCTAssertEqual(attempt.outcome, .fell)
@@ -164,7 +164,7 @@ final class NativeContractTests: XCTestCase {
           "created_at": "2026-01-01T00:00:00Z"
         }
         """
-        let profile = try JSONDecoder().boarded().decode(Profile.self, from: Data(json.utf8))
+        let profile = try JSONDecoder.boarded().decode(Profile.self, from: Data(json.utf8))
         XCTAssertEqual(profile.homeArea, "Boulder")
         XCTAssertEqual(profile.displayName, "Mara Climber")
     }
@@ -468,8 +468,10 @@ final class NativeContractTests: XCTestCase {
         viewModel.endSession()
         try await Task.sleep(nanoseconds: 50_000_000)
 
-        XCTAssertEqual(try await repository.fetchSessions(userID: userID).count, 1)
-        XCTAssertEqual(try await repository.fetchAttempts(sessionID: sessionID).count, 1)
+        let fetchedSessions = try await repository.fetchSessions(userID: userID)
+        XCTAssertEqual(fetchedSessions.count, 1)
+        let fetchedAttempts = try await repository.fetchAttempts(sessionID: sessionID)
+        XCTAssertEqual(fetchedAttempts.count, 1)
     }
 
     // MARK: - Undo and attempt management
@@ -489,7 +491,8 @@ final class NativeContractTests: XCTestCase {
 
         let onlineSync = SessionSyncService(repository: repository, modelContext: context, userID: userID, connectivityOverride: true)
         await onlineSync.replay()
-        XCTAssertTrue(try await repository.fetchAttempts(sessionID: pending.sessionId).isEmpty)
+        let fetchedAttempts = try await repository.fetchAttempts(sessionID: pending.sessionId)
+        XCTAssertTrue(fetchedAttempts.isEmpty)
     }
 
     func testUndoSyncedAttemptReplaysRemoteDeleteAndIsIdempotent() async throws {
@@ -510,7 +513,8 @@ final class NativeContractTests: XCTestCase {
         await onlineSync.replay()
         await onlineSync.replay()
 
-        XCTAssertTrue(try await repository.fetchAttempts(sessionID: pending.sessionId).isEmpty)
+        let fetchedAttempts = try await repository.fetchAttempts(sessionID: pending.sessionId)
+        XCTAssertTrue(fetchedAttempts.isEmpty)
         XCTAssertTrue(try context.fetch(FetchDescriptor<PendingAttemptDeletion>()).isEmpty)
         XCTAssertEqual(onlineSync.state, .synced)
     }
@@ -886,7 +890,8 @@ final class NativeContractTests: XCTestCase {
         let onlineSync = SessionSyncService(repository: repository, feedRepository: feed, modelContext: context, userID: userID, connectivityOverride: true)
         await onlineSync.replay()
 
-        XCTAssertTrue(try await repository.fetchAttempts(sessionID: pending.sessionId).isEmpty)
+        let fetchedAttempts = try await repository.fetchAttempts(sessionID: pending.sessionId)
+        XCTAssertTrue(fetchedAttempts.isEmpty)
         XCTAssertTrue(feed.createdPosts().isEmpty)
         XCTAssertTrue(feed.uploadedPaths().isEmpty)
         XCTAssertEqual(onlineSync.state, .synced)
@@ -913,7 +918,8 @@ final class NativeContractTests: XCTestCase {
         repository.failDelete = false
         await sync.replay()
         XCTAssertTrue(try context.fetch(FetchDescriptor<PendingAttemptDeletion>()).isEmpty)
-        XCTAssertTrue(try await repository.fetchAttempts(sessionID: pending.sessionId).isEmpty)
+        let fetchedAttempts = try await repository.fetchAttempts(sessionID: pending.sessionId)
+        XCTAssertTrue(fetchedAttempts.isEmpty)
     }
 
     func testUndoDuringInFlightReplayUploadsThenDeletesAttempt() async throws {
@@ -942,7 +948,8 @@ final class NativeContractTests: XCTestCase {
         await repository.releaseSessionUpsert()
         await replayTask.value
 
-        XCTAssertTrue(try await repository.fetchAttempts(sessionID: sessionID).isEmpty)
+        let fetchedAttempts = try await repository.fetchAttempts(sessionID: sessionID)
+        XCTAssertTrue(fetchedAttempts.isEmpty)
         XCTAssertTrue(try context.fetch(FetchDescriptor<PendingAttemptDeletion>()).isEmpty)
     }
 
@@ -1338,8 +1345,7 @@ final class NativeContractTests: XCTestCase {
         try context.save()
 
         let item1 = feedItem()
-        var item2 = feedItem()
-        item2.id = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
+        let item2 = feedItem(id: UUID(uuidString: "22222222-2222-4222-8222-222222222222")!)
 
         let feedRepo = UserAwareFeedRepository(
             items: [item1, item2],
@@ -1659,10 +1665,14 @@ final class NativeContractTests: XCTestCase {
 
         await sync.replay()
 
-        XCTAssertEqual(try await repository.fetchSessions(userID: userID).count, 1)
-        XCTAssertTrue(try await repository.fetchSessions(userID: otherID).isEmpty)
-        XCTAssertEqual(try await repository.fetchAttempts(sessionID: currentSession.id).count, 1)
-        XCTAssertTrue(try await repository.fetchAttempts(sessionID: otherSession.id).isEmpty)
+        let currentSessions = try await repository.fetchSessions(userID: userID)
+        XCTAssertEqual(currentSessions.count, 1)
+        let otherSessions = try await repository.fetchSessions(userID: otherID)
+        XCTAssertTrue(otherSessions.isEmpty)
+        let currentAttempts = try await repository.fetchAttempts(sessionID: currentSession.id)
+        XCTAssertEqual(currentAttempts.count, 1)
+        let otherAttempts = try await repository.fetchAttempts(sessionID: otherSession.id)
+        XCTAssertTrue(otherAttempts.isEmpty)
     }
 
     func testFreshAccountWithoutOwnedSessionsCannotObserveReplayOrDeleteOtherAccountDrafts() async throws {
@@ -1798,12 +1808,16 @@ final class NativeContractTests: XCTestCase {
 
         await sync.replay()
         XCTAssertEqual(sync.state, .synced)
-        XCTAssertEqual(try await repository.fetchSessions(userID: userID).count, 1)
-        XCTAssertEqual(try await repository.fetchAttempts(sessionID: pendingSession.id).count, 1)
+        let firstSessions = try await repository.fetchSessions(userID: userID)
+        XCTAssertEqual(firstSessions.count, 1)
+        let firstAttempts = try await repository.fetchAttempts(sessionID: pendingSession.id)
+        XCTAssertEqual(firstAttempts.count, 1)
 
         await sync.replay()
-        XCTAssertEqual(try await repository.fetchSessions(userID: userID).count, 1)
-        XCTAssertEqual(try await repository.fetchAttempts(sessionID: pendingSession.id).count, 1)
+        let secondSessions = try await repository.fetchSessions(userID: userID)
+        XCTAssertEqual(secondSessions.count, 1)
+        let secondAttempts = try await repository.fetchAttempts(sessionID: pendingSession.id)
+        XCTAssertEqual(secondAttempts.count, 1)
     }
 
     // MARK: - Helpers
@@ -1865,17 +1879,16 @@ final class NativeContractTests: XCTestCase {
         )
     }
 
-    private func feedItem() -> SessionFeedItem {
+    private func feedItem(id: UUID = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!) -> SessionFeedItem {
         let sessionID = UUID(uuidString: "33333333-3333-4333-8333-333333333333")!
         let attemptID = UUID(uuidString: "44444444-4444-4444-8444-444444444444")!
-        let postID = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
         return SessionFeedItem(
-            id: postID,
+            id: id,
             userId: userID,
             sessionId: sessionID,
             featuredAttemptId: attemptID,
             caption: nil,
-            imagePath: "\(userID.uuidString.lowercased())/\(postID.uuidString.lowercased()).jpg",
+            imagePath: "\(userID.uuidString.lowercased())/\(id.uuidString.lowercased()).jpg",
             imageAlt: "Feed photo",
             overlayStyle: .stats,
             createdAt: Date(timeIntervalSince1970: 100),
