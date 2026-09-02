@@ -339,7 +339,7 @@ struct SupabaseFeedRepository: FeedRepository, Sendable {
     }
 }
 
-private struct FeedParameters: Encodable {
+private nonisolated struct FeedParameters: Encodable, Sendable {
     let before_created_at: Date?
     let before_id: UUID?
     let author_filter: UUID?

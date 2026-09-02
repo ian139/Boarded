@@ -30,7 +30,7 @@ enum ActiveSessionStore {
         return (try? context.fetch(descriptor)) ?? []
     }
 
-    static func sendableAttempts(userID: UUID?, in context: ModelContext) -> [PendingAttempt] {
+    static func syncedSentAttempts(userID: UUID?, in context: ModelContext) -> [PendingAttempt] {
         guard let userID else { return [] }
         let descriptor = FetchDescriptor<PendingAttempt>(
             predicate: #Predicate {
@@ -56,7 +56,7 @@ struct SessionSummary {
     let attempts: [PendingAttempt]
 
     init(
-        sessionID: UUID = UUID(),
+        sessionID: UUID,
         venue: String,
         startedAt: Date,
         endedAt: Date,

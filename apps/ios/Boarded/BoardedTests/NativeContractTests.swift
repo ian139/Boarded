@@ -370,14 +370,14 @@ final class NativeContractTests: XCTestCase {
             [currentSend.id, currentAttempt.id]
         )
         XCTAssertEqual(
-            ActiveSessionStore.sendableAttempts(userID: userID, in: context).map(\.id),
+            ActiveSessionStore.syncedSentAttempts(userID: userID, in: context).map(\.id),
             [currentSend.id]
         )
         XCTAssertEqual(
-            ActiveSessionStore.sendableAttempts(userID: otherID, in: context).map(\.id),
+            ActiveSessionStore.syncedSentAttempts(userID: otherID, in: context).map(\.id),
             [otherSend.id]
         )
-        XCTAssertTrue(ActiveSessionStore.sendableAttempts(userID: nil, in: context).isEmpty)
+        XCTAssertTrue(ActiveSessionStore.syncedSentAttempts(userID: nil, in: context).isEmpty)
     }
 
     // MARK: - Grade statistics
@@ -406,6 +406,7 @@ final class NativeContractTests: XCTestCase {
             )
         }
         let summary = SessionSummary(
+            sessionID: UUID(uuidString: "00000000-0000-4000-8000-000000000001")!,
             venue: "Gym",
             startedAt: Date(timeIntervalSince1970: 100),
             endedAt: Date(timeIntervalSince1970: 200),
