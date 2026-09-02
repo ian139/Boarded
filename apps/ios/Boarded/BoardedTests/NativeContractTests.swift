@@ -815,7 +815,7 @@ final class NativeContractTests: XCTestCase {
         XCTAssertEqual(DraftImageStore.read(fileName: fileName), imageData)
     }
 
-    func testUndoAttemptReportsImageCleanupFailureAfterRowsSave() throws {
+    func testUndoAttemptStagingFailureRetainsRowsAndImage() throws {
         let context = try makeContext()
         let repository = MockSessionRepository()
         let sync = SessionSyncService(repository: repository, modelContext: context, userID: userID, connectivityOverride: false)
@@ -839,6 +839,8 @@ final class NativeContractTests: XCTestCase {
         try sync.enqueue(draft: draft, imageData: imageData)
         defer { DraftImageStore.delete(fileName: fileName) }
 
+        // Staging happens before the commit: a staging failure must leave the
+        // attempt row, the linked draft row, and the image untouched.
         sync.imageRemover = { fileName in
             throw SessionSyncService.DraftImageCleanupError.failed(fileName, "Simulated disk deletion failure.")
         }
@@ -847,102 +849,8 @@ final class NativeContractTests: XCTestCase {
             XCTAssertTrue(error.localizedDescription.contains(fileName))
             XCTAssertEqual(sync.errorMessage, error.localizedDescription)
         }
-        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingAttempt>()).isEmpty)
-        let remainingDrafts = try context.fetch(FetchDescriptor<PendingSessionDraft>())
-        XCTAssertEqual(remainingDrafts.map(\.id), [draftID])
-        XCTAssertEqual(remainingDrafts.first?.syncState, .failed)
-        XCTAssertEqual(DraftImageStore.read(fileName: fileName), imageData)
-        XCTAssertEqual(sync.state, .failed)
-    }
-
-    func testUndoAttemptLinkedDraftSaveFailureRetainsDraftAndImageAfterAttemptRowSave() throws {
-        let context = try makeContext()
-        let repository = MockSessionRepository()
-        let sync = SessionSyncService(repository: repository, modelContext: context, userID: userID, connectivityOverride: false)
-        let sessionID = UUID()
-        let attemptID = UUID()
-        let draftID = UUID()
-        let fileName = "draft-\(draftID.uuidString).jpg"
-        let imageData = Data([0x0a, 0x0b])
-        let attempt = pendingAttempt(id: attemptID, syncState: .queued)
-        attempt.sessionId = sessionID
-        let draft = PendingSessionDraft(
-            id: draftID,
-            sessionId: sessionID,
-            featuredAttemptId: attemptID,
-            caption: "Retry me",
-            imageFileName: fileName,
-            imageAlt: "Alt text"
-        )
-
-        try sync.enqueue(attempt: attempt)
-        try sync.enqueue(draft: draft, imageData: imageData)
-        defer { DraftImageStore.delete(fileName: fileName) }
-
-        var saveCount = 0
-        struct InjectedSaveError: LocalizedError, Equatable {
-            var errorDescription: String? { "Draft save failure after attempt delete." }
-        }
-        sync.saveHook = {
-            saveCount += 1
-            if saveCount == 2 {
-                throw InjectedSaveError()
-            }
-        }
-
-        XCTAssertThrowsError(try sync.delete(attempt: attempt))
-        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingAttempt>()).isEmpty)
-        let remainingDrafts = try context.fetch(FetchDescriptor<PendingSessionDraft>())
-        XCTAssertEqual(remainingDrafts.map(\.id), [draftID])
-        XCTAssertEqual(DraftImageStore.read(fileName: fileName), imageData)
-        XCTAssertEqual(sync.state, .failed)
-    }
-
-    func testUndoAttemptDraftFailedMarkerSaveFailureSurfacesPersistenceError() throws {
-        let context = try makeContext()
-        let repository = MockSessionRepository()
-        let sync = SessionSyncService(repository: repository, modelContext: context, userID: userID, connectivityOverride: false)
-        let sessionID = UUID()
-        let attemptID = UUID()
-        let draftID = UUID()
-        let fileName = "draft-\(draftID.uuidString).jpg"
-        let imageData = Data([0x0a, 0x0b])
-        let attempt = pendingAttempt(id: attemptID, syncState: .queued)
-        attempt.sessionId = sessionID
-        let draft = PendingSessionDraft(
-            id: draftID,
-            sessionId: sessionID,
-            featuredAttemptId: attemptID,
-            caption: "Cleanup me",
-            imageFileName: fileName,
-            imageAlt: "Alt text"
-        )
-
-        try sync.enqueue(attempt: attempt)
-        try sync.enqueue(draft: draft, imageData: imageData)
-        defer { DraftImageStore.delete(fileName: fileName) }
-
-        sync.imageRemover = { fileName in
-            throw SessionSyncService.DraftImageCleanupError.failed(fileName, "Disk failure.")
-        }
-
-        var saveCount = 0
-        struct InjectedMarkerSaveError: LocalizedError, Equatable {
-            var errorDescription: String? { "Marker save failure." }
-        }
-        sync.saveHook = {
-            saveCount += 1
-            if saveCount == 2 {
-                throw InjectedMarkerSaveError()
-            }
-        }
-
-        XCTAssertThrowsError(try sync.delete(attempt: attempt)) { error in
-            XCTAssertEqual(error.localizedDescription, "Marker save failure.")
-        }
-        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingAttempt>()).isEmpty)
-        let remainingDrafts = try context.fetch(FetchDescriptor<PendingSessionDraft>())
-        XCTAssertEqual(remainingDrafts.map(\.id), [draftID])
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingAttempt>()).contains(where: { $0.id == attemptID }))
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSessionDraft>()).contains(where: { $0.id == draftID }))
         XCTAssertEqual(DraftImageStore.read(fileName: fileName), imageData)
         XCTAssertEqual(sync.state, .failed)
     }
@@ -1871,10 +1779,18 @@ final class NativeContractTests: XCTestCase {
         try sync.enqueue(draft: draft, imageData: imageData)
         defer { DraftImageStore.delete(fileName: fileName) }
 
+        // Fail the SECOND save: the durable tombstone save succeeds, remote
+        // post/image deletion runs, then the draft+tombstone row save fails.
+        var saveCount = 0
         struct InjectedDiscardSaveError: LocalizedError, Equatable {
             var errorDescription: String? { "Discard row save failure." }
         }
-        sync.saveHook = { throw InjectedDiscardSaveError() }
+        sync.saveHook = {
+            saveCount += 1
+            if saveCount == 2 {
+                throw InjectedDiscardSaveError()
+            }
+        }
 
         let canonicalPath = "\(userID.uuidString.lowercased())/\(draftID.uuidString.lowercased()).jpg"
         do {
@@ -1885,11 +1801,75 @@ final class NativeContractTests: XCTestCase {
             XCTAssertNotNil(sync.errorMessage)
         }
 
-        // Remote deletions completed idempotently; local draft row is restored via rollback and local image is restored from snapshot
+        // Remote deletions completed idempotently; local draft row is restored
+        // via rollback, local image is restored from snapshot, and the durable
+        // deletion tombstone remains for retry.
         XCTAssertEqual(feed.deletedPosts(), [draftID])
         XCTAssertEqual(feed.deletedImagePaths(), [canonicalPath])
         XCTAssertEqual(try context.fetch(FetchDescriptor<PendingSessionDraft>()).map(\.id), [draftID])
         XCTAssertEqual(DraftImageStore.read(fileName: fileName), imageData)
+        XCTAssertEqual(try context.fetch(FetchDescriptor<PendingDraftDeletion>()).map(\.id), [draftID])
+    }
+
+    func testDraftDiscardTombstoneSaveFailurePreventsRemoteMutation() async throws {
+        let context = try makeContext()
+        let feed = RecordingDraftFeedRepository(currentUserID: userID)
+        let sync = SessionSyncService(
+            repository: MockSessionRepository(),
+            feedRepository: feed,
+            modelContext: context,
+            userID: userID
+        )
+        let session = PendingSession(
+            id: UUID(uuidString: "00000000-0000-4000-8000-000000000001")!,
+            userId: userID,
+            venueName: "Gym",
+            startedAt: Date(timeIntervalSince1970: 100),
+            endedAt: Date(timeIntervalSince1970: 200),
+            syncState: .synced
+        )
+        let attempt = pendingAttempt(
+            id: UUID(uuidString: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")!,
+            syncState: .synced
+        )
+        attempt.sessionId = session.id
+        let draftID = UUID(uuidString: "45454545-4545-4545-8545-454545454545")!
+        let fileName = "discard-tombstone-fail-\(draftID.uuidString).jpg"
+        let imageData = Data([0x55, 0x66])
+        let draft = PendingSessionDraft(
+            id: draftID,
+            sessionId: session.id,
+            featuredAttemptId: attempt.id,
+            caption: "Discard tombstone fail",
+            imageFileName: fileName,
+            imageAlt: "A session"
+        )
+        context.insert(session)
+        context.insert(attempt)
+        try context.save()
+        try sync.enqueue(draft: draft, imageData: imageData)
+        defer { DraftImageStore.delete(fileName: fileName) }
+
+        // Fail the FIRST save: the durable tombstone cannot be persisted, so
+        // no remote mutation may occur and the draft/image must remain.
+        struct InjectedTombstoneSaveError: LocalizedError, Equatable {
+            var errorDescription: String? { "Tombstone save failure." }
+        }
+        sync.saveHook = { throw InjectedTombstoneSaveError() }
+
+        do {
+            try await sync.delete(draft: draft)
+            XCTFail("Tombstone save failure must throw")
+        } catch {
+            XCTAssertEqual(sync.state, .failed)
+            XCTAssertNotNil(sync.errorMessage)
+        }
+
+        XCTAssertTrue(feed.deletedPosts().isEmpty)
+        XCTAssertTrue(feed.deletedImagePaths().isEmpty)
+        XCTAssertEqual(try context.fetch(FetchDescriptor<PendingSessionDraft>()).map(\.id), [draftID])
+        XCTAssertEqual(DraftImageStore.read(fileName: fileName), imageData)
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingDraftDeletion>()).isEmpty)
     }
 
     func testPublishFailureRetainsRemoteMediaForRetry() async throws {
@@ -2119,33 +2099,188 @@ final class NativeContractTests: XCTestCase {
         DraftImageStore.delete(fileName: fileName)
     }
 
-    func testDraftImageStoreStartupReconciliationRestoresLiveDraftStagingAndDeletesOrphanStaging() throws {
-        let liveFileName = "live-draft-\(UUID().uuidString).jpg"
-        let orphanFileName = "orphan-draft-\(UUID().uuidString).jpg"
-        let liveData = Data([0x10, 0x20])
-        let orphanData = Data([0x30, 0x40])
+    func testDraftImageStoreStagesAndRestoresSourceSidecarWithPrimary() throws {
+        let fileName = "sidecar-\(UUID().uuidString).jpg"
+        let primaryData = Data([0x51, 0x52])
+        let sourceData = Data([0x61, 0x62])
+        _ = try DraftImageStore.write(primaryData, fileName: fileName)
+        _ = try DraftImageStore.write(sourceData, fileName: DraftImageStore.sourceFileName(for: fileName))
 
-        _ = try DraftImageStore.write(liveData, fileName: liveFileName)
-        _ = try DraftImageStore.write(orphanData, fileName: orphanFileName)
+        try DraftImageStore.stageDeletion(fileName: fileName)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: DraftImageStore.fileURL(for: fileName).path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: DraftImageStore.stagingURL(for: fileName).path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: DraftImageStore.sourceURL(for: fileName).path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: DraftImageStore.sourceStagingURL(for: fileName).path))
 
-        try DraftImageStore.stageDeletion(fileName: liveFileName)
-        try DraftImageStore.stageDeletion(fileName: orphanFileName)
+        try DraftImageStore.restoreStagedDeletion(fileName: fileName)
+        XCTAssertEqual(DraftImageStore.read(fileName: fileName), primaryData)
+        XCTAssertEqual(DraftImageStore.read(fileName: DraftImageStore.sourceFileName(for: fileName)), sourceData)
 
-        XCTAssertFalse(FileManager.default.fileExists(atPath: DraftImageStore.fileURL(for: liveFileName).path))
-        XCTAssertTrue(FileManager.default.fileExists(atPath: DraftImageStore.stagingURL(for: liveFileName).path))
-        XCTAssertFalse(FileManager.default.fileExists(atPath: DraftImageStore.fileURL(for: orphanFileName).path))
-        XCTAssertTrue(FileManager.default.fileExists(atPath: DraftImageStore.stagingURL(for: orphanFileName).path))
+        try DraftImageStore.stageDeletion(fileName: fileName)
+        DraftImageStore.finalizeStagedDeletion(fileName: fileName)
+        XCTAssertNil(DraftImageStore.read(fileName: fileName))
+        XCTAssertNil(DraftImageStore.read(fileName: DraftImageStore.sourceFileName(for: fileName)))
+    }
 
-        // Startup reconciliation: live draft activeFileName restores staged file; orphan is deleted
-        DraftImageStore.reconcileStagedDeletions(activeFileNames: [liveFileName])
+    func testDraftDiscardTombstoneResumesAfterRestartAndCleansAllArtifacts() async throws {
+        let context = try makeContext()
+        let feed = RecordingDraftFeedRepository(currentUserID: userID)
+        let sync = SessionSyncService(
+            repository: MockSessionRepository(),
+            feedRepository: feed,
+            modelContext: context,
+            userID: userID
+        )
+        let session = PendingSession(
+            id: UUID(uuidString: "00000000-0000-4000-8000-000000000001")!,
+            userId: userID,
+            venueName: "Gym",
+            startedAt: Date(timeIntervalSince1970: 100),
+            endedAt: Date(timeIntervalSince1970: 200),
+            syncState: .synced
+        )
+        let attempt = pendingAttempt(
+            id: UUID(uuidString: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")!,
+            syncState: .synced
+        )
+        attempt.sessionId = session.id
+        let draftID = UUID(uuidString: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee")!
+        let fileName = "tombstone-\(draftID.uuidString).jpg"
+        let draft = PendingSessionDraft(
+            id: draftID,
+            sessionId: session.id,
+            featuredAttemptId: attempt.id,
+            caption: "Tombstone",
+            imageFileName: fileName,
+            imageAlt: "A session"
+        )
+        context.insert(session)
+        context.insert(attempt)
+        try context.save()
+        try sync.enqueue(draft: draft, imageData: Data([0x07, 0x08]))
+        defer { DraftImageStore.delete(fileName: fileName) }
 
-        XCTAssertEqual(DraftImageStore.read(fileName: liveFileName), liveData)
-        XCTAssertTrue(FileManager.default.fileExists(atPath: DraftImageStore.fileURL(for: liveFileName).path))
-        XCTAssertNil(DraftImageStore.read(fileName: orphanFileName))
-        XCTAssertFalse(FileManager.default.fileExists(atPath: DraftImageStore.stagingURL(for: orphanFileName).path))
+        // Simulate committed post with lost response: replay creates the remote
+        // post and remote image, then throws.
+        feed.failCreatePostAfterCommit = true
+        await sync.replay()
+        XCTAssertEqual(sync.state, .failed)
+        let canonicalPath = "\(userID.uuidString.lowercased())/\(draftID.uuidString.lowercased()).jpg"
+        XCTAssertEqual(feed.createdPosts().map(\.id), [draftID])
+        XCTAssertTrue(feed.uploadedPaths().contains(canonicalPath))
 
-        DraftImageStore.delete(fileName: liveFileName)
-        DraftImageStore.delete(fileName: orphanFileName)
+        // Discard persists the durable tombstone before remote awaits.
+        try await sync.delete(draft: draft)
+        XCTAssertEqual(feed.deletedPosts(), [draftID])
+        XCTAssertEqual(feed.deletedImagePaths(), [canonicalPath])
+        XCTAssertNil(DraftImageStore.read(fileName: fileName))
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSessionDraft>()).isEmpty)
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingDraftDeletion>()).isEmpty)
+        XCTAssertEqual(sync.state, .synced)
+    }
+
+    func testTombstonedDraftIsNeverRepublishedWhileRemoteDeletionFails() async throws {
+        let context = try makeContext()
+        let feed = RecordingDraftFeedRepository(currentUserID: userID)
+        let sync = SessionSyncService(
+            repository: MockSessionRepository(),
+            feedRepository: feed,
+            modelContext: context,
+            userID: userID
+        )
+        let session = PendingSession(
+            id: UUID(uuidString: "00000000-0000-4000-8000-000000000001")!,
+            userId: userID,
+            venueName: "Gym",
+            startedAt: Date(timeIntervalSince1970: 100),
+            endedAt: Date(timeIntervalSince1970: 200),
+            syncState: .synced
+        )
+        let attempt = pendingAttempt(
+            id: UUID(uuidString: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")!,
+            syncState: .synced
+        )
+        attempt.sessionId = session.id
+        let draftID = UUID(uuidString: "dddddddd-dddd-4ddd-8ddd-dddddddddddd")!
+        let fileName = "tombstone-exclude-\(draftID.uuidString).jpg"
+        let draft = PendingSessionDraft(
+            id: draftID,
+            sessionId: session.id,
+            featuredAttemptId: attempt.id,
+            caption: "Tombstone exclude",
+            imageFileName: fileName,
+            imageAlt: "A session"
+        )
+        context.insert(session)
+        context.insert(attempt)
+        try context.save()
+        try sync.enqueue(draft: draft, imageData: Data([0x71, 0x72]))
+        defer { DraftImageStore.delete(fileName: fileName) }
+
+        // Remote deletion fails: tombstone persists, draft row persists.
+        feed.failDeletePost = true
+        do {
+            try await sync.delete(draft: draft)
+            XCTFail("Remote post deletion failure must throw")
+        } catch {
+            XCTAssertEqual(sync.state, .failed)
+        }
+        XCTAssertEqual(try context.fetch(FetchDescriptor<PendingDraftDeletion>()).map(\.id), [draftID])
+        XCTAssertEqual(try context.fetch(FetchDescriptor<PendingSessionDraft>()).map(\.id), [draftID])
+
+        // Replay while deletion is failing must never publish the tombstoned draft.
+        await sync.replay()
+        XCTAssertTrue(feed.createdPosts().isEmpty)
+        XCTAssertTrue(feed.uploadedPaths().isEmpty)
+        XCTAssertEqual(try context.fetch(FetchDescriptor<PendingDraftDeletion>()).map(\.id), [draftID])
+        XCTAssertEqual(try context.fetch(FetchDescriptor<PendingSessionDraft>()).map(\.id), [draftID])
+
+        // Once remote deletion succeeds, replay completes the discard.
+        feed.failDeletePost = false
+        await sync.replay()
+        XCTAssertEqual(feed.deletedPosts(), [draftID])
+        XCTAssertTrue(feed.createdPosts().isEmpty)
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingDraftDeletion>()).isEmpty)
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSessionDraft>()).isEmpty)
+        XCTAssertNil(DraftImageStore.read(fileName: fileName))
+        XCTAssertEqual(sync.state, .synced)
+    }
+
+    func testUndoAttemptStagesAllLinkedImagesThenCommitsSingleTransaction() throws {
+        let context = try makeContext()
+        let repository = MockSessionRepository()
+        let sync = SessionSyncService(repository: repository, modelContext: context, userID: userID, connectivityOverride: false)
+        let sessionID = UUID()
+        let attemptID = UUID()
+        let draftID = UUID()
+        let fileName = "draft-\(draftID.uuidString).jpg"
+        let imageData = Data([0x0a, 0x0b])
+        let attempt = pendingAttempt(id: attemptID, syncState: .queued)
+        attempt.sessionId = sessionID
+        let draft = PendingSessionDraft(
+            id: draftID,
+            sessionId: sessionID,
+            featuredAttemptId: attemptID,
+            caption: "Retry me",
+            imageFileName: fileName,
+            imageAlt: "Alt text"
+        )
+
+        try sync.enqueue(attempt: attempt)
+        try sync.enqueue(draft: draft, imageData: imageData)
+        defer { DraftImageStore.delete(fileName: fileName) }
+
+        // Save failure after staging: rollback restores attempt, draft, and image.
+        struct InjectedSaveError: LocalizedError, Equatable {
+            var errorDescription: String? { "Injected database save failure." }
+        }
+        sync.saveHook = { throw InjectedSaveError() }
+
+        XCTAssertThrowsError(try sync.delete(attempt: attempt))
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingAttempt>()).contains(where: { $0.id == attemptID }))
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSessionDraft>()).contains(where: { $0.id == draftID }))
+        XCTAssertEqual(DraftImageStore.read(fileName: fileName), imageData)
+        XCTAssertEqual(sync.state, .failed)
     }
 
     // MARK: - Offline replay and idempotency
@@ -2198,7 +2333,7 @@ final class NativeContractTests: XCTestCase {
     private let userID = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
 
     private func makeContext() throws -> ModelContext {
-        let schema = Schema([PendingSession.self, PendingAttempt.self, PendingAttemptDeletion.self, PendingSessionDraft.self])
+        let schema = Schema([PendingSession.self, PendingAttempt.self, PendingAttemptDeletion.self, PendingDraftDeletion.self, PendingSessionDraft.self])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         let container = try ModelContainer(for: schema, configurations: [config])
         return ModelContext(container)

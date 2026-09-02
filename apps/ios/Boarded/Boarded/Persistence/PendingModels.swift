@@ -155,6 +155,38 @@ final class PendingAttemptDeletion {
     }
 }
 
+/// Durable tombstone for a discarded session-post draft. Persisted before any
+/// remote deletion so a discarded post can never republish after a crash, and
+/// carries the image file name so local cleanup can resume after restart even
+/// when the draft row is already gone.
+@Model
+final class PendingDraftDeletion {
+    @Attribute(.unique) var id: UUID
+    var userId: UUID
+    var imageFileName: String
+    var createdAt: Date
+    var syncStateRaw: String
+
+    init(
+        id: UUID,
+        userId: UUID,
+        imageFileName: String,
+        createdAt: Date = Date(),
+        syncState: SyncState = .queued
+    ) {
+        self.id = id
+        self.userId = userId
+        self.imageFileName = imageFileName
+        self.createdAt = createdAt
+        self.syncStateRaw = syncState.rawValue
+    }
+
+    var syncState: SyncState {
+        get { SyncState(rawValue: syncStateRaw) ?? .queued }
+        set { syncStateRaw = newValue.rawValue }
+    }
+}
+
 /// A session-post draft awaiting publication. The image is stored on disk under
 /// Application Support and referenced by `imageFileName`; the post is only
 /// created after the ended session and relevant attempts have synced.
@@ -205,7 +237,10 @@ final class PendingSessionDraft {
 
 /// Application Support-backed store for draft session-post images. Images are
 /// written before the draft is persisted so a crash never leaves a draft
-/// pointing at a missing file.
+/// pointing at a missing file. A draft image may have a `<name>.source`
+/// companion sidecar (the original source asset); every delete/stage/restore/
+/// finalize/reconcile operation includes the companion when present so the two
+/// files are always moved and cleaned up atomically together.
 enum DraftImageStore {
     enum Error: LocalizedError, Equatable {
         case invalidFileName
@@ -237,8 +272,20 @@ enum DraftImageStore {
         directory.appendingPathComponent(fileName, isDirectory: false)
     }
 
+    static func sourceFileName(for fileName: String) -> String {
+        "\(fileName).source"
+    }
+
+    static func sourceURL(for fileName: String) -> URL {
+        fileURL(for: sourceFileName(for: fileName))
+    }
+
     static func stagingURL(for fileName: String) -> URL {
         directory.appendingPathComponent("\(fileName).staging", isDirectory: false)
+    }
+
+    static func sourceStagingURL(for fileName: String) -> URL {
+        directory.appendingPathComponent("\(sourceFileName(for: fileName)).staging", isDirectory: false)
     }
 
     static func write(_ data: Data, fileName: String) throws -> URL {
@@ -262,6 +309,12 @@ enum DraftImageStore {
         }
         if FileManager.default.fileExists(atPath: stagingUrl.path) {
             try? FileManager.default.moveItem(at: stagingUrl, to: url)
+            let sourceUrl = sourceURL(for: fileName)
+            let sourceStagingUrl = sourceStagingURL(for: fileName)
+            if FileManager.default.fileExists(atPath: sourceStagingUrl.path),
+               !FileManager.default.fileExists(atPath: sourceUrl.path) {
+                try? FileManager.default.moveItem(at: sourceStagingUrl, to: sourceUrl)
+            }
             return try? Data(contentsOf: url)
         }
         return nil
@@ -271,8 +324,12 @@ enum DraftImageStore {
         guard isSafeFileName(fileName) else { return }
         let url = fileURL(for: fileName)
         let stagingUrl = stagingURL(for: fileName)
+        let sourceUrl = sourceURL(for: fileName)
+        let sourceStagingUrl = sourceStagingURL(for: fileName)
         try? FileManager.default.removeItem(at: url)
         try? FileManager.default.removeItem(at: stagingUrl)
+        try? FileManager.default.removeItem(at: sourceUrl)
+        try? FileManager.default.removeItem(at: sourceStagingUrl)
     }
 
     static func stageDeletion(fileName: String) throws {
@@ -280,14 +337,32 @@ enum DraftImageStore {
         try ensureDirectory()
         let url = fileURL(for: fileName)
         let stagingUrl = stagingURL(for: fileName)
-        guard FileManager.default.fileExists(atPath: url.path) else { return }
-        if FileManager.default.fileExists(atPath: stagingUrl.path) {
-            try? FileManager.default.removeItem(at: stagingUrl)
+        var stagedPrimary = false
+        if FileManager.default.fileExists(atPath: url.path) {
+            if FileManager.default.fileExists(atPath: stagingUrl.path) {
+                try? FileManager.default.removeItem(at: stagingUrl)
+            }
+            do {
+                try FileManager.default.moveItem(at: url, to: stagingUrl)
+                stagedPrimary = true
+            } catch {
+                throw Error.stagingFailed(fileName)
+            }
         }
-        do {
-            try FileManager.default.moveItem(at: url, to: stagingUrl)
-        } catch {
-            throw Error.stagingFailed(fileName)
+        let sourceUrl = sourceURL(for: fileName)
+        let sourceStagingUrl = sourceStagingURL(for: fileName)
+        if FileManager.default.fileExists(atPath: sourceUrl.path) {
+            if FileManager.default.fileExists(atPath: sourceStagingUrl.path) {
+                try? FileManager.default.removeItem(at: sourceStagingUrl)
+            }
+            do {
+                try FileManager.default.moveItem(at: sourceUrl, to: sourceStagingUrl)
+            } catch {
+                if stagedPrimary {
+                    try? FileManager.default.moveItem(at: stagingUrl, to: url)
+                }
+                throw Error.stagingFailed(sourceFileName(for: fileName))
+            }
         }
     }
 
@@ -295,14 +370,27 @@ enum DraftImageStore {
         guard isSafeFileName(fileName) else { throw Error.invalidFileName }
         let url = fileURL(for: fileName)
         let stagingUrl = stagingURL(for: fileName)
-        guard FileManager.default.fileExists(atPath: stagingUrl.path) else { return }
-        if FileManager.default.fileExists(atPath: url.path) {
-            try? FileManager.default.removeItem(at: url)
+        if FileManager.default.fileExists(atPath: stagingUrl.path) {
+            if FileManager.default.fileExists(atPath: url.path) {
+                try? FileManager.default.removeItem(at: url)
+            }
+            do {
+                try FileManager.default.moveItem(at: stagingUrl, to: url)
+            } catch {
+                throw Error.restorationFailed(fileName)
+            }
         }
-        do {
-            try FileManager.default.moveItem(at: stagingUrl, to: url)
-        } catch {
-            throw Error.restorationFailed(fileName)
+        let sourceUrl = sourceURL(for: fileName)
+        let sourceStagingUrl = sourceStagingURL(for: fileName)
+        if FileManager.default.fileExists(atPath: sourceStagingUrl.path) {
+            if FileManager.default.fileExists(atPath: sourceUrl.path) {
+                try? FileManager.default.removeItem(at: sourceUrl)
+            }
+            do {
+                try FileManager.default.moveItem(at: sourceStagingUrl, to: sourceUrl)
+            } catch {
+                throw Error.restorationFailed(sourceFileName(for: fileName))
+            }
         }
     }
 
@@ -310,25 +398,50 @@ enum DraftImageStore {
         guard isSafeFileName(fileName) else { return }
         let url = fileURL(for: fileName)
         let stagingUrl = stagingURL(for: fileName)
+        let sourceUrl = sourceURL(for: fileName)
+        let sourceStagingUrl = sourceStagingURL(for: fileName)
         try? FileManager.default.removeItem(at: url)
         try? FileManager.default.removeItem(at: stagingUrl)
+        try? FileManager.default.removeItem(at: sourceUrl)
+        try? FileManager.default.removeItem(at: sourceStagingUrl)
     }
 
     static func reconcileStagedDeletions(activeFileNames: Set<String>) {
         guard let files = try? FileManager.default.contentsOfDirectory(atPath: directory.path) else { return }
+        var primaryStaged = Set<String>()
+        var sourceStaged = Set<String>()
         for file in files where file.hasSuffix(".staging") {
-            let baseFileName = String(file.dropLast(".staging".count))
-            guard isSafeFileName(baseFileName) else { continue }
-            let stagingUrl = directory.appendingPathComponent(file, isDirectory: false)
-            let primaryUrl = directory.appendingPathComponent(baseFileName, isDirectory: false)
+            let stagedName = String(file.dropLast(".staging".count))
+            if stagedName.hasSuffix(".source") {
+                let baseFileName = String(stagedName.dropLast(".source".count))
+                if isSafeFileName(baseFileName) {
+                    sourceStaged.insert(baseFileName)
+                }
+            } else if isSafeFileName(stagedName) {
+                primaryStaged.insert(stagedName)
+            }
+        }
+        for baseFileName in primaryStaged.union(sourceStaged) {
+            let stagingUrl = stagingURL(for: baseFileName)
+            let primaryUrl = fileURL(for: baseFileName)
+            let sourceStagingUrl = sourceStagingURL(for: baseFileName)
+            let sourceUrl = sourceURL(for: baseFileName)
             if activeFileNames.contains(baseFileName) {
-                if !FileManager.default.fileExists(atPath: primaryUrl.path) {
+                if !FileManager.default.fileExists(atPath: primaryUrl.path),
+                   FileManager.default.fileExists(atPath: stagingUrl.path) {
                     try? FileManager.default.moveItem(at: stagingUrl, to: primaryUrl)
                 } else {
                     try? FileManager.default.removeItem(at: stagingUrl)
                 }
+                if !FileManager.default.fileExists(atPath: sourceUrl.path),
+                   FileManager.default.fileExists(atPath: sourceStagingUrl.path) {
+                    try? FileManager.default.moveItem(at: sourceStagingUrl, to: sourceUrl)
+                } else {
+                    try? FileManager.default.removeItem(at: sourceStagingUrl)
+                }
             } else {
                 try? FileManager.default.removeItem(at: stagingUrl)
+                try? FileManager.default.removeItem(at: sourceStagingUrl)
             }
         }
     }

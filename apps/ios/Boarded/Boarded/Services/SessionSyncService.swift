@@ -216,11 +216,36 @@ final class SessionSyncService: ObservableObject {
         guard attempt.userId == userID else { return }
         let linkedDrafts = fetchAllDrafts().filter { $0.featuredAttemptId == attempt.id }
 
+        // Stage every linked draft image (primary + source sidecar) while the
+        // draft rows are still live so a crash never leaves a row pointing at
+        // a missing file. If any staging fails, restore everything already
+        // staged and leave all rows untouched for a retry.
+        var stagedFileNames: [String] = []
+        for draft in linkedDrafts {
+            let fileName = draft.imageFileName
+            if !fileName.isEmpty {
+                do {
+                    try cleanupDraftImage(fileName: fileName)
+                    stagedFileNames.append(fileName)
+                } catch {
+                    for staged in stagedFileNames {
+                        try? DraftImageStore.restoreStagedDeletion(fileName: staged)
+                    }
+                    state = .failed
+                    errorMessage = error.localizedDescription
+                    throw error
+                }
+            }
+        }
+
         let requiresRemoteDelete = attempt.syncState != .queued
         if requiresRemoteDelete, !fetchAllAttemptDeletions().contains(where: { $0.id == attempt.id }) {
             modelContext.insert(
                 PendingAttemptDeletion(id: attempt.id, userId: attempt.userId)
             )
+        }
+        for draft in linkedDrafts {
+            modelContext.delete(draft)
         }
         modelContext.delete(attempt)
 
@@ -228,56 +253,23 @@ final class SessionSyncService: ObservableObject {
             try saveModelContext()
         } catch {
             modelContext.rollback()
+            for fileName in stagedFileNames {
+                try? DraftImageStore.restoreStagedDeletion(fileName: fileName)
+            }
             state = .failed
             errorMessage = error.localizedDescription
             throw error
         }
 
-        for draft in linkedDrafts {
-            let fileName = draft.imageFileName
-            if !fileName.isEmpty {
-                do {
-                    try cleanupDraftImage(fileName: fileName)
-                } catch let cleanupError {
-                    draft.syncState = .failed
-                    do {
-                        try saveModelContext()
-                    } catch {
-                        modelContext.rollback()
-                        try? DraftImageStore.restoreStagedDeletion(fileName: fileName)
-                        state = .failed
-                        errorMessage = error.localizedDescription
-                        throw error
-                    }
-                    try? DraftImageStore.restoreStagedDeletion(fileName: fileName)
-                    state = .failed
-                    errorMessage = cleanupError.localizedDescription
-                    throw cleanupError
-                }
-            }
-
-            modelContext.delete(draft)
-            do {
-                try saveModelContext()
-            } catch {
-                modelContext.rollback()
-                if !fileName.isEmpty {
-                    try? DraftImageStore.restoreStagedDeletion(fileName: fileName)
-                }
-                state = .failed
-                errorMessage = error.localizedDescription
-                throw error
-            }
-
-            if !fileName.isEmpty {
-                DraftImageStore.finalizeStagedDeletion(fileName: fileName)
-            }
+        for fileName in stagedFileNames {
+            DraftImageStore.finalizeStagedDeletion(fileName: fileName)
         }
 
         let hasPendingWork = !fetchPendingSessions().isEmpty
             || !fetchPendingAttempts().isEmpty
             || !fetchPendingDrafts().isEmpty
             || !fetchPendingAttemptDeletions().isEmpty
+            || !fetchPendingDraftDeletions().isEmpty
         state = requiresRemoteDelete || hasPendingWork ? .queued : .synced
         errorMessage = nil
     }
@@ -296,6 +288,22 @@ final class SessionSyncService: ObservableObject {
         }
         let fileName = draft.imageFileName
         let path = canonicalImagePath(userID: userID, postID: draft.id)
+
+        // Persist a durable replay-excluded deletion intent before the first
+        // remote await so a discarded post can never republish after a crash.
+        if !fetchAllDraftDeletions().contains(where: { $0.id == draft.id }) {
+            modelContext.insert(
+                PendingDraftDeletion(id: draft.id, userId: userID, imageFileName: fileName)
+            )
+        }
+        do {
+            try saveModelContext()
+        } catch {
+            modelContext.rollback()
+            state = .failed
+            errorMessage = error.localizedDescription
+            throw error
+        }
 
         do {
             try await feedRepository.deletePost(id: draft.id)
@@ -325,6 +333,9 @@ final class SessionSyncService: ObservableObject {
         }
 
         modelContext.delete(draft)
+        if let deletion = fetchAllDraftDeletions().first(where: { $0.id == draft.id }) {
+            modelContext.delete(deletion)
+        }
         do {
             try saveModelContext()
         } catch {
@@ -355,11 +366,13 @@ final class SessionSyncService: ObservableObject {
         let pendingAttemptPayloads = pendingAttempts.map { (id: $0.id, remote: $0.remote) }
         let pendingDrafts = fetchPendingDrafts()
         let pendingDeletions = fetchPendingAttemptDeletions()
+        let pendingDraftDeletions = fetchPendingDraftDeletions()
 
         guard !pendingSessions.isEmpty
                 || !pendingAttempts.isEmpty
                 || !pendingDrafts.isEmpty
-                || !pendingDeletions.isEmpty else {
+                || !pendingDeletions.isEmpty
+                || !pendingDraftDeletions.isEmpty else {
             state = .synced
             errorMessage = nil
             return
@@ -448,6 +461,58 @@ final class SessionSyncService: ObservableObject {
             }
         }
 
+        // Draft deletions: idempotent remote post/image deletion, then local
+        // cleanup. The tombstone row carries the image file name so cleanup
+        // can resume after a restart even when the draft row is already gone.
+        var draftDeletionFailed = false
+        for deletion in fetchPendingDraftDeletions() {
+            deletion.syncState = .syncing
+            try? modelContext.save()
+            do {
+                try await feedRepository.deletePost(id: deletion.id)
+                let path = canonicalImagePath(userID: deletion.userId, postID: deletion.id)
+                try await feedRepository.deletePostImage(path: path)
+            } catch {
+                deletion.syncState = .failed
+                try? modelContext.save()
+                draftDeletionFailed = true
+                errorMessage = error.localizedDescription
+                continue
+            }
+
+            let fileName = deletion.imageFileName
+            if !fileName.isEmpty {
+                do {
+                    try cleanupDraftImage(fileName: fileName)
+                } catch {
+                    deletion.syncState = .failed
+                    try? modelContext.save()
+                    draftDeletionFailed = true
+                    errorMessage = error.localizedDescription
+                    continue
+                }
+            }
+
+            if let draft = fetchAllDrafts().first(where: { $0.id == deletion.id }) {
+                modelContext.delete(draft)
+            }
+            modelContext.delete(deletion)
+            do {
+                try modelContext.save()
+            } catch {
+                modelContext.rollback()
+                if !fileName.isEmpty {
+                    try? DraftImageStore.restoreStagedDeletion(fileName: fileName)
+                }
+                draftDeletionFailed = true
+                errorMessage = error.localizedDescription
+                continue
+            }
+            if !fileName.isEmpty {
+                DraftImageStore.finalizeStagedDeletion(fileName: fileName)
+            }
+        }
+
         let sessionsByID = Dictionary(
             uniqueKeysWithValues: fetchAllSessionsIncludingSynced().map { ($0.id, $0) }
         )
@@ -509,13 +574,13 @@ final class SessionSyncService: ObservableObject {
                 errorMessage = error.localizedDescription
             }
         }
-
-        if replayFailed || deletionFailed || draftFailed {
+        if replayFailed || deletionFailed || draftFailed || draftDeletionFailed {
             state = .failed
         } else if !fetchPendingSessions().isEmpty
                     || !fetchPendingAttempts().isEmpty
                     || !fetchPendingDrafts().isEmpty
-                    || !fetchPendingAttemptDeletions().isEmpty {
+                    || !fetchPendingAttemptDeletions().isEmpty
+                    || !fetchPendingDraftDeletions().isEmpty {
             // Drafts whose sessions or attempts are not synced remain queued
             // for a later replay; they must not be published out of order.
             state = .queued
@@ -555,7 +620,13 @@ final class SessionSyncService: ObservableObject {
             predicate: #Predicate { $0.syncStateRaw != "synced" }
         )
         let pending = (try? modelContext.fetch(descriptor)) ?? []
-        return pending.filter { allOwnedSessionIDs.contains($0.sessionId) }
+        // A draft with a durable deletion tombstone must never be published:
+        // the discard may have failed mid-flight and the tombstone owns the
+        // retry, not the draft row.
+        let tombstonedIDs = Set(fetchAllDraftDeletions().map(\.id))
+        return pending.filter {
+            allOwnedSessionIDs.contains($0.sessionId) && !tombstonedIDs.contains($0.id)
+        }
     }
 
     private func fetchPendingAttemptDeletions() -> [PendingAttemptDeletion] {
@@ -571,6 +642,24 @@ final class SessionSyncService: ObservableObject {
     private func fetchAllAttemptDeletions() -> [PendingAttemptDeletion] {
         let activeUserID = userID
         let descriptor = FetchDescriptor<PendingAttemptDeletion>(
+            predicate: #Predicate { $0.userId == activeUserID }
+        )
+        return (try? modelContext.fetch(descriptor)) ?? []
+    }
+
+    private func fetchPendingDraftDeletions() -> [PendingDraftDeletion] {
+        let activeUserID = userID
+        let descriptor = FetchDescriptor<PendingDraftDeletion>(
+            predicate: #Predicate {
+                $0.userId == activeUserID && $0.syncStateRaw != "synced"
+            }
+        )
+        return (try? modelContext.fetch(descriptor)) ?? []
+    }
+
+    private func fetchAllDraftDeletions() -> [PendingDraftDeletion] {
+        let activeUserID = userID
+        let descriptor = FetchDescriptor<PendingDraftDeletion>(
             predicate: #Predicate { $0.userId == activeUserID }
         )
         return (try? modelContext.fetch(descriptor)) ?? []
@@ -612,6 +701,7 @@ final class SessionSyncService: ObservableObject {
             || !fetchPendingAttempts().isEmpty
             || !fetchPendingDrafts().isEmpty
             || !fetchPendingAttemptDeletions().isEmpty
+            || !fetchPendingDraftDeletions().isEmpty
     }
 
     private func cleanupDraftImage(fileName: String) throws {
