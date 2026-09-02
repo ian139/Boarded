@@ -27,9 +27,18 @@ final class BoardedUITests: XCTestCase {
 
     private func tab(_ name: String) {
         let tabBarButton = app.tabBars.buttons[name]
-        let button = tabBarButton.waitForExistence(timeout: 1) ? tabBarButton : app.buttons[name]
-        XCTAssertTrue(button.waitForExistence(timeout: 5))
-        button.tap()
+        if tabBarButton.waitForExistence(timeout: 1) {
+            XCTAssertTrue(tabBarButton.isHittable)
+            tabBarButton.tap()
+            return
+        }
+        let fallback = app.buttons
+            .matching(identifier: name)
+            .matching(NSPredicate(format: "isHittable == true"))
+            .firstMatch
+        XCTAssertTrue(fallback.waitForExistence(timeout: 5))
+        XCTAssertTrue(fallback.isHittable)
+        fallback.tap()
     }
 
     private var widthClassName: String {
