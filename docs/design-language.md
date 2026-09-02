@@ -145,6 +145,26 @@ The token names and meanings are the cross-platform contract. iOS color assets o
 | `warning` | `#F6C85F` | `--color-warning` |
 | `information` | `#69A7FF` | `--color-information` |
 
+
+## iOS material and photo-overlay tokens
+
+These tokens are **iOS-only**. They do not change the web surface contract. In SwiftUI, apply the named system `Material` first, then composite the specified Obsidian tint as a separate layer above it; do not approximate either layer with a translucent solid.
+
+| Token | Exact iOS construction | Use |
+|---|---|---|
+| `material/photoHUD` | `.ultraThinMaterial`, then Obsidian at 58% | Compact photo HUD controls and single-line pills only |
+| `material/sessionFactShelf` | `.thinMaterial`, then Obsidian at 64% | Multi-fact session shelves attached to photography |
+| `material/floatingRail` | `.thinMaterial`, then Obsidian at 64% | Logger/media rails floating over underlapping content |
+| `material/contentChrome` | `.regularMaterial`, then Obsidian at 72% | Navigation or tab chrome only when content visibly underlaps it |
+| `material/rim` | 1 pt top/leading Chalk at 18%, plus 1 pt bottom/trailing Chalk at 8% | Directional edge separation for standard contrast |
+| `material/rimHighContrast` | 1 pt top/leading Chalk at 32%, plus 1 pt bottom/trailing Chalk at 14% | Increase Contrast replacement for `material/rim` |
+| `overlay/scrimTop` | Obsidian 0% → 58% | Top-aligned identity or navigation text over a photo |
+| `overlay/scrimBottom` | Obsidian 0% → 82% | Bottom-aligned session facts and actions over a photo |
+| `overlay/scrimExport` | Obsidian 0% → 88%, rasterized | Deterministic exported-share text backing |
+
+The tint percentage is the alpha of the semantic Obsidian layer composited **above** the system material; it is not the final measured opacity or color of the blended result. Apply `material/rim` after the tint: the Chalk highlight follows the top and leading edges, while the lower-alpha Chalk stroke follows the bottom and trailing edges. Material category, tint, and rim are fixed by component and do not vary to imitate individual photographs.
+
+Photo compositions use three explicit depth layers derived from the tonal structure of `docs/assets/boarded-hero.webp`: (1) full-bleed documentary photography as the physical field, (2) localized Obsidian scrims only behind text and controls, and (3) a restrained frosted control/fact layer with the specified directional rim. Preserve brighter wall/rock planes as the focal middle tone and let surrounding Obsidian frame them. Do not add colored ambient glow, global image blur, glossy specular highlights, or multiple luminous borders.
 ## Semantic color rules
 
 - Green is not a substitute for Chalk body text.
@@ -267,17 +287,14 @@ Use the interface sans for:
 
 ## Dynamic Type
 
-At accessibility sizes:
+All iOS sans text uses the matching system text style with `adjustsFontForContentSizeCategory`; Boarded’s display face scales through `UIFontMetrics` from the documented base size. There are no fixed-height text containers and no minimum-scale-factor escape hatch.
 
-- Cards stack vertically.
-- Metric triples become rows.
-- Route grades never truncate.
-- Attempt timestamps move below labels if necessary.
-- Topo labels may move outside the drawing.
-- Serif headlines may wrap to three lines.
-- Body content must not have fixed line limits.
-- Preserve a logical VoiceOver reading order even when the visual composition is asymmetric.
-
+- Through the standard categories, the structured photo overlay may keep venue on one line only when it fits without shrinking; facts may use two columns.
+- At the first Accessibility category and above, venue and featured route wrap, fact shelves become one fact per row, controls move below the photo when necessary, and captions have no line limit.
+- At Accessibility Large and above, no essential text may remain over a visually busy photo. Move the factual block to an opaque `surface/card` continuation immediately below the image while preserving image-first reading order.
+- Route grades never truncate or split internally. Attempt timestamps move below their labels. Serif headlines may wrap to three lines; body content has no fixed line limit.
+- Glass containers grow with content until the preceding thresholds trigger the opaque continuation; they never clip, scroll internally, or conceal facts.
+- VoiceOver order is author/time, photo description, venue and session facts, caption, then reactions/actions, regardless of visual overlap.
 ---
 
 # 5. Spacing and layout
@@ -375,56 +392,52 @@ Suggested usage:
 - Subtle container: 1-point Chalk at 10%.
 - Selected card: 1.5-point Send Green at 55–75%.
 - Divider: 0.5-point Chalk at 8–10%.
-- Do not use ambient shadows in dark mode.
+- Do not use ambient shadows in dark mode. On approved iOS frosted surfaces, separation comes only from tint, localized scrim, directional rim, and content underlap.
 
 Elevation comes from:
 
-- Surface contrast.
+- Opaque tonal surface contrast for web and dense reading.
+- On iOS photo-led compositions only, controlled material depth and layer overlap.
 - Stroke strength.
-- Layer overlap.
 - Temporary pressed scaling.
 - Green selection treatment.
 
-Avoid glassmorphism, glossy materials, rainbow blur, and glowing borders.
+## Platform surface rule
+
+Frosted materials are approved only on iOS for photo HUDs, session fact shelves, floating logger/media rails, and navigation or tab chrome that visibly underlaps scrolling content. A material must communicate depth over changing content; it is not a decorative card style. Dense reading surfaces—including settings, forms, long captions, comments, charts, meetup descriptions, and attempt history—remain opaque `surface/card` or Slate.
+
+Web remains an opaque board studio at every breakpoint: no backdrop blur, translucent cards, glass navigation, or frosted emulation. Use Obsidian, Slate, `surface/card`, strokes, and localized opaque gradients over photography.
+
+Never stack frosted surfaces, frost an entire screen, or place a frosted card on an opaque field without content underlap. One composition may have a content-underlapping chrome layer and one photo-attached HUD/fact layer; additional information is flattened into opaque regions.
 
 ---
 
 # 7. Navigation architecture
 
-A strong initial structure is:
+## iOS destinations
 
-1. **Home**
-2. **Log**
-3. **Topo**
-4. **Profile**
+The iOS app has four labeled destinations:
 
-Activity and sharing can live within Home unless research demonstrates that they deserve a permanent fifth tab.
+1. **Home** — completed-session social feed, plus an in-progress session entry point when applicable.
+2. **Log** — start or resume a climbing session and record attempts.
+3. **Meetups** — climbing plans, attendance, and meetup detail.
+4. **Profile** — identity, session history, statistics, and settings.
 
-The destinations are shared across platforms, but their placement responds to the input and viewport:
+Home’s social object is a **completed climbing session**, never an individual send. Sends and failed/stopped attempts remain factual events within that session.
 
-- iOS and web below 600px use a bottom tab bar with all four labeled destinations and safe-area-aware padding.
-- Web at 600–899px may retain the bottom bar when touch is primary; otherwise use the desktop treatment.
-- Web at 900px and above uses a persistent top navigation within the content container: Boarded identity at the start, the four labeled destinations in the primary region, and account/utility actions at the end.
-- Navigation MUST not expose a different information architecture between mobile and desktop. When resizing across a breakpoint, retain the current destination, scroll position where practical, and keyboard focus.
-- A mobile overflow menu is reserved for secondary utilities, never the four primary destinations. Desktop navigation MUST collapse before labels overlap or horizontal scrolling appears.
+## Web destinations
 
-## Tab bar
+The web remains the board studio and retains its established board/route-oriented information architecture. Do not force the iOS social-session tabs onto web, and do not add mobile board editing to iOS. Any board/topo authoring and fabricated hold placement shown by the web studio stays web-only.
 
-- Native placement and safe-area behavior.
-- Obsidian or restrained dark material.
-- Hairline top separator.
-- Green selected icon and label.
-- Muted Chalk inactive items.
-- Always use labels.
+## iOS tab and navigation chrome
+
+- Use native placement, safe areas, and 44×44-point minimum targets.
+- The tab bar may use `material/contentChrome` only while feed photography or scrolling content visibly underlaps it; otherwise resolve to opaque Obsidian.
+- Selected icon and label use Send Green; inactive items use muted Chalk; labels are always present.
 - Do not use the Boarded mark as a generic Home icon.
-
-## Navigation bars
-
-- Utility screens use SF Pro titles.
-- Serif titles appear only at expressive milestones or editorial moments.
-- Navigation bars may begin transparent over imagery and resolve to Obsidian during scrolling.
+- Photo detail navigation may begin with `material/contentChrome` over imagery and resolve to opaque Obsidian before dense reading content reaches it.
 - Back, close, and overflow actions retain native placement and 44×44-point targets.
-
+- Material transitions follow scroll position without crossfading text contrast below its required ratio.
 ---
 
 # 8. Core component patterns
@@ -443,8 +456,8 @@ Examples:
 - Log attempt
 - Start session
 - Resume logging
-- Save topo
-- Share send
+- Save session
+- Share session
 
 ## Secondary button
 
@@ -579,17 +592,21 @@ Examples:
 
 A personal-record tile receives the stronger green border and soft green fill. Ordinary metrics do not.
 
-## Send/share card
+## Completed-session feed card
+
+The feed card represents one completed climbing session. It is not a send card and must not be generated once per successful route.
 
 Order:
 
-1. Avatar, name, relative time.
-2. Large grade.
-3. Route name.
-4. Climbing image.
+1. Author, avatar, and completed time.
+2. One session photograph at `4:5`, `3:2`, or `16:9`, cropped around climbing contact without changing its meaning.
+3. Structured factual overlay: venue, duration, attempts, sends, and one featured route with grade.
+4. Optional concise caption.
 5. Like, comment, and share controls.
 
-The achievement is more important than the reaction controls.
+On iOS, the facts may occupy one bottom-aligned `material/sessionFactShelf` above `overlay/scrimBottom`; reserve `material/photoHUD` for compact controls or single-line pills. The venue and featured route remain typographic, not pill chips. On web, the same hierarchy uses an opaque tonal block attached below or inset over the photo with an opaque gradient—never glass.
+
+An optional route trace or schematic is permitted only when generated from stored route/session data. It must identify the corresponding featured route and may not invent hold positions, topology, ascent path, or board geometry. Omit it when authoritative data is absent.
 
 ---
 
@@ -599,33 +616,26 @@ The achievement is more important than the reaction controls.
 
 ### Purpose
 
-Answer:
+Home is a photo-led feed of completed climbing sessions. It answers:
 
-- What am I doing now?
-- Where did I leave off?
-- What has changed?
-- What can I log quickly?
+- What did my climbing community complete?
+- Where and when did they climb?
+- What factual session result did they choose to share?
+- Is my own session still active?
 
 ### Structure
 
-1. Small green eyebrow such as `TODAY`.
-2. Screen title and profile action.
-3. Active-session feature card, if applicable.
-4. Continue routes.
-5. Two-column metric grid.
-6. Recent sends or activity.
-7. Contextual primary action.
+1. Content-underlapping iOS navigation chrome with screen title and profile action.
+2. Compact active-session entry, if applicable; this is utility, not a published feed item.
+3. Reverse-chronological completed-session cards.
+4. Inline loading, end-of-feed, error, and guided empty states.
+5. Contextual “Start a session” action.
 
-An active session card should show:
+Each feed card uses exactly one primary photo plus the completed-session factual overlay defined above. A gallery may open from a media count, but the feed surface does not become a carousel and does not collage multiple images.
 
-- Venue.
-- Elapsed time.
-- Attempts.
-- Routes.
-- Vertical gain.
-- Resume logging.
+The active-session entry shows venue, elapsed time, attempts, routes, and Resume logging. It may use `material/floatingRail` only while attached to underlapping session media; otherwise it is opaque Slate.
 
-If Home is empty, use the route-line motif and a direct “Start a session” action—not a generic illustration.
+If Home is empty, explain that completed sessions shared by the climber or their community will appear here and provide “Start a session.” Use the route-line motif only when backed by real route data; otherwise use restrained typography, not a fabricated diagram.
 
 ## Route detail
 
@@ -643,68 +653,57 @@ A sticky action may remain above the home indicator but should disappear when it
 
 ## Live attempt logger
 
-This should be the most direct and glove-friendly interface.
+This is the most direct and glove-friendly interface.
 
-1. Venue, route, and End session action.
+1. Venue, current route, and End session action.
 2. Tabular elapsed time.
 3. Large route grade and route name.
 4. Large green Log attempt button.
 5. Attempt timeline.
-6. Compact session summary.
+6. Compact session facts.
 7. Offline/sync status.
 
-Outcome selection should be one-handed:
+When session media underlaps the controls, venue/time and the logger action rail may use `material/floatingRail`; the attempt timeline and notes remain opaque tonal surfaces. Without underlapping media, all logger surfaces are opaque. High-contrast logger mode always uses opaque Obsidian/Slate and stronger strokes.
 
-- Sent.
-- Fell.
-- Stopped.
-
-Each option needs icon and text.
-
-Logging must work offline. Undo should appear after accidental logging. Deletion requires confirmation.
+Outcome selection is one-handed: Sent, Fell, or Stopped. Each option needs icon and text. Logging works offline; undo appears after accidental logging, and deletion requires confirmation. An individual sent attempt updates the session’s send count but does not create the social share unit.
 
 ## Topo explorer
+
+iOS may browse only schematics that already exist as authoritative route data:
 
 1. Route or sector selector.
 2. Full interactive canvas.
 3. Explicit Start and Top.
 4. Chalk path and green selected route.
-5. Bottom route information card.
+5. Opaque bottom route information card.
 6. Reset view action.
 7. Accessible ordered-node list.
 
-Support native pan, pinch, and double-tap zoom.
+Support native pan, pinch, and double-tap zoom. If route geometry is absent, show route facts without a diagram. iOS provides no board/topo editor, hold-placement tool, or inferred geometry. Authoring remains a web board-studio capability.
 
-Editor mode must look intentionally different from browse mode and expose:
+## Activity and session sharing
 
-- Add node.
-- Move node.
-- Connect path.
-- Undo.
-- Redo.
-- Save.
+Feed cards present a completed session:
 
-## Activity and sharing
-
-Feed cards prioritize the achievement:
-
-- Person and time.
-- Grade.
-- Route.
-- Image.
+- Person and completed time.
+- One photo.
+- Venue and duration.
+- Attempts and sends.
+- Featured route and grade.
 - Optional concise caption.
 - Secondary reactions.
 
-The share composer should:
+The share composer starts from the just-completed or selected completed session and:
 
-1. Select an achievement.
-2. Select or crop imagery.
-3. Preview the structured card.
-4. Add alt text and caption.
-5. Select audience.
-6. Publish.
+1. Selects or crops one session image.
+2. Selects a featured route from routes actually recorded in that session.
+3. Previews the structured venue, duration, attempts, sends, and featured route/grade overlay.
+4. Optionally includes a data-backed route trace/schematic when authoritative route data exists.
+5. Adds alt text and caption.
+6. Selects audience.
+7. Publishes the whole session.
 
-Upload progress must be determinate. Failed uploads preserve the draft.
+Do not offer an individual attempt/send as the share object. Upload progress is determinate, failed uploads preserve the draft, and no publish action changes the underlying session record.
 
 ## Profile and statistics
 
@@ -722,19 +721,29 @@ Upload progress must be determinate. Failed uploads preserve the draft.
 
 Settings should remain a conventional grouped list. Do not turn privacy, units, and accessibility options into decorative cards.
 
-## Session result
+## Meetup detail
 
-1. Green status eyebrow: `SENT` or `SESSION COMPLETE`.
-2. One dominant serif fact:
-   - Grade.
-   - Vertical gain.
-   - New record.
-3. Attempts, time, routes, success.
-4. Route trace.
-5. Optional Share.
-6. Done.
+Meetup detail leads with one documentary venue or climbing photo when available, followed by date/time, venue, organizer, attendance state, access notes, and the primary RSVP action. iOS may use `material/sessionFactShelf` for the date/venue facts over that photo, `material/photoHUD` only for a compact control or single-line pill, and `material/contentChrome` while the photo underlaps navigation. Description, attendee list, safety/access notes, and discussion remain opaque tonal reading surfaces. Without a photo, the header is opaque; never fabricate venue imagery or route geometry.
 
-A difficult session without a send should remain neutral and respectful. Do not color the entire result red or frame it as failure.
+## Session result and share preview
+
+Session Result closes the whole climbing session:
+
+1. Green status eyebrow: `SESSION COMPLETE`.
+2. One dominant serif session fact such as vertical gain or a verified new record.
+3. Venue, duration, attempts, sends, routes, and success rate.
+4. One selected session photo with featured route/grade factual overlay.
+5. Optional data-backed route trace/schematic.
+6. Share session.
+7. Done.
+
+The preview is photo-first and matches the exported composition. On iOS, interactive preview facts may use `material/sessionFactShelf` over `overlay/scrimBottom`; compact photo controls may use `material/photoHUD`, and supporting summaries are opaque. A session without a send remains neutral and respectful: its send count is `0`, not a failure banner. The heading never changes to `SENT`, because completion—not an individual send—is the result and share unit.
+
+## Exported share composition
+
+Export is deterministic and never captures live system blur. Render the selected photo, `overlay/scrimExport`, and Chalk/Send Green text into a flattened image in that order. Include Boarded identity, venue, duration, attempts, sends, and featured route/grade inside the export-safe inset; omit interactive controls, reactions, and material rims. Use embedded display/font assets and preserve the photo crop selected in preview.
+
+If material rendering, photo decoding, or transparency is unavailable, the interactive preview and export both fall back to an opaque Obsidian factual block attached to the photo. If the photo itself is unavailable, export an opaque Obsidian composition with the same facts and no substitute image, schematic, or decorative texture. The preview must visibly match the selected fallback before sharing.
 
 ---
 
@@ -864,11 +873,11 @@ Routine success:
 - Compact green confirmation.
 - Light haptic.
 
-Major send:
+Completed session:
 
-- Editorial result screen.
-- One route-line animation.
-- Optional sharing.
+- Editorial whole-session result screen.
+- One data-backed route-line animation only when authoritative geometry exists.
+- Optional session sharing.
 
 No confetti is necessary.
 
@@ -950,7 +959,7 @@ Preferred ratios:
 - Editorial feature: 4:5.
 - Detail tile: 1:1.
 
-Avoid text overlays on hands, faces, holds, or equipment. If text must sit over photography, use a measured dark gradient rather than a blur-heavy glass panel.
+Avoid text overlays on hands, faces, holds, or equipment. Place localized scrims behind text. An approved iOS photo HUD may frost only its own bounded region above that scrim; web uses an opaque tonal block or measured gradient instead.
 
 ---
 
@@ -969,6 +978,15 @@ Avoid text overlays on hands, faces, holds, or equipment. If text must sit over 
 - Allow 30–40% localization expansion.
 - Use locale-aware time and measurement units.
 - Support multiple climbing grade systems.
+
+## iOS transparency and contrast behavior
+
+- In standard mode and every accessibility combination, verify each final photo composite—not an isolated token or nominal tint—at 4.5:1 for body text and 3:1 for large text and meaningful icons. Measure the rendered photo + scrim + material + tint beneath the foreground across the complete text/icon bounds and against representative worst-case crops.
+- If the configured local scrim and material cannot meet those ratios, do not keep increasing blur or invent a per-photo tint. Replace the entire fact area with an opaque Slate or `surface/card` backing and remeasure.
+- With **Reduce Transparency**, replace every material with an opaque Obsidian or Slate surface: `photoHUD` → Obsidian, `sessionFactShelf` and `floatingRail` → Slate, `contentChrome` → Obsidian. Keep layout, hierarchy, and controls unchanged; use the existing 18% Chalk stroke and retain localized scrims only where text still overlaps a photo.
+- With **Increase Contrast**, prefer the same opaque replacements for dense fact shelves and the active logger. If a bounded photo HUD remains material, use `material/rimHighContrast`, raise its Obsidian tint to 72%, and remeasure the final composite to the same 4.5:1 body and 3:1 large-text/icon thresholds.
+- With both settings enabled, the opaque Reduce Transparency mapping wins; do not preserve blur merely to communicate depth.
+- Bold Text must not cause fact values to collide or truncate. Differentiate Without Color adds explicit labels/icons to sent, failed, selected, and attendance states.
 
 For outdoor legibility:
 
@@ -991,7 +1009,7 @@ Do not:
 - Use serif typography for forms or dense utility content.
 - Turn every number and icon green.
 - Use pure black and pure white.
-- Add neon gradients, glass cards, glowing borders, or heavy shadows.
+- Add neon gradients, generic glass cards, stacked frosted panels, glowing borders, or heavy shadows. The only glass exception is the explicitly approved, bounded iOS material categories over underlapping content.
 - Put every list row inside an isolated card.
 - Use pills for static metadata.
 - Make route diagrams resemble transit maps.
@@ -1018,7 +1036,7 @@ A complete designer handoff should contain:
 ## Foundations
 
 - Core and semantic colors.
-- One dark-only appearance shared by iOS and web.
+- Shared dark palette plus distinct iOS material and opaque-web surface specifications.
 - Serif, sans, and tabular text styles.
 - Spacing tokens.
 - Compact and regular grids.
@@ -1041,8 +1059,8 @@ Build stateful components for:
 - Metric tiles.
 - Attempt rows.
 - Route list rows.
-- Topo paths and nodes.
-- Social posts.
+- Data-backed topo paths and nodes.
+- Completed-session feed cards and share previews.
 - Banners.
 - Sheets.
 - Empty states.
@@ -1063,9 +1081,10 @@ Every component should show:
 - Compact width.
 - Regular width.
 - Standard Dynamic Type.
-- Accessibility Dynamic Type.
+- Accessibility Large Dynamic Type.
 - Long localized copy.
 - Increase Contrast.
+- Reduce Transparency.
 - Reduce Motion where relevant.
 
 ## Prototype flows
@@ -1073,21 +1092,35 @@ Every component should show:
 The minimum connected prototype should cover:
 
 ```text
-Home
-→ Route Detail
+Home session feed
 → Live Logger
 → Log Attempt
 → Session Result
-→ Share
+→ Share Session
 
-Home
-→ Topo Explorer
-→ Route Detail
+Home session feed
+→ Completed Session Detail
+
+Meetups
+→ Meetup Detail
 
 Profile
+→ Session History
 → Statistics
 → Personal Record
 ```
+
+## iOS screenshot acceptance
+
+Capture every named screen on **iPhone 16 Pro portrait at 402-pt logical width** and on a **regular-width iPad in portrait**, at **standard Dynamic Type** and **Accessibility Large**, once with normal settings and once with Reduce Transparency + Increase Contrast. Every screenshot must show semantic use of Obsidian, Slate, Chalk, and Send Green; no clipped/truncated essential text; 4.5:1 body and 3:1 large-text/icon contrast against every final photo composite; safe-area clearance; and opaque accessibility fallbacks. Review semantic token assignment and measured contrast, not exact blended pixel colors: system materials, display gamut, photograph, and compositing make their rendered pixels intentionally differ from the source token values.
+
+| Screen | Standard acceptance | Accessibility Large acceptance |
+|---|---|---|
+| Home | Completed-session feed is immediately legible; each card has one photo and the five-part factual overlay; bounded HUD/chrome frost only where content underlaps | Facts reflow to one per row; essential facts move to the opaque continuation when the photo is busy; actions remain 44×44 pt |
+| Active logger | Venue/time and media rail may frost over session media; attempt timeline is opaque; primary log action is unmistakable | Logger facts stack without clipping; timeline reading order is intact; high-contrast/opaque mode retains 48–52 pt actions |
+| Session result/share preview | Whole-session `SESSION COMPLETE` hierarchy, one photo, venue/duration/attempts/sends/featured route-grade, and export preview match | Factual block moves below photo as opaque continuation; preview still matches flattened export fallback and all facts remain visible |
+| Meetup detail | Photo header may carry bounded fact HUD; description, access notes, attendees, and discussion are opaque | Date, venue, organizer, and RSVP remain first in reading order; long details reflow without internal scrolling |
+| Profile | Identity/photo may use content-underlapping chrome; history, statistics, and settings are opaque tonal surfaces | Identity and milestone wrap; metrics become rows; settings labels and values remain complete and ordered |
 
 The final test for every design decision:
 
