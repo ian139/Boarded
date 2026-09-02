@@ -32,6 +32,7 @@ final class ProductProfileViewModel: ObservableObject {
 
 struct ProfileView: View {
     @EnvironmentObject private var session: AppSession
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @StateObject private var model = ProductProfileViewModel()
     @State private var edit = false
 
@@ -59,7 +60,11 @@ struct ProfileView: View {
     }
 
     private func header(_ profile: Profile) -> some View {
-        HStack(alignment: .center, spacing: AppSpacing.space16) {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: AppSpacing.space16))
+            : AnyLayout(HStackLayout(alignment: .center, spacing: AppSpacing.space16))
+
+        return layout {
             ProfileIdentityImage(profile: profile) {
                 edit = true
             }
@@ -119,12 +124,22 @@ struct ProfileView: View {
         .boardedPanel(padding: AppLayout.featureCardPadding)
     }
 
+    @ViewBuilder
     private var tiles: some View {
-        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: AppSpacing.space12) {
-            tile("Sessions", "\(model.statistics.sessionCount)", "calendar")
-            tile("Sends", "\(model.statistics.sendCount)", "checkmark.circle")
-            tile("Send rate", model.statistics.sendRate.map(BoardedFormat.percent) ?? "—", "chart.line.uptrend.xyaxis")
-            tile("Attempts", "\(model.statistics.attemptCount)", "number")
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(spacing: AppSpacing.space12) {
+                metricRow("Sessions", "\(model.statistics.sessionCount)", "calendar")
+                metricRow("Sends", "\(model.statistics.sendCount)", "checkmark.circle")
+                metricRow("Send rate", model.statistics.sendRate.map(BoardedFormat.percent) ?? "—", "chart.line.uptrend.xyaxis")
+                metricRow("Attempts", "\(model.statistics.attemptCount)", "number")
+            }
+        } else {
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: AppSpacing.space12) {
+                tile("Sessions", "\(model.statistics.sessionCount)", "calendar")
+                tile("Sends", "\(model.statistics.sendCount)", "checkmark.circle")
+                tile("Send rate", model.statistics.sendRate.map(BoardedFormat.percent) ?? "—", "chart.line.uptrend.xyaxis")
+                tile("Attempts", "\(model.statistics.attemptCount)", "number")
+            }
         }
     }
 
@@ -136,6 +151,22 @@ struct ProfileView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .boardedPanel()
+    }
+
+    private func metricRow(_ label: String, _ value: String, _ icon: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: AppSpacing.space12) {
+            Label(label, systemImage: icon)
+                .font(AppTypography.labelL)
+                .foregroundStyle(AppColor.textSecondary)
+            Spacer(minLength: AppSpacing.space8)
+            Text(value)
+                .font(AppTypography.dataM)
+                .foregroundStyle(AppColor.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .boardedPanel()
+        .accessibilityElement(children: .combine)
     }
 
     private var best: some View {

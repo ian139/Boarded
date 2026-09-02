@@ -69,11 +69,6 @@ enum AppStroke {
     static let focusGap: CGFloat = 2
 }
 
-enum AppShadow {
-    static let materialColor = Color.black.opacity(0.24)
-    static let materialRadius: CGFloat = 12
-    static let materialY: CGFloat = 6
-}
 
 enum BoardedMaterialStyle {
     case photoHUD
@@ -263,23 +258,37 @@ private struct BoardedMaterialModifier<S: Shape>: ViewModifier {
                 }
             }
             .overlay {
-                shape.stroke(
-                    LinearGradient(
-                        colors: [
-                            AppColor.textPrimary.opacity(leadingRimOpacity),
-                            AppColor.textPrimary.opacity(trailingRimOpacity)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: AppStroke.hairline
-                )
+                shape
+                    .stroke(
+                        AppColor.textPrimary.opacity(leadingRimOpacity),
+                        lineWidth: AppStroke.hairline
+                    )
+                    .mask {
+                        LinearGradient(
+                            stops: [
+                                .init(color: .white, location: 0.49),
+                                .init(color: .clear, location: 0.5)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    }
+                shape
+                    .stroke(
+                        AppColor.textPrimary.opacity(trailingRimOpacity),
+                        lineWidth: AppStroke.hairline
+                    )
+                    .mask {
+                        LinearGradient(
+                            stops: [
+                                .init(color: .clear, location: 0.49),
+                                .init(color: .white, location: 0.5)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    }
             }
-            .shadow(
-                color: usesOpaqueFallback ? .clear : AppShadow.materialColor,
-                radius: AppShadow.materialRadius,
-                y: AppShadow.materialY
-            )
     }
 }
 

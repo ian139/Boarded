@@ -63,11 +63,13 @@ struct MeetupDetailView: View {
                     .foregroundStyle(AppColor.textSecondary)
                 }
                 .boardedPanel(padding: AppLayout.featureCardPadding)
-                Text(current.description)
-                    .font(AppTypography.bodyL)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .boardedPanel()
+                if !current.description.trimmed.isEmpty {
+                    Text(current.description)
+                        .font(AppTypography.bodyL)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .boardedPanel()
+                }
                 actions
                 commentsView
             }
@@ -98,24 +100,27 @@ struct MeetupDetailView: View {
         .task { await load() }
     }
 
+    @ViewBuilder
     private var actions: some View {
-        VStack(spacing: AppSpacing.space12) {
-            if current.organizerId == session.userId, current.status == .scheduled {
-                Button("Cancel Meetup") { confirmCancellation = true }
-                    .buttonStyle(BoardedButtonStyle(.destructive))
-                    .accessibilityIdentifier("meetup-cancel")
-            } else if current.status == .scheduled {
-                BoardedPrimaryButton(title: joined ? "Leave Meetup" : (isFull ? "Meetup Full" : "Join Meetup")) {
-                    mutateAttendance()
+        if current.status == .scheduled || error != nil {
+            VStack(spacing: AppSpacing.space12) {
+                if current.organizerId == session.userId, current.status == .scheduled {
+                    Button("Cancel Meetup") { confirmCancellation = true }
+                        .buttonStyle(BoardedButtonStyle(.destructive))
+                        .accessibilityIdentifier("meetup-cancel")
+                } else if current.status == .scheduled {
+                    BoardedPrimaryButton(title: joined ? "Leave Meetup" : (isFull ? "Meetup Full" : "Join Meetup")) {
+                        mutateAttendance()
+                    }
+                    .disabled(isFull && !joined)
+                    .accessibilityIdentifier(joined ? "meetup-leave" : "meetup-join")
                 }
-                .disabled(isFull && !joined)
-                .accessibilityIdentifier(joined ? "meetup-leave" : "meetup-join")
+                if let error {
+                    Text(error).font(AppTypography.labelM).foregroundStyle(AppColor.danger)
+                }
             }
-            if let error {
-                Text(error).font(AppTypography.labelM).foregroundStyle(AppColor.danger)
-            }
+            .boardedPanel()
         }
-        .boardedPanel()
     }
 
     private var commentsView: some View {
