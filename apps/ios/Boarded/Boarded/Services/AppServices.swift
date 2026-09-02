@@ -58,11 +58,15 @@ enum AppServices {
     }()
 
     @MainActor
-    static func makeSessionSyncService(modelContext: ModelContext) -> SessionSyncService {
+    static func makeSessionSyncService(
+        modelContext: ModelContext,
+        userID: UUID
+    ) -> SessionSyncService {
         SessionSyncService(
             repository: sessionRepository,
             feedRepository: feedRepository,
             modelContext: modelContext,
+            userID: userID,
             connectivityOverride: AppLaunchConfiguration.isOfflineFixture ? false : nil
         )
     }

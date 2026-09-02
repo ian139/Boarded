@@ -311,7 +311,7 @@ final class NativeContractTests: XCTestCase {
     func testSessionLoggerTransitionsAndPersists() async throws {
         let context = try makeContext()
         let repository = MockSessionRepository()
-        let sync = SessionSyncService(repository: repository, modelContext: context)
+        let sync = SessionSyncService(repository: repository, modelContext: context, userID: userID)
         let viewModel = SessionLoggerViewModel(modelContext: context, syncService: sync, userId: userID)
 
         viewModel.startSession(venueName: "Gym")
@@ -342,11 +342,7 @@ final class NativeContractTests: XCTestCase {
     func testSessionLoggerReplaysImmediatelyWhileOnline() async throws {
         let context = try makeContext()
         let repository = MockSessionRepository()
-        let sync = SessionSyncService(
-            repository: repository,
-            feedRepository: MockFeedRepository(),
-            modelContext: context
-        )
+        let sync = SessionSyncService(repository: repository, feedRepository: MockFeedRepository(), modelContext: context, userID: userID)
         let viewModel = SessionLoggerViewModel(modelContext: context, syncService: sync, userId: userID)
 
         viewModel.startSession(venueName: "Gym")
@@ -373,11 +369,7 @@ final class NativeContractTests: XCTestCase {
     func testUndoQueuedAttemptRemovesLocallyWithoutRemoteUpload() async throws {
         let context = try makeContext()
         let repository = MockSessionRepository()
-        let sync = SessionSyncService(
-            repository: repository,
-            modelContext: context,
-            connectivityOverride: false
-        )
+        let sync = SessionSyncService(repository: repository, modelContext: context, userID: userID, connectivityOverride: false)
         let viewModel = SessionLoggerViewModel(modelContext: context, syncService: sync, userId: userID)
 
         viewModel.startSession(venueName: "Gym")
@@ -402,11 +394,7 @@ final class NativeContractTests: XCTestCase {
     func testUndoSyncedAttemptReplaysRemoteDeleteAndIsIdempotent() async throws {
         let context = try makeContext()
         let repository = MockSessionRepository()
-        let sync = SessionSyncService(
-            repository: repository,
-            modelContext: context,
-            connectivityOverride: false
-        )
+        let sync = SessionSyncService(repository: repository, modelContext: context, userID: userID, connectivityOverride: false)
         let pending = pendingAttempt(id: UUID(uuidString: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")!, syncState: .synced)
         context.insert(pending)
         try context.save()
@@ -417,11 +405,7 @@ final class NativeContractTests: XCTestCase {
         XCTAssertEqual(tombstones.map(\.id), [pending.id])
         XCTAssertTrue(try context.fetch(FetchDescriptor<PendingAttempt>()).isEmpty)
 
-        let onlineSync = SessionSyncService(
-            repository: repository,
-            modelContext: context,
-            connectivityOverride: true
-        )
+        let onlineSync = SessionSyncService(repository: repository, modelContext: context, userID: userID, connectivityOverride: true)
         await onlineSync.replay()
         await onlineSync.replay()
 
@@ -433,7 +417,7 @@ final class NativeContractTests: XCTestCase {
     func testUndoAttemptCleansLinkedDraftAndImageWithoutAffectingUnrelatedDrafts() async throws {
         let context = try makeContext()
         let repository = MockSessionRepository()
-        let sync = SessionSyncService(repository: repository, modelContext: context, connectivityOverride: false)
+        let sync = SessionSyncService(repository: repository, modelContext: context, userID: userID, connectivityOverride: false)
 
         let attempt1ID = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
         let attempt2ID = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
@@ -495,7 +479,7 @@ final class NativeContractTests: XCTestCase {
     func testUndoAttemptSaveFailureRetainsLinkedRowsAndImage() throws {
         let context = try makeContext()
         let repository = MockSessionRepository()
-        let sync = SessionSyncService(repository: repository, modelContext: context, connectivityOverride: false)
+        let sync = SessionSyncService(repository: repository, modelContext: context, userID: userID, connectivityOverride: false)
 
         let attemptID = UUID()
         let draftID = UUID()
@@ -532,7 +516,7 @@ final class NativeContractTests: XCTestCase {
     func testUndoAttemptReportsImageCleanupFailureAfterRowsSave() throws {
         let context = try makeContext()
         let repository = MockSessionRepository()
-        let sync = SessionSyncService(repository: repository, modelContext: context, connectivityOverride: false)
+        let sync = SessionSyncService(repository: repository, modelContext: context, userID: userID, connectivityOverride: false)
         let attemptID = UUID()
         let draftID = UUID()
         let fileName = "draft-\(draftID.uuidString).jpg"
@@ -566,12 +550,7 @@ final class NativeContractTests: XCTestCase {
         let context = try makeContext()
         let repository = MockSessionRepository()
         let feed = RecordingDraftFeedRepository(currentUserID: userID)
-        let sync = SessionSyncService(
-            repository: repository,
-            feedRepository: feed,
-            modelContext: context,
-            connectivityOverride: false
-        )
+        let sync = SessionSyncService(repository: repository, feedRepository: feed, modelContext: context, userID: userID, connectivityOverride: false)
 
         let attemptID = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
         let pending = pendingAttempt(id: attemptID, syncState: .synced)
@@ -598,12 +577,7 @@ final class NativeContractTests: XCTestCase {
         let tombstones = try context.fetch(FetchDescriptor<PendingAttemptDeletion>())
         XCTAssertEqual(tombstones.map(\.id), [attemptID])
 
-        let onlineSync = SessionSyncService(
-            repository: repository,
-            feedRepository: feed,
-            modelContext: context,
-            connectivityOverride: true
-        )
+        let onlineSync = SessionSyncService(repository: repository, feedRepository: feed, modelContext: context, userID: userID, connectivityOverride: true)
         await onlineSync.replay()
 
         XCTAssertTrue(try await repository.fetchAttempts(sessionID: pending.sessionId).isEmpty)
@@ -615,11 +589,7 @@ final class NativeContractTests: XCTestCase {
     func testFailedRemoteDeleteRetainsTombstoneForRetry() async throws {
         let context = try makeContext()
         let repository = DeletionRecordingSessionRepository()
-        let sync = SessionSyncService(
-            repository: repository,
-            modelContext: context,
-            connectivityOverride: false
-        )
+        let sync = SessionSyncService(repository: repository, modelContext: context, userID: userID, connectivityOverride: false)
         let pending = pendingAttempt(id: UUID(uuidString: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb")!, syncState: .synced)
         context.insert(pending)
         try context.save()
@@ -643,11 +613,7 @@ final class NativeContractTests: XCTestCase {
     func testUndoDuringInFlightReplayUploadsThenDeletesAttempt() async throws {
         let context = try makeContext()
         let repository = BlockingSessionRepository()
-        let sync = SessionSyncService(
-            repository: repository,
-            modelContext: context,
-            connectivityOverride: false
-        )
+        let sync = SessionSyncService(repository: repository, modelContext: context, userID: userID, connectivityOverride: false)
         let viewModel = SessionLoggerViewModel(modelContext: context, syncService: sync, userId: userID)
         viewModel.startSession(venueName: "Gym")
         let sessionID = try XCTUnwrap(viewModel.activeSession?.id)
@@ -770,14 +736,33 @@ final class NativeContractTests: XCTestCase {
         }
     }
 
+    func testMeetupsViewModelShowsCreatedMeetupImmediately() async throws {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let repository = MockMeetupRepository(meetups: [], currentUserID: userID, now: now)
+        let model = MeetupsViewModel(repository: repository)
+        await model.load()
+        let created = try await repository.createMeetup(
+            MeetupDraft(
+                title: "New Line",
+                description: "A session",
+                venueName: "Granite Works",
+                area: "North Shore",
+                startsAt: now.addingTimeInterval(3600),
+                endsAt: nil,
+                capacity: nil
+            )
+        )
+
+        model.insert(created)
+
+        XCTAssertEqual(model.meetups.map(\.id), [created.id])
+        XCTAssertEqual(model.meetups.first?.title, "New Line")
+    }
+
     func testDraftReplayPublishesAfterAttemptAndCleansLocalArtifacts() async throws {
         let context = try makeContext()
         let feed = RecordingDraftFeedRepository(currentUserID: userID)
-        let sync = SessionSyncService(
-            repository: MockSessionRepository(),
-            feedRepository: feed,
-            modelContext: context
-        )
+        let sync = SessionSyncService(repository: MockSessionRepository(), feedRepository: feed, modelContext: context, userID: userID)
         let attemptID = UUID(uuidString: "44444444-4444-4444-8444-444444444444")!
         let draftID = UUID(uuidString: "55555555-5555-4555-8555-555555555555")!
         let attempt = PendingAttempt(
@@ -826,11 +811,7 @@ final class NativeContractTests: XCTestCase {
         let context = try makeContext()
         let feed = RecordingDraftFeedRepository(currentUserID: userID)
         feed.failCreatePost = true
-        let sync = SessionSyncService(
-            repository: MockSessionRepository(),
-            feedRepository: feed,
-            modelContext: context
-        )
+        let sync = SessionSyncService(repository: MockSessionRepository(), feedRepository: feed, modelContext: context, userID: userID)
         let attemptID = UUID(uuidString: "77777777-7777-4777-8777-777777777777")!
         let draftID = UUID(uuidString: "88888888-8888-4888-8888-888888888888")!
         let attempt = PendingAttempt(
@@ -877,6 +858,99 @@ final class NativeContractTests: XCTestCase {
         XCTAssertEqual(sync.state, .synced)
     }
 
+    func testDiscardingFailedDraftRemovesItBeforeAnyLaterReplay() async throws {
+        let context = try makeContext()
+        let feed = RecordingDraftFeedRepository(currentUserID: userID)
+        feed.failCreatePost = true
+        let sync = SessionSyncService(
+            repository: MockSessionRepository(),
+            feedRepository: feed,
+            modelContext: context,
+            userID: userID
+        )
+        let attempt = pendingAttempt(
+            id: UUID(uuidString: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")!,
+            syncState: .synced
+        )
+        let draftID = UUID(uuidString: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb")!
+        let fileName = "discard-\(draftID.uuidString).jpg"
+        let draft = PendingSendDraft(
+            id: draftID,
+            attemptId: attempt.id,
+            caption: "Abandoned",
+            imageFileName: fileName,
+            imageAlt: "A send"
+        )
+        context.insert(attempt)
+        try context.save()
+        try sync.enqueue(draft: draft, imageData: Data([0x01, 0x02]))
+
+        await sync.replay()
+        XCTAssertEqual(
+            try XCTUnwrap(try context.fetch(FetchDescriptor<PendingSendDraft>()).first).syncState,
+            .failed
+        )
+        XCTAssertEqual(DraftImageStore.read(fileName: fileName), Data([0x01, 0x02]))
+
+        try sync.delete(draft: draft)
+        feed.failCreatePost = false
+        await sync.replay()
+
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSendDraft>()).isEmpty)
+        XCTAssertNil(DraftImageStore.read(fileName: fileName))
+        XCTAssertTrue(feed.createdPosts().isEmpty)
+    }
+
+    func testSessionSyncReplaysOnlyRowsOwnedByActiveUser() async throws {
+        let context = try makeContext()
+        let otherID = UUID(uuidString: "00000000-0000-0000-0000-000000000002")!
+        let repository = MockSessionRepository()
+        let feed = RecordingDraftFeedRepository(currentUserID: userID)
+        let sync = SessionSyncService(
+            repository: repository,
+            feedRepository: feed,
+            modelContext: context,
+            userID: userID
+        )
+        let currentSession = PendingSession(
+            id: UUID(uuidString: "00000000-0000-4000-8000-000000000101")!,
+            userId: userID,
+            venueName: "Current",
+            startedAt: Date(timeIntervalSince1970: 100),
+            endedAt: Date(timeIntervalSince1970: 200)
+        )
+        let otherSession = PendingSession(
+            id: UUID(uuidString: "00000000-0000-4000-8000-000000000102")!,
+            userId: otherID,
+            venueName: "Other",
+            startedAt: Date(timeIntervalSince1970: 100),
+            endedAt: Date(timeIntervalSince1970: 200)
+        )
+        let currentAttempt = pendingAttempt(
+            id: UUID(uuidString: "00000000-0000-4000-8000-000000000103")!,
+            syncState: .queued
+        )
+        currentAttempt.sessionId = currentSession.id
+        let otherAttempt = pendingAttempt(
+            id: UUID(uuidString: "00000000-0000-4000-8000-000000000104")!,
+            syncState: .queued
+        )
+        otherAttempt.userId = otherID
+        otherAttempt.sessionId = otherSession.id
+        context.insert(currentSession)
+        context.insert(otherSession)
+        context.insert(currentAttempt)
+        context.insert(otherAttempt)
+        try context.save()
+
+        await sync.replay()
+
+        XCTAssertEqual(try await repository.fetchSessions(userID: userID).count, 1)
+        XCTAssertTrue(try await repository.fetchSessions(userID: otherID).isEmpty)
+        XCTAssertEqual(try await repository.fetchAttempts(sessionID: currentSession.id).count, 1)
+        XCTAssertTrue(try await repository.fetchAttempts(sessionID: otherSession.id).isEmpty)
+    }
+
     // MARK: - Draft persistence
 
     func testDraftImageStoreRoundTrip() throws {
@@ -894,7 +968,7 @@ final class NativeContractTests: XCTestCase {
     func testReplayIsIdempotentAndNeverLosesAttempts() async throws {
         let context = try makeContext()
         let repository = MockSessionRepository()
-        let sync = SessionSyncService(repository: repository, modelContext: context)
+        let sync = SessionSyncService(repository: repository, modelContext: context, userID: userID)
 
         let pendingSession = PendingSession(
             id: UUID(uuidString: "11111111-1111-4111-8111-111111111111")!,

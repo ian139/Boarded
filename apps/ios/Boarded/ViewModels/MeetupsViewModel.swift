@@ -37,6 +37,19 @@ final class MeetupsViewModel: ObservableObject {
         }
     }
 
+    /// Applies a just-created meetup before the form dismisses so the list
+    /// never presents stale data after a successful create.
+    func insert(_ meetup: Meetup) {
+        guard selectedStatus == nil || selectedStatus == meetup.status else { return }
+        guard selectedArea == nil || selectedArea == meetup.area else { return }
+        if let index = meetups.firstIndex(where: { $0.id == meetup.id }) {
+            meetups[index] = meetup
+        } else {
+            meetups.insert(meetup, at: 0)
+        }
+        errorMessage = nil
+    }
+
     /// Joins a meetup with optimistic state and rolls back on failure.
     func join(meetupID: UUID) async {
         guard let index = meetups.firstIndex(where: { $0.id == meetupID }) else { return }

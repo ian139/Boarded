@@ -26,7 +26,8 @@ struct ShareSendComposer: View {
     @State private var published = false
     @State private var pendingDraft: PendingSendDraft?
     @State private var sync: SessionSyncService?
-
+    @State private var replacementAttemptID: UUID?
+    @State private var replaceDraftPresented = false
     private var attempts: [PendingAttempt] {
         ActiveSessionStore.sendableAttempts(userID: session.userId, in: context)
     }
@@ -50,7 +51,10 @@ struct ShareSendComposer: View {
                 }
             }
         }
-        .task { sync = AppServices.makeSessionSyncService(modelContext: context) }
+        .task {
+            guard let userID = session.userId else { return }
+            sync = AppServices.makeSessionSyncService(modelContext: context, userID: userID)
+        }
         .onChange(of: picker) { _, value in
             Task {
                 if let data = try? await value?.loadTransferable(type: Data.self),
@@ -59,6 +63,18 @@ struct ShareSendComposer: View {
                     cropPresented = true
                 }
             }
+        }
+        .confirmationDialog(
+            "Replace saved draft?",
+            isPresented: $replaceDraftPresented,
+            titleVisibility: .visible
+        ) {
+            Button("Discard Draft", role: .destructive) {
+                replaceDraft()
+            }
+            Button("Keep Draft", role: .cancel) {}
+        } message: {
+            Text("Your saved draft will be deleted before starting this share.")
         }
         .sheet(isPresented: $cropPresented) {
             if let cropImage {
@@ -83,7 +99,7 @@ struct ShareSendComposer: View {
                     "Sent attempt",
                     selection: Binding(
                         get: { draft.attemptID },
-                        set: { draft = draft.replacing(attemptID: $0) }
+                        set: { selectAttempt($0) }
                     )
                 ) {
                     Text("Choose a send").tag(UUID?.none)
@@ -200,7 +216,10 @@ struct ShareSendComposer: View {
                 progress = 0.6
 
                 let pending: PendingSendDraft
-                if let existing = pendingDraft, existing.attemptId == id {
+                if let existing = pendingDraft?.attemptId == id
+                    ? pendingDraft
+                    : pendingDraft(for: id) {
+                    pendingDraft = existing
                     pending = existing
                     pending.caption = draft.caption.trimmedOrNil
                     pending.imageAlt = draft.imageAlt.trimmedOrNil
@@ -209,6 +228,7 @@ struct ShareSendComposer: View {
                         pending.imageFileName = fileName
                         try DraftImageStore.write(data, fileName: fileName)
                     }
+                    pending.syncState = .queued
                     try context.save()
                 } else {
                     let created = PendingSendDraft(
@@ -239,6 +259,72 @@ struct ShareSendComposer: View {
                 progress = 0
             }
         }
+    }
+
+    private func selectAttempt(_ id: UUID?) {
+        if let existing = pendingDraft(for: id) {
+            pendingDraft = existing
+            draft = draftForPending(existing)
+            return
+        }
+        guard id != draft.attemptID else { return }
+        guard let existing = pendingDraft(for: draft.attemptID) ?? pendingDrafts().first else {
+            draft = ShareDraft(attemptID: id, caption: "", imageAlt: "", image: nil)
+            pendingDraft = nil
+            return
+        }
+        replacementAttemptID = id
+        pendingDraft = existing
+        replaceDraftPresented = true
+    }
+
+    private func replaceDraft() {
+        guard let existing = pendingDraft, let sync else { return }
+        let id = replacementAttemptID
+        Task {
+            do {
+                try sync.delete(draft: existing)
+                pendingDraft = nil
+                draft = ShareDraft(attemptID: id, caption: "", imageAlt: "", image: nil)
+                replacementAttemptID = nil
+                error = nil
+            } catch {
+                self.error = error.localizedDescription
+            }
+        }
+    }
+
+    private func draftForPending(_ pending: PendingSendDraft) -> ShareDraft {
+        let image = pending.imageFileName
+            .flatMap { DraftImageStore.read(fileName: $0) }
+            .flatMap { UIImage(data: $0) }
+        return ShareDraft(
+            attemptID: pending.attemptId,
+            caption: pending.caption ?? "",
+            imageAlt: pending.imageAlt ?? "",
+            image: image
+        )
+    }
+
+    private func pendingDraft(for attemptID: UUID?) -> PendingSendDraft? {
+        guard let attemptID, session.userId != nil else { return nil }
+        let owned = ActiveSessionStore.sendableAttempts(userID: session.userId, in: context)
+        guard owned.contains(where: { $0.id == attemptID }) else { return nil }
+        let descriptor = FetchDescriptor<PendingSendDraft>(
+            predicate: #Predicate {
+                $0.attemptId == attemptID && $0.syncStateRaw != "synced"
+            }
+        )
+        return (try? context.fetch(descriptor))?.first
+    }
+
+    private func pendingDrafts() -> [PendingSendDraft] {
+        guard session.userId != nil else { return [] }
+        let owned = Set(ActiveSessionStore.sendableAttempts(userID: session.userId, in: context).map(\.id))
+        let descriptor = FetchDescriptor<PendingSendDraft>(
+            predicate: #Predicate { $0.syncStateRaw != "synced" }
+        )
+        return (try? context.fetch(descriptor))?.filter { owned.contains($0.attemptId) } ?? []
     }
 
     private func hasPendingDraft(id: UUID) -> Bool {

@@ -30,7 +30,7 @@ struct RootView: View {
     private var tabs: some View {
         TabView(selection: $navigation.selectedTab) {
             NavigationStack { HomeFeedView() }.tabItem { Label("Home", systemImage: "house") }.tag(AppTab.home)
-            NavigationStack { LogTabView() }.tabItem { Label("Log", systemImage: "figure.climbing") }.tag(AppTab.log)
+            NavigationStack { LogTabView() }.id(session.userId).tabItem { Label("Log", systemImage: "figure.climbing") }.tag(AppTab.log)
             NavigationStack { MeetupsListView() }.tabItem { Label("Meetups", systemImage: "person.3") }.tag(AppTab.meetups)
             NavigationStack { ProfileView() }.tabItem { Label("Profile", systemImage: "person.crop.circle") }.tag(AppTab.profile)
         }

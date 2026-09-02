@@ -9,12 +9,39 @@ struct LogTabView: View {
     var body: some View {
         Group {
             if let userID = session.userId {
-                if let logger, let sync { LogHomeView(logger: logger, syncService: sync) }
-                else { ProgressView().task { configure(userID) } }
-            } else { AuthenticationView(showsDismissButton: false) }
-        }.navigationTitle("Log").boardedPageBackground()
+                if let logger, let sync {
+                    LogHomeView(logger: logger, syncService: sync)
+                } else {
+                    ProgressView()
+                }
+            } else {
+                AuthenticationView(showsDismissButton: false)
+            }
+        }
+        .navigationTitle("Log")
+        .boardedPageBackground()
+        .onChange(of: session.userId) { _, userID in
+            // A logger and its sync service are account-bound. Tear both down
+            // before constructing a graph for a different account (or nil).
+            logger = nil
+            sync = nil
+            if let userID {
+                configure(userID)
+            }
+        }
+        .task(id: session.userId) {
+            guard let userID = session.userId, logger == nil || sync == nil else {
+                return
+            }
+            configure(userID)
+        }
     }
-    private func configure(_ id: UUID) { let service = AppServices.makeSessionSyncService(modelContext: context); sync = service; logger = SessionLoggerViewModel(modelContext: context, syncService: service, userId: id) }
+
+    private func configure(_ id: UUID) {
+        let service = AppServices.makeSessionSyncService(modelContext: context, userID: id)
+        sync = service
+        logger = SessionLoggerViewModel(modelContext: context, syncService: service, userId: id)
+    }
 }
 
 struct LogHomeView: View {

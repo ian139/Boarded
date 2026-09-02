@@ -331,11 +331,11 @@
 				TargetAttributes = {
 					3CDD08222F59F69800535751 = {
 						CreatedOnToolsVersion = 26.2;
-						AA1100152F5B000100535751 = {
+					};
+					AA1100152F5B000100535751 = {
 						CreatedOnToolsVersion = 26.2;
 						TestTargetID = 3CDD08222F59F69800535751;
 					};
-				};
 					3CDD091B2F5A200100535751 = {
 						CreatedOnToolsVersion = 26.2;
 						TestTargetID = 3CDD08222F59F69800535751;

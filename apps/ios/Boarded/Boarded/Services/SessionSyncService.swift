@@ -45,6 +45,7 @@ final class SessionSyncService: ObservableObject {
     private let repository: any SessionRepository
     private let feedRepository: any FeedRepository
     private let modelContext: ModelContext
+    private let userID: UUID
     private let pathMonitor: NWPathMonitor
     private let monitorQueue = DispatchQueue(label: "boarded.session-sync.monitor")
 
@@ -57,12 +58,14 @@ final class SessionSyncService: ObservableObject {
     convenience init(
         repository: any SessionRepository,
         modelContext: ModelContext,
+        userID: UUID,
         connectivityOverride: Bool? = nil
     ) {
         self.init(
             repository: repository,
             feedRepository: AppServices.feedRepository,
             modelContext: modelContext,
+            userID: userID,
             connectivityOverride: connectivityOverride
         )
     }
@@ -71,14 +74,15 @@ final class SessionSyncService: ObservableObject {
         repository: any SessionRepository,
         feedRepository: any FeedRepository,
         modelContext: ModelContext,
+        userID: UUID,
         connectivityOverride: Bool? = nil
     ) {
         self.repository = repository
         self.feedRepository = feedRepository
         self.modelContext = modelContext
+        self.userID = userID
         self.pathMonitor = NWPathMonitor()
         self.hasConnectivity = connectivityOverride ?? true
-
         if connectivityOverride == nil {
             pathMonitor.pathUpdateHandler = { [weak self] path in
                 let online = path.status == .satisfied
@@ -165,6 +169,7 @@ final class SessionSyncService: ObservableObject {
     /// lost between an in-flight upsert and a later retry. Linked send-post drafts
     /// and their draft images are cleaned up so sync cannot remain queued.
     func delete(attempt: PendingAttempt) throws {
+        guard attempt.userId == userID else { return }
         let linkedDrafts = fetchAllDrafts().filter { $0.attemptId == attempt.id }
         let imageFileNames = linkedDrafts.compactMap(\.imageFileName)
 
@@ -208,6 +213,37 @@ final class SessionSyncService: ObservableObject {
             state = .failed
             errorMessage = cleanupError.localizedDescription
             throw cleanupError
+        }
+    }
+
+    /// Removes a pending or failed send-post draft without touching its
+    /// already-synced climbing attempt. This is used when the composer replaces
+    /// a saved draft with a different send.
+    func delete(draft: PendingSendDraft) throws {
+        guard let attempt = fetchAllAttemptsIncludingSynced().first(where: { $0.id == draft.attemptId }),
+              attempt.userId == userID else {
+            return
+        }
+        let fileName = draft.imageFileName
+        modelContext.delete(draft)
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            state = .failed
+            errorMessage = error.localizedDescription
+            throw error
+        }
+        state = hasPendingWork() ? .queued : .synced
+        errorMessage = nil
+        if let fileName {
+            do {
+                try cleanupDraftImage(fileName: fileName)
+            } catch let error as DraftImageCleanupError {
+                state = .failed
+                errorMessage = error.localizedDescription
+                throw error
+            }
         }
     }
 
@@ -378,43 +414,77 @@ final class SessionSyncService: ObservableObject {
     }
 
     private func fetchPendingSessions() -> [PendingSession] {
+        let activeUserID = userID
         let descriptor = FetchDescriptor<PendingSession>(
-            predicate: #Predicate { $0.syncStateRaw != "synced" }
+            predicate: #Predicate {
+                $0.userId == activeUserID && $0.syncStateRaw != "synced"
+            }
         )
         return (try? modelContext.fetch(descriptor)) ?? []
     }
 
     private func fetchPendingAttempts() -> [PendingAttempt] {
+        let activeUserID = userID
         let descriptor = FetchDescriptor<PendingAttempt>(
-            predicate: #Predicate { $0.syncStateRaw != "synced" }
+            predicate: #Predicate {
+                $0.userId == activeUserID && $0.syncStateRaw != "synced"
+            }
         )
         return (try? modelContext.fetch(descriptor)) ?? []
     }
 
     private func fetchPendingDrafts() -> [PendingSendDraft] {
+        let ownedAttemptIDs = Set(fetchAllAttemptsIncludingSynced().map(\.id))
         let descriptor = FetchDescriptor<PendingSendDraft>(
             predicate: #Predicate { $0.syncStateRaw != "synced" }
         )
-        return (try? modelContext.fetch(descriptor)) ?? []
+        return (try? modelContext.fetch(descriptor))?.filter {
+            ownedAttemptIDs.contains($0.attemptId)
+        } ?? []
     }
 
     private func fetchPendingAttemptDeletions() -> [PendingAttemptDeletion] {
+        let activeUserID = userID
         let descriptor = FetchDescriptor<PendingAttemptDeletion>(
-            predicate: #Predicate { $0.syncStateRaw != "synced" }
+            predicate: #Predicate {
+                $0.userId == activeUserID && $0.syncStateRaw != "synced"
+            }
         )
         return (try? modelContext.fetch(descriptor)) ?? []
     }
 
     private func fetchAllAttemptDeletions() -> [PendingAttemptDeletion] {
-        (try? modelContext.fetch(FetchDescriptor<PendingAttemptDeletion>())) ?? []
+        let activeUserID = userID
+        let descriptor = FetchDescriptor<PendingAttemptDeletion>(
+            predicate: #Predicate { $0.userId == activeUserID }
+        )
+        return (try? modelContext.fetch(descriptor)) ?? []
+    }
+
+    private func fetchAllAttemptsIncludingSynced() -> [PendingAttempt] {
+        let activeUserID = userID
+        let descriptor = FetchDescriptor<PendingAttempt>(
+            predicate: #Predicate { $0.userId == activeUserID }
+        )
+        return (try? modelContext.fetch(descriptor)) ?? []
     }
 
     private func fetchAllAttempts() -> [PendingAttempt] {
-        (try? modelContext.fetch(FetchDescriptor<PendingAttempt>())) ?? []
+        fetchAllAttemptsIncludingSynced()
     }
 
     private func fetchAllDrafts() -> [PendingSendDraft] {
-        (try? modelContext.fetch(FetchDescriptor<PendingSendDraft>())) ?? []
+        let ownedAttemptIDs = Set(fetchAllAttemptsIncludingSynced().map(\.id))
+        return (try? modelContext.fetch(FetchDescriptor<PendingSendDraft>()))?.filter {
+            ownedAttemptIDs.contains($0.attemptId)
+        } ?? []
+    }
+
+    private func hasPendingWork() -> Bool {
+        !fetchPendingSessions().isEmpty
+            || !fetchPendingAttempts().isEmpty
+            || !fetchPendingDrafts().isEmpty
+            || !fetchPendingAttemptDeletions().isEmpty
     }
 
     private func cleanupDraftImage(fileName: String) throws {
