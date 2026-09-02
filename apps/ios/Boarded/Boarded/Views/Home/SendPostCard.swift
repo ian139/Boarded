@@ -21,13 +21,20 @@ struct SendPostCard: View {
             header
             photoComposition
             if let caption = item.caption?.trimmedNonEmpty {
-                Text(caption)
-                    .font(AppTypography.bodyM)
-                    .foregroundStyle(AppColor.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(AppSpacing.space16)
-                    .background(AppColor.surfaceCard, in: AppRadius.card())
-                    .accessibilityIdentifier("session-post-caption")
+                VStack(alignment: .leading, spacing: 0) {
+                    if !dynamicTypeSize.isAccessibilitySize {
+                        Color.clear
+                            .frame(height: AppSpacing.space40)
+                            .accessibilityHidden(true)
+                    }
+                    Text(caption)
+                        .font(AppTypography.bodyM)
+                        .foregroundStyle(AppColor.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(AppSpacing.space16)
+                        .background(AppColor.surfaceCard, in: AppRadius.card())
+                        .accessibilityIdentifier("session-post-caption")
+                }
             }
             if showsActions { actions }
         }
