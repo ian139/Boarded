@@ -246,6 +246,7 @@ enum DraftImageStore {
         case invalidFileName
         case stagingFailed(String)
         case restorationFailed(String)
+        case creationFailed(String)
 
         var errorDescription: String? {
             switch self {
@@ -255,6 +256,8 @@ enum DraftImageStore {
                 return "Failed to stage deletion for image \(fileName)."
             case .restorationFailed(let fileName):
                 return "Failed to restore staged image \(fileName)."
+            case .creationFailed(let fileName):
+                return "Failed to create durable media transaction for image \(fileName)."
             }
         }
     }
@@ -286,6 +289,47 @@ enum DraftImageStore {
 
     static func sourceStagingURL(for fileName: String) -> URL {
         directory.appendingPathComponent("\(sourceFileName(for: fileName)).staging", isDirectory: false)
+    }
+    /// Durable marker for a pair creation transaction. The marker is written
+    /// before either byte is touched and removed only after the draft row save.
+    static func creationMarkerURL(for fileName: String) -> URL {
+        directory.appendingPathComponent("\(fileName).creation", isDirectory: false)
+    }
+
+    static func beginCreation(fileName: String) throws {
+        guard isSafeFileName(fileName) else { throw Error.invalidFileName }
+        try ensureDirectory()
+        do {
+            try Data(fileName.utf8).write(to: creationMarkerURL(for: fileName), options: .atomic)
+        } catch {
+            throw Error.creationFailed(fileName)
+        }
+    }
+
+    static func completeCreation(fileName: String) {
+        guard isSafeFileName(fileName) else { return }
+        try? FileManager.default.removeItem(at: creationMarkerURL(for: fileName))
+    }
+
+    /// Resolves markers left by termination during a paired creation. A
+    /// referenced complete pair is finalized; an unreferenced or incomplete
+    /// pair is removed in its entirety.
+    static func reconcileCreationStages(activeFileNames: Set<String>) {
+        guard let files = try? FileManager.default.contentsOfDirectory(atPath: directory.path) else { return }
+        let markerSuffix = ".creation"
+        for marker in files where marker.hasSuffix(markerSuffix) {
+            let fileName = String(marker.dropLast(markerSuffix.count))
+            guard isSafeFileName(fileName) else { continue }
+            let primaryExists = FileManager.default.fileExists(atPath: fileURL(for: fileName).path)
+            let sourceExists = FileManager.default.fileExists(atPath: sourceURL(for: fileName).path)
+            if activeFileNames.contains(fileName), primaryExists, sourceExists {
+                completeCreation(fileName: fileName)
+            } else {
+                try? FileManager.default.removeItem(at: fileURL(for: fileName))
+                try? FileManager.default.removeItem(at: sourceURL(for: fileName))
+                completeCreation(fileName: fileName)
+            }
+        }
     }
 
     static func write(_ data: Data, fileName: String) throws -> URL {
@@ -444,6 +488,33 @@ enum DraftImageStore {
                 try? FileManager.default.removeItem(at: sourceStagingUrl)
             }
         }
+    }
+
+    /// Removes ordinary files that no live draft references. Source
+    /// companions are retained only when their primary draft is retained.
+    static func reconcileUnreferencedFiles(activeFileNames: Set<String>) {
+        guard let files = try? FileManager.default.contentsOfDirectory(atPath: directory.path) else { return }
+        let stagingSuffix = ".staging"
+        let creationSuffix = ".creation"
+        let sourceSuffix = ".source"
+        for file in files {
+            guard !file.hasSuffix(stagingSuffix), !file.hasSuffix(creationSuffix) else { continue }
+            let baseFileName: String
+            if file.hasSuffix(sourceSuffix) {
+                baseFileName = String(file.dropLast(sourceSuffix.count))
+            } else {
+                baseFileName = file
+            }
+            guard isSafeFileName(baseFileName), !activeFileNames.contains(baseFileName) else { continue }
+            try? FileManager.default.removeItem(at: directory.appendingPathComponent(file, isDirectory: false))
+        }
+    }
+
+    /// Runs every startup media recovery pass in a deterministic order.
+    static func reconcile(activeFileNames: Set<String>) {
+        reconcileCreationStages(activeFileNames: activeFileNames)
+        reconcileStagedDeletions(activeFileNames: activeFileNames)
+        reconcileUnreferencedFiles(activeFileNames: activeFileNames)
     }
 
     static func isSafeFileName(_ fileName: String) -> Bool {

@@ -297,6 +297,13 @@ struct SessionFeedItem: Codable, Identifiable, Hashable, Sendable {
         case commentCount = "comment_count"
         case isLiked = "is_liked"
     }
+
+    /// Deterministic sibling for the canonical flattened image object.
+    /// Feed payloads always use `<user>/<post>.jpg`; no legacy location is
+    /// consulted when deriving the source asset.
+    var sourceImagePath: String {
+        String(imagePath.dropLast(".jpg".count)) + ".source.jpg"
+    }
 }
 
 struct FeedCursor: Codable, Hashable, Sendable {
