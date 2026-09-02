@@ -75,6 +75,35 @@ final class NativeContractTests: XCTestCase {
         XCTAssertTrue(item.isLiked)
     }
 
+    func testMockFeedCreatePostPublishesFeedItemWithFixtureFacts() async throws {
+        let fixture = feedItem()
+        let repository = MockFeedRepository(
+            items: [fixture],
+            currentUserID: userID,
+            now: Date(timeIntervalSince1970: 200)
+        )
+        let postID = UUID(uuidString: "55555555-5555-4555-8555-555555555555")!
+        let imagePath = "\(userID.uuidString.lowercased())/\(postID.uuidString.lowercased()).jpg"
+        let post = try await repository.createPost(
+            id: postID,
+            sessionID: fixture.sessionId,
+            featuredAttemptID: fixture.featuredAttemptId,
+            caption: "New card",
+            imagePath: imagePath,
+            imageAlt: "New image",
+            overlayStyle: .attemptTimeline
+        )
+
+        let page = try await repository.fetchFeed(cursor: nil, authorFilter: nil, pageSize: 50)
+        let item = try XCTUnwrap(page.items.first(where: { $0.id == post.id }))
+        XCTAssertEqual(item.caption, post.caption)
+        XCTAssertEqual(item.imagePath, imagePath)
+        XCTAssertEqual(item.sourceImagePath, "\(userID.uuidString.lowercased())/\(postID.uuidString.lowercased()).source.jpg")
+        XCTAssertEqual(item.session, fixture.session)
+        XCTAssertEqual(item.author, fixture.author)
+        XCTAssertEqual(item.session.featuredAttempt.id, fixture.featuredAttemptId)
+    }
+
     func testSessionFeedItemDecodesAttemptTimelineOverlayAndFellOutcomeWithoutNotes() throws {
         let json = """
         {
@@ -708,6 +737,79 @@ final class NativeContractTests: XCTestCase {
         XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSessionDraft>()).isEmpty)
         XCTAssertNil(DraftImageStore.read(fileName: fileName2))
         XCTAssertEqual(sync.state, .synced)
+    }
+
+    func testEnqueueReplacementTombstonesPriorRemoteCommitForIdempotentCleanup() async throws {
+        let context = try makeContext()
+        let sessionID = UUID(uuidString: "91919191-9191-4091-8091-919191919191")!
+        let attemptID = UUID(uuidString: "92929292-9292-4092-8092-929292929292")!
+        let firstID = UUID(uuidString: "93939393-9393-4093-8093-939393939393")!
+        let secondID = UUID(uuidString: "94949494-9494-4094-8094-949494949494")!
+        let firstFileName = "prior-commit-\(firstID.uuidString).jpg"
+        let session = PendingSession(
+            id: sessionID,
+            userId: userID,
+            venueName: "Gym",
+            startedAt: Date(timeIntervalSince1970: 100),
+            endedAt: Date(timeIntervalSince1970: 200),
+            syncState: .synced
+        )
+        let attempt = pendingAttempt(id: attemptID, syncState: .synced)
+        attempt.sessionId = sessionID
+        context.insert(session)
+        context.insert(attempt)
+        try context.save()
+        let firstDraft = PendingSessionDraft(
+            id: firstID,
+            sessionId: sessionID,
+            featuredAttemptId: attemptID,
+            caption: "First",
+            imageFileName: firstFileName,
+            imageAlt: "First"
+        )
+        let feed = RecordingDraftFeedRepository(currentUserID: userID)
+        let sync = SessionSyncService(
+            repository: MockSessionRepository(),
+            feedRepository: feed,
+            modelContext: context,
+            userID: userID
+        )
+        try sync.enqueue(draft: firstDraft, imageData: Data([0xa1]), sourceData: Data([0xa2]))
+        defer {
+            DraftImageStore.delete(fileName: firstFileName)
+        }
+        feed.failCreatePostAfterCommit = true
+        await sync.replay()
+        XCTAssertEqual(feed.createdPosts().map(\.id), [firstID])
+
+        feed.failCreatePostAfterCommit = false
+        let secondFileName = "replacement-\(secondID.uuidString).jpg"
+        let secondDraft = PendingSessionDraft(
+            id: secondID,
+            sessionId: sessionID,
+            featuredAttemptId: attemptID,
+            caption: "Second",
+            imageFileName: secondFileName,
+            imageAlt: "Second"
+        )
+        try sync.enqueue(draft: secondDraft, imageData: Data([0xb1]), sourceData: Data([0xb2]))
+        defer {
+            DraftImageStore.delete(fileName: secondFileName)
+        }
+        let tombstone = try XCTUnwrap(
+            context.fetch(FetchDescriptor<PendingDraftDeletion>()).first(where: { $0.id == firstID })
+        )
+        XCTAssertEqual(tombstone.imageFileName, firstFileName)
+
+        await sync.replay()
+
+        let firstPath = "\(userID.uuidString.lowercased())/\(firstID.uuidString.lowercased()).jpg"
+        let firstSourcePath = "\(userID.uuidString.lowercased())/\(firstID.uuidString.lowercased()).source.jpg"
+        XCTAssertTrue(feed.deletedPosts().contains(firstID))
+        XCTAssertTrue(feed.deletedImagePaths().contains(firstPath))
+        XCTAssertTrue(feed.deletedImagePaths().contains(firstSourcePath))
+        XCTAssertEqual(feed.createdPosts().map(\.id), [secondID])
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingDraftDeletion>()).isEmpty)
     }
 
     func testReplayDeduplicatesMultiplePendingDraftsForSameSessionWithoutBackendConflict() async throws {
@@ -2251,9 +2353,101 @@ final class NativeContractTests: XCTestCase {
         XCTAssertEqual(feed.deletedPosts(), [draftID])
         XCTAssertEqual(feed.deletedImagePaths(), ["\(userID.uuidString.lowercased())/\(draftID.uuidString.lowercased()).jpg", "\(userID.uuidString.lowercased())/\(draftID.uuidString.lowercased()).source.jpg"])
         XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSessionDraft>()).isEmpty)
+        XCTAssertTrue(
+            try context.fetch(FetchDescriptor<PendingDraftDeletion>())
+                .contains(where: { $0.id == draftID })
+        )
+        await sync.replay()
         XCTAssertTrue(try context.fetch(FetchDescriptor<PendingDraftDeletion>()).isEmpty)
         XCTAssertNil(DraftImageStore.read(fileName: fileName))
         XCTAssertEqual(sync.state, .synced)
+    }
+
+    func testClaimSaveFailureWithConcurrentDiscardRetainsDurableCleanupIntent() async throws {
+        let schema = Schema([
+            PendingSession.self,
+            PendingAttempt.self,
+            PendingAttemptDeletion.self,
+            PendingDraftDeletion.self,
+            PendingSessionDraft.self
+        ])
+        let container = try ModelContainer(
+            for: schema,
+            configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)]
+        )
+        let contextA = ModelContext(container)
+        let contextB = ModelContext(container)
+        let sessionID = UUID(uuidString: "a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1")!
+        let attemptID = UUID(uuidString: "b2b2b2b2-b2b2-42b2-82b2-b2b2b2b2b2b2")!
+        let draftID = UUID(uuidString: "c3c3c3c3-c3c3-43c3-83c3-c3c3c3c3c3c3")!
+        let fileName = "claim-failure-\(draftID.uuidString).jpg"
+        let session = PendingSession(
+            id: sessionID,
+            userId: userID,
+            venueName: "Gym",
+            startedAt: Date(timeIntervalSince1970: 100),
+            endedAt: Date(timeIntervalSince1970: 200),
+            syncState: .queued
+        )
+        let attempt = pendingAttempt(id: attemptID, syncState: .synced)
+        attempt.sessionId = sessionID
+        contextA.insert(session)
+        contextA.insert(attempt)
+        try contextA.save()
+        let feed = RecordingDraftFeedRepository(currentUserID: userID)
+        feed.failDeletePost = true
+        let blockingRepository = BlockingSessionRepository()
+        let syncA = SessionSyncService(
+            repository: blockingRepository,
+            feedRepository: feed,
+            modelContext: contextA,
+            userID: userID
+        )
+        let draft = PendingSessionDraft(
+            id: draftID,
+            sessionId: sessionID,
+            featuredAttemptId: attemptID,
+            caption: "Claim failure",
+            imageFileName: fileName,
+            imageAlt: "Claim failure"
+        )
+        try syncA.enqueue(draft: draft, imageData: Data([0xd1]), sourceData: Data([0xd2]))
+        defer { DraftImageStore.delete(fileName: fileName) }
+        let syncB = SessionSyncService(
+            repository: MockSessionRepository(),
+            feedRepository: feed,
+            modelContext: contextB,
+            userID: userID
+        )
+        let draftB = try XCTUnwrap(contextB.fetch(FetchDescriptor<PendingSessionDraft>()).first)
+        struct InjectedClaimSaveError: LocalizedError {
+            var errorDescription: String? { "Injected claim save failure." }
+        }
+        syncA.saveHook = { throw InjectedClaimSaveError() }
+
+        let replayTask = Task { await syncA.replay() }
+        await blockingRepository.waitForSessionUpsert()
+        do {
+            try await syncB.delete(draft: draftB)
+            XCTFail("Discard should retain its tombstone when remote deletion fails")
+        } catch {
+            // The failed remote delete is the deterministic pause between
+            // tombstone persistence and cleanup.
+        }
+        await blockingRepository.releaseSessionUpsert()
+        await replayTask.value
+
+        XCTAssertTrue(feed.uploadedPaths().isEmpty)
+        XCTAssertTrue(feed.createdPosts().isEmpty)
+        XCTAssertTrue(
+            try contextB.fetch(FetchDescriptor<PendingDraftDeletion>())
+                .contains(where: { $0.id == draftID })
+        )
+        XCTAssertEqual(DraftImageStore.read(fileName: fileName), Data([0xd1]))
+        XCTAssertEqual(
+            DraftImageStore.read(fileName: DraftImageStore.sourceFileName(for: fileName)),
+            Data([0xd2])
+        )
     }
 
     func testUndoAttemptStagesAllLinkedImagesThenCommitsSingleTransaction() throws {
@@ -2567,6 +2761,192 @@ final class NativeContractTests: XCTestCase {
         XCTAssertNil(DraftImageStore.read(fileName: crashFileName))
         XCTAssertNil(
             DraftImageStore.read(fileName: DraftImageStore.sourceFileName(for: crashFileName))
+        )
+    }
+
+    func testReplacementMarkerReconcilesOldOrNewDurableRowReference() throws {
+        let schema = Schema([
+            PendingSession.self,
+            PendingAttempt.self,
+            PendingAttemptDeletion.self,
+            PendingDraftDeletion.self,
+            PendingSessionDraft.self
+        ])
+        let container = try ModelContainer(
+            for: schema,
+            configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)]
+        )
+        let context = ModelContext(container)
+        let oldFileName = "marker-old-\(UUID().uuidString).jpg"
+        let newFileName = "marker-new-\(UUID().uuidString).jpg"
+        let draft = PendingSessionDraft(
+            id: UUID(),
+            sessionId: UUID(),
+            featuredAttemptId: UUID(),
+            caption: nil,
+            imageFileName: oldFileName,
+            imageAlt: "Old"
+        )
+        context.insert(draft)
+        try context.save()
+        defer {
+            DraftImageStore.delete(fileName: oldFileName)
+            DraftImageStore.delete(fileName: newFileName)
+        }
+        try DraftImageStore.write(Data([0x01]), fileName: oldFileName)
+        try DraftImageStore.write(Data([0x02]), fileName: DraftImageStore.sourceFileName(for: oldFileName))
+        try DraftImageStore.beginReplacement(oldFileName: oldFileName, newFileName: newFileName)
+        try DraftImageStore.beginCreation(fileName: newFileName)
+        try DraftImageStore.write(Data([0x03]), fileName: newFileName)
+        try DraftImageStore.write(Data([0x04]), fileName: DraftImageStore.sourceFileName(for: newFileName))
+        try DraftImageStore.stageDeletion(fileName: oldFileName)
+
+        _ = SessionSyncService(
+            repository: MockSessionRepository(),
+            modelContext: ModelContext(container),
+            userID: userID,
+            connectivityOverride: false
+        )
+        XCTAssertEqual(DraftImageStore.read(fileName: oldFileName), Data([0x01]))
+        XCTAssertEqual(
+            DraftImageStore.read(fileName: DraftImageStore.sourceFileName(for: oldFileName)),
+            Data([0x02])
+        )
+        XCTAssertNil(DraftImageStore.read(fileName: newFileName))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: DraftImageStore.replacementMarkerURL(for: newFileName).path))
+        let committedOldFileName = "marker-committed-old-\(UUID().uuidString).jpg"
+        let committedNewFileName = "marker-committed-new-\(UUID().uuidString).jpg"
+        let committedDraft = PendingSessionDraft(
+            id: UUID(),
+            sessionId: UUID(),
+            featuredAttemptId: UUID(),
+            caption: nil,
+            imageFileName: committedNewFileName,
+            imageAlt: "New"
+        )
+        context.insert(committedDraft)
+        try context.save()
+        defer {
+            DraftImageStore.delete(fileName: committedOldFileName)
+            DraftImageStore.delete(fileName: committedNewFileName)
+        }
+        try DraftImageStore.write(Data([0x11]), fileName: committedOldFileName)
+        try DraftImageStore.write(
+            Data([0x12]),
+            fileName: DraftImageStore.sourceFileName(for: committedOldFileName)
+        )
+        try DraftImageStore.beginReplacement(
+            oldFileName: committedOldFileName,
+            newFileName: committedNewFileName
+        )
+        try DraftImageStore.beginCreation(fileName: committedNewFileName)
+        try DraftImageStore.write(Data([0x13]), fileName: committedNewFileName)
+        try DraftImageStore.write(
+            Data([0x14]),
+            fileName: DraftImageStore.sourceFileName(for: committedNewFileName)
+        )
+        try DraftImageStore.stageDeletion(fileName: committedOldFileName)
+        _ = SessionSyncService(
+            repository: MockSessionRepository(),
+            modelContext: ModelContext(container),
+            userID: userID,
+            connectivityOverride: false
+        )
+        XCTAssertNil(DraftImageStore.read(fileName: committedOldFileName))
+        XCTAssertEqual(DraftImageStore.read(fileName: committedNewFileName), Data([0x13]))
+        XCTAssertEqual(
+            DraftImageStore.read(fileName: DraftImageStore.sourceFileName(for: committedNewFileName)),
+            Data([0x14])
+        )
+        XCTAssertFalse(
+            FileManager.default.fileExists(
+                atPath: DraftImageStore.replacementMarkerURL(for: committedNewFileName).path
+            )
+        )
+    }
+
+    func testBlockedUploadDuringPairedReplacementCompensatesOldPublicationAndKeepsNewPair() async throws {
+        let schema = Schema([
+            PendingSession.self,
+            PendingAttempt.self,
+            PendingAttemptDeletion.self,
+            PendingDraftDeletion.self,
+            PendingSessionDraft.self
+        ])
+        let container = try ModelContainer(
+            for: schema,
+            configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)]
+        )
+        let contextA = ModelContext(container)
+        let contextB = ModelContext(container)
+        let sessionID = UUID(uuidString: "60606060-6060-4060-8060-606060606060")!
+        let attemptID = UUID(uuidString: "70707070-7070-4070-8070-707070707070")!
+        let draftID = UUID(uuidString: "80808080-8080-4080-8080-808080808080")!
+        let oldFileName = "replacement-race-\(draftID.uuidString).jpg"
+        let session = PendingSession(
+            id: sessionID,
+            userId: userID,
+            venueName: "Gym",
+            startedAt: Date(timeIntervalSince1970: 100),
+            endedAt: Date(timeIntervalSince1970: 200),
+            syncState: .synced
+        )
+        let attempt = pendingAttempt(id: attemptID, syncState: .synced)
+        attempt.sessionId = sessionID
+        contextA.insert(session)
+        contextA.insert(attempt)
+        try contextA.save()
+        let draft = PendingSessionDraft(
+            id: draftID,
+            sessionId: sessionID,
+            featuredAttemptId: attemptID,
+            caption: "Replacement race",
+            imageFileName: oldFileName,
+            imageAlt: "Old"
+        )
+        let feed = RecordingDraftFeedRepository(currentUserID: userID)
+        feed.blockUpload = true
+        let syncA = SessionSyncService(
+            repository: MockSessionRepository(),
+            feedRepository: feed,
+            modelContext: contextA,
+            userID: userID
+        )
+        try syncA.enqueue(draft: draft, imageData: Data([0x81]), sourceData: Data([0x82]))
+        let syncB = SessionSyncService(
+            repository: MockSessionRepository(),
+            feedRepository: feed,
+            modelContext: contextB,
+            userID: userID
+        )
+        let draftB = try XCTUnwrap(contextB.fetch(FetchDescriptor<PendingSessionDraft>()).first)
+        let replayTask = Task { await syncA.replay() }
+        await feed.waitForUploadStart()
+
+        try syncB.replaceDraftMedia(
+            draft: draftB,
+            imageData: Data([0x91]),
+            sourceData: Data([0x92])
+        )
+        let newFileName = draftB.imageFileName
+        defer {
+            DraftImageStore.delete(fileName: oldFileName)
+            DraftImageStore.delete(fileName: newFileName)
+        }
+
+        await feed.releaseUpload()
+        await replayTask.value
+
+        let canonicalPath = "\(userID.uuidString.lowercased())/\(draftID.uuidString.lowercased()).jpg"
+        XCTAssertTrue(feed.createdPosts().isEmpty)
+        XCTAssertTrue(feed.deletedImagePaths().contains(canonicalPath))
+        XCTAssertTrue(feed.deletedImagePaths().contains("\(userID.uuidString.lowercased())/\(draftID.uuidString.lowercased()).source.jpg"))
+        let replacement = try XCTUnwrap(contextB.fetch(FetchDescriptor<PendingSessionDraft>()).first)
+        XCTAssertEqual(replacement.imageFileName, newFileName)
+        XCTAssertEqual(DraftImageStore.read(fileName: newFileName), Data([0x91]))
+        XCTAssertEqual(
+            DraftImageStore.read(fileName: DraftImageStore.sourceFileName(for: newFileName)),
+            Data([0x92])
         )
     }
 

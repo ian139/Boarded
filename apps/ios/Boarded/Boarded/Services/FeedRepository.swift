@@ -175,6 +175,62 @@ final class MockFeedRepository: FeedRepository, @unchecked Sendable {
             updatedAt: now
         )
         posts.append(post)
+
+        // Reuse the matching fixture's factual session and featured-attempt
+        // details so a newly published card is immediately renderable by the
+        // same feed surface as seeded items.
+        let fixture = items.first {
+            $0.sessionId == sessionID && $0.featuredAttemptId == featuredAttemptID
+        } ?? items.first { $0.sessionId == sessionID } ?? items.first
+        let fixtureSession = fixture?.session
+        let fixtureAttempt = fixtureSession?.featuredAttempt
+        let featuredAttempt = FeedFeaturedAttempt(
+            id: featuredAttemptID,
+            routeName: fixtureAttempt?.routeName ?? "Featured attempt",
+            discipline: fixtureAttempt?.discipline ?? .other,
+            gradeSystem: fixtureAttempt?.gradeSystem ?? .custom,
+            gradeLabel: fixtureAttempt?.gradeLabel ?? "—",
+            outcome: fixtureAttempt?.outcome ?? .stopped,
+            attemptNumber: fixtureAttempt?.attemptNumber ?? 1,
+            occurredAt: fixtureAttempt?.occurredAt ?? now
+        )
+        let session = FeedSessionSummary(
+            id: sessionID,
+            venueName: fixtureSession?.venueName ?? "Session",
+            startedAt: fixtureSession?.startedAt ?? now,
+            endedAt: fixtureSession?.endedAt ?? now,
+            durationSeconds: fixtureSession?.durationSeconds ?? 0,
+            attemptCount: fixtureSession?.attemptCount ?? 0,
+            sendCount: fixtureSession?.sendCount ?? 0,
+            featuredAttempt: featuredAttempt
+        )
+        let author = FeedAuthor(
+            id: currentUserID,
+            username: fixture?.author.username,
+            fullName: fixture?.author.fullName,
+            avatarUrl: fixture?.author.avatarUrl,
+            bio: fixture?.author.bio,
+            homeArea: fixture?.author.homeArea
+        )
+        items.append(
+            SessionFeedItem(
+                id: post.id,
+                userId: post.userId,
+                sessionId: post.sessionId,
+                featuredAttemptId: post.featuredAttemptId,
+                caption: post.caption,
+                imagePath: post.imagePath,
+                imageAlt: post.imageAlt,
+                overlayStyle: post.overlayStyle,
+                createdAt: post.createdAt,
+                updatedAt: post.updatedAt,
+                author: author,
+                session: session,
+                likeCount: 0,
+                commentCount: 0,
+                isLiked: false
+            )
+        )
         return post
     }
 

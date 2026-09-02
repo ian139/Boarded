@@ -247,6 +247,7 @@ enum DraftImageStore {
         case stagingFailed(String)
         case restorationFailed(String)
         case creationFailed(String)
+        case replacementFailed(String)
 
         var errorDescription: String? {
             switch self {
@@ -258,6 +259,8 @@ enum DraftImageStore {
                 return "Failed to restore staged image \(fileName)."
             case .creationFailed(let fileName):
                 return "Failed to create durable media transaction for image \(fileName)."
+            case .replacementFailed(let fileName):
+                return "Failed to create durable replacement transaction for image \(fileName)."
             }
         }
     }
@@ -289,6 +292,63 @@ enum DraftImageStore {
 
     static func sourceStagingURL(for fileName: String) -> URL {
         directory.appendingPathComponent("\(sourceFileName(for: fileName)).staging", isDirectory: false)
+    }
+
+    /// Durable marker for a replacement transaction. The marker payload
+    /// carries both basenames so startup can restore the old pair when the
+    /// row still references it, or finalize the old pair after the row points
+    /// at the new pair.
+    static func replacementMarkerURL(for newFileName: String) -> URL {
+        directory.appendingPathComponent("\(newFileName).replacement", isDirectory: false)
+    }
+
+    static func beginReplacement(oldFileName: String, newFileName: String) throws {
+        guard isSafeFileName(newFileName),
+              oldFileName.isEmpty || isSafeFileName(oldFileName) else {
+            throw Error.invalidFileName
+        }
+        try ensureDirectory()
+        do {
+            let payload = "\(oldFileName)\n\(newFileName)"
+            try Data(payload.utf8).write(to: replacementMarkerURL(for: newFileName), options: .atomic)
+        } catch {
+            throw Error.replacementFailed(newFileName)
+        }
+    }
+
+    static func completeReplacement(newFileName: String) {
+        guard isSafeFileName(newFileName) else { return }
+        try? FileManager.default.removeItem(at: replacementMarkerURL(for: newFileName))
+    }
+
+    /// Resolves replacement markers left across a termination. A row that
+    /// durably references the new basename commits the replacement; otherwise
+    /// the old pair is restored and the unreferenced new pair is removed.
+    static func reconcileReplacementStages(activeFileNames: Set<String>) {
+        guard let files = try? FileManager.default.contentsOfDirectory(atPath: directory.path) else { return }
+        let markerSuffix = ".replacement"
+        for marker in files where marker.hasSuffix(markerSuffix) {
+            let markerURL = directory.appendingPathComponent(marker, isDirectory: false)
+            guard let payload = try? String(contentsOf: markerURL, encoding: .utf8) else { continue }
+            let parts = payload.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+            guard parts.count == 2 else { continue }
+            let oldFileName = parts[0]
+            let newFileName = parts[1]
+            guard isSafeFileName(newFileName),
+                  oldFileName.isEmpty || isSafeFileName(oldFileName) else { continue }
+
+            if activeFileNames.contains(newFileName) {
+                if !oldFileName.isEmpty {
+                    finalizeStagedDeletion(fileName: oldFileName)
+                }
+            } else {
+                if !oldFileName.isEmpty {
+                    try? restoreStagedDeletion(fileName: oldFileName)
+                }
+                delete(fileName: newFileName)
+            }
+            try? FileManager.default.removeItem(at: markerURL)
+        }
     }
     /// Durable marker for a pair creation transaction. The marker is written
     /// before either byte is touched and removed only after the draft row save.
@@ -512,6 +572,7 @@ enum DraftImageStore {
 
     /// Runs every startup media recovery pass in a deterministic order.
     static func reconcile(activeFileNames: Set<String>) {
+        reconcileReplacementStages(activeFileNames: activeFileNames)
         reconcileCreationStages(activeFileNames: activeFileNames)
         reconcileStagedDeletions(activeFileNames: activeFileNames)
         reconcileUnreferencedFiles(activeFileNames: activeFileNames)
