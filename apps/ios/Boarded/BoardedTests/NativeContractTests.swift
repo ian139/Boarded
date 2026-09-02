@@ -116,6 +116,69 @@ final class NativeContractTests: XCTestCase {
         )
     }
 
+    func testStartedPublicationPresentationIsReadOnlyAndShowsSavedValues() throws {
+        let editable = ShareComposerPresentation(publicationStartedAt: nil)
+        XCTAssertTrue(editable.showsEditingControls)
+        XCTAssertFalse(editable.showsSavedPublication)
+        XCTAssertEqual(editable.recoveryAction, .retryPublication)
+
+        let started = ShareComposerPresentation(
+            publicationStartedAt: Date(timeIntervalSince1970: 100)
+        )
+        XCTAssertFalse(started.showsEditingControls)
+        XCTAssertTrue(started.showsSavedPublication)
+        XCTAssertEqual(started.recoveryAction, .retryPublication)
+
+        let discardPending = ShareComposerPresentation(
+            publicationStartedAt: Date(timeIntervalSince1970: 100),
+            discardPending: true
+        )
+        XCTAssertFalse(discardPending.showsEditingControls)
+        XCTAssertTrue(discardPending.showsSavedPublication)
+        XCTAssertEqual(discardPending.recoveryAction, .retryDiscard)
+
+        let context = try makeContext()
+        let draftID = UUID(uuidString: "14141414-1414-4141-8141-141414141414")!
+        let startedDraft = PendingSessionDraft(
+            id: draftID,
+            sessionId: UUID(uuidString: "15151515-1515-4151-8151-151515151515")!,
+            featuredAttemptId: UUID(uuidString: "16161616-1616-4161-8161-161616161616")!,
+            caption: "Saved caption",
+            imageFileName: "relaunch.jpg",
+            imageAlt: "Saved wall photo",
+            publicationStartedAt: Date(timeIntervalSince1970: 100)
+        )
+        let tombstone = PendingDraftDeletion(
+            id: draftID,
+            userId: userID,
+            imageFileName: startedDraft.imageFileName
+        )
+        context.insert(startedDraft)
+        context.insert(tombstone)
+        try context.save()
+        let durableDiscard = try context.fetch(FetchDescriptor<PendingDraftDeletion>())
+            .contains { $0.id == startedDraft.id }
+        let relaunched = ShareComposerPresentation(
+            publicationStartedAt: startedDraft.publicationStartedAt,
+            discardPending: durableDiscard
+        )
+        XCTAssertEqual(relaunched.recoveryAction, .retryDiscard)
+        XCTAssertTrue(relaunched.showsSavedPublication)
+        context.delete(startedDraft)
+        context.delete(tombstone)
+        try context.save()
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSessionDraft>()).isEmpty)
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingDraftDeletion>()).isEmpty)
+
+        let waiting = ShareDiscardRecoveryState(draftStillPending: true)
+        XCTAssertFalse(waiting.shouldResetComposer)
+        XCTAssertFalse(waiting.showsPublishedSuccess)
+
+        let converged = ShareDiscardRecoveryState(draftStillPending: false)
+        XCTAssertTrue(converged.shouldResetComposer)
+        XCTAssertFalse(converged.showsPublishedSuccess)
+    }
+
     func testSessionFeedItemDecodesAttemptTimelineOverlayAndFellOutcomeWithoutNotes() throws {
         let json = """
         {

@@ -56,7 +56,7 @@ final class BoardedUITests: XCTestCase {
         XCTAssertTrue(timeline.label.contains("Sent"))
         XCTAssertTrue(timeline.label.contains("Fell"))
         XCTAssertTrue(timeline.label.contains("Stopped"))
-        XCTAssertTrue(timeline.label.contains("Attempt 13"))
+        XCTAssertTrue(timeline.label.contains("Attempt 48, Stopped"))
         if !variant.contains("accessibility-large") {
             let preview = app.descendants(matching: .any)["canonical-session-artwork-preview"].firstMatch
             XCTAssertTrue(preview.exists)
@@ -87,7 +87,7 @@ final class BoardedUITests: XCTestCase {
 
         app.buttons["Share session"].tap()
         XCTAssertTrue(app.navigationBars["Share session"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.otherElements["session-preview"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["session-preview"].exists)
         XCTAssertTrue(app.images[fixtureImageAlt].exists)
         if variant.contains("accessibility-large") {
             let continuation = app.descendants(matching: .any)["session-facts-continuation"].firstMatch

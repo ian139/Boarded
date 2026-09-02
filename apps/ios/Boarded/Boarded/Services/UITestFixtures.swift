@@ -56,8 +56,8 @@ enum UITestFixtures {
                 startedAt: now.addingTimeInterval(-7200),
                 endedAt: now,
                 durationSeconds: 7200,
-                attemptCount: 13,
-                sendCount: 5,
+                attemptCount: 48,
+                sendCount: 16,
                 featuredAttempt: FeedFeaturedAttempt(
                     id: attemptID,
                     routeName: "Steep Circuit",
@@ -68,21 +68,15 @@ enum UITestFixtures {
                     attemptNumber: 1,
                     occurredAt: now
                 ),
-                attemptTimeline: [
-                    FeedAttemptTimelineItem(attemptNumber: 1, outcome: .sent),
-                    FeedAttemptTimelineItem(attemptNumber: 2, outcome: .fell),
-                    FeedAttemptTimelineItem(attemptNumber: 3, outcome: .stopped),
-                    FeedAttemptTimelineItem(attemptNumber: 4, outcome: .sent),
-                    FeedAttemptTimelineItem(attemptNumber: 5, outcome: .fell),
-                    FeedAttemptTimelineItem(attemptNumber: 6, outcome: .sent),
-                    FeedAttemptTimelineItem(attemptNumber: 7, outcome: .stopped),
-                    FeedAttemptTimelineItem(attemptNumber: 8, outcome: .fell),
-                    FeedAttemptTimelineItem(attemptNumber: 9, outcome: .sent),
-                    FeedAttemptTimelineItem(attemptNumber: 10, outcome: .fell),
-                    FeedAttemptTimelineItem(attemptNumber: 11, outcome: .stopped),
-                    FeedAttemptTimelineItem(attemptNumber: 12, outcome: .fell),
-                    FeedAttemptTimelineItem(attemptNumber: 13, outcome: .sent)
-                ]
+                attemptTimeline: (1...48).map { number in
+                    let outcome: AttemptOutcome
+                    switch number % 3 {
+                    case 1: outcome = .sent
+                    case 2: outcome = .fell
+                    default: outcome = .stopped
+                    }
+                    return FeedAttemptTimelineItem(attemptNumber: number, outcome: outcome)
+                }
             ),
             likeCount: 3,
             commentCount: 1,

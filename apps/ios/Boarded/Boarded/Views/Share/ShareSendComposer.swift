@@ -120,24 +120,35 @@ struct SessionArtworkFacts: View {
                 Group {
                     if dynamicTypeSize.isAccessibilitySize {
                         VStack(alignment: .leading, spacing: AppSpacing.space8) {
-                            timelineItems(compact: false)
+                            timelineItems
+                        }
+                    } else if usesCompactTimeline {
+                        LazyVGrid(
+                            columns: Array(
+                                repeating: GridItem(
+                                    .flexible(),
+                                    spacing: AppSpacing.space4,
+                                    alignment: .center
+                                ),
+                                count: AppLayout.attemptTimelineCompactColumns
+                            ),
+                            alignment: .leading,
+                            spacing: AppSpacing.space4
+                        ) {
+                            compactTimelineItems
                         }
                     } else {
                         LazyVGrid(
                             columns: [
                                 GridItem(
-                                    .adaptive(
-                                        minimum: usesCompactTimeline
-                                            ? AppLayout.compactAttemptTimelineColumnMinWidth
-                                            : AppLayout.attemptTimelineColumnMinWidth
-                                    ),
+                                    .adaptive(minimum: AppLayout.attemptTimelineColumnMinWidth),
                                     alignment: .leading
                                 )
                             ],
                             alignment: .leading,
                             spacing: AppSpacing.space8
                         ) {
-                            timelineItems(compact: usesCompactTimeline)
+                            timelineItems
                         }
                     }
                 }
@@ -171,15 +182,24 @@ struct SessionArtworkFacts: View {
         timelineAttempts.count > AppLayout.attemptTimelineCompactThreshold
     }
 
-    @ViewBuilder private func timelineItems(compact: Bool) -> some View {
+    @ViewBuilder private var timelineItems: some View {
         ForEach(timelineAttempts) { attempt in
             Label(
-                compact ? "\(attempt.number)" : "\(attempt.number) \(attempt.outcome.title)",
+                "\(attempt.number) \(attempt.outcome.title)",
                 systemImage: attempt.outcome.systemImage
             )
             .font(AppTypography.caption)
             .foregroundStyle(attempt.outcome == .sent ? AppColor.accentDefault : AppColor.textPrimary)
             .accessibilityLabel("Attempt \(attempt.number), \(attempt.outcome.title)")
+        }
+    }
+
+    @ViewBuilder private var compactTimelineItems: some View {
+        ForEach(timelineAttempts) { attempt in
+            Image(systemName: attempt.outcome.systemImage)
+                .font(AppTypography.caption)
+                .foregroundStyle(attempt.outcome == .sent ? AppColor.accentDefault : AppColor.textPrimary)
+                .accessibilityLabel("Attempt \(attempt.number), \(attempt.outcome.title)")
         }
     }
 
@@ -211,12 +231,36 @@ struct ShareDraft: Equatable {
     var image: UIImage?
 }
 
+struct ShareComposerPresentation: Equatable {
+    enum RecoveryAction: Equatable {
+        case retryPublication
+        case retryDiscard
+    }
+
+    let showsEditingControls: Bool
+    let showsSavedPublication: Bool
+    let recoveryAction: RecoveryAction
+
+    init(publicationStartedAt: Date?, discardPending: Bool = false) {
+        showsEditingControls = publicationStartedAt == nil
+        showsSavedPublication = publicationStartedAt != nil
+        recoveryAction = discardPending ? .retryDiscard : .retryPublication
+    }
+}
+
+struct ShareDiscardRecoveryState: Equatable {
+    let draftStillPending: Bool
+    var shouldResetComposer: Bool { !draftStillPending }
+    var showsPublishedSuccess: Bool { false }
+}
+
 struct ShareSendComposer: View {
     @EnvironmentObject private var session: AppSession
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var discardStartedDraftPresented = false
+    @State private var discardPending = false
     @State private var draft = ShareDraft()
     @State private var picker: PhotosPickerItem?
     @State private var cropImage: UIImage?
@@ -327,96 +371,156 @@ struct ShareSendComposer: View {
     private var form: some View {
         Group {
             BoardedEyebrow(text: "Completed Session")
-            if sessions.isEmpty {
-                BoardedEmptyState(
-                    title: "No completed session yet",
-                    message: "End a session before adding it to your journal."
-                )
-            } else {
-                Picker(
-                    "Completed session",
-                    selection: Binding(get: { draft.sessionID }, set: selectSession)
-                ) {
-                    Text("Choose a session").tag(UUID?.none)
-                    ForEach(sessions) { item in
-                        Text("\(item.venueName) · \(BoardedFormat.relative(item.endedAt ?? item.startedAt))")
-                            .tag(Optional(item.id))
-                    }
+            if presentation.showsSavedPublication {
+                savedPublicationForm
+            } else if presentation.showsEditingControls {
+                VStack(alignment: .leading, spacing: AppSpacing.space24) {
+                    editablePublicationForm
                 }
-                .accessibilityIdentifier("share-session")
-            }
-            if draft.sessionID != nil {
-                Picker("Featured attempt", selection: $draft.featuredAttemptID) {
-                    Text("Choose an attempt").tag(UUID?.none)
-                    ForEach(attempts) { attempt in
-                        Text("#\(attempt.attemptNumber) · \(attempt.gradeLabel) \(attempt.routeName) · \(attempt.outcome.title)")
-                            .tag(Optional(attempt.id))
-                    }
-                }
-                .accessibilityIdentifier("share-featured-attempt")
-                Picker("Overlay", selection: $draft.overlayStyle) {
-                    Text("Session stats").tag(OverlayStyle.stats)
-                    Text("Attempt timeline").tag(OverlayStyle.attemptTimeline)
-                }
-                .pickerStyle(.segmented)
-                .accessibilityIdentifier("share-overlay")
-            }
-            if publicationStarted {
-                publicationRecovery
-            } else {
-                PhotosPicker(selection: $picker, matching: .images) {
-                    Label(
-                        draft.image == nil ? "Add required photo" : "Change photo",
-                        systemImage: "photo"
-                    )
-                    .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(BoardedButtonStyle(.secondary))
-                .accessibilityIdentifier("share-photo")
-            }
-            if let image = draft.image {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-                    .aspectRatio(3 / 2, contentMode: .fit)
-                    .clipShape(AppRadius.card())
-                    .accessibilityLabel(
-                        draft.imageAlt.isEmpty ? "Selected climbing photo" : draft.imageAlt
-                    )
-            }
-            BoardedTextField(
-                label: "Photo description",
-                prompt: "Describe the photo for screen readers",
-                text: $draft.imageAlt,
-                error: draft.image != nil && draft.imageAlt.trimmedOrNil == nil
-                    ? "Photo description is required."
-                    : nil
-            )
-            BoardedTextEditor(
-                label: "Caption (optional)",
-                prompt: "A note about this session",
-                text: $draft.caption
-            )
-            preview
-            if progress > 0 && progress < 1 {
-                ProgressView(value: progress)
-                    .tint(AppColor.accentDefault)
-                    .accessibilityLabel("Publishing progress")
-            }
-            if !publicationStarted {
-                if let error {
-                    BoardedInlineError(message: error) { publish() }
-                }
-                BoardedPrimaryButton(
-                    title: error == nil ? "Publish session" : "Retry publishing",
-                    systemImage: "paperplane.fill"
-                ) {
-                    publish()
-                }
-                .disabled(!valid)
-                .accessibilityIdentifier("publish-session")
             }
         }
+    }
+
+    @ViewBuilder private var editablePublicationForm: some View {
+        if sessions.isEmpty {
+            BoardedEmptyState(
+                title: "No completed session yet",
+                message: "End a session before adding it to your journal."
+            )
+        } else {
+            Picker(
+                "Completed session",
+                selection: Binding(get: { draft.sessionID }, set: selectSession)
+            ) {
+                Text("Choose a session").tag(UUID?.none)
+                ForEach(sessions) { item in
+                    Text("\(item.venueName) · \(BoardedFormat.relative(item.endedAt ?? item.startedAt))")
+                        .tag(Optional(item.id))
+                }
+            }
+            .accessibilityIdentifier("share-session")
+        }
+        if draft.sessionID != nil {
+            Picker("Featured attempt", selection: $draft.featuredAttemptID) {
+                Text("Choose an attempt").tag(UUID?.none)
+                ForEach(attempts) { attempt in
+                    Text("#\(attempt.attemptNumber) · \(attempt.gradeLabel) \(attempt.routeName) · \(attempt.outcome.title)")
+                        .tag(Optional(attempt.id))
+                }
+            }
+            .accessibilityIdentifier("share-featured-attempt")
+            Picker("Overlay", selection: $draft.overlayStyle) {
+                Text("Session stats").tag(OverlayStyle.stats)
+                Text("Attempt timeline").tag(OverlayStyle.attemptTimeline)
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("share-overlay")
+        }
+        PhotosPicker(selection: $picker, matching: .images) {
+            Label(
+                draft.image == nil ? "Add required photo" : "Change photo",
+                systemImage: "photo"
+            )
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(BoardedButtonStyle(.secondary))
+        .accessibilityIdentifier("share-photo")
+        selectedPhoto
+        BoardedTextField(
+            label: "Photo description",
+            prompt: "Describe the photo for screen readers",
+            text: $draft.imageAlt,
+            error: draft.image != nil && draft.imageAlt.trimmedOrNil == nil
+                ? "Photo description is required."
+                : nil
+        )
+        BoardedTextEditor(
+            label: "Caption (optional)",
+            prompt: "A note about this session",
+            text: $draft.caption
+        )
+        preview
+        publishingProgress
+        if let error {
+            BoardedInlineError(message: error) { publish() }
+        }
+        BoardedPrimaryButton(
+            title: error == nil ? "Publish session" : "Retry publishing",
+            systemImage: "paperplane.fill"
+        ) {
+            publish()
+        }
+        .disabled(!valid)
+        .accessibilityIdentifier("publish-session")
+    }
+
+    private var savedPublicationForm: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.space16) {
+            VStack(alignment: .leading, spacing: AppSpacing.space8) {
+                Text("Saved publication")
+                    .font(AppTypography.titleM)
+                savedFact("Session", selectedSession?.venueName ?? "Saved session")
+                if let selectedAttempt {
+                    savedFact(
+                        "Featured attempt",
+                        "#\(selectedAttempt.attemptNumber) · \(selectedAttempt.gradeLabel) \(selectedAttempt.routeName) · \(selectedAttempt.outcome.title)"
+                    )
+                }
+                savedFact(
+                    "Artwork",
+                    draft.overlayStyle == .attemptTimeline ? "Attempt timeline" : "Session stats"
+                )
+                savedFact("Photo description", draft.imageAlt)
+                savedFact("Caption", draft.caption.trimmedOrNil ?? "No caption")
+            }
+            .boardedPanel()
+            .accessibilityIdentifier("saved-publication-fields")
+            selectedPhoto
+            preview
+            publishingProgress
+            publicationRecovery
+        }
+    }
+
+    private func savedFact(_ label: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: AppSpacing.space4) {
+            Text(label)
+                .font(AppTypography.caption)
+                .foregroundStyle(AppColor.textTertiary)
+            Text(value)
+                .font(AppTypography.bodyM)
+                .foregroundStyle(AppColor.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder private var selectedPhoto: some View {
+        if let image = draft.image {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+                .aspectRatio(3 / 2, contentMode: .fit)
+                .clipShape(AppRadius.card())
+                .accessibilityLabel(
+                    draft.imageAlt.isEmpty ? "Selected climbing photo" : draft.imageAlt
+                )
+        }
+    }
+
+    @ViewBuilder private var publishingProgress: some View {
+        if progress > 0 && progress < 1 {
+            ProgressView(value: progress)
+                .tint(AppColor.accentDefault)
+                .accessibilityLabel("Publishing progress")
+        }
+    }
+
+    private var presentation: ShareComposerPresentation {
+        ShareComposerPresentation(
+            publicationStartedAt: pendingDraft?.publicationStartedAt,
+            discardPending: discardRecoveryPending
+        )
     }
 
     private var publicationStarted: Bool {
@@ -425,23 +529,36 @@ struct ShareSendComposer: View {
 
     private var publicationRecovery: some View {
         VStack(alignment: .leading, spacing: AppSpacing.space12) {
-            Text("Publishing was interrupted")
+            Text(discardRecoveryPending ? "Discard is waiting to finish" : "Publishing was interrupted")
                 .font(AppTypography.titleM)
-            Text("Your session and photo are saved. Retry publishing, or discard this saved publication before sharing a new one.")
-                .font(AppTypography.bodyM)
-                .foregroundStyle(AppColor.textSecondary)
+            Text(
+                discardRecoveryPending
+                    ? "Your saved publication is protected while cleanup finishes. Retry discard before sharing a new one."
+                    : "Your session and photo are saved. Retry publishing, or discard this saved publication before sharing a new one."
+            )
+            .font(AppTypography.bodyM)
+            .foregroundStyle(AppColor.textSecondary)
             if let error {
                 Text(error)
                     .font(AppTypography.bodyM)
                     .foregroundStyle(AppColor.danger)
             }
-            BoardedPrimaryButton(title: "Retry publishing", systemImage: "arrow.clockwise") {
-                publish()
+            BoardedPrimaryButton(
+                title: discardRecoveryPending ? "Retry discard" : "Retry publishing",
+                systemImage: "arrow.clockwise"
+            ) {
+                if presentation.recoveryAction == .retryDiscard {
+                    discardStartedDraft()
+                } else {
+                    publish()
+                }
             }
-            Button("Discard and Share New", role: .destructive) {
-                discardStartedDraftPresented = true
+            if !discardRecoveryPending {
+                Button("Discard and Share New", role: .destructive) {
+                    discardStartedDraftPresented = true
+                }
+                .accessibilityHint("Requires confirmation and preserves the saved publication until cleanup succeeds")
             }
-            .accessibilityHint("Requires confirmation and preserves the saved publication until cleanup succeeds")
         }
         .boardedPanel()
         .accessibilityElement(children: .contain)
@@ -492,6 +609,10 @@ struct ShareSendComposer: View {
     private var valid: Bool { draft.sessionID != nil && draft.featuredAttemptID != nil && draft.image != nil && draft.imageAlt.trimmedOrNil != nil && artworkModel != nil }
 
     private func publish() {
+        if discardRecoveryPending {
+            discardStartedDraft()
+            return
+        }
         if let existing = pendingDraft, existing.publicationStartedAt != nil {
             retryStartedPublication(existing)
             return
@@ -534,6 +655,11 @@ struct ShareSendComposer: View {
         progress = 0.8
         Task { @MainActor in
             await sync.replay()
+            if hasPendingDraftDeletion(id: existing.id) {
+                discardPending = true
+                discardStartedDraft()
+                return
+            }
             guard sync.state == .synced, !hasPendingDraft(id: existing.id) else {
                 error = sync.errorMessage ?? "Your session and photo are saved. Retry when connected."
                 progress = 0
@@ -544,21 +670,46 @@ struct ShareSendComposer: View {
         }
     }
 
+    private var discardRecoveryPending: Bool {
+        discardPending || pendingDraft.map { hasPendingDraftDeletion(id: $0.id) } == true
+    }
+
     private func discardStartedDraft() {
         guard let existing = pendingDraft, let sync else { return }
+        discardPending = true
+        error = nil
         Task { @MainActor in
+            let recovery = ShareDiscardRecoveryState(
+                draftStillPending: hasPendingDraft(id: existing.id)
+            )
+            guard !recovery.shouldResetComposer else {
+                resetAfterDiscard(existing)
+                return
+            }
             do {
                 try await sync.delete(draft: existing)
-                let sessionID = existing.sessionId
-                pendingDraft = nil
-                draft = ShareDraft(sessionID: sessionID)
-                error = nil
-                progress = 0
-                seedFixtureIfNeeded()
+                resetAfterDiscard(existing)
             } catch {
                 self.error = error.localizedDescription
             }
         }
+    }
+
+    private func resetAfterDiscard(_ existing: PendingSessionDraft) {
+        pendingDraft = nil
+        draft = ShareDraft(sessionID: existing.sessionId)
+        discardPending = false
+        published = false
+        error = nil
+        progress = 0
+        seedFixtureIfNeeded()
+    }
+
+    private func hasPendingDraftDeletion(id: UUID) -> Bool {
+        let descriptor = FetchDescriptor<PendingDraftDeletion>(
+            predicate: #Predicate { $0.id == id }
+        )
+        return ((try? context.fetch(descriptor)) ?? []).isEmpty == false
     }
 
 

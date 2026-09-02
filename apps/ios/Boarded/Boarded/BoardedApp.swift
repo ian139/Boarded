@@ -22,6 +22,17 @@ struct BoardedApp: App {
         }
         do {
             modelContainer = try ModelContainer(for: schema, configurations: configuration)
+            if AppLaunchConfiguration.isUITestFixture,
+               !AppLaunchConfiguration.preservesUITestRecoveryState {
+                let fixtureContext = ModelContext(modelContainer)
+                for draft in try fixtureContext.fetch(FetchDescriptor<PendingSessionDraft>()) {
+                    fixtureContext.delete(draft)
+                }
+                for deletion in try fixtureContext.fetch(FetchDescriptor<PendingDraftDeletion>()) {
+                    fixtureContext.delete(deletion)
+                }
+                try fixtureContext.save()
+            }
         } catch {
             fatalError("Unable to initialize Boarded storage: \(error)")
         }
