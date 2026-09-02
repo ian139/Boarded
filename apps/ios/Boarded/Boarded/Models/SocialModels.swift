@@ -20,9 +20,14 @@ enum MeetupStatus: String, Codable, CaseIterable, Sendable {
     case cancelled
 }
 
+enum OverlayStyle: String, Codable, CaseIterable, Sendable {
+    case stats
+    case attemptTimeline = "attempt_timeline"
+}
+
 // MARK: - Sessions and attempts
 
-struct ClimbingSession: Codable, Identifiable, Hashable {
+struct ClimbingSession: Codable, Identifiable, Hashable, Sendable {
     let id: UUID
     let userId: UUID
     let venueName: String
@@ -42,7 +47,7 @@ struct ClimbingSession: Codable, Identifiable, Hashable {
     }
 }
 
-struct ClimbAttempt: Codable, Identifiable, Hashable {
+struct ClimbAttempt: Codable, Identifiable, Hashable, Sendable {
     let id: UUID
     let sessionId: UUID
     let userId: UUID
@@ -72,37 +77,37 @@ struct ClimbAttempt: Codable, Identifiable, Hashable {
         case occurredAt = "occurred_at"
         case createdAt = "created_at"
     }
-    /// Only `sent` attempts may back a public send post (mirrors the
-    /// `ensure_send_post_attempt_is_sent` trigger).
-    var isSendEligible: Bool { outcome == .sent }
-
 }
 
-// MARK: - Send posts
+// MARK: - Session posts
 
-struct SendPost: Codable, Identifiable, Hashable {
+struct SessionPost: Codable, Identifiable, Hashable, Sendable {
     let id: UUID
     let userId: UUID
-    let attemptId: UUID
+    let sessionId: UUID
+    let featuredAttemptId: UUID
     let caption: String?
-    let imagePath: String?
-    let imageAlt: String?
+    let imagePath: String
+    let imageAlt: String
+    let overlayStyle: OverlayStyle
     let createdAt: Date
     let updatedAt: Date
 
     enum CodingKeys: String, CodingKey {
         case id
         case userId = "user_id"
-        case attemptId = "attempt_id"
+        case sessionId = "session_id"
+        case featuredAttemptId = "featured_attempt_id"
         case caption
         case imagePath = "image_path"
         case imageAlt = "image_alt"
+        case overlayStyle = "overlay_style"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
 }
 
-struct SendPostLike: Codable, Hashable {
+struct SessionPostLike: Codable, Hashable, Sendable {
     let postId: UUID
     let userId: UUID
     let createdAt: Date
@@ -114,7 +119,7 @@ struct SendPostLike: Codable, Hashable {
     }
 }
 
-struct SendPostComment: Codable, Identifiable, Hashable {
+struct SessionPostComment: Codable, Identifiable, Hashable, Sendable {
     let id: UUID
     let postId: UUID
     let userId: UUID
@@ -134,7 +139,7 @@ struct SendPostComment: Codable, Identifiable, Hashable {
 
 // MARK: - Meetups
 
-struct Meetup: Codable, Identifiable, Hashable {
+struct Meetup: Codable, Identifiable, Hashable, Sendable {
     let id: UUID
     let organizerId: UUID
     let title: String
@@ -164,7 +169,7 @@ struct Meetup: Codable, Identifiable, Hashable {
     }
 }
 
-struct MeetupAttendee: Codable, Hashable {
+struct MeetupAttendee: Codable, Hashable, Sendable {
     let meetupId: UUID
     let userId: UUID
     let joinedAt: Date
@@ -176,7 +181,7 @@ struct MeetupAttendee: Codable, Hashable {
     }
 }
 
-struct MeetupComment: Codable, Identifiable, Hashable {
+struct MeetupComment: Codable, Identifiable, Hashable, Sendable {
     let id: UUID
     let meetupId: UUID
     let userId: UUID
@@ -196,7 +201,7 @@ struct MeetupComment: Codable, Identifiable, Hashable {
 
 // MARK: - Feed
 
-struct FeedAuthor: Codable, Hashable {
+struct FeedAuthor: Codable, Hashable, Sendable {
     let id: UUID
     let username: String?
     let fullName: String?
@@ -214,9 +219,8 @@ struct FeedAuthor: Codable, Hashable {
     }
 }
 
-struct FeedAttempt: Codable, Hashable {
+struct FeedFeaturedAttempt: Codable, Hashable, Sendable {
     let id: UUID
-    let boardRouteId: UUID?
     let routeName: String
     let discipline: ClimbDiscipline
     let gradeSystem: GradeSystem
@@ -224,11 +228,9 @@ struct FeedAttempt: Codable, Hashable {
     let outcome: AttemptOutcome
     let attemptNumber: Int
     let occurredAt: Date
-    let createdAt: Date
 
     enum CodingKeys: String, CodingKey {
         case id
-        case boardRouteId = "board_route_id"
         case routeName = "route_name"
         case discipline
         case gradeSystem = "grade_system"
@@ -236,21 +238,44 @@ struct FeedAttempt: Codable, Hashable {
         case outcome
         case attemptNumber = "attempt_number"
         case occurredAt = "occurred_at"
-        case createdAt = "created_at"
     }
 }
 
-struct SendFeedItem: Codable, Identifiable, Hashable {
+struct FeedSessionSummary: Codable, Hashable, Sendable {
+    let id: UUID
+    let venueName: String
+    let startedAt: Date
+    let endedAt: Date
+    let durationSeconds: Int
+    let attemptCount: Int
+    let sendCount: Int
+    let featuredAttempt: FeedFeaturedAttempt
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case venueName = "venue_name"
+        case startedAt = "started_at"
+        case endedAt = "ended_at"
+        case durationSeconds = "duration_seconds"
+        case attemptCount = "attempt_count"
+        case sendCount = "send_count"
+        case featuredAttempt = "featured_attempt"
+    }
+}
+
+struct SessionFeedItem: Codable, Identifiable, Hashable, Sendable {
     let id: UUID
     let userId: UUID
-    let attemptId: UUID
+    let sessionId: UUID
+    let featuredAttemptId: UUID
     let caption: String?
-    let imagePath: String?
-    let imageAlt: String?
+    let imagePath: String
+    let imageAlt: String
+    let overlayStyle: OverlayStyle
     let createdAt: Date
     let updatedAt: Date
     let author: FeedAuthor
-    let attempt: FeedAttempt
+    let session: FeedSessionSummary
     var likeCount: Int
     var commentCount: Int
     var isLiked: Bool
@@ -258,21 +283,23 @@ struct SendFeedItem: Codable, Identifiable, Hashable {
     enum CodingKeys: String, CodingKey {
         case id
         case userId = "user_id"
-        case attemptId = "attempt_id"
+        case sessionId = "session_id"
+        case featuredAttemptId = "featured_attempt_id"
         case caption
         case imagePath = "image_path"
         case imageAlt = "image_alt"
+        case overlayStyle = "overlay_style"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
         case author
-        case attempt
+        case session
         case likeCount = "like_count"
         case commentCount = "comment_count"
         case isLiked = "is_liked"
     }
 }
 
-struct FeedCursor: Codable, Hashable {
+struct FeedCursor: Codable, Hashable, Sendable {
     let createdAt: Date
     let id: UUID
 
@@ -282,8 +309,8 @@ struct FeedCursor: Codable, Hashable {
     }
 }
 
-struct FeedPage {
-    let items: [SendFeedItem]
+struct FeedPage: Sendable {
+    let items: [SessionFeedItem]
     let nextCursor: FeedCursor?
     let hasMore: Bool
 }

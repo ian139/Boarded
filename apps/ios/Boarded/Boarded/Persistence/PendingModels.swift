@@ -140,36 +140,46 @@ final class PendingAttemptDeletion {
     }
 }
 
-
-/// A send-post draft awaiting publication. The image is stored on disk under
+/// A session-post draft awaiting publication. The image is stored on disk under
 /// Application Support and referenced by `imageFileName`; the post is only
-/// created after the attempt has synced and is confirmed `sent`.
+/// created after the ended session and relevant attempts have synced.
 @Model
-final class PendingSendDraft {
+final class PendingSessionDraft {
     @Attribute(.unique) var id: UUID
-    var attemptId: UUID
+    var sessionId: UUID
+    var featuredAttemptId: UUID
     var caption: String?
-    var imageFileName: String?
-    var imageAlt: String?
+    var imageFileName: String
+    var imageAlt: String
+    var overlayStyleRaw: String
     var createdAt: Date
     var syncStateRaw: String
 
     init(
         id: UUID = UUID(),
-        attemptId: UUID,
+        sessionId: UUID,
+        featuredAttemptId: UUID,
         caption: String?,
-        imageFileName: String?,
-        imageAlt: String?,
+        imageFileName: String,
+        imageAlt: String,
+        overlayStyle: OverlayStyle = .stats,
         createdAt: Date = Date(),
         syncState: SyncState = .queued
     ) {
         self.id = id
-        self.attemptId = attemptId
+        self.sessionId = sessionId
+        self.featuredAttemptId = featuredAttemptId
         self.caption = caption
         self.imageFileName = imageFileName
         self.imageAlt = imageAlt
+        self.overlayStyleRaw = overlayStyle.rawValue
         self.createdAt = createdAt
         self.syncStateRaw = syncState.rawValue
+    }
+
+    var overlayStyle: OverlayStyle {
+        get { OverlayStyle(rawValue: overlayStyleRaw) ?? .stats }
+        set { overlayStyleRaw = newValue.rawValue }
     }
 
     var syncState: SyncState {
@@ -178,7 +188,7 @@ final class PendingSendDraft {
     }
 }
 
-/// Application Support-backed store for draft send-post images. Images are
+/// Application Support-backed store for draft session-post images. Images are
 /// written before the draft is persisted so a crash never leaves a draft
 /// pointing at a missing file.
 enum DraftImageStore {

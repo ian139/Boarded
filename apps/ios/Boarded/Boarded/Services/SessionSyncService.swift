@@ -5,23 +5,29 @@ import SwiftData
 import UIKit
 #endif
 
-/// Replays locally-pending sessions and attempts to Supabase. Replay is
-/// idempotent because every record carries a client-generated UUID and the
-/// server upserts on `id`; a replayed write never duplicates data. Attempts are
-/// never dropped: a failed attempt stays `failed` and is retried on the next
-/// connectivity or app-active trigger.
+/// Replays locally-pending sessions, attempts, and session posts to Supabase.
+/// Replay is idempotent because every record carries a client-generated UUID
+/// and the server upserts on `id`; a replayed write never duplicates data.
+/// Records are never dropped on failure: failed rows stay `failed` and are
+/// retried on the next connectivity or app-active trigger.
 @MainActor
 final class SessionSyncService: ObservableObject {
     private enum ReplayError: LocalizedError {
         case missingImage(UUID)
-        case notSent(UUID)
+        case invalidSession(UUID)
+        case sessionNotEnded(UUID)
+        case missingFeaturedAttempt(UUID)
 
         var errorDescription: String? {
             switch self {
             case .missingImage(let draftID):
                 return "The image for pending draft \(draftID.uuidString) is missing."
-            case .notSent(let attemptID):
-                return "Only sent attempts can be shared (\(attemptID.uuidString))."
+            case .invalidSession(let sessionID):
+                return "The session \(sessionID.uuidString) is invalid or not owned by the active user."
+            case .sessionNotEnded(let sessionID):
+                return "Session \(sessionID.uuidString) must be ended before a session post can be published."
+            case .missingFeaturedAttempt(let attemptID):
+                return "The featured attempt \(attemptID.uuidString) was not found."
             }
         }
     }
@@ -39,6 +45,7 @@ final class SessionSyncService: ObservableObject {
             }
         }
     }
+
     @Published private(set) var state: SyncState = .synced
     @Published private(set) var errorMessage: String?
 
@@ -138,16 +145,24 @@ final class SessionSyncService: ObservableObject {
         errorMessage = nil
     }
 
-    /// Writes an optional image before persisting the draft. If persistence
-    /// fails, the newly-written image is removed so a draft never points at a
-    /// partial or unrelated file.
-    func enqueue(draft: PendingSendDraft, imageData: Data? = nil) throws {
+    /// Writes the draft image before persisting the draft. Replaces any prior
+    /// pending draft for the same session so there is never more than one
+    /// pending draft per session. If persistence fails, the newly-written image
+    /// is removed and changes are rolled back.
+    func enqueue(draft: PendingSessionDraft, imageData: Data? = nil) throws {
         var wroteImage = false
         if let imageData {
-            let fileName = draft.imageFileName ?? "\(draft.id.uuidString).jpg"
+            let fileName = draft.imageFileName.isEmpty ? "\(draft.id.uuidString).jpg" : draft.imageFileName
             draft.imageFileName = fileName
             try DraftImageStore.write(imageData, fileName: fileName)
             wroteImage = true
+        }
+
+        let priorDrafts = fetchAllDrafts().filter { $0.sessionId == draft.sessionId && $0.id != draft.id }
+        let priorImageFiles = priorDrafts.map(\.imageFileName).filter { !$0.isEmpty && $0 != draft.imageFileName }
+
+        for prior in priorDrafts {
+            modelContext.delete(prior)
         }
 
         draft.syncState = .queued
@@ -155,23 +170,30 @@ final class SessionSyncService: ObservableObject {
         do {
             try modelContext.save()
         } catch {
-            if wroteImage, let fileName = draft.imageFileName {
-                DraftImageStore.delete(fileName: fileName)
+            modelContext.rollback()
+            if wroteImage && !draft.imageFileName.isEmpty {
+                DraftImageStore.delete(fileName: draft.imageFileName)
             }
             throw error
         }
+
+        for fileName in priorImageFiles {
+            DraftImageStore.delete(fileName: fileName)
+        }
+
         state = .queued
         errorMessage = nil
     }
 
     /// Removes an attempt from the local timeline. Attempts that have entered
     /// replay are represented by a durable tombstone so an undo cannot be
-    /// lost between an in-flight upsert and a later retry. Linked send-post drafts
-    /// and their draft images are cleaned up so sync cannot remain queued.
+    /// lost between an in-flight upsert and a later retry. If this attempt was
+    /// featured in a session-post draft, that draft and its image are cleaned
+    /// up so sync cannot remain queued on a missing featured attempt.
     func delete(attempt: PendingAttempt) throws {
         guard attempt.userId == userID else { return }
-        let linkedDrafts = fetchAllDrafts().filter { $0.attemptId == attempt.id }
-        let imageFileNames = linkedDrafts.compactMap(\.imageFileName)
+        let linkedDrafts = fetchAllDrafts().filter { $0.featuredAttemptId == attempt.id }
+        let imageFileNames = linkedDrafts.map(\.imageFileName).filter { !$0.isEmpty }
 
         for draft in linkedDrafts {
             modelContext.delete(draft)
@@ -216,29 +238,26 @@ final class SessionSyncService: ObservableObject {
         }
     }
 
-    /// Removes a pending or failed send-post draft without touching its
-    /// already-synced climbing attempt. This is used when the composer replaces
-    /// a saved draft with a different send, or when a draft is explicitly discarded.
+    /// Removes a pending or failed session-post draft.
     /// If an image is associated with the draft, its remote storage object is deleted
     /// idempotently before the local database row and cached image are removed.
     /// If remote deletion fails, the local draft and image are retained with a
     /// retryable error.
-    func delete(draft: PendingSendDraft) async throws {
-        guard let attempt = fetchAllAttemptsIncludingSynced().first(where: { $0.id == draft.attemptId }),
-              attempt.userId == userID else {
+    func delete(draft: PendingSessionDraft) async throws {
+        let isOwned = fetchAllSessionsIncludingSynced().contains(where: { $0.id == draft.sessionId && $0.userId == userID })
+            || fetchAllAttemptsIncludingSynced().contains(where: { ($0.sessionId == draft.sessionId || $0.id == draft.featuredAttemptId) && $0.userId == userID })
+        guard isOwned else {
             return
         }
         let fileName = draft.imageFileName
-        let path = canonicalImagePath(userID: attempt.userId, postID: draft.id)
+        let path = canonicalImagePath(userID: userID, postID: draft.id)
 
-        if fileName != nil {
-            do {
-                try await feedRepository.deletePostImage(path: path)
-            } catch {
-                state = .failed
-                errorMessage = error.localizedDescription
-                throw error
-            }
+        do {
+            try await feedRepository.deletePostImage(path: path)
+        } catch {
+            state = .failed
+            errorMessage = error.localizedDescription
+            throw error
         }
 
         modelContext.delete(draft)
@@ -252,7 +271,7 @@ final class SessionSyncService: ObservableObject {
         }
         state = hasPendingWork() ? .queued : .synced
         errorMessage = nil
-        if let fileName {
+        if !fileName.isEmpty {
             do {
                 try cleanupDraftImage(fileName: fileName)
             } catch let error as DraftImageCleanupError {
@@ -366,47 +385,60 @@ final class SessionSyncService: ObservableObject {
             }
         }
 
+        let sessionsByID = Dictionary(
+            uniqueKeysWithValues: fetchAllSessionsIncludingSynced().map { ($0.id, $0) }
+        )
         let attemptsByID = Dictionary(
             uniqueKeysWithValues: fetchAllAttempts().map { ($0.id, $0) }
         )
         var draftFailed = false
 
+        var seenDraftSessionIDs = Set<UUID>()
         for draft in pendingDrafts {
-            guard let attempt = attemptsByID[draft.attemptId], attempt.syncState == .synced else {
+            guard seenDraftSessionIDs.insert(draft.sessionId).inserted else {
+                // Duplicate pending draft for the same session; clean it up locally
+                // so backend unique constraint is never violated.
+                modelContext.delete(draft)
+                try? modelContext.save()
+                if !draft.imageFileName.isEmpty {
+                    DraftImageStore.delete(fileName: draft.imageFileName)
+                }
+                continue
+            }
+
+            guard let session = sessionsByID[draft.sessionId],
+                  session.userId == userID,
+                  session.endedAt != nil,
+                  session.syncState == .synced,
+                  let featuredAttempt = attemptsByID[draft.featuredAttemptId],
+                  featuredAttempt.userId == userID,
+                  featuredAttempt.sessionId == session.id,
+                  featuredAttempt.syncState == .synced else {
                 continue
             }
 
             draft.syncState = .syncing
             try? modelContext.save()
             do {
-                guard attempt.remote.isSendEligible else {
-                    throw ReplayError.notSent(attempt.id)
+                let fileName = draft.imageFileName
+                guard let imageData = DraftImageStore.read(fileName: fileName) else {
+                    throw ReplayError.missingImage(draft.id)
                 }
-
-                let imagePath: String?
-                if let fileName = draft.imageFileName {
-                    guard let imageData = DraftImageStore.read(fileName: fileName) else {
-                        throw ReplayError.missingImage(draft.id)
-                    }
-                    let path = canonicalImagePath(userID: attempt.userId, postID: draft.id)
-                    try await feedRepository.uploadPostImage(data: imageData, path: path)
-                    imagePath = path
-                } else {
-                    imagePath = nil
-                }
+                let path = canonicalImagePath(userID: session.userId, postID: draft.id)
+                try await feedRepository.uploadPostImage(data: imageData, path: path)
 
                 _ = try await feedRepository.createPost(
                     id: draft.id,
-                    attemptID: draft.attemptId,
+                    sessionID: draft.sessionId,
+                    featuredAttemptID: draft.featuredAttemptId,
                     caption: draft.caption,
-                    imagePath: imagePath,
-                    imageAlt: draft.imageAlt
+                    imagePath: path,
+                    imageAlt: draft.imageAlt,
+                    overlayStyle: draft.overlayStyle
                 )
                 modelContext.delete(draft)
                 try modelContext.save()
-                if let fileName = draft.imageFileName {
-                    DraftImageStore.delete(fileName: fileName)
-                }
+                DraftImageStore.delete(fileName: fileName)
             } catch {
                 draft.syncState = .failed
                 try? modelContext.save()
@@ -421,8 +453,8 @@ final class SessionSyncService: ObservableObject {
                     || !fetchPendingAttempts().isEmpty
                     || !fetchPendingDrafts().isEmpty
                     || !fetchPendingAttemptDeletions().isEmpty {
-            // Drafts whose attempts are not synced remain queued for a later
-            // replay; they must not be published out of order.
+            // Drafts whose sessions or attempts are not synced remain queued
+            // for a later replay; they must not be published out of order.
             state = .queued
         } else {
             state = .synced
@@ -449,14 +481,18 @@ final class SessionSyncService: ObservableObject {
         return (try? modelContext.fetch(descriptor)) ?? []
     }
 
-    private func fetchPendingDrafts() -> [PendingSendDraft] {
-        let ownedAttemptIDs = Set(fetchAllAttemptsIncludingSynced().map(\.id))
-        let descriptor = FetchDescriptor<PendingSendDraft>(
+    private func fetchPendingDrafts() -> [PendingSessionDraft] {
+        let ownedSessionIDs = Set(fetchAllSessionsIncludingSynced().map(\.id))
+        let ownedAttemptSessionIDs = Set(fetchAllAttemptsIncludingSynced().map(\.sessionId))
+        let allOwnedSessionIDs = ownedSessionIDs.union(ownedAttemptSessionIDs)
+        guard !allOwnedSessionIDs.isEmpty else {
+            return []
+        }
+        let descriptor = FetchDescriptor<PendingSessionDraft>(
             predicate: #Predicate { $0.syncStateRaw != "synced" }
         )
-        return (try? modelContext.fetch(descriptor))?.filter {
-            ownedAttemptIDs.contains($0.attemptId)
-        } ?? []
+        let pending = (try? modelContext.fetch(descriptor)) ?? []
+        return pending.filter { allOwnedSessionIDs.contains($0.sessionId) }
     }
 
     private func fetchPendingAttemptDeletions() -> [PendingAttemptDeletion] {
@@ -477,6 +513,14 @@ final class SessionSyncService: ObservableObject {
         return (try? modelContext.fetch(descriptor)) ?? []
     }
 
+    private func fetchAllSessionsIncludingSynced() -> [PendingSession] {
+        let activeUserID = userID
+        let descriptor = FetchDescriptor<PendingSession>(
+            predicate: #Predicate { $0.userId == activeUserID }
+        )
+        return (try? modelContext.fetch(descriptor)) ?? []
+    }
+
     private func fetchAllAttemptsIncludingSynced() -> [PendingAttempt] {
         let activeUserID = userID
         let descriptor = FetchDescriptor<PendingAttempt>(
@@ -489,11 +533,15 @@ final class SessionSyncService: ObservableObject {
         fetchAllAttemptsIncludingSynced()
     }
 
-    private func fetchAllDrafts() -> [PendingSendDraft] {
-        let ownedAttemptIDs = Set(fetchAllAttemptsIncludingSynced().map(\.id))
-        return (try? modelContext.fetch(FetchDescriptor<PendingSendDraft>()))?.filter {
-            ownedAttemptIDs.contains($0.attemptId)
-        } ?? []
+    private func fetchAllDrafts() -> [PendingSessionDraft] {
+        let ownedSessionIDs = Set(fetchAllSessionsIncludingSynced().map(\.id))
+        let ownedAttemptSessionIDs = Set(fetchAllAttemptsIncludingSynced().map(\.sessionId))
+        let allOwnedSessionIDs = ownedSessionIDs.union(ownedAttemptSessionIDs)
+        guard !allOwnedSessionIDs.isEmpty else {
+            return []
+        }
+        let allDrafts = (try? modelContext.fetch(FetchDescriptor<PendingSessionDraft>())) ?? []
+        return allDrafts.filter { allOwnedSessionIDs.contains($0.sessionId) }
     }
 
     private func hasPendingWork() -> Bool {

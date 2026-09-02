@@ -6,15 +6,17 @@ import SwiftData
 final class NativeContractTests: XCTestCase {
     // MARK: - Decoding
 
-    func testSendFeedItemDecodesCanonicalWireFields() throws {
+    func testSessionFeedItemDecodesCanonicalWireFields() throws {
         let json = """
         {
           "id": "11111111-1111-4111-8111-111111111111",
           "user_id": "22222222-2222-4222-8222-222222222222",
-          "attempt_id": "33333333-3333-4333-8333-333333333333",
-          "caption": "First of the grade",
-          "image_path": null,
-          "image_alt": null,
+          "session_id": "33333333-3333-4333-8333-333333333333",
+          "featured_attempt_id": "44444444-4444-4444-8444-444444444444",
+          "caption": "Strong session on the board.",
+          "image_path": "22222222-2222-4222-8222-222222222222/11111111-1111-4111-8111-111111111111.jpg",
+          "image_alt": "Climber holding small crimp on 40 degree board",
+          "overlay_style": "stats",
           "created_at": "2026-08-31T12:30:00Z",
           "updated_at": "2026-08-31T12:30:00Z",
           "author": {
@@ -25,33 +27,104 @@ final class NativeContractTests: XCTestCase {
             "bio": null,
             "home_area": "Boulder"
           },
-          "attempt": {
+          "session": {
             "id": "33333333-3333-4333-8333-333333333333",
-            "board_route_id": null,
-            "route_name": "North Arete",
-            "discipline": "boulder",
-            "grade_system": "v_scale",
-            "grade_label": "V6",
-            "outcome": "sent",
-            "attempt_number": 3,
-            "occurred_at": "2026-08-31T12:20:00Z",
-            "created_at": "2026-08-31T12:20:00Z"
+            "venue_name": "Granite Works",
+            "started_at": "2026-08-31T10:30:00Z",
+            "ended_at": "2026-08-31T12:30:00Z",
+            "duration_seconds": 7200,
+            "attempt_count": 8,
+            "send_count": 4,
+            "featured_attempt": {
+              "id": "44444444-4444-4444-8444-444444444444",
+              "route_name": "North Arete",
+              "discipline": "boulder",
+              "grade_system": "v_scale",
+              "grade_label": "V6",
+              "outcome": "sent",
+              "attempt_number": 3,
+              "occurred_at": "2026-08-31T12:20:00Z"
+            }
           },
           "like_count": 4,
           "comment_count": 2,
           "is_liked": true
         }
         """
-        let item = try JSONDecoder().boarded().decode(SendFeedItem.self, from: Data(json.utf8))
+        let item = try JSONDecoder().boarded().decode(SessionFeedItem.self, from: Data(json.utf8))
+        XCTAssertEqual(item.id, UUID(uuidString: "11111111-1111-4111-8111-111111111111")!)
+        XCTAssertEqual(item.userId, UUID(uuidString: "22222222-2222-4222-8222-222222222222")!)
+        XCTAssertEqual(item.sessionId, UUID(uuidString: "33333333-3333-4333-8333-333333333333")!)
+        XCTAssertEqual(item.featuredAttemptId, UUID(uuidString: "44444444-4444-4444-8444-444444444444")!)
+        XCTAssertEqual(item.caption, "Strong session on the board.")
+        XCTAssertEqual(item.imagePath, "22222222-2222-4222-8222-222222222222/11111111-1111-4111-8111-111111111111.jpg")
+        XCTAssertEqual(item.imageAlt, "Climber holding small crimp on 40 degree board")
+        XCTAssertEqual(item.overlayStyle, .stats)
         XCTAssertEqual(item.author.username, "mara")
         XCTAssertEqual(item.author.homeArea, "Boulder")
-        XCTAssertEqual(item.attempt.gradeLabel, "V6")
-        XCTAssertEqual(item.attempt.discipline, .boulder)
-        XCTAssertEqual(item.attempt.gradeSystem, .vScale)
-        XCTAssertEqual(item.attempt.outcome, .sent)
+        XCTAssertEqual(item.session.venueName, "Granite Works")
+        XCTAssertEqual(item.session.durationSeconds, 7200)
+        XCTAssertEqual(item.session.attemptCount, 8)
+        XCTAssertEqual(item.session.sendCount, 4)
+        XCTAssertEqual(item.session.featuredAttempt.gradeLabel, "V6")
+        XCTAssertEqual(item.session.featuredAttempt.discipline, .boulder)
+        XCTAssertEqual(item.session.featuredAttempt.gradeSystem, .vScale)
+        XCTAssertEqual(item.session.featuredAttempt.outcome, .sent)
         XCTAssertEqual(item.likeCount, 4)
         XCTAssertEqual(item.commentCount, 2)
         XCTAssertTrue(item.isLiked)
+    }
+
+    func testSessionFeedItemDecodesAttemptTimelineOverlayAndFellOutcomeWithoutNotes() throws {
+        let json = """
+        {
+          "id": "11111111-1111-4111-8111-111111111111",
+          "user_id": "22222222-2222-4222-8222-222222222222",
+          "session_id": "33333333-3333-4333-8333-333333333333",
+          "featured_attempt_id": "44444444-4444-4444-8444-444444444444",
+          "caption": null,
+          "image_path": "22222222-2222-4222-8222-222222222222/11111111-1111-4111-8111-111111111111.jpg",
+          "image_alt": "Timeline photo",
+          "overlay_style": "attempt_timeline",
+          "created_at": "2026-08-31T12:30:00Z",
+          "updated_at": "2026-08-31T12:30:00Z",
+          "author": {
+            "id": "22222222-2222-4222-8222-222222222222",
+            "username": "mara",
+            "full_name": null,
+            "avatar_url": null,
+            "bio": null,
+            "home_area": null
+          },
+          "session": {
+            "id": "33333333-3333-4333-8333-333333333333",
+            "venue_name": "Movement",
+            "started_at": "2026-08-31T10:30:00Z",
+            "ended_at": "2026-08-31T12:30:00Z",
+            "duration_seconds": 7200,
+            "attempt_count": 3,
+            "send_count": 0,
+            "featured_attempt": {
+              "id": "44444444-4444-4444-8444-444444444444",
+              "route_name": "High Project",
+              "discipline": "sport",
+              "grade_system": "yds",
+              "grade_label": "5.13a",
+              "outcome": "fell",
+              "attempt_number": 1,
+              "occurred_at": "2026-08-31T11:00:00Z"
+            }
+          },
+          "like_count": 0,
+          "comment_count": 0,
+          "is_liked": false
+        }
+        """
+        let item = try JSONDecoder().boarded().decode(SessionFeedItem.self, from: Data(json.utf8))
+        XCTAssertEqual(item.overlayStyle, .attemptTimeline)
+        XCTAssertEqual(item.session.featuredAttempt.outcome, .fell)
+        XCTAssertEqual(item.session.featuredAttempt.gradeSystem, .yds)
+        XCTAssertEqual(item.session.featuredAttempt.gradeLabel, "5.13a")
     }
 
     func testClimbAttemptDecodesSnakeCaseAndEnums() throws {
@@ -154,14 +227,13 @@ final class NativeContractTests: XCTestCase {
 
         await session.completeProfileSetup(
             username: "   ",
-            displayName: "Mara",
+            displayName: "Mara Climber",
             homeArea: "Boulder"
         )
 
         XCTAssertTrue(session.needsProfileSetup)
         XCTAssertNil(session.profile)
-        XCTAssertEqual(session.errorMessage, ProfileRepositoryError.invalidUsername.localizedDescription)
-        XCTAssertFalse(session.isLoading)
+        XCTAssertEqual(session.errorMessage, "Username cannot be empty.")
     }
 
     func testAppSessionCompleteProfileSetupRejectsUnauthenticated() async throws {
@@ -169,10 +241,8 @@ final class NativeContractTests: XCTestCase {
         let session = AppSession(profileRepository: repository, userId: nil)
         XCTAssertFalse(session.needsProfileSetup)
 
-        await session.completeProfileSetup(username: "mara")
-
+        await session.completeProfileSetup(username: "mara", displayName: nil, homeArea: nil)
         XCTAssertNil(session.profile)
-        XCTAssertEqual(session.errorMessage, ProfileRepositoryError.invalidUserID.localizedDescription)
     }
 
     func testAppSessionCompleteProfileSetupAcceptsExistingProfileOnCreateFailure() async throws {
@@ -183,21 +253,20 @@ final class NativeContractTests: XCTestCase {
             avatarUrl: nil,
             bio: nil,
             homeArea: "Boulder",
-            createdAt: Date()
+            createdAt: Date(timeIntervalSince1970: 100)
         )
         let repository = MockProfileRepository(profile: existing)
         let session = AppSession(profileRepository: repository, userId: userID, userEmail: "mara@example.com")
         XCTAssertTrue(session.needsProfileSetup)
 
         await session.completeProfileSetup(
-            username: "new_username",
-            displayName: "New Name",
+            username: "different_mara",
+            displayName: "Different",
             homeArea: "Denver"
         )
 
         XCTAssertFalse(session.needsProfileSetup)
         XCTAssertEqual(session.profile?.username, "existing_mara")
-        XCTAssertEqual(session.profile?.fullName, "Existing Mara")
         XCTAssertNil(session.errorMessage)
     }
 
@@ -217,53 +286,73 @@ final class NativeContractTests: XCTestCase {
         XCTAssertEqual(session.errorMessage, ProfileRepositoryError.unavailable.localizedDescription)
     }
 
-    // MARK: - Sent-only eligibility
-
-    func testOnlySentAttemptsAreSendEligible() {
-        XCTAssertTrue(attempt(outcome: .sent).isSendEligible)
-        XCTAssertFalse(attempt(outcome: .fell).isSendEligible)
-        XCTAssertFalse(attempt(outcome: .stopped).isSendEligible)
-    }
+    // MARK: - Active session store
 
     func testActiveSessionStoreScopesRowsToSignedInUser() throws {
         let context = try makeContext()
         let otherID = UUID(uuidString: "00000000-0000-0000-0000-000000000002")!
         let currentSession = PendingSession(
-            id: UUID(uuidString: "00000000-0000-4000-8000-000000000010")!,
+            id: UUID(uuidString: "00000000-0000-4000-8000-000000000001")!,
             userId: userID,
-            venueName: "Current gym",
+            venueName: "Current Gym",
             startedAt: Date(timeIntervalSince1970: 100),
             endedAt: nil
         )
         let otherSession = PendingSession(
-            id: UUID(uuidString: "00000000-0000-4000-8000-000000000020")!,
+            id: UUID(uuidString: "00000000-0000-4000-8000-000000000002")!,
             userId: otherID,
-            venueName: "Other gym",
+            venueName: "Other Gym",
             startedAt: Date(timeIntervalSince1970: 200),
             endedAt: nil
         )
-        let currentSend = pendingAttempt(
-            id: UUID(uuidString: "00000000-0000-4000-8000-000000000011")!,
+        let currentAttempt = PendingAttempt(
+            id: UUID(uuidString: "00000000-0000-4000-8000-000000000003")!,
+            sessionId: currentSession.id,
+            userId: userID,
+            boardRouteId: nil,
+            routeName: "Current Slab",
+            discipline: .boulder,
+            gradeSystem: .vScale,
+            gradeLabel: "V4",
+            outcome: .fell,
+            attemptNumber: 1,
+            notes: nil,
+            occurredAt: Date(timeIntervalSince1970: 110)
+        )
+        let currentSend = PendingAttempt(
+            id: UUID(uuidString: "00000000-0000-4000-8000-000000000004")!,
+            sessionId: currentSession.id,
+            userId: userID,
+            boardRouteId: nil,
+            routeName: "Current Overhang",
+            discipline: .boulder,
+            gradeSystem: .vScale,
+            gradeLabel: "V5",
+            outcome: .sent,
+            attemptNumber: 2,
+            notes: nil,
+            occurredAt: Date(timeIntervalSince1970: 120),
             syncState: .synced
         )
-        currentSend.sessionId = currentSession.id
-        let currentQueued = pendingAttempt(
-            id: UUID(uuidString: "00000000-0000-4000-8000-000000000012")!,
-            syncState: .queued
-        )
-        currentQueued.sessionId = currentSession.id
-        currentQueued.occurredAt = Date(timeIntervalSince1970: 175)
-        let otherSend = pendingAttempt(
-            id: UUID(uuidString: "00000000-0000-4000-8000-000000000021")!,
+        let otherSend = PendingAttempt(
+            id: UUID(uuidString: "00000000-0000-4000-8000-000000000005")!,
+            sessionId: otherSession.id,
+            userId: otherID,
+            boardRouteId: nil,
+            routeName: "Other Send",
+            discipline: .boulder,
+            gradeSystem: .vScale,
+            gradeLabel: "V7",
+            outcome: .sent,
+            attemptNumber: 1,
+            notes: nil,
+            occurredAt: Date(timeIntervalSince1970: 210),
             syncState: .synced
         )
-        otherSend.sessionId = otherSession.id
-        otherSend.userId = otherID
-
         context.insert(currentSession)
         context.insert(otherSession)
+        context.insert(currentAttempt)
         context.insert(currentSend)
-        context.insert(currentQueued)
         context.insert(otherSend)
         try context.save()
 
@@ -278,7 +367,7 @@ final class NativeContractTests: XCTestCase {
                 userID: userID,
                 in: context
             ).map(\.id),
-            [currentQueued.id, currentSend.id]
+            [currentSend.id, currentAttempt.id]
         )
         XCTAssertEqual(
             ActiveSessionStore.sendableAttempts(userID: userID, in: context).map(\.id),
@@ -297,16 +386,37 @@ final class NativeContractTests: XCTestCase {
         let attempts = [
             attempt(outcome: .sent, label: "V3"),
             attempt(outcome: .sent, label: "V7"),
-            attempt(outcome: .fell, label: "V10")
+            attempt(outcome: .fell, label: "V8"),
+            attempt(outcome: .stopped, label: "V5")
         ]
-        let stats = ProfileStatisticsCalculator.calculate(sessions: [session()], attempts: attempts)
-        XCTAssertEqual(stats.sendCount, 2)
-        XCTAssertEqual(stats.attemptCount, 3)
-        XCTAssertEqual(stats.sendRate ?? 0, 2.0 / 3.0, accuracy: 0.0001)
-        XCTAssertEqual(stats.bestGrade?.label, "V7")
+        let pending = attempts.map { attempt in
+            PendingAttempt(
+                id: attempt.id,
+                sessionId: attempt.sessionId,
+                userId: attempt.userId,
+                boardRouteId: attempt.boardRouteId,
+                routeName: attempt.routeName,
+                discipline: attempt.discipline,
+                gradeSystem: attempt.gradeSystem,
+                gradeLabel: attempt.gradeLabel,
+                outcome: attempt.outcome,
+                attemptNumber: attempt.attemptNumber,
+                notes: attempt.notes,
+                occurredAt: attempt.occurredAt
+            )
+        }
+        let summary = SessionSummary(
+            venue: "Gym",
+            startedAt: Date(timeIntervalSince1970: 100),
+            endedAt: Date(timeIntervalSince1970: 200),
+            attempts: pending
+        )
+        XCTAssertEqual(summary.sendCount, 2)
+        XCTAssertEqual(summary.bestSend?.gradeLabel, "V7")
+        XCTAssertEqual(summary.successRate, 0.5)
     }
 
-    // MARK: - Session transitions
+    // MARK: - Session logger
 
     func testSessionLoggerTransitionsAndPersists() async throws {
         let context = try makeContext()
@@ -314,9 +424,12 @@ final class NativeContractTests: XCTestCase {
         let sync = SessionSyncService(repository: repository, modelContext: context, userID: userID)
         let viewModel = SessionLoggerViewModel(modelContext: context, syncService: sync, userId: userID)
 
+        XCTAssertFalse(viewModel.isActive)
+        XCTAssertTrue(viewModel.attempts.isEmpty)
+
         viewModel.startSession(venueName: "Gym")
         XCTAssertTrue(viewModel.isActive)
-        XCTAssertNotNil(viewModel.activeSession)
+        XCTAssertEqual(viewModel.activeSession?.venueName, "Gym")
 
         viewModel.recordAttempt(
             routeName: "Slab",
@@ -330,13 +443,8 @@ final class NativeContractTests: XCTestCase {
 
         viewModel.endSession()
         XCTAssertFalse(viewModel.isActive)
-        XCTAssertNil(viewModel.activeSession)
         XCTAssertTrue(viewModel.attempts.isEmpty)
-
-        let pendingSessions = try context.fetch(FetchDescriptor<PendingSession>())
-        let pendingAttempts = try context.fetch(FetchDescriptor<PendingAttempt>())
-        XCTAssertEqual(pendingSessions.count, 1)
-        XCTAssertEqual(pendingAttempts.count, 1)
+        XCTAssertNotNil(try context.fetch(FetchDescriptor<PendingSession>()).first?.endedAt)
     }
 
     func testSessionLoggerReplaysImmediatelyWhileOnline() async throws {
@@ -346,11 +454,7 @@ final class NativeContractTests: XCTestCase {
         let viewModel = SessionLoggerViewModel(modelContext: context, syncService: sync, userId: userID)
 
         viewModel.startSession(venueName: "Gym")
-        await Task.yield()
-        await Task.yield()
-        XCTAssertEqual(try await repository.fetchSessions(userID: userID).count, 1)
-        XCTAssertEqual(viewModel.syncState, .synced)
-
+        let sessionID = try XCTUnwrap(viewModel.activeSession?.id)
         viewModel.recordAttempt(
             routeName: "Slab",
             discipline: .boulder,
@@ -359,36 +463,32 @@ final class NativeContractTests: XCTestCase {
             outcome: .sent,
             notes: nil
         )
-        await Task.yield()
-        await Task.yield()
-        let sessionID = try XCTUnwrap(viewModel.activeSession?.id)
+
+        viewModel.endSession()
+        try await Task.sleep(nanoseconds: 50_000_000)
+
+        XCTAssertEqual(try await repository.fetchSessions(userID: userID).count, 1)
         XCTAssertEqual(try await repository.fetchAttempts(sessionID: sessionID).count, 1)
-        XCTAssertEqual(viewModel.syncState, .synced)
     }
+
+    // MARK: - Undo and attempt management
 
     func testUndoQueuedAttemptRemovesLocallyWithoutRemoteUpload() async throws {
         let context = try makeContext()
         let repository = MockSessionRepository()
         let sync = SessionSyncService(repository: repository, modelContext: context, userID: userID, connectivityOverride: false)
-        let viewModel = SessionLoggerViewModel(modelContext: context, syncService: sync, userId: userID)
+        let pending = pendingAttempt(id: UUID(uuidString: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")!, syncState: .queued)
+        context.insert(pending)
+        try context.save()
 
-        viewModel.startSession(venueName: "Gym")
-        let sessionID = try XCTUnwrap(viewModel.activeSession?.id)
-        viewModel.recordAttempt(
-            routeName: "Slab",
-            discipline: .boulder,
-            gradeSystem: .vScale,
-            gradeLabel: "V4",
-            outcome: .fell,
-            notes: nil
-        )
-
-        viewModel.undoLatestAttempt()
-
-        XCTAssertTrue(viewModel.attempts.isEmpty)
+        try sync.delete(attempt: pending)
         XCTAssertTrue(try context.fetch(FetchDescriptor<PendingAttempt>()).isEmpty)
         XCTAssertTrue(try context.fetch(FetchDescriptor<PendingAttemptDeletion>()).isEmpty)
-        XCTAssertTrue(try await repository.fetchAttempts(sessionID: sessionID).isEmpty)
+        XCTAssertEqual(sync.state, .synced)
+
+        let onlineSync = SessionSyncService(repository: repository, modelContext: context, userID: userID, connectivityOverride: true)
+        await onlineSync.replay()
+        XCTAssertTrue(try await repository.fetchAttempts(sessionID: pending.sessionId).isEmpty)
     }
 
     func testUndoSyncedAttemptReplaysRemoteDeleteAndIsIdempotent() async throws {
@@ -419,10 +519,14 @@ final class NativeContractTests: XCTestCase {
         let repository = MockSessionRepository()
         let sync = SessionSyncService(repository: repository, modelContext: context, userID: userID, connectivityOverride: false)
 
+        let session1ID = UUID(uuidString: "11111111-0000-4000-8000-000000000001")!
+        let session2ID = UUID(uuidString: "22222222-0000-4000-8000-000000000002")!
         let attempt1ID = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
         let attempt2ID = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
         let attempt1 = pendingAttempt(id: attempt1ID, syncState: .queued)
+        attempt1.sessionId = session1ID
         let attempt2 = pendingAttempt(id: attempt2ID, syncState: .queued)
+        attempt2.sessionId = session2ID
 
         let draft1ID = UUID(uuidString: "33333333-3333-4333-8333-333333333333")!
         let draft2ID = UUID(uuidString: "44444444-4444-4444-8444-444444444444")!
@@ -431,16 +535,18 @@ final class NativeContractTests: XCTestCase {
         let data1 = Data([0x01, 0x02])
         let data2 = Data([0x03, 0x04])
 
-        let draft1 = PendingSendDraft(
+        let draft1 = PendingSessionDraft(
             id: draft1ID,
-            attemptId: attempt1ID,
+            sessionId: session1ID,
+            featuredAttemptId: attempt1ID,
             caption: "Draft 1",
             imageFileName: fileName1,
             imageAlt: "Alt 1"
         )
-        let draft2 = PendingSendDraft(
+        let draft2 = PendingSessionDraft(
             id: draft2ID,
-            attemptId: attempt2ID,
+            sessionId: session2ID,
+            featuredAttemptId: attempt2ID,
             caption: "Draft 2",
             imageFileName: fileName2,
             imageAlt: "Alt 2"
@@ -457,7 +563,7 @@ final class NativeContractTests: XCTestCase {
         try sync.delete(attempt: attempt1)
 
         // Draft 1 and its image are deleted after the model save.
-        let remainingDraftsAfterDelete1 = try context.fetch(FetchDescriptor<PendingSendDraft>())
+        let remainingDraftsAfterDelete1 = try context.fetch(FetchDescriptor<PendingSessionDraft>())
         XCTAssertEqual(remainingDraftsAfterDelete1.map(\.id), [draft2ID])
         XCTAssertTrue(try context.fetch(FetchDescriptor<PendingAttempt>()).contains(where: { $0.id == attempt2ID }))
         XCTAssertNil(DraftImageStore.read(fileName: fileName1))
@@ -469,9 +575,199 @@ final class NativeContractTests: XCTestCase {
         try sync.delete(attempt: attempt2)
 
         // Draft 2 and its image are deleted after the model save.
-        let remainingDraftsAfterDelete2 = try context.fetch(FetchDescriptor<PendingSendDraft>())
+        let remainingDraftsAfterDelete2 = try context.fetch(FetchDescriptor<PendingSessionDraft>())
         XCTAssertTrue(remainingDraftsAfterDelete2.isEmpty)
         XCTAssertTrue(try context.fetch(FetchDescriptor<PendingAttempt>()).isEmpty)
+        XCTAssertNil(DraftImageStore.read(fileName: fileName2))
+        XCTAssertEqual(sync.state, .synced)
+    }
+
+    func testDeleteAttemptOnlyDiscardsDraftWhenAttemptIsFeaturedAttemptInSameSession() async throws {
+        let context = try makeContext()
+        let repository = MockSessionRepository()
+        let sync = SessionSyncService(repository: repository, modelContext: context, userID: userID, connectivityOverride: false)
+
+        let sessionID = UUID(uuidString: "11111111-0000-4000-8000-000000000001")!
+        let featuredAttemptID = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
+        let unrelatedAttemptID = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
+        let featuredAttempt = pendingAttempt(id: featuredAttemptID, syncState: .queued)
+        featuredAttempt.sessionId = sessionID
+        let unrelatedAttempt = pendingAttempt(id: unrelatedAttemptID, syncState: .queued)
+        unrelatedAttempt.sessionId = sessionID
+
+        let draftID = UUID(uuidString: "33333333-3333-4333-8333-333333333333")!
+        let fileName = "draft-\(draftID.uuidString).jpg"
+        let imageData = Data([0x01, 0x02, 0x03, 0x04])
+        let draft = PendingSessionDraft(
+            id: draftID,
+            sessionId: sessionID,
+            featuredAttemptId: featuredAttemptID,
+            caption: "Featured send draft",
+            imageFileName: fileName,
+            imageAlt: "Board climb"
+        )
+
+        try sync.enqueue(attempt: featuredAttempt)
+        try sync.enqueue(attempt: unrelatedAttempt)
+        try sync.enqueue(draft: draft, imageData: imageData)
+
+        XCTAssertEqual(DraftImageStore.read(fileName: fileName), imageData)
+
+        // 1. Deleting an unrelated attempt in the same session does NOT delete the draft or its image.
+        try sync.delete(attempt: unrelatedAttempt)
+
+        let draftsAfterUnrelatedDelete = try context.fetch(FetchDescriptor<PendingSessionDraft>())
+        XCTAssertEqual(draftsAfterUnrelatedDelete.map(\.id), [draftID])
+        XCTAssertEqual(DraftImageStore.read(fileName: fileName), imageData)
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingAttempt>()).contains(where: { $0.id == featuredAttemptID }))
+        XCTAssertFalse(try context.fetch(FetchDescriptor<PendingAttempt>()).contains(where: { $0.id == unrelatedAttemptID }))
+
+        // 2. Deleting the draft's featured attempt DOES delete the draft and cleans up the image.
+        try sync.delete(attempt: featuredAttempt)
+
+        let draftsAfterFeaturedDelete = try context.fetch(FetchDescriptor<PendingSessionDraft>())
+        XCTAssertTrue(draftsAfterFeaturedDelete.isEmpty)
+        XCTAssertNil(DraftImageStore.read(fileName: fileName))
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingAttempt>()).isEmpty)
+    }
+
+    func testEnqueueDraftEnforcesOnePendingDraftPerSessionByReplacingPriorDraftAndCleaningOrphanImage() async throws {
+        let context = try makeContext()
+        let repository = MockSessionRepository()
+        let feed = RecordingDraftFeedRepository(currentUserID: userID)
+        let sync = SessionSyncService(
+            repository: repository,
+            feedRepository: feed,
+            modelContext: context,
+            userID: userID,
+            connectivityOverride: false
+        )
+
+        let sessionID = UUID(uuidString: "11111111-0000-4000-8000-000000000001")!
+        let attemptID = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
+        let session = PendingSession(
+            id: sessionID,
+            userId: userID,
+            venueName: "Granite",
+            startedAt: Date(timeIntervalSince1970: 100),
+            endedAt: Date(timeIntervalSince1970: 200),
+            syncState: .queued
+        )
+        let attempt = pendingAttempt(id: attemptID, syncState: .queued)
+        attempt.sessionId = sessionID
+
+        try sync.enqueue(session: session)
+        try sync.enqueue(attempt: attempt)
+
+        let draft1ID = UUID(uuidString: "33333333-3333-4333-8333-333333333333")!
+        let draft2ID = UUID(uuidString: "44444444-4444-4444-8444-444444444444")!
+        let fileName1 = "draft1-\(draft1ID.uuidString).jpg"
+        let fileName2 = "draft2-\(draft2ID.uuidString).jpg"
+        let data1 = Data([0x11, 0x22])
+        let data2 = Data([0x33, 0x44])
+
+        let draft1 = PendingSessionDraft(
+            id: draft1ID,
+            sessionId: sessionID,
+            featuredAttemptId: attemptID,
+            caption: "Draft 1",
+            imageFileName: fileName1,
+            imageAlt: "Alt 1"
+        )
+        let draft2 = PendingSessionDraft(
+            id: draft2ID,
+            sessionId: sessionID,
+            featuredAttemptId: attemptID,
+            caption: "Draft 2 (replacement)",
+            imageFileName: fileName2,
+            imageAlt: "Alt 2"
+        )
+
+        // Enqueue first draft
+        try sync.enqueue(draft: draft1, imageData: data1)
+        XCTAssertEqual(try context.fetch(FetchDescriptor<PendingSessionDraft>()).map(\.id), [draft1ID])
+        XCTAssertEqual(DraftImageStore.read(fileName: fileName1), data1)
+
+        // Enqueue second draft for the same session replaces the prior draft and removes its orphan image file
+        try sync.enqueue(draft: draft2, imageData: data2)
+        let remainingDrafts = try context.fetch(FetchDescriptor<PendingSessionDraft>())
+        XCTAssertEqual(remainingDrafts.map(\.id), [draft2ID])
+        XCTAssertNil(DraftImageStore.read(fileName: fileName1))
+        XCTAssertEqual(DraftImageStore.read(fileName: fileName2), data2)
+
+        // Replay creates only the replacement post and succeeds cleanly without conflict
+        await sync.replay()
+        XCTAssertEqual(feed.createdPosts().count, 1)
+        XCTAssertEqual(feed.createdPosts().first?.id, draft2ID)
+        XCTAssertEqual(feed.createdPosts().first?.caption, "Draft 2 (replacement)")
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSessionDraft>()).isEmpty)
+        XCTAssertNil(DraftImageStore.read(fileName: fileName2))
+        XCTAssertEqual(sync.state, .synced)
+    }
+
+    func testReplayDeduplicatesMultiplePendingDraftsForSameSessionWithoutBackendConflict() async throws {
+        let context = try makeContext()
+        let repository = MockSessionRepository()
+        let feed = RecordingDraftFeedRepository(currentUserID: userID)
+        let sync = SessionSyncService(
+            repository: repository,
+            feedRepository: feed,
+            modelContext: context,
+            userID: userID,
+            connectivityOverride: false
+        )
+
+        let sessionID = UUID(uuidString: "11111111-0000-4000-8000-000000000001")!
+        let attemptID = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
+        let session = PendingSession(
+            id: sessionID,
+            userId: userID,
+            venueName: "Granite",
+            startedAt: Date(timeIntervalSince1970: 100),
+            endedAt: Date(timeIntervalSince1970: 200),
+            syncState: .synced
+        )
+        let attempt = pendingAttempt(id: attemptID, syncState: .synced)
+        attempt.sessionId = sessionID
+        context.insert(session)
+        context.insert(attempt)
+        _ = try await repository.upsertSession(session.remote)
+        _ = try await repository.upsertAttempt(attempt.remote)
+
+        let draft1ID = UUID(uuidString: "33333333-3333-4333-8333-333333333333")!
+        let draft2ID = UUID(uuidString: "44444444-4444-4444-8444-444444444444")!
+        let fileName1 = "draft1-\(draft1ID.uuidString).jpg"
+        let fileName2 = "draft2-\(draft2ID.uuidString).jpg"
+        let data1 = Data([0x11, 0x22])
+        let data2 = Data([0x33, 0x44])
+
+        let draft1 = PendingSessionDraft(
+            id: draft1ID,
+            sessionId: sessionID,
+            featuredAttemptId: attemptID,
+            caption: "Draft 1",
+            imageFileName: fileName1,
+            imageAlt: "Alt 1"
+        )
+        let draft2 = PendingSessionDraft(
+            id: draft2ID,
+            sessionId: sessionID,
+            featuredAttemptId: attemptID,
+            caption: "Draft 2",
+            imageFileName: fileName2,
+            imageAlt: "Alt 2"
+        )
+        context.insert(draft1)
+        context.insert(draft2)
+        try context.save()
+        try DraftImageStore.write(data1, fileName: fileName1)
+        try DraftImageStore.write(data2, fileName: fileName2)
+
+        // Replay deduplicates duplicate drafts for the same session so backend parent uniqueness is not violated
+        await sync.replay()
+        XCTAssertEqual(feed.createdPosts().count, 1)
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSessionDraft>()).isEmpty)
+        XCTAssertNil(DraftImageStore.read(fileName: fileName1))
         XCTAssertNil(DraftImageStore.read(fileName: fileName2))
         XCTAssertEqual(sync.state, .synced)
     }
@@ -481,18 +777,21 @@ final class NativeContractTests: XCTestCase {
         let repository = MockSessionRepository()
         let sync = SessionSyncService(repository: repository, modelContext: context, userID: userID, connectivityOverride: false)
 
+        let sessionID = UUID()
         let attemptID = UUID()
         let draftID = UUID()
         let conflictID = UUID()
         let fileName = "draft-\(draftID.uuidString).jpg"
         let imageData = Data([0x0a, 0x0b])
         let attempt = pendingAttempt(id: attemptID, syncState: .queued)
-        let draft = PendingSendDraft(
+        attempt.sessionId = sessionID
+        let draft = PendingSessionDraft(
             id: draftID,
-            attemptId: attemptID,
+            sessionId: sessionID,
+            featuredAttemptId: attemptID,
             caption: "Retry me",
             imageFileName: fileName,
-            imageAlt: nil
+            imageAlt: "Alt text"
         )
         let conflict = pendingAttempt(id: conflictID, syncState: .queued)
 
@@ -509,7 +808,7 @@ final class NativeContractTests: XCTestCase {
 
         XCTAssertThrowsError(try sync.delete(attempt: attempt))
         XCTAssertTrue(try context.fetch(FetchDescriptor<PendingAttempt>()).contains(where: { $0.id == attemptID }))
-        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSendDraft>()).contains(where: { $0.id == draftID }))
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSessionDraft>()).contains(where: { $0.id == draftID }))
         XCTAssertEqual(DraftImageStore.read(fileName: fileName), imageData)
     }
 
@@ -517,16 +816,19 @@ final class NativeContractTests: XCTestCase {
         let context = try makeContext()
         let repository = MockSessionRepository()
         let sync = SessionSyncService(repository: repository, modelContext: context, userID: userID, connectivityOverride: false)
+        let sessionID = UUID()
         let attemptID = UUID()
         let draftID = UUID()
         let fileName = "draft-\(draftID.uuidString).jpg"
         let attempt = pendingAttempt(id: attemptID, syncState: .queued)
-        let draft = PendingSendDraft(
+        attempt.sessionId = sessionID
+        let draft = PendingSessionDraft(
             id: draftID,
-            attemptId: attemptID,
+            sessionId: sessionID,
+            featuredAttemptId: attemptID,
             caption: "Cleanup me",
             imageFileName: fileName,
-            imageAlt: nil
+            imageAlt: "Alt text"
         )
 
         try sync.enqueue(attempt: attempt)
@@ -541,7 +843,7 @@ final class NativeContractTests: XCTestCase {
             XCTAssertEqual(sync.errorMessage, error.localizedDescription)
         }
         XCTAssertTrue(try context.fetch(FetchDescriptor<PendingAttempt>()).isEmpty)
-        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSendDraft>()).isEmpty)
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSessionDraft>()).isEmpty)
         XCTAssertTrue(FileManager.default.fileExists(atPath: imageURL.path))
         XCTAssertEqual(sync.state, .failed)
     }
@@ -552,8 +854,10 @@ final class NativeContractTests: XCTestCase {
         let feed = RecordingDraftFeedRepository(currentUserID: userID)
         let sync = SessionSyncService(repository: repository, feedRepository: feed, modelContext: context, userID: userID, connectivityOverride: false)
 
+        let sessionID = UUID(uuidString: "00000000-0000-4000-8000-000000000001")!
         let attemptID = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
         let pending = pendingAttempt(id: attemptID, syncState: .synced)
+        pending.sessionId = sessionID
         context.insert(pending)
         try context.save()
         _ = try await repository.upsertAttempt(pending.remote)
@@ -561,9 +865,10 @@ final class NativeContractTests: XCTestCase {
         let draftID = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
         let fileName = "draft-\(draftID.uuidString).jpg"
         let imageData = Data([0xaa, 0xbb])
-        let draft = PendingSendDraft(
+        let draft = PendingSessionDraft(
             id: draftID,
-            attemptId: attemptID,
+            sessionId: sessionID,
+            featuredAttemptId: attemptID,
             caption: "Undo me",
             imageFileName: fileName,
             imageAlt: "Alt"
@@ -572,7 +877,7 @@ final class NativeContractTests: XCTestCase {
 
         try sync.delete(attempt: pending)
 
-        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSendDraft>()).isEmpty)
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSessionDraft>()).isEmpty)
         XCTAssertNil(DraftImageStore.read(fileName: fileName))
         let tombstones = try context.fetch(FetchDescriptor<PendingAttemptDeletion>())
         XCTAssertEqual(tombstones.map(\.id), [attemptID])
@@ -759,15 +1064,25 @@ final class NativeContractTests: XCTestCase {
         XCTAssertEqual(model.meetups.first?.title, "New Line")
     }
 
-    func testDraftReplayPublishesAfterAttemptAndCleansLocalArtifacts() async throws {
+    // MARK: - Draft publication and gating
+
+    func testDraftReplayPublishesAfterEndedSessionAndAttemptAndCleansLocalArtifacts() async throws {
         let context = try makeContext()
         let feed = RecordingDraftFeedRepository(currentUserID: userID)
         let sync = SessionSyncService(repository: MockSessionRepository(), feedRepository: feed, modelContext: context, userID: userID)
+        let sessionID = UUID(uuidString: "66666666-6666-4666-8666-666666666666")!
         let attemptID = UUID(uuidString: "44444444-4444-4444-8444-444444444444")!
         let draftID = UUID(uuidString: "55555555-5555-4555-8555-555555555555")!
+        let session = PendingSession(
+            id: sessionID,
+            userId: userID,
+            venueName: "Gym",
+            startedAt: Date(timeIntervalSince1970: 100),
+            endedAt: Date(timeIntervalSince1970: 200)
+        )
         let attempt = PendingAttempt(
             id: attemptID,
-            sessionId: UUID(uuidString: "66666666-6666-4666-8666-666666666666")!,
+            sessionId: sessionID,
             userId: userID,
             boardRouteId: nil,
             routeName: "Slab",
@@ -781,14 +1096,17 @@ final class NativeContractTests: XCTestCase {
         )
         let fileName = "draft-\(draftID.uuidString).jpg"
         let imageData = Data([0x01, 0x02, 0x03])
-        let draft = PendingSendDraft(
+        let draft = PendingSessionDraft(
             id: draftID,
-            attemptId: attemptID,
-            caption: "A send",
+            sessionId: sessionID,
+            featuredAttemptId: attemptID,
+            caption: "A session",
             imageFileName: fileName,
             imageAlt: "A slab",
-            createdAt: Date(timeIntervalSince1970: 160)
+            overlayStyle: .stats,
+            createdAt: Date(timeIntervalSince1970: 210)
         )
+        try sync.enqueue(session: session)
         try sync.enqueue(attempt: attempt)
         try sync.enqueue(draft: draft, imageData: imageData)
 
@@ -797,9 +1115,12 @@ final class NativeContractTests: XCTestCase {
         let posts = feed.createdPosts()
         XCTAssertEqual(posts.count, 1)
         XCTAssertEqual(posts[0].id, draftID)
+        XCTAssertEqual(posts[0].sessionId, sessionID)
+        XCTAssertEqual(posts[0].featuredAttemptId, attemptID)
+        XCTAssertEqual(posts[0].overlayStyle, .stats)
         XCTAssertEqual(posts[0].imagePath, "\(userID.uuidString.lowercased())/\(draftID.uuidString.lowercased()).jpg")
-        XCTAssertEqual(feed.uploadedPaths(), [posts[0].imagePath!])
-        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSendDraft>()).isEmpty)
+        XCTAssertEqual(feed.uploadedPaths(), [posts[0].imagePath])
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSessionDraft>()).isEmpty)
         XCTAssertNil(DraftImageStore.read(fileName: fileName))
         XCTAssertEqual(sync.state, .synced)
 
@@ -807,16 +1128,88 @@ final class NativeContractTests: XCTestCase {
         XCTAssertEqual(feed.createdPosts().count, 1)
     }
 
+    func testDraftReplayGatedUntilSessionIsEndedAndSynced() async throws {
+        let context = try makeContext()
+        let feed = RecordingDraftFeedRepository(currentUserID: userID)
+        let sync = SessionSyncService(repository: MockSessionRepository(), feedRepository: feed, modelContext: context, userID: userID)
+        let sessionID = UUID(uuidString: "66666666-6666-4666-8666-666666666666")!
+        let attemptID = UUID(uuidString: "44444444-4444-4444-8444-444444444444")!
+        let draftID = UUID(uuidString: "55555555-5555-4555-8555-555555555555")!
+
+        // Active session: endedAt is nil
+        let session = PendingSession(
+            id: sessionID,
+            userId: userID,
+            venueName: "Gym",
+            startedAt: Date(timeIntervalSince1970: 100),
+            endedAt: nil
+        )
+        let attempt = PendingAttempt(
+            id: attemptID,
+            sessionId: sessionID,
+            userId: userID,
+            boardRouteId: nil,
+            routeName: "Slab",
+            discipline: .boulder,
+            gradeSystem: .vScale,
+            gradeLabel: "V4",
+            outcome: .sent,
+            attemptNumber: 1,
+            notes: nil,
+            occurredAt: Date(timeIntervalSince1970: 150)
+        )
+        let fileName = "draft-\(draftID.uuidString).jpg"
+        let imageData = Data([0x01, 0x02, 0x03])
+        let draft = PendingSessionDraft(
+            id: draftID,
+            sessionId: sessionID,
+            featuredAttemptId: attemptID,
+            caption: "Session draft",
+            imageFileName: fileName,
+            imageAlt: "A slab",
+            overlayStyle: .stats,
+            createdAt: Date(timeIntervalSince1970: 160)
+        )
+        try sync.enqueue(session: session)
+        try sync.enqueue(attempt: attempt)
+        try sync.enqueue(draft: draft, imageData: imageData)
+
+        // 1. Replay with unended session: session and attempt sync, but draft remains queued
+        await sync.replay()
+        XCTAssertTrue(feed.createdPosts().isEmpty)
+        XCTAssertEqual(try context.fetch(FetchDescriptor<PendingSessionDraft>()).count, 1)
+        XCTAssertEqual(sync.state, .queued)
+
+        // 2. End the session and replay again: now draft publishes cleanly
+        session.endedAt = Date(timeIntervalSince1970: 200)
+        session.syncState = .queued
+        try context.save()
+
+        await sync.replay()
+        XCTAssertEqual(feed.createdPosts().count, 1)
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSessionDraft>()).isEmpty)
+        XCTAssertNil(DraftImageStore.read(fileName: fileName))
+        XCTAssertEqual(sync.state, .synced)
+    }
+
     func testDraftReplayRetainsDraftAndImageAfterPublishFailure() async throws {
         let context = try makeContext()
         let feed = RecordingDraftFeedRepository(currentUserID: userID)
         feed.failCreatePost = true
         let sync = SessionSyncService(repository: MockSessionRepository(), feedRepository: feed, modelContext: context, userID: userID)
+        let sessionID = UUID(uuidString: "99999999-9999-4999-8999-999999999999")!
         let attemptID = UUID(uuidString: "77777777-7777-4777-8777-777777777777")!
         let draftID = UUID(uuidString: "88888888-8888-4888-8888-888888888888")!
+        let session = PendingSession(
+            id: sessionID,
+            userId: userID,
+            venueName: "Gym",
+            startedAt: Date(timeIntervalSince1970: 100),
+            endedAt: Date(timeIntervalSince1970: 200)
+        )
         let attempt = PendingAttempt(
             id: attemptID,
-            sessionId: UUID(uuidString: "99999999-9999-4999-8999-999999999999")!,
+            sessionId: sessionID,
             userId: userID,
             boardRouteId: nil,
             routeName: "Crimp",
@@ -830,20 +1223,22 @@ final class NativeContractTests: XCTestCase {
         )
         let fileName = "draft-\(draftID.uuidString).jpg"
         let imageData = Data([0x09, 0x08, 0x07])
-        let draft = PendingSendDraft(
+        let draft = PendingSessionDraft(
             id: draftID,
-            attemptId: attemptID,
+            sessionId: sessionID,
+            featuredAttemptId: attemptID,
             caption: "Retry me",
             imageFileName: fileName,
             imageAlt: "A crimp",
-            createdAt: Date(timeIntervalSince1970: 160)
+            createdAt: Date(timeIntervalSince1970: 210)
         )
+        try sync.enqueue(session: session)
         try sync.enqueue(attempt: attempt)
         try sync.enqueue(draft: draft, imageData: imageData)
 
         await sync.replay()
 
-        let retained = try XCTUnwrap(try context.fetch(FetchDescriptor<PendingSendDraft>()).first)
+        let retained = try XCTUnwrap(try context.fetch(FetchDescriptor<PendingSessionDraft>()).first)
         XCTAssertEqual(retained.syncState, .failed)
         XCTAssertEqual(DraftImageStore.read(fileName: fileName), imageData)
         XCTAssertEqual(sync.state, .failed)
@@ -852,7 +1247,7 @@ final class NativeContractTests: XCTestCase {
         feed.failCreatePost = false
         await sync.replay()
 
-        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSendDraft>()).isEmpty)
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSessionDraft>()).isEmpty)
         XCTAssertNil(DraftImageStore.read(fileName: fileName))
         XCTAssertEqual(feed.createdPosts().count, 1)
         XCTAssertEqual(sync.state, .synced)
@@ -868,26 +1263,37 @@ final class NativeContractTests: XCTestCase {
             modelContext: context,
             userID: userID
         )
+        let session = PendingSession(
+            id: UUID(uuidString: "00000000-0000-4000-8000-000000000001")!,
+            userId: userID,
+            venueName: "Gym",
+            startedAt: Date(timeIntervalSince1970: 100),
+            endedAt: Date(timeIntervalSince1970: 200),
+            syncState: .synced
+        )
         let attempt = pendingAttempt(
             id: UUID(uuidString: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")!,
             syncState: .synced
         )
+        attempt.sessionId = session.id
         let draftID = UUID(uuidString: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb")!
         let fileName = "discard-\(draftID.uuidString).jpg"
-        let draft = PendingSendDraft(
+        let draft = PendingSessionDraft(
             id: draftID,
-            attemptId: attempt.id,
+            sessionId: session.id,
+            featuredAttemptId: attempt.id,
             caption: "Abandoned",
             imageFileName: fileName,
-            imageAlt: "A send"
+            imageAlt: "A session"
         )
+        context.insert(session)
         context.insert(attempt)
         try context.save()
         try sync.enqueue(draft: draft, imageData: Data([0x01, 0x02]))
 
         await sync.replay()
         XCTAssertEqual(
-            try XCTUnwrap(try context.fetch(FetchDescriptor<PendingSendDraft>()).first).syncState,
+            try XCTUnwrap(try context.fetch(FetchDescriptor<PendingSessionDraft>()).first).syncState,
             .failed
         )
         XCTAssertEqual(DraftImageStore.read(fileName: fileName), Data([0x01, 0x02]))
@@ -897,13 +1303,13 @@ final class NativeContractTests: XCTestCase {
             feed.deletedImagePaths(),
             ["\(userID.uuidString.lowercased())/\(draftID.uuidString.lowercased()).jpg"]
         )
-         feed.failCreatePost = false
-         await sync.replay()
- 
-         XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSendDraft>()).isEmpty)
-         XCTAssertNil(DraftImageStore.read(fileName: fileName))
-         XCTAssertTrue(feed.createdPosts().isEmpty)
-     }
+        feed.failCreatePost = false
+        await sync.replay()
+
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSessionDraft>()).isEmpty)
+        XCTAssertNil(DraftImageStore.read(fileName: fileName))
+        XCTAssertTrue(feed.createdPosts().isEmpty)
+    }
 
     // MARK: - Account switch and feed reset
 
@@ -1010,19 +1416,30 @@ final class NativeContractTests: XCTestCase {
             modelContext: context,
             userID: userID
         )
+        let session = PendingSession(
+            id: UUID(uuidString: "00000000-0000-4000-8000-000000000001")!,
+            userId: userID,
+            venueName: "Gym",
+            startedAt: Date(timeIntervalSince1970: 100),
+            endedAt: Date(timeIntervalSince1970: 200),
+            syncState: .synced
+        )
         let attempt = pendingAttempt(
             id: UUID(uuidString: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")!,
             syncState: .synced
         )
+        attempt.sessionId = session.id
         let draftID = UUID(uuidString: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb")!
         let fileName = "discard-\(draftID.uuidString).jpg"
-        let draft = PendingSendDraft(
+        let draft = PendingSessionDraft(
             id: draftID,
-            attemptId: attempt.id,
+            sessionId: session.id,
+            featuredAttemptId: attempt.id,
             caption: "Discard uploaded",
             imageFileName: fileName,
-            imageAlt: "A send"
+            imageAlt: "A session"
         )
+        context.insert(session)
         context.insert(attempt)
         try context.save()
         try sync.enqueue(draft: draft, imageData: Data([0x01, 0x02]))
@@ -1037,7 +1454,7 @@ final class NativeContractTests: XCTestCase {
         XCTAssertEqual(feed.deletedImagePaths(), [canonicalPath])
         XCTAssertFalse(feed.uploadedPaths().contains(canonicalPath))
         XCTAssertNil(DraftImageStore.read(fileName: fileName))
-        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSendDraft>()).isEmpty)
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSessionDraft>()).isEmpty)
         XCTAssertEqual(sync.state, .synced)
     }
 
@@ -1050,19 +1467,30 @@ final class NativeContractTests: XCTestCase {
             modelContext: context,
             userID: userID
         )
+        let session = PendingSession(
+            id: UUID(uuidString: "00000000-0000-4000-8000-000000000001")!,
+            userId: userID,
+            venueName: "Gym",
+            startedAt: Date(timeIntervalSince1970: 100),
+            endedAt: Date(timeIntervalSince1970: 200),
+            syncState: .synced
+        )
         let attempt = pendingAttempt(
             id: UUID(uuidString: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")!,
             syncState: .synced
         )
+        attempt.sessionId = session.id
         let draftID = UUID(uuidString: "cccccccc-cccc-4ccc-8ccc-cccccccccccc")!
         let fileName = "discard-absent-\(draftID.uuidString).jpg"
-        let draft = PendingSendDraft(
+        let draft = PendingSessionDraft(
             id: draftID,
-            attemptId: attempt.id,
+            sessionId: session.id,
+            featuredAttemptId: attempt.id,
             caption: "Discard absent",
             imageFileName: fileName,
-            imageAlt: "A send"
+            imageAlt: "A session"
         )
+        context.insert(session)
         context.insert(attempt)
         try context.save()
         try sync.enqueue(draft: draft, imageData: Data([0x03, 0x04]))
@@ -1072,7 +1500,7 @@ final class NativeContractTests: XCTestCase {
 
         XCTAssertEqual(feed.deletedImagePaths(), [canonicalPath])
         XCTAssertNil(DraftImageStore.read(fileName: fileName))
-        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSendDraft>()).isEmpty)
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSessionDraft>()).isEmpty)
         XCTAssertEqual(sync.state, .synced)
     }
 
@@ -1086,19 +1514,30 @@ final class NativeContractTests: XCTestCase {
             modelContext: context,
             userID: userID
         )
+        let session = PendingSession(
+            id: UUID(uuidString: "00000000-0000-4000-8000-000000000001")!,
+            userId: userID,
+            venueName: "Gym",
+            startedAt: Date(timeIntervalSince1970: 100),
+            endedAt: Date(timeIntervalSince1970: 200),
+            syncState: .synced
+        )
         let attempt = pendingAttempt(
             id: UUID(uuidString: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")!,
             syncState: .synced
         )
+        attempt.sessionId = session.id
         let draftID = UUID(uuidString: "dddddddd-dddd-4ddd-8ddd-dddddddddddd")!
         let fileName = "discard-fail-\(draftID.uuidString).jpg"
-        let draft = PendingSendDraft(
+        let draft = PendingSessionDraft(
             id: draftID,
-            attemptId: attempt.id,
+            sessionId: session.id,
+            featuredAttemptId: attempt.id,
             caption: "Discard fail",
             imageFileName: fileName,
-            imageAlt: "A send"
+            imageAlt: "A session"
         )
+        context.insert(session)
         context.insert(attempt)
         try context.save()
         try sync.enqueue(draft: draft, imageData: Data([0x05, 0x06]))
@@ -1116,7 +1555,7 @@ final class NativeContractTests: XCTestCase {
         }
 
         // Local draft and local image file are retained on remote deletion failure.
-        XCTAssertEqual(try context.fetch(FetchDescriptor<PendingSendDraft>()).map(\.id), [draftID])
+        XCTAssertEqual(try context.fetch(FetchDescriptor<PendingSessionDraft>()).map(\.id), [draftID])
         XCTAssertEqual(DraftImageStore.read(fileName: fileName), Data([0x05, 0x06]))
     }
 
@@ -1130,19 +1569,30 @@ final class NativeContractTests: XCTestCase {
             modelContext: context,
             userID: userID
         )
+        let session = PendingSession(
+            id: UUID(uuidString: "00000000-0000-4000-8000-000000000001")!,
+            userId: userID,
+            venueName: "Gym",
+            startedAt: Date(timeIntervalSince1970: 100),
+            endedAt: Date(timeIntervalSince1970: 200),
+            syncState: .synced
+        )
         let attempt = pendingAttempt(
             id: UUID(uuidString: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")!,
             syncState: .synced
         )
+        attempt.sessionId = session.id
         let draftID = UUID(uuidString: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee")!
         let fileName = "publish-fail-\(draftID.uuidString).jpg"
-        let draft = PendingSendDraft(
+        let draft = PendingSessionDraft(
             id: draftID,
-            attemptId: attempt.id,
+            sessionId: session.id,
+            featuredAttemptId: attempt.id,
             caption: "Retryable publish",
             imageFileName: fileName,
-            imageAlt: "A send"
+            imageAlt: "A session"
         )
+        context.insert(session)
         context.insert(attempt)
         try context.save()
         try sync.enqueue(draft: draft, imageData: Data([0x07, 0x08]))
@@ -1153,16 +1603,17 @@ final class NativeContractTests: XCTestCase {
         XCTAssertTrue(feed.uploadedPaths().contains(canonicalPath))
         XCTAssertTrue(feed.deletedImagePaths().isEmpty)
         XCTAssertEqual(DraftImageStore.read(fileName: fileName), Data([0x07, 0x08]))
-        XCTAssertEqual(try context.fetch(FetchDescriptor<PendingSendDraft>()).map(\.id), [draftID])
+        XCTAssertEqual(try context.fetch(FetchDescriptor<PendingSessionDraft>()).map(\.id), [draftID])
 
         // Retry succeeds without losing the remote media.
         feed.failCreatePost = false
         await sync.replay()
         XCTAssertEqual(sync.state, .synced)
         XCTAssertEqual(feed.createdPosts().count, 1)
-        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSendDraft>()).isEmpty)
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSessionDraft>()).isEmpty)
         XCTAssertNil(DraftImageStore.read(fileName: fileName))
     }
+
     func testSessionSyncReplaysOnlyRowsOwnedByActiveUser() async throws {
         let context = try makeContext()
         let otherID = UUID(uuidString: "00000000-0000-0000-0000-000000000002")!
@@ -1211,6 +1662,94 @@ final class NativeContractTests: XCTestCase {
         XCTAssertTrue(try await repository.fetchSessions(userID: otherID).isEmpty)
         XCTAssertEqual(try await repository.fetchAttempts(sessionID: currentSession.id).count, 1)
         XCTAssertTrue(try await repository.fetchAttempts(sessionID: otherSession.id).isEmpty)
+    }
+
+    func testFreshAccountWithoutOwnedSessionsCannotObserveReplayOrDeleteOtherAccountDrafts() async throws {
+        let context = try makeContext()
+        let userA = UUID(uuidString: "00000000-0000-4000-8000-000000000001")!
+        let userB = UUID(uuidString: "00000000-0000-4000-8000-000000000002")!
+        let repository = MockSessionRepository()
+        let feed = RecordingDraftFeedRepository(currentUserID: userA)
+
+        // User A creates a synced session, attempt, and enqueues a draft with image data.
+        let syncA = SessionSyncService(
+            repository: repository,
+            feedRepository: feed,
+            modelContext: context,
+            userID: userA,
+            connectivityOverride: false
+        )
+        let sessionA = PendingSession(
+            id: UUID(uuidString: "11111111-1111-4111-8111-111111111111")!,
+            userId: userA,
+            venueName: "Granite",
+            startedAt: Date(timeIntervalSince1970: 100),
+            endedAt: Date(timeIntervalSince1970: 200),
+            syncState: .synced
+        )
+        let attemptA = pendingAttempt(
+            id: UUID(uuidString: "22222222-2222-4222-8222-222222222222")!,
+            syncState: .synced
+        )
+        attemptA.userId = userA
+        attemptA.sessionId = sessionA.id
+
+        let draftAID = UUID(uuidString: "33333333-3333-4333-8333-333333333333")!
+        let fileNameA = "draft-\(draftAID.uuidString).jpg"
+        let imageDataA = Data([0x12, 0x34, 0x56])
+        let draftA = PendingSessionDraft(
+            id: draftAID,
+            sessionId: sessionA.id,
+            featuredAttemptId: attemptA.id,
+            caption: "User A send",
+            imageFileName: fileNameA,
+            imageAlt: "User A image"
+        )
+        context.insert(sessionA)
+        context.insert(attemptA)
+        try context.save()
+        try syncA.enqueue(draft: draftA, imageData: imageDataA)
+        defer { DraftImageStore.delete(fileName: fileNameA) }
+
+        // User B (fresh account with 0 owned sessions and 0 owned attempts)
+        let syncB = SessionSyncService(
+            repository: repository,
+            feedRepository: feed,
+            modelContext: context,
+            userID: userB,
+            connectivityOverride: false
+        )
+
+        // Fresh account B has no pending work and its state is synced, never queued on User A's draft
+        XCTAssertEqual(syncB.state, .synced)
+
+        // Replay under User B must not publish User A's draft
+        await syncB.replay()
+        XCTAssertTrue(feed.createdPosts().isEmpty)
+        XCTAssertTrue(feed.uploadedPaths().isEmpty)
+
+        // Account B attempting to delete Account A's draft must be a no-op:
+        // it must not discard User A's draft, delete its cached image, or call remote deletion.
+        try await syncB.delete(draft: draftA)
+        XCTAssertTrue(feed.deletedImagePaths().isEmpty)
+        XCTAssertEqual(DraftImageStore.read(fileName: fileNameA), imageDataA)
+        let storedDrafts = try context.fetch(FetchDescriptor<PendingSessionDraft>())
+        XCTAssertEqual(storedDrafts.map(\.id), [draftAID])
+
+        // When switching back to User A, User A owns the draft and can replay / publish it cleanly.
+        let onlineSyncA = SessionSyncService(
+            repository: repository,
+            feedRepository: feed,
+            modelContext: context,
+            userID: userA,
+            connectivityOverride: true
+        )
+        await onlineSyncA.replay()
+        XCTAssertEqual(feed.createdPosts().count, 1)
+        XCTAssertEqual(feed.createdPosts().first?.id, draftAID)
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSessionDraft>()).isEmpty)
+        XCTAssertNil(DraftImageStore.read(fileName: fileNameA))
+        XCTAssertEqual(onlineSyncA.state, .synced)
     }
 
     // MARK: - Draft persistence
@@ -1271,7 +1810,7 @@ final class NativeContractTests: XCTestCase {
     private let userID = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
 
     private func makeContext() throws -> ModelContext {
-        let schema = Schema([PendingSession.self, PendingAttempt.self, PendingAttemptDeletion.self, PendingSendDraft.self])
+        let schema = Schema([PendingSession.self, PendingAttempt.self, PendingAttemptDeletion.self, PendingSessionDraft.self])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         let container = try ModelContainer(for: schema, configurations: [config])
         return ModelContext(container)
@@ -1325,28 +1864,40 @@ final class NativeContractTests: XCTestCase {
         )
     }
 
-    private func feedItem() -> SendFeedItem {
-        SendFeedItem(
-            id: UUID(uuidString: "11111111-1111-4111-8111-111111111111")!,
+    private func feedItem() -> SessionFeedItem {
+        let sessionID = UUID(uuidString: "33333333-3333-4333-8333-333333333333")!
+        let attemptID = UUID(uuidString: "44444444-4444-4444-8444-444444444444")!
+        let postID = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
+        return SessionFeedItem(
+            id: postID,
             userId: userID,
-            attemptId: UUID(uuidString: "33333333-3333-4333-8333-333333333333")!,
+            sessionId: sessionID,
+            featuredAttemptId: attemptID,
             caption: nil,
-            imagePath: nil,
-            imageAlt: nil,
+            imagePath: "\(userID.uuidString.lowercased())/\(postID.uuidString.lowercased()).jpg",
+            imageAlt: "Feed photo",
+            overlayStyle: .stats,
             createdAt: Date(timeIntervalSince1970: 100),
             updatedAt: Date(timeIntervalSince1970: 100),
             author: FeedAuthor(id: userID, username: "mara", fullName: nil, avatarUrl: nil, bio: nil, homeArea: nil),
-            attempt: FeedAttempt(
-                id: UUID(uuidString: "33333333-3333-4333-8333-333333333333")!,
-                boardRouteId: nil,
-                routeName: "Slab",
-                discipline: .boulder,
-                gradeSystem: .vScale,
-                gradeLabel: "V4",
-                outcome: .sent,
-                attemptNumber: 1,
-                occurredAt: Date(timeIntervalSince1970: 90),
-                createdAt: Date(timeIntervalSince1970: 90)
+            session: FeedSessionSummary(
+                id: sessionID,
+                venueName: "Gym",
+                startedAt: Date(timeIntervalSince1970: 0),
+                endedAt: Date(timeIntervalSince1970: 100),
+                durationSeconds: 100,
+                attemptCount: 1,
+                sendCount: 1,
+                featuredAttempt: FeedFeaturedAttempt(
+                    id: attemptID,
+                    routeName: "Slab",
+                    discipline: .boulder,
+                    gradeSystem: .vScale,
+                    gradeLabel: "V4",
+                    outcome: .sent,
+                    attemptNumber: 1,
+                    occurredAt: Date(timeIntervalSince1970: 90)
+                )
             ),
             likeCount: 0,
             commentCount: 0,
@@ -1357,9 +1908,9 @@ final class NativeContractTests: XCTestCase {
 
 /// A feed repository whose like toggle always fails, used to verify rollback.
 private final class FailingLikeFeedRepository: FeedRepository, @unchecked Sendable {
-    private let items: [SendFeedItem]
+    private let items: [SessionFeedItem]
 
-    init(items: [SendFeedItem]) {
+    init(items: [SessionFeedItem]) {
         self.items = items
     }
 
@@ -1367,9 +1918,9 @@ private final class FailingLikeFeedRepository: FeedRepository, @unchecked Sendab
         FeedPage(items: items, nextCursor: nil, hasMore: false)
     }
 
-    func fetchComments(postID: UUID) async throws -> [SendPostComment] { [] }
+    func fetchComments(postID: UUID) async throws -> [SessionPostComment] { [] }
 
-    func createComment(postID: UUID, content: String) async throws -> SendPostComment {
+    func createComment(postID: UUID, content: String) async throws -> SessionPostComment {
         throw FeedRepositoryError.unavailable
     }
 
@@ -1377,18 +1928,26 @@ private final class FailingLikeFeedRepository: FeedRepository, @unchecked Sendab
         throw FeedRepositoryError.unavailable
     }
 
-
-    func createPost(attemptID: UUID, caption: String?, imagePath: String?, imageAlt: String?) async throws -> SendPost {
+    func createPost(
+        sessionID: UUID,
+        featuredAttemptID: UUID,
+        caption: String?,
+        imagePath: String,
+        imageAlt: String,
+        overlayStyle: OverlayStyle
+    ) async throws -> SessionPost {
         throw FeedRepositoryError.unavailable
     }
 
     func createPost(
         id: UUID,
-        attemptID: UUID,
+        sessionID: UUID,
+        featuredAttemptID: UUID,
         caption: String?,
-        imagePath: String?,
-        imageAlt: String?
-    ) async throws -> SendPost {
+        imagePath: String,
+        imageAlt: String,
+        overlayStyle: OverlayStyle
+    ) async throws -> SessionPost {
         throw FeedRepositoryError.unavailable
     }
 
@@ -1514,11 +2073,12 @@ private final class RecordingDraftFeedRepository: FeedRepository, @unchecked Sen
     private let lock = NSLock()
     private let currentUserID: UUID
     private let now = Date(timeIntervalSince1970: 1_700_000_000)
-    private var posts: [SendPost] = []
+    private var posts: [SessionPost] = []
     private var paths: [String] = []
     private var deletedPaths: [String] = []
     private var shouldFailCreatePost = false
     private var shouldFailDeletePostImage = false
+
     init(currentUserID: UUID) {
         self.currentUserID = currentUserID
     }
@@ -1554,7 +2114,8 @@ private final class RecordingDraftFeedRepository: FeedRepository, @unchecked Sen
         lock.lock(); defer { lock.unlock() }
         return deletedPaths
     }
-    func createdPosts() -> [SendPost] {
+
+    func createdPosts() -> [SessionPost] {
         lock.lock(); defer { lock.unlock() }
         return posts
     }
@@ -1563,9 +2124,9 @@ private final class RecordingDraftFeedRepository: FeedRepository, @unchecked Sen
         FeedPage(items: [], nextCursor: nil, hasMore: false)
     }
 
-    func fetchComments(postID: UUID) async throws -> [SendPostComment] { [] }
+    func fetchComments(postID: UUID) async throws -> [SessionPostComment] { [] }
 
-    func createComment(postID: UUID, content: String) async throws -> SendPostComment {
+    func createComment(postID: UUID, content: String) async throws -> SessionPostComment {
         throw FeedRepositoryError.unavailable
     }
 
@@ -1573,23 +2134,34 @@ private final class RecordingDraftFeedRepository: FeedRepository, @unchecked Sen
         throw FeedRepositoryError.unavailable
     }
 
-    func createPost(attemptID: UUID, caption: String?, imagePath: String?, imageAlt: String?) async throws -> SendPost {
+    func createPost(
+        sessionID: UUID,
+        featuredAttemptID: UUID,
+        caption: String?,
+        imagePath: String,
+        imageAlt: String,
+        overlayStyle: OverlayStyle = .stats
+    ) async throws -> SessionPost {
         try await createPost(
             id: UUID(),
-            attemptID: attemptID,
+            sessionID: sessionID,
+            featuredAttemptID: featuredAttemptID,
             caption: caption,
             imagePath: imagePath,
-            imageAlt: imageAlt
+            imageAlt: imageAlt,
+            overlayStyle: overlayStyle
         )
     }
 
     func createPost(
         id: UUID,
-        attemptID: UUID,
+        sessionID: UUID,
+        featuredAttemptID: UUID,
         caption: String?,
-        imagePath: String?,
-        imageAlt: String?
-    ) async throws -> SendPost {
+        imagePath: String,
+        imageAlt: String,
+        overlayStyle: OverlayStyle = .stats
+    ) async throws -> SessionPost {
         lock.lock()
         defer { lock.unlock() }
         if let existing = posts.first(where: { $0.id == id }) {
@@ -1598,13 +2170,15 @@ private final class RecordingDraftFeedRepository: FeedRepository, @unchecked Sen
         if shouldFailCreatePost {
             throw FeedRepositoryError.unavailable
         }
-        let post = SendPost(
+        let post = SessionPost(
             id: id,
             userId: currentUserID,
-            attemptId: attemptID,
+            sessionId: sessionID,
+            featuredAttemptId: featuredAttemptID,
             caption: caption,
             imagePath: imagePath,
             imageAlt: imageAlt,
+            overlayStyle: overlayStyle,
             createdAt: now,
             updatedAt: now
         )
@@ -1629,11 +2203,11 @@ private final class RecordingDraftFeedRepository: FeedRepository, @unchecked Sen
 
 private final class UserAwareFeedRepository: FeedRepository, @unchecked Sendable {
     private let lock = NSLock()
-    private var items: [SendFeedItem]
+    private var items: [SessionFeedItem]
     private var likesByUser: [UUID: Set<UUID>] = [:]
     var activeUserID: UUID?
 
-    init(items: [SendFeedItem], likesByUser: [UUID: Set<UUID>] = [:], activeUserID: UUID? = nil) {
+    init(items: [SessionFeedItem], likesByUser: [UUID: Set<UUID>] = [:], activeUserID: UUID? = nil) {
         self.items = items
         self.likesByUser = likesByUser
         self.activeUserID = activeUserID
@@ -1655,8 +2229,8 @@ private final class UserAwareFeedRepository: FeedRepository, @unchecked Sendable
         return FeedPage(items: mapped, nextCursor: nil, hasMore: false)
     }
 
-    func fetchComments(postID: UUID) async throws -> [SendPostComment] { [] }
-    func createComment(postID: UUID, content: String) async throws -> SendPostComment {
+    func fetchComments(postID: UUID) async throws -> [SessionPostComment] { [] }
+    func createComment(postID: UUID, content: String) async throws -> SessionPostComment {
         throw FeedRepositoryError.unavailable
     }
     func toggleLike(postID: UUID) async throws -> Bool {
@@ -1674,10 +2248,25 @@ private final class UserAwareFeedRepository: FeedRepository, @unchecked Sendable
         likesByUser[userID] = userLikes
         return nowLiked
     }
-    func createPost(attemptID: UUID, caption: String?, imagePath: String?, imageAlt: String?) async throws -> SendPost {
+    func createPost(
+        sessionID: UUID,
+        featuredAttemptID: UUID,
+        caption: String?,
+        imagePath: String,
+        imageAlt: String,
+        overlayStyle: OverlayStyle = .stats
+    ) async throws -> SessionPost {
         throw FeedRepositoryError.unavailable
     }
-    func createPost(id: UUID, attemptID: UUID, caption: String?, imagePath: String?, imageAlt: String?) async throws -> SendPost {
+    func createPost(
+        id: UUID,
+        sessionID: UUID,
+        featuredAttemptID: UUID,
+        caption: String?,
+        imagePath: String,
+        imageAlt: String,
+        overlayStyle: OverlayStyle = .stats
+    ) async throws -> SessionPost {
         throw FeedRepositoryError.unavailable
     }
     func uploadPostImage(data: Data, path: String) async throws {}

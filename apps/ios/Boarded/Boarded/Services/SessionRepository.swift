@@ -1,6 +1,6 @@
 import Foundation
 
-protocol SessionRepository {
+protocol SessionRepository: Sendable {
     func fetchSessions(userID: UUID) async throws -> [ClimbingSession]
     func fetchAttempts(sessionID: UUID) async throws -> [ClimbAttempt]
     func upsertSession(_ session: ClimbingSession) async throws -> ClimbingSession
@@ -74,15 +74,11 @@ final class MockSessionRepository: SessionRepository, @unchecked Sendable {
 #if canImport(Supabase)
 import Supabase
 
-struct SupabaseSessionRepository: SessionRepository {
+struct SupabaseSessionRepository: SessionRepository, Sendable {
     private let client: SupabaseClient?
 
-    init(client: SupabaseClient?) {
+    init(client: SupabaseClient? = SupabaseClientProvider.client) {
         self.client = client
-    }
-
-    @MainActor init() {
-        self.init(client: SupabaseClientProvider.client)
     }
 
     func fetchSessions(userID: UUID) async throws -> [ClimbingSession] {

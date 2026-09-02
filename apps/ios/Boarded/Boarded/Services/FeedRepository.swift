@@ -1,18 +1,27 @@
 import Foundation
 
-protocol FeedRepository {
+protocol FeedRepository: Sendable {
     func fetchFeed(cursor: FeedCursor?, authorFilter: UUID?, pageSize: Int) async throws -> FeedPage
-    func fetchComments(postID: UUID) async throws -> [SendPostComment]
-    func createComment(postID: UUID, content: String) async throws -> SendPostComment
+    func fetchComments(postID: UUID) async throws -> [SessionPostComment]
+    func createComment(postID: UUID, content: String) async throws -> SessionPostComment
     func toggleLike(postID: UUID) async throws -> Bool
-    func createPost(attemptID: UUID, caption: String?, imagePath: String?, imageAlt: String?) async throws -> SendPost
+    func createPost(
+        sessionID: UUID,
+        featuredAttemptID: UUID,
+        caption: String?,
+        imagePath: String,
+        imageAlt: String,
+        overlayStyle: OverlayStyle
+    ) async throws -> SessionPost
     func createPost(
         id: UUID,
-        attemptID: UUID,
+        sessionID: UUID,
+        featuredAttemptID: UUID,
         caption: String?,
-        imagePath: String?,
-        imageAlt: String?
-    ) async throws -> SendPost
+        imagePath: String,
+        imageAlt: String,
+        overlayStyle: OverlayStyle
+    ) async throws -> SessionPost
     func uploadPostImage(data: Data, path: String) async throws
     func deletePostImage(path: String) async throws
 }
@@ -20,14 +29,14 @@ protocol FeedRepository {
 enum FeedRepositoryError: LocalizedError {
     case unavailable
     case notFound
-    case notSent
+    case invalidSession
     case unauthenticated
 
     var errorDescription: String? {
         switch self {
         case .unavailable: return "The feed is unavailable. Check your Supabase configuration."
         case .notFound: return "The post could not be found."
-        case .notSent: return "Only sent attempts can be shared."
+        case .invalidSession: return "Session post requires an ended session and valid featured attempt."
         case .unauthenticated: return "Sign in to interact with the feed."
         }
     }
@@ -37,10 +46,10 @@ enum FeedRepositoryError: LocalizedError {
 /// always uses SupabaseFeedRepository and surfaces configuration/network errors.
 final class MockFeedRepository: FeedRepository, @unchecked Sendable {
     private let lock = NSLock()
-    private var items: [SendFeedItem]
-    private var comments: [SendPostComment]
+    private var items: [SessionFeedItem]
+    private var comments: [SessionPostComment]
     private var likedPostIDs: Set<UUID>
-    private var posts: [SendPost] = []
+    private var posts: [SessionPost] = []
     private var uploadedImages: [String: Data] = [:]
 
     /// Deterministic identity and clock used by the fixture.
@@ -48,8 +57,8 @@ final class MockFeedRepository: FeedRepository, @unchecked Sendable {
     let now: Date
 
     init(
-        items: [SendFeedItem] = [],
-        comments: [SendPostComment] = [],
+        items: [SessionFeedItem] = [],
+        comments: [SessionPostComment] = [],
         likedPostIDs: Set<UUID> = [],
         currentUserID: UUID = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!,
         now: Date = Date(timeIntervalSince1970: 1_700_000_000)
@@ -82,16 +91,16 @@ final class MockFeedRepository: FeedRepository, @unchecked Sendable {
         return FeedPage(items: page, nextCursor: hasMore ? nextCursor : nil, hasMore: hasMore)
     }
 
-    func fetchComments(postID: UUID) async throws -> [SendPostComment] {
+    func fetchComments(postID: UUID) async throws -> [SessionPostComment] {
         lock.lock(); defer { lock.unlock() }
         return comments
             .filter { $0.postId == postID }
             .sorted { $0.createdAt < $1.createdAt }
     }
 
-    func createComment(postID: UUID, content: String) async throws -> SendPostComment {
+    func createComment(postID: UUID, content: String) async throws -> SessionPostComment {
         lock.lock(); defer { lock.unlock() }
-        let comment = SendPostComment(
+        let comment = SessionPostComment(
             id: UUID(),
             postId: postID,
             userId: currentUserID,
@@ -120,34 +129,47 @@ final class MockFeedRepository: FeedRepository, @unchecked Sendable {
         return nowLiked
     }
 
-    func createPost(attemptID: UUID, caption: String?, imagePath: String?, imageAlt: String?) async throws -> SendPost {
+    func createPost(
+        sessionID: UUID,
+        featuredAttemptID: UUID,
+        caption: String?,
+        imagePath: String,
+        imageAlt: String,
+        overlayStyle: OverlayStyle = .stats
+    ) async throws -> SessionPost {
         try await createPost(
             id: UUID(),
-            attemptID: attemptID,
+            sessionID: sessionID,
+            featuredAttemptID: featuredAttemptID,
             caption: caption,
             imagePath: imagePath,
-            imageAlt: imageAlt
+            imageAlt: imageAlt,
+            overlayStyle: overlayStyle
         )
     }
 
     func createPost(
         id: UUID,
-        attemptID: UUID,
+        sessionID: UUID,
+        featuredAttemptID: UUID,
         caption: String?,
-        imagePath: String?,
-        imageAlt: String?
-    ) async throws -> SendPost {
+        imagePath: String,
+        imageAlt: String,
+        overlayStyle: OverlayStyle = .stats
+    ) async throws -> SessionPost {
         lock.lock(); defer { lock.unlock() }
         if let existing = posts.first(where: { $0.id == id }) {
             return existing
         }
-        let post = SendPost(
+        let post = SessionPost(
             id: id,
             userId: currentUserID,
-            attemptId: attemptID,
+            sessionId: sessionID,
+            featuredAttemptId: featuredAttemptID,
             caption: caption,
             imagePath: imagePath,
             imageAlt: imageAlt,
+            overlayStyle: overlayStyle,
             createdAt: now,
             updatedAt: now
         )
@@ -174,15 +196,11 @@ final class MockFeedRepository: FeedRepository, @unchecked Sendable {
 #if canImport(Supabase)
 import Supabase
 
-struct SupabaseFeedRepository: FeedRepository {
+struct SupabaseFeedRepository: FeedRepository, Sendable {
     private let client: SupabaseClient?
 
-    init(client: SupabaseClient?) {
+    init(client: SupabaseClient? = SupabaseClientProvider.client) {
         self.client = client
-    }
-
-    @MainActor init() {
-        self.init(client: SupabaseClientProvider.client)
     }
 
     func fetchFeed(cursor: FeedCursor?, authorFilter: UUID?, pageSize: Int) async throws -> FeedPage {
@@ -193,7 +211,7 @@ struct SupabaseFeedRepository: FeedRepository {
             author_filter: authorFilter,
             page_size: min(max(pageSize, 1), 50)
         )
-        let items: [SendFeedItem] = try await client.rpc("get_send_feed", params: params)
+        let items: [SessionFeedItem] = try await client.rpc("get_session_feed", params: params)
             .execute()
             .value
         let hasMore = items.count == params.page_size
@@ -201,9 +219,9 @@ struct SupabaseFeedRepository: FeedRepository {
         return FeedPage(items: items, nextCursor: hasMore ? nextCursor : nil, hasMore: hasMore)
     }
 
-    func fetchComments(postID: UUID) async throws -> [SendPostComment] {
+    func fetchComments(postID: UUID) async throws -> [SessionPostComment] {
         guard let client else { throw FeedRepositoryError.unavailable }
-        return try await client.from("send_post_comments")
+        return try await client.from("session_post_comments")
             .select("*")
             .eq("post_id", value: postID.uuidString)
             .order("created_at", ascending: true)
@@ -211,11 +229,11 @@ struct SupabaseFeedRepository: FeedRepository {
             .value
     }
 
-    func createComment(postID: UUID, content: String) async throws -> SendPostComment {
+    func createComment(postID: UUID, content: String) async throws -> SessionPostComment {
         guard let client else { throw FeedRepositoryError.unavailable }
         let userID = try await client.auth.session.user.id
         let payload = CommentInsert(post_id: postID, user_id: userID, content: content)
-        let rows: [SendPostComment] = try await client.from("send_post_comments")
+        let rows: [SessionPostComment] = try await client.from("session_post_comments")
             .insert(payload)
             .select("*")
             .execute()
@@ -227,7 +245,7 @@ struct SupabaseFeedRepository: FeedRepository {
     func toggleLike(postID: UUID) async throws -> Bool {
         guard let client else { throw FeedRepositoryError.unavailable }
         let userID = try await client.auth.session.user.id
-        let existing: [SendPostLike] = try await client.from("send_post_likes")
+        let existing: [SessionPostLike] = try await client.from("session_post_likes")
             .select("*")
             .eq("post_id", value: postID.uuidString)
             .eq("user_id", value: userID.uuidString)
@@ -235,12 +253,12 @@ struct SupabaseFeedRepository: FeedRepository {
             .execute()
             .value
         if existing.isEmpty {
-            _ = try await client.from("send_post_likes")
+            _ = try await client.from("session_post_likes")
                 .insert(LikeInsert(post_id: postID, user_id: userID))
                 .execute()
             return true
         } else {
-            _ = try await client.from("send_post_likes")
+            _ = try await client.from("session_post_likes")
                 .delete()
                 .eq("post_id", value: postID.uuidString)
                 .eq("user_id", value: userID.uuidString)
@@ -249,34 +267,47 @@ struct SupabaseFeedRepository: FeedRepository {
         }
     }
 
-    func createPost(attemptID: UUID, caption: String?, imagePath: String?, imageAlt: String?) async throws -> SendPost {
+    func createPost(
+        sessionID: UUID,
+        featuredAttemptID: UUID,
+        caption: String?,
+        imagePath: String,
+        imageAlt: String,
+        overlayStyle: OverlayStyle = .stats
+    ) async throws -> SessionPost {
         try await createPost(
             id: UUID(),
-            attemptID: attemptID,
+            sessionID: sessionID,
+            featuredAttemptID: featuredAttemptID,
             caption: caption,
             imagePath: imagePath,
-            imageAlt: imageAlt
+            imageAlt: imageAlt,
+            overlayStyle: overlayStyle
         )
     }
 
     func createPost(
         id: UUID,
-        attemptID: UUID,
+        sessionID: UUID,
+        featuredAttemptID: UUID,
         caption: String?,
-        imagePath: String?,
-        imageAlt: String?
-    ) async throws -> SendPost {
+        imagePath: String,
+        imageAlt: String,
+        overlayStyle: OverlayStyle = .stats
+    ) async throws -> SessionPost {
         guard let client else { throw FeedRepositoryError.unavailable }
         let userID = try await client.auth.session.user.id
         let payload = PostInsert(
             id: id,
             user_id: userID,
-            attempt_id: attemptID,
+            session_id: sessionID,
+            featured_attempt_id: featuredAttemptID,
             caption: caption,
             image_path: imagePath,
-            image_alt: imageAlt
+            image_alt: imageAlt,
+            overlay_style: overlayStyle.rawValue
         )
-        let rows: [SendPost] = try await client.from("send_posts")
+        let rows: [SessionPost] = try await client.from("session_posts")
             .upsert(payload, onConflict: "id")
             .select("*")
             .execute()
@@ -307,6 +338,7 @@ struct SupabaseFeedRepository: FeedRepository {
             .remove(paths: [path])
     }
 }
+
 private struct FeedParameters: Encodable {
     let before_created_at: Date?
     let before_id: UUID?
@@ -328,9 +360,11 @@ private struct LikeInsert: Encodable {
 private struct PostInsert: Encodable {
     let id: UUID
     let user_id: UUID
-    let attempt_id: UUID
+    let session_id: UUID
+    let featured_attempt_id: UUID
     let caption: String?
-    let image_path: String?
-    let image_alt: String?
+    let image_path: String
+    let image_alt: String
+    let overlay_style: String
 }
 #endif
