@@ -38,16 +38,16 @@
 		CC1100102F5D000100535751 /* PendingModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC11000F2F5D000100535751 /* PendingModels.swift */; };
 		CC1100122F5D000100535751 /* HomeFeedViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC1100112F5D000100535751 /* HomeFeedViewModel.swift */; };
 		CC1100142F5D000100535751 /* SessionLoggerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC1100132F5D000100535751 /* SessionLoggerViewModel.swift */; };
-		CC1100162F5D000100535751 /* PostDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC1100152F5D000100535751 /* PostDetailViewModel.swift */; };
+		CC1100162F5D000100535751 /* SessionPostDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC1100152F5D000100535751 /* SessionPostDetailViewModel.swift */; };
 		CC1100182F5D000100535751 /* MeetupsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC1100172F5D000100535751 /* MeetupsViewModel.swift */; };
 		DD0000022F70000100535751 /* Formatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001022F70000100535751 /* Formatting.swift */; };
 		DD0000032F70000100535751 /* AuthenticationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001032F70000100535751 /* AuthenticationView.swift */; };
-		DD0000042F70000100535751 /* SendPostCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001042F70000100535751 /* SendPostCard.swift */; };
+		DD0000042F70000100535751 /* SessionPostCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001042F70000100535751 /* SessionPostCard.swift */; };
 		DD0000052F70000100535751 /* HomeFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001052F70000100535751 /* HomeFeedView.swift */; };
-		DD0000062F70000100535751 /* PostDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001062F70000100535751 /* PostDetailView.swift */; };
+		DD0000062F70000100535751 /* SessionPostDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001062F70000100535751 /* SessionPostDetailView.swift */; };
 		DD0000072F70000100535751 /* ActiveSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001072F70000100535751 /* ActiveSessionStore.swift */; };
 		DD0000082F70000100535751 /* LogViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001082F70000100535751 /* LogViews.swift */; };
-		DD0000092F70000100535751 /* ShareSendComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001092F70000100535751 /* ShareSendComposer.swift */; };
+		DD0000092F70000100535751 /* ShareSessionComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001092F70000100535751 /* ShareSessionComposer.swift */; };
 		DD00000A2F70000100535751 /* MeetupViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00010A2F70000100535751 /* MeetupViews.swift */; };
 		DD00000B2F70000100535751 /* ProfileViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00010B2F70000100535751 /* ProfileViews.swift */; };
 		DD00000C2F70000100535751 /* UITestFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD00010C2F70000100535751 /* UITestFixtures.swift */; };
@@ -99,16 +99,16 @@
 		CC11000F2F5D000100535751 /* PendingModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingModels.swift; sourceTree = "<group>"; };
 		CC1100112F5D000100535751 /* HomeFeedViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeFeedViewModel.swift; sourceTree = "<group>"; };
 		CC1100132F5D000100535751 /* SessionLoggerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionLoggerViewModel.swift; sourceTree = "<group>"; };
-		CC1100152F5D000100535751 /* PostDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostDetailViewModel.swift; sourceTree = "<group>"; };
+		CC1100152F5D000100535751 /* SessionPostDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionPostDetailViewModel.swift; sourceTree = "<group>"; };
 		CC1100172F5D000100535751 /* MeetupsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetupsViewModel.swift; sourceTree = "<group>"; };
 		DD0001022F70000100535751 /* Formatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Formatting.swift; path = Shared/Formatting.swift; sourceTree = "<group>"; };
 		DD0001032F70000100535751 /* AuthenticationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AuthenticationView.swift; path = Auth/AuthenticationView.swift; sourceTree = "<group>"; };
-		DD0001042F70000100535751 /* SendPostCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SendPostCard.swift; path = Home/SendPostCard.swift; sourceTree = "<group>"; };
+		DD0001042F70000100535751 /* SessionPostCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SessionPostCard.swift; path = Home/SessionPostCard.swift; sourceTree = "<group>"; };
 		DD0001052F70000100535751 /* HomeFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = HomeFeedView.swift; path = Home/HomeFeedView.swift; sourceTree = "<group>"; };
-		DD0001062F70000100535751 /* PostDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PostDetailView.swift; path = Home/PostDetailView.swift; sourceTree = "<group>"; };
+		DD0001062F70000100535751 /* SessionPostDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SessionPostDetailView.swift; path = Home/SessionPostDetailView.swift; sourceTree = "<group>"; };
 		DD0001072F70000100535751 /* ActiveSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ActiveSessionStore.swift; path = Log/ActiveSessionStore.swift; sourceTree = "<group>"; };
 		DD0001082F70000100535751 /* LogViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LogViews.swift; path = Log/LogViews.swift; sourceTree = "<group>"; };
-		DD0001092F70000100535751 /* ShareSendComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ShareSendComposer.swift; path = Share/ShareSendComposer.swift; sourceTree = "<group>"; };
+		DD0001092F70000100535751 /* ShareSessionComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ShareSessionComposer.swift; path = Share/ShareSessionComposer.swift; sourceTree = "<group>"; };
 		DD00010A2F70000100535751 /* MeetupViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MeetupViews.swift; path = Meetups/MeetupViews.swift; sourceTree = "<group>"; };
 		DD00010B2F70000100535751 /* ProfileViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ProfileViews.swift; path = Profile/ProfileViews.swift; sourceTree = "<group>"; };
 		DD00010C2F70000100535751 /* UITestFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = UITestFixtures.swift; path = UITestFixtures.swift; sourceTree = "<group>"; };
@@ -215,12 +215,12 @@
 				3CDD08EB2F5A072900535751 /* Shared */,
 				DD0001022F70000100535751 /* Formatting.swift */,
 				DD0001032F70000100535751 /* AuthenticationView.swift */,
-				DD0001042F70000100535751 /* SendPostCard.swift */,
+				DD0001042F70000100535751 /* SessionPostCard.swift */,
 				DD0001052F70000100535751 /* HomeFeedView.swift */,
-				DD0001062F70000100535751 /* PostDetailView.swift */,
+				DD0001062F70000100535751 /* SessionPostDetailView.swift */,
 				DD0001072F70000100535751 /* ActiveSessionStore.swift */,
 				DD0001082F70000100535751 /* LogViews.swift */,
-				DD0001092F70000100535751 /* ShareSendComposer.swift */,
+				DD0001092F70000100535751 /* ShareSessionComposer.swift */,
 				DD00010A2F70000100535751 /* MeetupViews.swift */,
 				DD00010B2F70000100535751 /* ProfileViews.swift */,
 			);
@@ -234,7 +234,7 @@
 				3CDD08F72F5A0A0300535751 /* AppSession.swift */,
 				CC1100112F5D000100535751 /* HomeFeedViewModel.swift */,
 				CC1100132F5D000100535751 /* SessionLoggerViewModel.swift */,
-				CC1100152F5D000100535751 /* PostDetailViewModel.swift */,
+				CC1100152F5D000100535751 /* SessionPostDetailViewModel.swift */,
 				CC1100172F5D000100535751 /* MeetupsViewModel.swift */,
 			);
 			path = ViewModels;
@@ -401,16 +401,16 @@
 				CC1100102F5D000100535751 /* PendingModels.swift in Sources */,
 				CC1100122F5D000100535751 /* HomeFeedViewModel.swift in Sources */,
 				CC1100142F5D000100535751 /* SessionLoggerViewModel.swift in Sources */,
-				CC1100162F5D000100535751 /* PostDetailViewModel.swift in Sources */,
+				CC1100162F5D000100535751 /* SessionPostDetailViewModel.swift in Sources */,
 				CC1100182F5D000100535751 /* MeetupsViewModel.swift in Sources */,
 				DD0000022F70000100535751 /* Formatting.swift in Sources */,
 				DD0000032F70000100535751 /* AuthenticationView.swift in Sources */,
-				DD0000042F70000100535751 /* SendPostCard.swift in Sources */,
+				DD0000042F70000100535751 /* SessionPostCard.swift in Sources */,
 				DD0000052F70000100535751 /* HomeFeedView.swift in Sources */,
-				DD0000062F70000100535751 /* PostDetailView.swift in Sources */,
+				DD0000062F70000100535751 /* SessionPostDetailView.swift in Sources */,
 				DD0000072F70000100535751 /* ActiveSessionStore.swift in Sources */,
 				DD0000082F70000100535751 /* LogViews.swift in Sources */,
-				DD0000092F70000100535751 /* ShareSendComposer.swift in Sources */,
+				DD0000092F70000100535751 /* ShareSessionComposer.swift in Sources */,
 				DD00000A2F70000100535751 /* MeetupViews.swift in Sources */,
 				DD00000B2F70000100535751 /* ProfileViews.swift in Sources */,
 				DD00000C2F70000100535751 /* UITestFixtures.swift in Sources */,

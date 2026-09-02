@@ -280,7 +280,7 @@ struct ShareDiscardRecoveryState: Equatable {
     var showsPublishedSuccess: Bool { false }
 }
 
-struct ShareSendComposer: View {
+struct ShareSessionComposer: View {
     @EnvironmentObject private var session: AppSession
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
@@ -663,12 +663,12 @@ struct ShareSendComposer: View {
         error = nil; progress = 0.2
         Task { @MainActor in
             do {
-                let data = try SendImageProcessor.artworkJPEG(
+                let data = try SessionArtworkProcessor.artworkJPEG(
                     image: image,
                     imageAlt: draft.imageAlt,
                     model: artworkModel
                 )
-                let sourceData = try SendImageProcessor.sourceJPEG(image)
+                let sourceData = try SessionArtworkProcessor.sourceJPEG(image)
                 progress = 0.55
                 let pending: PendingSessionDraft
                 if let existing = pendingDraft ?? pendingDraft(for: sessionID) {
@@ -819,7 +819,7 @@ struct PhotoCropView: View {
                     }.frame(width: proxy.size.width, height: proxy.size.width * 2 / 3).clipShape(AppRadius.card()).position(x: proxy.size.width / 2, y: proxy.size.height / 2)
                 }.accessibilityIdentifier("photo-crop")
                 ViewThatFits { HStack(spacing: AppSpacing.space8) { cropControls }; VStack(spacing: AppSpacing.space8) { cropControls } }.padding(.horizontal, AppLayout.screenMargin)
-            }.navigationTitle("Crop 3:2").toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }; ToolbarItem(placement: .confirmationAction) { Button("Use Photo") { completion(SendImageProcessor.crop(image, scale: scale, offset: offset)) } } }.boardedPageBackground()
+            }.navigationTitle("Crop 3:2").toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }; ToolbarItem(placement: .confirmationAction) { Button("Use Photo") { completion(SessionArtworkProcessor.crop(image, scale: scale, offset: offset)) } } }.boardedPageBackground()
         }
     }
     @ViewBuilder private var cropControls: some View {
@@ -828,7 +828,7 @@ struct PhotoCropView: View {
     private func move(x: CGFloat, y: CGFloat) { offset.width += x * AppSpacing.space16; offset.height += y * AppSpacing.space16; dragStart = offset }
 }
 
-enum SendImageProcessor {
+enum SessionArtworkProcessor {
     static func crop(_ image: UIImage, scale: CGFloat, offset: CGSize) -> UIImage {
         guard let source = image.cgImage else { return image }; let width = CGFloat(source.width); let height = CGFloat(source.height); let baseWidth = min(width, height * 1.5); let baseHeight = baseWidth / 1.5; let cropWidth = baseWidth / max(1, scale); let cropHeight = baseHeight / max(1, scale); let travelX = max(0, width - cropWidth); let travelY = max(0, height - cropHeight); let centerX = width / 2 - offset.width / 300 * travelX; let centerY = height / 2 - offset.height / 300 * travelY; let originX = min(max(0, centerX - cropWidth / 2), width - cropWidth); let originY = min(max(0, centerY - cropHeight / 2), height - cropHeight); guard let cropped = source.cropping(to: CGRect(x: originX, y: originY, width: cropWidth, height: cropHeight)) else { return image }; return UIImage(cgImage: cropped, scale: image.scale, orientation: image.imageOrientation)
     }

@@ -53,7 +53,7 @@ struct HomeFeedView: View {
             }
         }
         .sheet(isPresented: $composerPresented) {
-            ShareSendComposer()
+            ShareSessionComposer()
         }
         .sheet(isPresented: $authenticationPresented) {
             NavigationStack { AuthenticationView() }
@@ -67,7 +67,7 @@ struct HomeFeedView: View {
             )
         )
         .navigationDestination(for: SessionFeedItem.self) { item in
-            PostDetailView(item: item)
+            SessionPostDetailView(item: item)
         }
         .onAppear {
             refreshActiveSession()
@@ -162,7 +162,7 @@ struct HomeFeedView: View {
         LazyVStack(spacing: AppLayout.cardGap) {
             ForEach(viewModel.items) { item in
                 NavigationLink(value: item) {
-                    SendPostCard(item: item) {
+                    SessionPostCard(item: item) {
                         guard auth.isAuthenticated else {
                             auth.requestAuthentication()
                             return

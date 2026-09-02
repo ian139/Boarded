@@ -193,7 +193,7 @@ struct ProfileView: View {
                     .font(AppTypography.bodyM)
                     .foregroundStyle(AppColor.textSecondary)
             } else {
-                ForEach(model.posts) { SendPostCard(item: $0, showsActions: false) }
+                ForEach(model.posts) { SessionPostCard(item: $0, showsActions: false) }
             }
         }
     }

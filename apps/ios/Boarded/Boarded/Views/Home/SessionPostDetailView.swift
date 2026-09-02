@@ -2,10 +2,10 @@ import SwiftUI
 
 /// Session journal detail with its opaque comment thread. Guests can read;
 /// commenting and reactions require an account.
-struct PostDetailView: View {
+struct SessionPostDetailView: View {
     @EnvironmentObject private var session: AppSession
     @Environment(\.boardedAuth) private var auth
-    @StateObject private var viewModel: PostDetailViewModel
+    @StateObject private var viewModel: SessionPostDetailViewModel
     @State private var likeCount: Int
     @State private var isLiked: Bool
     @State private var isTogglingLike = false
@@ -16,7 +16,7 @@ struct PostDetailView: View {
     init(item: SessionFeedItem, repository: any FeedRepository = AppServices.feedRepository) {
         self.item = item
         self.repository = repository
-        _viewModel = StateObject(wrappedValue: PostDetailViewModel(repository: repository, postID: item.id, post: item))
+        _viewModel = StateObject(wrappedValue: SessionPostDetailViewModel(repository: repository, postID: item.id, post: item))
         _likeCount = State(initialValue: item.likeCount)
         _isLiked = State(initialValue: item.isLiked)
     }
@@ -24,7 +24,7 @@ struct PostDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: AppSpacing.space16) {
-                SendPostCard(item: current) {
+                SessionPostCard(item: current) {
                     toggleLike()
                 }
                 commentsSection

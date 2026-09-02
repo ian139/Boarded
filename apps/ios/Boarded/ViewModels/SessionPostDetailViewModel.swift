@@ -2,7 +2,7 @@ import Foundation
 import Combine
 
 @MainActor
-final class PostDetailViewModel: ObservableObject {
+final class SessionPostDetailViewModel: ObservableObject {
     @Published private(set) var post: SessionFeedItem?
     @Published private(set) var comments: [SessionPostComment] = []
     @Published private(set) var isLoading = false

@@ -306,7 +306,7 @@ struct SessionResultView: View {
                 }
             }
             .sheet(isPresented: $share) {
-                ShareSendComposer(
+                ShareSessionComposer(
                     initialSessionID: summary.sessionID,
                     featuredAttemptID: featuredAttempt?.id,
                     image: selectedImage,

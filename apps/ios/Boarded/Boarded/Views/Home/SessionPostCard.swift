@@ -8,7 +8,7 @@ enum FeedImageURL {
     }
 }
 
-struct SendPostCard: View {
+struct SessionPostCard: View {
     let item: SessionFeedItem
     var onLike: () -> Void = {}
     var showsActions = true
