@@ -73,20 +73,19 @@ struct ActiveSessionView: View {
             BoardedSyncBanner(isOffline: !syncService.isOnline, state: syncService.state) { Task { await logger.retrySync() } }
             if let session = logger.activeSession {
                 BoardedEyebrow(text: "Active Session"); Text(session.venueName).font(AppTypography.titleL)
-                BoardedFloatingRail {
-                    VStack(alignment: .leading, spacing: AppSpacing.space8) {
-                        TimelineView(.periodic(from: .now, by: 1)) { value in
-                            Text(BoardedFormat.duration(value.date.timeIntervalSince(session.startedAt)))
-                                .font(AppTypography.dataL)
-                                .foregroundStyle(AppColor.accentDefault)
-                                .accessibilityLabel("Elapsed time")
-                        }
-                        BoardedPrimaryButton(title: "Log Attempt", systemImage: "plus") {
-                            outcomeSheet = true
-                        }
-                        .accessibilityIdentifier("log-attempt")
+                VStack(alignment: .leading, spacing: AppSpacing.space8) {
+                    TimelineView(.periodic(from: .now, by: 1)) { value in
+                        Text(BoardedFormat.duration(value.date.timeIntervalSince(session.startedAt)))
+                            .font(AppTypography.dataL)
+                            .foregroundStyle(AppColor.accentDefault)
+                            .accessibilityLabel("Elapsed time")
                     }
+                    BoardedPrimaryButton(title: "Log Attempt", systemImage: "plus") {
+                        outcomeSheet = true
+                    }
+                    .accessibilityIdentifier("log-attempt")
                 }
+                .boardedPanel()
                 queue; Button("End Session") { confirmEnd = true }.buttonStyle(BoardedButtonStyle(.destructive))
             }
         }.padding(AppLayout.screenMargin) }.boardedPageBackground()
