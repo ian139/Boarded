@@ -90,7 +90,7 @@ struct AuthenticationView: View {
                 .font(AppTypography.displayM)
                 .foregroundStyle(AppColor.textPrimary)
             Text(mode == .signIn
-                 ? "Sign in to log sessions and share sends."
+                 ? "Sign in to log sessions and share journal entries."
                  : "Create an account to keep a climbing journal.")
                 .font(AppTypography.bodyL)
                 .foregroundStyle(AppColor.textSecondary)

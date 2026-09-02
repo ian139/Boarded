@@ -3,6 +3,183 @@ import PhotosUI
 import SwiftData
 import UIKit
 
+struct SessionArtworkAttempt: Equatable, Identifiable {
+    let number: Int
+    let outcome: AttemptOutcome
+    var id: Int { number }
+}
+
+struct SessionArtworkModel: Equatable {
+    let venue: String
+    let duration: TimeInterval
+    let attemptCount: Int
+    let sendCount: Int
+    let featuredRoute: String
+    let featuredGrade: String
+    let outcome: AttemptOutcome
+    let featuredAttemptNumber: Int
+    let overlayStyle: OverlayStyle
+    var attemptOutcomes: [SessionArtworkAttempt] = []
+}
+
+struct SessionArtworkView: View {
+    enum Presentation { case screen, export }
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    let image: Image
+    let imageAlt: String
+    let model: SessionArtworkModel
+    var presentation: Presentation = .screen
+    var forcesOpaqueContinuation = false
+
+    private var usesContinuation: Bool {
+        (presentation == .screen && dynamicTypeSize.isAccessibilitySize) || forcesOpaqueContinuation
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ZStack(alignment: .bottom) {
+                image.resizable().scaledToFill()
+                    .aspectRatio(usesContinuation ? 3.2 : 3.0 / 2.0, contentMode: .fit)
+                    .clipped()
+                    .accessibilityLabel(imageAlt)
+                if !usesContinuation {
+                    LinearGradient(
+                        colors: [.clear, AppColor.backgroundBase.opacity(presentation == .export ? 0.88 : 0.82)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ).accessibilityHidden(true)
+                    SessionArtworkFacts(model: model, usesMaterial: presentation == .screen)
+                        .padding(AppSpacing.space12)
+                }
+                if presentation == .export {
+                    LinearGradient(
+                        colors: [AppColor.backgroundBase.opacity(0.72), .clear],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 96)
+                    .frame(maxHeight: .infinity, alignment: .top)
+                    .accessibilityHidden(true)
+                    Text("Boarded")
+                        .font(AppTypography.titleM)
+                        .foregroundStyle(AppColor.textPrimary)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                        .padding(AppSpacing.space16)
+                        .accessibilityHidden(true)
+                }
+            }
+            if usesContinuation { SessionArtworkFacts(model: model, opaque: true) }
+        }
+        .background(AppColor.backgroundBase)
+        .clipShape(AppRadius.card())
+        .overlay { AppRadius.card().stroke(AppColor.strokeSubtle, lineWidth: AppStroke.hairline) }
+        .accessibilityElement(children: .contain)
+    }
+}
+
+struct CanonicalSessionArtworkPreview: View {
+    let image: UIImage
+    let imageAlt: String
+    let model: SessionArtworkModel
+
+    var body: some View {
+        GeometryReader { proxy in
+            let scale = min(proxy.size.width / 402, proxy.size.height / 268)
+            SessionArtworkView(
+                image: Image(uiImage: image),
+                imageAlt: imageAlt,
+                model: model,
+                presentation: .export
+            )
+            .environment(\.dynamicTypeSize, .large)
+            .frame(width: 402, height: 268)
+            .scaleEffect(scale, anchor: .topLeading)
+        }
+        .aspectRatio(402.0 / 268.0, contentMode: .fit)
+        .accessibilityIdentifier("canonical-session-artwork-preview")
+    }
+}
+
+struct SessionArtworkFacts: View {
+    let model: SessionArtworkModel
+    var opaque = false
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    var usesMaterial = true
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.space12) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(model.venue).font(AppTypography.titleM).fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: AppSpacing.space8)
+                Label(model.outcome.title, systemImage: model.outcome.systemImage)
+                    .font(AppTypography.labelM)
+                    .foregroundStyle(model.outcome == .sent ? AppColor.accentDefault : AppColor.textPrimary)
+            }
+            if model.overlayStyle == .attemptTimeline {
+                Group {
+                    if dynamicTypeSize.isAccessibilitySize {
+                        VStack(alignment: .leading, spacing: AppSpacing.space8) { timelineItems }
+                    } else {
+                        HStack(spacing: AppSpacing.space8) { timelineItems }
+                    }
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(timelineSummary)
+                .accessibilityIdentifier("session-attempt-timeline")
+            }
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: AppSpacing.space8) { facts }
+            } else {
+                HStack(spacing: AppSpacing.space16) { facts }
+            }
+            Text("\(model.featuredGrade) · \(model.featuredRoute)")
+                .font(AppTypography.labelL).fixedSize(horizontal: false, vertical: true)
+        }
+        .foregroundStyle(AppColor.textPrimary)
+        .padding(AppSpacing.space16)
+        .background(opaque ? AppColor.surfaceCard : Color.clear)
+        .modifier(SessionArtworkShelfMaterial(enabled: !opaque && usesMaterial))
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier(opaque ? "session-facts-continuation" : "session-facts-overlay")
+    }
+    private var timelineAttempts: [SessionArtworkAttempt] {
+        if !model.attemptOutcomes.isEmpty {
+            return model.attemptOutcomes.sorted { $0.number < $1.number }
+        }
+        return [SessionArtworkAttempt(number: model.featuredAttemptNumber, outcome: model.outcome)]
+    }
+
+    @ViewBuilder private var timelineItems: some View {
+        ForEach(timelineAttempts) { attempt in
+            Label(
+                "\(attempt.number) \(attempt.outcome.title)",
+                systemImage: attempt.outcome.systemImage
+            )
+            .font(AppTypography.caption)
+            .foregroundStyle(attempt.outcome == .sent ? AppColor.accentDefault : AppColor.textPrimary)
+        }
+    }
+
+    private var timelineSummary: String {
+        timelineAttempts.map { "Attempt \($0.number), \($0.outcome.title)" }.joined(separator: "; ")
+    }
+
+    @ViewBuilder private var facts: some View {
+        Label(BoardedFormat.duration(model.duration), systemImage: "clock")
+        Label("\(model.attemptCount) attempts", systemImage: "number")
+        Label("\(model.sendCount) sends", systemImage: "checkmark.circle")
+            .accessibilityIdentifier("session-result-sends")
+    }
+}
+
+private struct SessionArtworkShelfMaterial: ViewModifier {
+    let enabled: Bool
+    func body(content: Content) -> some View {
+        if enabled { content.boardedMaterial(.sessionFactShelf, in: AppRadius.card()) } else { content }
+    }
+}
+
 struct ShareDraft: Equatable {
     var sessionID: UUID?
     var featuredAttemptID: UUID?
@@ -16,6 +193,7 @@ struct ShareSendComposer: View {
     @EnvironmentObject private var session: AppSession
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var draft = ShareDraft()
     @State private var picker: PhotosPickerItem?
     @State private var cropImage: UIImage?
@@ -29,8 +207,8 @@ struct ShareSendComposer: View {
     @State private var replaceDraftPresented = false
 
 
-    init(initialSessionID: UUID? = nil) {
-        _draft = State(initialValue: ShareDraft(sessionID: initialSessionID))
+    init(initialSessionID: UUID? = nil, featuredAttemptID: UUID? = nil, image: UIImage? = nil, imageAlt: String = "") {
+        _draft = State(initialValue: ShareDraft(sessionID: initialSessionID, featuredAttemptID: featuredAttemptID, imageAlt: imageAlt, image: image))
     }
     private var sessions: [PendingSession] { ActiveSessionStore.completedSessions(userID: session.userId, in: context) }
     private var attempts: [PendingAttempt] {
@@ -39,6 +217,21 @@ struct ShareSendComposer: View {
     }
     private var selectedSession: PendingSession? { sessions.first { $0.id == draft.sessionID } }
     private var selectedAttempt: PendingAttempt? { attempts.first { $0.id == draft.featuredAttemptID } }
+    private var artworkModel: SessionArtworkModel? {
+        guard let selectedSession, let selectedAttempt else { return nil }
+        return SessionArtworkModel(
+            venue: selectedSession.venueName,
+            duration: (selectedSession.endedAt ?? selectedSession.startedAt).timeIntervalSince(selectedSession.startedAt),
+            attemptCount: attempts.count,
+            sendCount: attempts.filter { $0.outcome == .sent }.count,
+            featuredRoute: selectedAttempt.routeName,
+            featuredGrade: selectedAttempt.gradeLabel,
+            outcome: selectedAttempt.outcome,
+            featuredAttemptNumber: selectedAttempt.attemptNumber,
+            overlayStyle: draft.overlayStyle,
+            attemptOutcomes: attempts.map { SessionArtworkAttempt(number: $0.attemptNumber, outcome: $0.outcome) }
+        )
+    }
 
     var body: some View {
         NavigationStack {
@@ -51,7 +244,13 @@ struct ShareSendComposer: View {
             .boardedPageBackground()
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } } }
         }
-        .task { if let userID = session.userId { sync = AppServices.makeSessionSyncService(modelContext: context, userID: userID); restoreNewestDraft() } }
+        .task {
+            if let userID = session.userId {
+                sync = AppServices.makeSessionSyncService(modelContext: context, userID: userID)
+                restoreDraft()
+                seedFixtureIfNeeded()
+            }
+        }
         .onChange(of: picker) { _, value in
             Task { if let data = try? await value?.loadTransferable(type: Data.self), let image = UIImage(data: data) { cropImage = image; cropPresented = true } }
         }
@@ -60,7 +259,13 @@ struct ShareSendComposer: View {
             Button("Keep Draft", role: .cancel) {}
         } message: { Text("Your saved session draft will be deleted before starting another.") }
         .sheet(isPresented: $cropPresented) {
-            if let cropImage { PhotoCropView(image: cropImage) { draft.image = $0; cropPresented = false } }
+            if let cropImage {
+                PhotoCropView(image: cropImage) {
+                    draft.image = $0
+                    draft.imageAlt = ""
+                    cropPresented = false
+                }
+            }
         }
     }
 
@@ -68,7 +273,7 @@ struct ShareSendComposer: View {
         Group {
             BoardedEyebrow(text: "Completed Session")
             if sessions.isEmpty {
-                BoardedRouteLineEmptyState(title: "No completed session yet", message: "End a session before adding it to your journal.")
+                BoardedEmptyState(title: "No completed session yet", message: "End a session before adding it to your journal.")
             } else {
                 Picker("Completed session", selection: Binding(get: { draft.sessionID }, set: selectSession)) {
                     Text("Choose a session").tag(UUID?.none)
@@ -101,20 +306,33 @@ struct ShareSendComposer: View {
         }
     }
 
+    @ViewBuilder private var previewArtwork: some View {
+        if let image = draft.image, let artworkModel {
+            if dynamicTypeSize.isAccessibilitySize {
+                SessionArtworkView(
+                    image: Image(uiImage: image),
+                    imageAlt: draft.imageAlt,
+                    model: artworkModel,
+                    presentation: .screen,
+                    forcesOpaqueContinuation: true
+                )
+            } else {
+                CanonicalSessionArtworkPreview(
+                    image: image,
+                    imageAlt: draft.imageAlt,
+                    model: artworkModel
+                )
+            }
+        } else {
+            Text("Add a photo and featured attempt to complete the preview.")
+                .font(AppTypography.bodyM).foregroundStyle(AppColor.textSecondary)
+        }
+    }
+
     private var preview: some View {
         VStack(alignment: .leading, spacing: AppSpacing.space12) {
-            BoardedSectionHeading(title: "Final preview", subtitle: "This is the session entry your crew will see.")
-            if let image = draft.image {
-                ZStack(alignment: .bottom) {
-                    Image(uiImage: image).resizable().scaledToFill().aspectRatio(3 / 2, contentMode: .fit).clipped()
-                    LinearGradient(colors: [.clear, AppColor.backgroundBase.opacity(0.82)], startPoint: .top, endPoint: .bottom)
-                    VStack(alignment: .leading, spacing: AppSpacing.space8) {
-                        Text(selectedSession?.venueName ?? "Venue").font(AppTypography.titleM)
-                        if let attempt = selectedAttempt { Text("\(attempt.gradeLabel) · \(attempt.routeName) · \(attempt.outcome.title)").font(AppTypography.labelL) }
-                        Text("\(attempts.count) attempts · \(attempts.filter { $0.outcome == .sent }.count) sends").font(AppTypography.caption)
-                    }.frame(maxWidth: .infinity, alignment: .leading).padding(AppSpacing.space16)
-                }.clipShape(AppRadius.card())
-            } else { Text("Add a photo to complete the preview.").font(AppTypography.bodyM).foregroundStyle(AppColor.textSecondary) }
+            BoardedSectionHeading(title: "Final preview", subtitle: "The uploaded journal image uses this exact composition.")
+            previewArtwork
         }.boardedPanel().accessibilityIdentifier("session-preview")
     }
 
@@ -122,27 +340,40 @@ struct ShareSendComposer: View {
         VStack(alignment: .leading, spacing: AppSpacing.space24) {
             BoardedEyebrow(text: "Shared")
             Text("Your session is in the journal.").font(AppTypography.displayS)
-            BoardedRouteLine().frame(height: 160)
+            Label("Published", systemImage: "checkmark.circle.fill")
+                .font(AppTypography.labelL)
+                .foregroundStyle(AppColor.accentDefault)
             BoardedPrimaryButton(title: "Done") { dismiss() }
         }.accessibilityIdentifier("share-success")
     }
 
-    private var valid: Bool { draft.sessionID != nil && draft.featuredAttemptID != nil && draft.image != nil && draft.imageAlt.trimmedOrNil != nil }
+    private var valid: Bool { draft.sessionID != nil && draft.featuredAttemptID != nil && draft.image != nil && draft.imageAlt.trimmedOrNil != nil && artworkModel != nil }
 
     private func publish() {
-        guard valid, let sessionID = draft.sessionID, let attemptID = draft.featuredAttemptID, let image = draft.image, let sync else { return }
+        guard valid, let sessionID = draft.sessionID, let attemptID = draft.featuredAttemptID, let image = draft.image, let artworkModel, let sync else { return }
         error = nil; progress = 0.2
-        Task {
+        Task { @MainActor in
             do {
-                let data = try SendImageProcessor.jpeg(image); progress = 0.55
+                let data = try SendImageProcessor.artworkJPEG(
+                    image: image,
+                    imageAlt: draft.imageAlt,
+                    model: artworkModel
+                )
+                let sourceData = try SendImageProcessor.sourceJPEG(image)
+                progress = 0.55
                 let pending: PendingSessionDraft
                 if let existing = pendingDraft ?? pendingDraft(for: sessionID) {
+                    existing.featuredAttemptId = attemptID
+                    existing.caption = draft.caption.trimmedOrNil
+                    existing.imageAlt = draft.imageAlt.trimmingCharacters(in: .whitespacesAndNewlines)
+                    existing.overlayStyle = draft.overlayStyle
+                    existing.syncState = .queued
+                    try sync.replaceDraftMedia(draft: existing, imageData: data, sourceData: sourceData)
                     pending = existing
-                    pending.featuredAttemptId = attemptID; pending.caption = draft.caption.trimmedOrNil; pending.imageAlt = draft.imageAlt.trimmingCharacters(in: .whitespacesAndNewlines); pending.overlayStyle = draft.overlayStyle; pending.syncState = .queued
-                    try DraftImageStore.write(data, fileName: pending.imageFileName); try context.save()
                 } else {
                     let created = PendingSessionDraft(sessionId: sessionID, featuredAttemptId: attemptID, caption: draft.caption.trimmedOrNil, imageFileName: "\(UUID().uuidString).jpg", imageAlt: draft.imageAlt.trimmingCharacters(in: .whitespacesAndNewlines), overlayStyle: draft.overlayStyle)
-                    try sync.enqueue(draft: created, imageData: data); pendingDraft = created; pending = created
+                    try sync.enqueue(draft: created, imageData: data, sourceData: sourceData)
+                    pendingDraft = created; pending = created
                 }
                 progress = 0.8; await sync.replay()
                 guard sync.state == .synced, !hasPendingDraft(id: pending.id) else { error = sync.errorMessage ?? "Your session draft is saved. Retry when connected."; progress = 0; return }
@@ -150,6 +381,7 @@ struct ShareSendComposer: View {
             } catch { self.error = error.localizedDescription; progress = 0 }
         }
     }
+
 
     private func selectSession(_ id: UUID?) {
         if let existing = id.flatMap(pendingDraft(for:)) { pendingDraft = existing; draft = draftForPending(existing); return }
@@ -160,12 +392,31 @@ struct ShareSendComposer: View {
 
     private func replaceDraft() {
         guard let existing = pendingDraft, let sync else { return }; let id = replacementSessionID
-        Task { do { try await sync.delete(draft: existing); pendingDraft = nil; draft = ShareDraft(sessionID: id); replacementSessionID = nil; error = nil } catch { self.error = error.localizedDescription } }
+        Task {
+            do {
+                try await sync.delete(draft: existing)
+                pendingDraft = nil; draft = ShareDraft(sessionID: id); replacementSessionID = nil; error = nil
+            } catch { self.error = error.localizedDescription }
+        }
     }
 
-    private func restoreNewestDraft() { guard draft.sessionID == nil else { return }; if let existing = pendingDrafts().first { pendingDraft = existing; draft = draftForPending(existing) } }
+    private func restoreDraft() {
+        if let sessionID = draft.sessionID, let existing = pendingDraft(for: sessionID) {
+            pendingDraft = existing; draft = draftForPending(existing); return
+        }
+        guard draft.sessionID == nil, let existing = pendingDrafts().first else { return }
+        pendingDraft = existing; draft = draftForPending(existing)
+    }
+    private func seedFixtureIfNeeded() {
+        guard AppLaunchConfiguration.isUITestFixture, draft.image == nil else { return }
+        draft.image = UITestFixtures.sessionImage
+        draft.imageAlt = UITestFixtures.sessionImageAlt
+        if draft.featuredAttemptID == nil { draft.featuredAttemptID = attempts.first?.id }
+    }
+    private func sourceFileName(for pending: PendingSessionDraft) -> String { "\(pending.imageFileName).source" }
     private func draftForPending(_ pending: PendingSessionDraft) -> ShareDraft {
-        ShareDraft(sessionID: pending.sessionId, featuredAttemptID: pending.featuredAttemptId, caption: pending.caption ?? "", imageAlt: pending.imageAlt, overlayStyle: pending.overlayStyle, image: DraftImageStore.read(fileName: pending.imageFileName).flatMap(UIImage.init(data:)))
+        let sourceImage = DraftImageStore.read(fileName: sourceFileName(for: pending)).flatMap(UIImage.init(data:))
+        return ShareDraft(sessionID: pending.sessionId, featuredAttemptID: pending.featuredAttemptId, caption: pending.caption ?? "", imageAlt: pending.imageAlt, overlayStyle: pending.overlayStyle, image: sourceImage)
     }
     private func pendingDraft(for sessionID: UUID) -> PendingSessionDraft? { pendingDrafts().first { $0.sessionId == sessionID } }
     private func pendingDrafts() -> [PendingSessionDraft] {
@@ -209,7 +460,41 @@ enum SendImageProcessor {
     static func crop(_ image: UIImage, scale: CGFloat, offset: CGSize) -> UIImage {
         guard let source = image.cgImage else { return image }; let width = CGFloat(source.width); let height = CGFloat(source.height); let baseWidth = min(width, height * 1.5); let baseHeight = baseWidth / 1.5; let cropWidth = baseWidth / max(1, scale); let cropHeight = baseHeight / max(1, scale); let travelX = max(0, width - cropWidth); let travelY = max(0, height - cropHeight); let centerX = width / 2 - offset.width / 300 * travelX; let centerY = height / 2 - offset.height / 300 * travelY; let originX = min(max(0, centerX - cropWidth / 2), width - cropWidth); let originY = min(max(0, centerY - cropHeight / 2), height - cropHeight); guard let cropped = source.cropping(to: CGRect(x: originX, y: originY, width: cropWidth, height: cropHeight)) else { return image }; return UIImage(cgImage: cropped, scale: image.scale, orientation: image.imageOrientation)
     }
-    static func jpeg(_ image: UIImage) throws -> Data { let longest = max(image.size.width, image.size.height); let ratio = min(1, 2048 / longest); let size = CGSize(width: image.size.width * ratio, height: image.size.height * ratio); let format = UIGraphicsImageRendererFormat(); format.scale = 1; format.preferredRange = .standard; let rendered = UIGraphicsImageRenderer(size: size, format: format).image { _ in image.draw(in: CGRect(origin: .zero, size: size)) }; guard let data = rendered.jpegData(compressionQuality: 0.82) else { throw CocoaError(.fileWriteUnknown) }; return data }
+    @MainActor static func artworkJPEG(
+        image: UIImage,
+        imageAlt: String,
+        model: SessionArtworkModel
+    ) throws -> Data {
+        let content = SessionArtworkView(
+            image: Image(uiImage: image),
+            imageAlt: imageAlt,
+            model: model,
+            presentation: .export
+        )
+        .environment(\.dynamicTypeSize, .large)
+        .frame(width: 402, height: 268)
+        let renderer = ImageRenderer(content: content)
+        renderer.scale = 2048.0 / 402.0
+        guard let flattened = renderer.uiImage,
+              let data = flattened.jpegData(compressionQuality: 0.82)
+        else { throw CocoaError(.fileWriteUnknown) }
+        return data
+    }
+    static func sourceJPEG(_ image: UIImage) throws -> Data {
+        let longest = max(image.size.width, image.size.height)
+        let ratio = min(1, 2048 / longest)
+        let size = CGSize(width: image.size.width * ratio, height: image.size.height * ratio)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.preferredRange = .standard
+        let rendered = UIGraphicsImageRenderer(size: size, format: format).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: size))
+        }
+        guard let data = rendered.jpegData(compressionQuality: 0.92) else {
+            throw CocoaError(.fileWriteUnknown)
+        }
+        return data
+    }
 }
 
 private extension String { var trimmedOrNil: String? { let value = trimmingCharacters(in: .whitespacesAndNewlines); return value.isEmpty ? nil : value } }

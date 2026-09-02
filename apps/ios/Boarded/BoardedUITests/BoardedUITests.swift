@@ -2,6 +2,8 @@ import XCTest
 
 final class BoardedUITests: XCTestCase {
     private var app: XCUIApplication!
+    private let fixtureImageAlt = "Overhanging home bouldering wall with colorful holds and training volumes"
+    private let offlineStoreID = UUID().uuidString
 
     override func setUpWithError() throws {
         continueAfterFailure = false
@@ -17,94 +19,134 @@ final class BoardedUITests: XCTestCase {
     private func launch(_ extra: [String] = []) {
         app = XCUIApplication()
         app.launchArguments = ["--boarded-ui-fixture"] + extra
+        if extra.contains("--boarded-ui-offline") {
+            app.launchEnvironment["BOARDED_OFFLINE_STORE_ID"] = offlineStoreID
+        }
         app.launch()
     }
 
     private func tab(_ name: String) {
-        let button = app.tabBars.buttons[name]
+        let tabBarButton = app.tabBars.buttons[name]
+        let button = tabBarButton.waitForExistence(timeout: 1) ? tabBarButton : app.buttons[name]
         XCTAssertTrue(button.waitForExistence(timeout: 5))
         button.tap()
     }
 
+    private var widthClassName: String {
+        let width = app.windows.firstMatch.frame.width
+        XCTAssertGreaterThan(width, 0, "Capture destination must expose a window width")
+        return width >= 700 ? "regular" : "compact"
+    }
+
     private func capture(_ name: String) {
         let attachment = XCTAttachment(screenshot: app.screenshot())
-        attachment.name = name
+        attachment.name = "\(widthClassName)-\(name)"
         attachment.lifetime = .keepAlways
         add(attachment)
     }
 
-    func testRequiredStandardStateCaptures() {
+    private func captureJournalMatrix(variant: String, route: String) {
         XCTAssertTrue(app.otherElements["feed-list"].waitForExistence(timeout: 5))
-        capture("Home-standard")
+        XCTAssertTrue(app.images[fixtureImageAlt].exists)
+        if variant.contains("accessibility-large") {
+            XCTAssertTrue(app.descendants(matching: .any)["session-facts-continuation"].exists)
+        }
+        let timeline = app.descendants(matching: .any)["session-attempt-timeline"].firstMatch
+        XCTAssertTrue(timeline.exists)
+        XCTAssertTrue(timeline.label.contains("Sent"))
+        XCTAssertTrue(timeline.label.contains("Fell"))
+        XCTAssertTrue(timeline.label.contains("Stopped"))
+        capture("\(variant)-Home")
+
         tab("Log")
         let venue = app.textFields["Venue"]
         XCTAssertTrue(venue.waitForExistence(timeout: 5))
-        venue.tap(); venue.typeText("Granite Works")
+        venue.tap(); app.typeText("Home Board")
         app.buttons["start-session"].tap()
         XCTAssertTrue(app.buttons["log-attempt"].waitForExistence(timeout: 5))
-        capture("Active-logger-standard")
+        capture("\(variant)-Active-logger")
+
         app.buttons["log-attempt"].tap()
-        app.textFields["Route"].tap(); app.textFields["Route"].typeText("Green Line")
+        XCTAssertTrue(app.textFields["Route"].waitForExistence(timeout: 5))
+        app.textFields["Route"].tap(); app.typeText(route)
         app.buttons["Save Attempt"].tap()
-        app.buttons["End Session"].tap(); app.buttons["End Session"].tap()
-        XCTAssertTrue(app.staticTexts["SESSION COMPLETE"].waitForExistence(timeout: 5))
+        app.buttons["End Session"].tap()
+        let confirmation = app.buttons["confirm-end-session"].firstMatch
+        XCTAssertTrue(confirmation.waitForExistence(timeout: 3))
+        confirmation.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["session-result"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Session Complete"].exists)
+        XCTAssertTrue(app.images[fixtureImageAlt].waitForExistence(timeout: 5))
+        capture("\(variant)-Session-result")
+
         app.buttons["Share session"].tap()
         XCTAssertTrue(app.navigationBars["Share session"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["share-featured-attempt"].exists)
-        XCTAssertTrue(app.segmentedControls["share-overlay"].exists)
-        XCTAssertTrue(app.buttons["share-photo"].exists)
-        XCTAssertTrue(app.textFields["Photo description"].exists)
         XCTAssertTrue(app.otherElements["session-preview"].exists)
-        capture("Share-preview-standard")
+        XCTAssertTrue(app.images[fixtureImageAlt].exists)
+        if variant.contains("accessibility-large") {
+            let continuation = app.descendants(matching: .any)["session-facts-continuation"].firstMatch
+            if !continuation.exists { app.swipeUp() }
+            if !continuation.exists { app.swipeUp() }
+            XCTAssertTrue(continuation.waitForExistence(timeout: 3))
+        } else {
+            XCTAssertTrue(app.descendants(matching: .any)["session-facts-overlay"].firstMatch.exists)
+        }
+        capture("\(variant)-Share-preview")
         app.buttons["Close"].tap(); app.buttons["Done"].tap()
+
         tab("Meetups")
         app.staticTexts["Tuesday Granite Session"].tap()
-        XCTAssertTrue(app.otherElements["meetup-detail"].waitForExistence(timeout: 5))
-        capture("Meetup-detail-standard")
+        XCTAssertTrue(app.descendants(matching: .any)["meetup-detail"].waitForExistence(timeout: 5))
+        capture("\(variant)-Meetup-detail")
+
         tab("Profile")
-        XCTAssertTrue(app.otherElements["profile-settings"].waitForExistence(timeout: 5))
-        capture("Profile-standard")
+        XCTAssertTrue(app.descendants(matching: .any)["profile-settings"].waitForExistence(timeout: 5))
+        capture("\(variant)-Profile")
+    }
+
+    func testRequiredStandardStateCaptures() {
+        captureJournalMatrix(variant: "standard", route: "Green Line")
     }
 
     func testRequiredAccessibilityStateCapturesAndDynamicTypeReflow() {
         app.terminate()
         launch(["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityLarge"])
-        XCTAssertTrue(app.otherElements["feed-list"].waitForExistence(timeout: 5))
-        capture("Home-accessibility-large")
-        tab("Log")
-        let venue = app.textFields["Venue"]
-        venue.tap(); venue.typeText("Granite Works")
-        app.buttons["start-session"].tap()
-        XCTAssertTrue(app.buttons["log-attempt"].waitForExistence(timeout: 5))
-        capture("Active-logger-accessibility-large")
-        app.buttons["log-attempt"].tap()
-        XCTAssertTrue(app.buttons["Sent"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["Fell"].exists)
-        capture("Outcome-accessibility-large")
-        app.textFields["Route"].tap(); app.textFields["Route"].typeText("Accessible Line")
-        app.buttons["Save Attempt"].tap()
-        app.buttons["End Session"].tap(); app.buttons["End Session"].tap()
-        XCTAssertTrue(app.staticTexts["SESSION COMPLETE"].waitForExistence(timeout: 5))
-        capture("Session-result-accessibility-large")
-        app.buttons["Share session"].tap()
-        XCTAssertTrue(app.navigationBars["Share session"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.otherElements["session-preview"].exists)
-        capture("Share-preview-accessibility-large")
-        app.buttons["Close"].tap(); app.buttons["Done"].tap()
-        tab("Meetups")
-        app.staticTexts["Tuesday Granite Session"].tap()
-        XCTAssertTrue(app.otherElements["meetup-detail"].waitForExistence(timeout: 5))
-        capture("Meetup-detail-accessibility-large")
-        tab("Profile")
-        XCTAssertTrue(app.otherElements["profile-settings"].waitForExistence(timeout: 5))
-        capture("Profile-accessibility-large")
+        captureJournalMatrix(variant: "accessibility-large", route: "Accessible Line")
+    }
+
+    func testReduceTransparencyIncreaseContrastStandardCaptures() {
+        app.terminate()
+        launch([
+            "-UIAccessibilityReduceTransparencyEnabled", "YES",
+            "-UIAccessibilityDarkerSystemColorsEnabled", "YES"
+        ])
+        captureJournalMatrix(
+            variant: "standard-reduce-transparency-increase-contrast",
+            route: "Opaque Circuit"
+        )
+    }
+
+    func testReduceTransparencyIncreaseContrastAccessibilityCaptures() {
+        app.terminate()
+        launch([
+            "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityLarge",
+            "-UIAccessibilityReduceTransparencyEnabled", "YES",
+            "-UIAccessibilityDarkerSystemColorsEnabled", "YES"
+        ])
+        captureJournalMatrix(
+            variant: "accessibility-large-reduce-transparency-increase-contrast",
+            route: "Contrast Circuit"
+        )
     }
 
     func testGuestPromptsForShareCommentAndMeetupMutations() {
-        tab("Profile"); app.buttons["Sign Out"].tap(); tab("Home")
+        tab("Profile")
+        app.buttons["Sign Out"].tap()
+        XCTAssertTrue(app.buttons["Create Account"].waitForExistence(timeout: 5))
+        tab("Home")
         app.buttons["Share a session"].tap()
         XCTAssertTrue(app.staticTexts["Boarded"].waitForExistence(timeout: 3)); app.buttons["Close"].tap()
-        app.otherElements["feed-item"].firstMatch.tap()
+        app.descendants(matching: .any)["feed-item"].firstMatch.tap()
         if app.buttons["comment-auth"].exists { app.buttons["comment-auth"].tap() }
         XCTAssertTrue(app.staticTexts["Boarded"].waitForExistence(timeout: 3)); app.buttons["Close"].tap()
         tab("Meetups"); app.buttons["Create meetup"].tap()
@@ -113,7 +155,7 @@ final class BoardedUITests: XCTestCase {
 
     func testFeedLikeAndCommentUpdatesVisibleState() {
         XCTAssertTrue(app.otherElements["feed-list"].waitForExistence(timeout: 5))
-        app.otherElements["feed-item"].firstMatch.tap()
+        app.descendants(matching: .any)["feed-item"].firstMatch.tap()
         XCTAssertTrue(app.navigationBars["Session journal"].waitForExistence(timeout: 5))
         let like = app.buttons["post-like"]
         XCTAssertTrue(like.exists); like.tap(); XCTAssertTrue(like.isSelected)
@@ -134,22 +176,37 @@ final class BoardedUITests: XCTestCase {
         app.buttons["log-attempt"].tap(); app.textFields["Route"].tap(); app.textFields["Route"].typeText("Green Line")
         app.buttons["Sent"].tap(); app.buttons["Save Attempt"].tap()
         XCTAssertTrue(app.staticTexts["Sent"].waitForExistence(timeout: 3))
-        app.buttons["End Session"].tap(); app.buttons["End Session"].tap()
-        XCTAssertTrue(app.staticTexts["SESSION COMPLETE"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Sends"].exists)
+        app.buttons["End Session"].tap(); app.buttons["confirm-end-session"].firstMatch.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["session-result"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Session Complete"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["session-result-sends"].firstMatch.exists)
         app.buttons["Share session"].tap()
         XCTAssertTrue(app.navigationBars["Share session"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["share-featured-attempt"].exists)
+        XCTAssertTrue(
+            app.buttons["share-featured-attempt"].label.contains("Green Line"),
+            "Result handoff must preserve the exact featured attempt"
+        )
         XCTAssertTrue(app.segmentedControls["share-overlay"].exists)
         XCTAssertTrue(app.buttons["share-photo"].exists)
         XCTAssertTrue(app.textFields["Photo description"].exists)
-        XCTAssertFalse(app.buttons["publish-session"].isEnabled)
+        XCTAssertTrue(app.buttons["publish-session"].isEnabled)
+        app.buttons["publish-session"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["share-success"].waitForExistence(timeout: 8))
+        app.buttons["Done"].firstMatch.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["session-result"].waitForExistence(timeout: 5))
+        app.buttons["Done"].firstMatch.tap()
+        tab("Home")
+        XCTAssertTrue(app.otherElements["feed-list"].waitForExistence(timeout: 5))
+        XCTAssertGreaterThanOrEqual(app.descendants(matching: .any)["feed-item"].count, 2)
+        XCTAssertGreaterThanOrEqual(app.images[fixtureImageAlt].count, 2)
     }
 
     func testOfflineAttemptSurvivesRelaunch() {
         app.terminate(); launch(["--boarded-ui-offline"]); tab("Log")
         XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Offline.")).firstMatch.waitForExistence(timeout: 5))
         let venue = app.textFields["Venue"]
+        XCTAssertTrue(venue.waitForExistence(timeout: 5))
         venue.tap(); venue.typeText("Offline Crag"); app.buttons["start-session"].tap()
         app.buttons["log-attempt"].tap(); app.textFields["Route"].tap(); app.textFields["Route"].typeText("Saved Locally")
         app.buttons["Save Attempt"].tap()
@@ -163,7 +220,7 @@ final class BoardedUITests: XCTestCase {
         tab("Meetups")
         XCTAssertTrue(app.navigationBars["Meetups"].waitForExistence(timeout: 5))
         app.staticTexts["Tuesday Granite Session"].tap()
-        XCTAssertTrue(app.otherElements["meetup-detail"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["meetup-detail"].waitForExistence(timeout: 5))
         app.buttons["meetup-join"].tap(); XCTAssertTrue(app.buttons["meetup-leave"].waitForExistence(timeout: 3))
         app.buttons["meetup-leave"].tap(); XCTAssertTrue(app.buttons["meetup-join"].waitForExistence(timeout: 3))
         app.textFields["meetup-comment-field"].tap(); app.textFields["meetup-comment-field"].typeText("Bringing an extra pad")
@@ -178,13 +235,14 @@ final class BoardedUITests: XCTestCase {
         app.buttons["Save"].tap()
         XCTAssertTrue(app.staticTexts["Saturday Circuit"].waitForExistence(timeout: 5))
         app.staticTexts["Saturday Circuit"].tap(); app.buttons["meetup-cancel"].tap()
-        XCTAssertTrue(app.buttons["Cancel Meetup"].waitForExistence(timeout: 3)); app.buttons["Cancel Meetup"].tap()
+        let cancelConfirmation = app.buttons["confirm-cancel-meetup"].firstMatch
+        XCTAssertTrue(cancelConfirmation.waitForExistence(timeout: 3)); cancelConfirmation.tap()
         XCTAssertTrue(app.staticTexts["Cancelled meetup"].waitForExistence(timeout: 3))
     }
 
     func testProfileSettingsPreferencesAndEdit() {
         tab("Profile")
-        XCTAssertTrue(app.otherElements["profile-settings"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["profile-settings"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Session journal"].exists)
         XCTAssertTrue(app.staticTexts["Climbing preferences"].exists)
         XCTAssertTrue(app.staticTexts["Accessibility"].exists)
@@ -205,8 +263,11 @@ final class BoardedUITests: XCTestCase {
     }
 
     func testAuthenticationSignupProfileFieldsAndValidation() {
-        tab("Profile"); app.buttons["Sign Out"].tap(); app.buttons["Create Account"].tap(); app.buttons["auth-submit"].tap()
-        XCTAssertTrue(app.otherElements["auth-error"].exists)
+        tab("Profile")
+        app.buttons["Sign Out"].tap()
+        XCTAssertTrue(app.buttons["Create Account"].waitForExistence(timeout: 5))
+        app.buttons["Create Account"].tap(); app.buttons["auth-submit"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["auth-error"].exists)
         XCTAssertTrue(app.textFields["profile-username"].exists)
         XCTAssertTrue(app.textFields["profile-display-name"].exists)
     }

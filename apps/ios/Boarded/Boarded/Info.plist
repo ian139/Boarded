@@ -7,7 +7,7 @@
 		<string>CormorantGaramond-SemiBoldItalic.ttf</string>
 	</array>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Boarded uses your photo library to add photos to send posts.</string>
+	<string>Boarded uses your photo library to add photos to session journal entries.</string>
 	<key>SUPABASE_ANON_KEY</key>
 	<string>sb_publishable_BwvrPq9WJ-BZ41RqYdYf-g_c8ObuhTk</string>
 	<key>SUPABASE_URL</key>

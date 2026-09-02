@@ -11,6 +11,7 @@ struct HomeFeedView: View {
     @StateObject private var viewModel: HomeFeedViewModel
     @State private var composerPresented = false
     @State private var activeSession: PendingSession?
+    @State private var authenticationPresented = false
 
     init(feedRepository: any FeedRepository = AppServices.feedRepository) {
         _viewModel = StateObject(wrappedValue: HomeFeedViewModel(repository: feedRepository))
@@ -41,7 +42,7 @@ struct HomeFeedView: View {
                     if auth.isAuthenticated {
                         composerPresented = true
                     } else {
-                        auth.requestAuthentication()
+                        authenticationPresented = true
                     }
                 } label: {
                     Image(systemName: "square.and.pencil")
@@ -54,6 +55,17 @@ struct HomeFeedView: View {
         .sheet(isPresented: $composerPresented) {
             ShareSendComposer()
         }
+        .sheet(isPresented: $authenticationPresented) {
+            NavigationStack { AuthenticationView() }
+                .environmentObject(session)
+        }
+        .environment(
+            \.boardedAuth,
+            BoardedAuthContext(
+                isAuthenticated: auth.isAuthenticated,
+                requestAuthentication: { authenticationPresented = true }
+            )
+        )
         .navigationDestination(for: SessionFeedItem.self) { item in
             PostDetailView(item: item)
         }
@@ -63,6 +75,7 @@ struct HomeFeedView: View {
         .onChange(of: navigation.selectedTab) { _, tab in
             if tab == .home {
                 refreshActiveSession()
+                Task { await viewModel.load() }
             }
         }
         .onChange(of: session.userId) { _, _ in
@@ -128,7 +141,7 @@ struct HomeFeedView: View {
     }
 
     private var emptyState: some View {
-        BoardedRouteLineEmptyState(
+        BoardedEmptyState(
             title: "No session journal entries yet",
             message: auth.isAuthenticated
                 ? "End a session, add a climbing photo, and share the whole result."

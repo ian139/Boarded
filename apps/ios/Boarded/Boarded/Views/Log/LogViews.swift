@@ -1,5 +1,7 @@
 import SwiftUI
 import SwiftData
+import PhotosUI
+import UIKit
 
 struct LogTabView: View {
     @EnvironmentObject private var session: AppSession
@@ -68,30 +70,53 @@ struct ActiveSessionView: View {
     @State private var outcomeSheet = false
     @State private var result: SessionSummary?
     @State private var confirmEnd = false
-    var body: some View {
-        ScrollView { VStack(alignment: .leading, spacing: AppSpacing.space16) {
-            BoardedSyncBanner(isOffline: !syncService.isOnline, state: syncService.state) { Task { await logger.retrySync() } }
-            if let session = logger.activeSession {
-                BoardedEyebrow(text: "Active Session"); Text(session.venueName).font(AppTypography.titleL)
-                VStack(alignment: .leading, spacing: AppSpacing.space8) {
-                    TimelineView(.periodic(from: .now, by: 1)) { value in
-                        Text(BoardedFormat.duration(value.date.timeIntervalSince(session.startedAt)))
-                            .font(AppTypography.dataL)
-                            .foregroundStyle(AppColor.accentDefault)
-                            .accessibilityLabel("Elapsed time")
-                    }
-                    BoardedPrimaryButton(title: "Log Attempt", systemImage: "plus") {
-                        outcomeSheet = true
-                    }
-                    .accessibilityIdentifier("log-attempt")
+    @ViewBuilder var body: some View {
+        if let result {
+            SessionResultView(summary: result) { dismiss() }
+        } else {
+            activeLogger
+        }
+    }
+
+    private var activeLogger: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: AppSpacing.space16) {
+                BoardedSyncBanner(isOffline: !syncService.isOnline, state: syncService.state) {
+                    Task { await logger.retrySync() }
                 }
-                .boardedPanel()
-                queue; Button("End Session") { confirmEnd = true }.buttonStyle(BoardedButtonStyle(.destructive))
+                if let session = logger.activeSession {
+                    BoardedEyebrow(text: "Active Session")
+                    Text(session.venueName).font(AppTypography.titleL)
+                    VStack(alignment: .leading, spacing: AppSpacing.space8) {
+                        TimelineView(.periodic(from: .now, by: 1)) { value in
+                            Text(BoardedFormat.duration(value.date.timeIntervalSince(session.startedAt)))
+                                .font(AppTypography.dataL)
+                                .foregroundStyle(AppColor.accentDefault)
+                                .accessibilityLabel("Elapsed time")
+                        }
+                        BoardedPrimaryButton(title: "Log Attempt", systemImage: "plus") {
+                            outcomeSheet = true
+                        }
+                        .accessibilityIdentifier("log-attempt")
+                    }
+                    .boardedPanel()
+                    queue
+                    Button("End Session") { confirmEnd = true }
+                        .buttonStyle(BoardedButtonStyle(.destructive))
+                }
             }
-        }.padding(AppLayout.screenMargin) }.boardedPageBackground()
-        .sheet(isPresented: $outcomeSheet) { OutcomeSheet { route, discipline, system, grade, outcome, notes in logger.recordAttempt(routeName: route, discipline: discipline, gradeSystem: system, gradeLabel: grade, outcome: outcome, notes: notes) } }
-        .confirmationDialog("End this session?", isPresented: $confirmEnd) { Button("End Session", role: .destructive) { end() } }
-        .sheet(item: $result) { summary in SessionResultView(summary: summary) { dismiss() } }
+            .padding(AppLayout.screenMargin)
+        }
+        .boardedPageBackground()
+        .sheet(isPresented: $outcomeSheet) {
+            OutcomeSheet { route, discipline, system, grade, outcome, notes in
+                logger.recordAttempt(routeName: route, discipline: discipline, gradeSystem: system, gradeLabel: grade, outcome: outcome, notes: notes)
+            }
+        }
+        .confirmationDialog("End this session?", isPresented: $confirmEnd) {
+            Button("End Session", role: .destructive) { end() }
+                .accessibilityIdentifier("confirm-end-session")
+        }
     }
     private var queue: some View { VStack(alignment: .leading, spacing: AppSpacing.space8) { HStack { BoardedSectionHeading(title: "Attempts", subtitle: "Newest first"); Spacer(); if !logger.attempts.isEmpty { Button("Undo") { logger.undoLatestAttempt() }.accessibilityIdentifier("undo-attempt") } }; ForEach(Array(logger.attempts.reversed())) { item in HStack { Text("#\(item.attemptNumber)").font(AppTypography.dataS); VStack(alignment: .leading) { Text(item.routeName); Text("\(item.gradeLabel) · \(BoardedFormat.timeOnly(item.occurredAt))").font(AppTypography.caption).foregroundStyle(AppColor.textSecondary) }; Spacer(); Label(item.outcome.title, systemImage: item.outcome.systemImage).foregroundStyle(item.outcome == .sent ? AppColor.accentDefault : AppColor.textPrimary) }.frame(minHeight: AppLayout.listRowMinHeight) } } }
     private func end() { guard let active = logger.activeSession else { return }; let now = Date(); result = SessionSummary(sessionID: active.id, venue: active.venueName, startedAt: active.startedAt, endedAt: now, attempts: logger.attempts); logger.endSession(at: now) }
@@ -161,10 +186,61 @@ struct OutcomeSheet: View {
 }
 
 struct SessionResultView: View {
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let summary: SessionSummary
     let done: () -> Void
     @State private var share = false
+    @State private var picker: PhotosPickerItem?
+    @State private var cropImage: UIImage?
+    @State private var cropPresented = false
+    @State private var selectedImage: UIImage?
+    @State private var imageAlt = ""
+
+    private var featuredAttempt: PendingAttempt? { summary.bestSend ?? summary.attempts.last }
+    private var artworkModel: SessionArtworkModel? {
+        guard let featuredAttempt else { return nil }
+        return SessionArtworkModel(
+            venue: summary.venue,
+            duration: summary.duration,
+            attemptCount: summary.attempts.count,
+            sendCount: summary.sendCount,
+            featuredRoute: featuredAttempt.routeName,
+            featuredGrade: featuredAttempt.gradeLabel,
+            outcome: featuredAttempt.outcome,
+            featuredAttemptNumber: featuredAttempt.attemptNumber,
+            overlayStyle: .stats,
+            attemptOutcomes: summary.attempts.map { SessionArtworkAttempt(number: $0.attemptNumber, outcome: $0.outcome) }
+        )
+    }
+
+    private var opaqueSummary: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.space12) {
+            Text(summary.venue).font(AppTypography.titleM)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: AppSpacing.space16) { summaryFacts }
+                VStack(alignment: .leading, spacing: AppSpacing.space8) { summaryFacts }
+            }
+            if let featuredAttempt {
+                Label(
+                    "\(featuredAttempt.gradeLabel) · \(featuredAttempt.routeName) · \(featuredAttempt.outcome.title)",
+                    systemImage: featuredAttempt.outcome.systemImage
+                )
+                .font(AppTypography.labelL)
+            }
+        }
+        .foregroundStyle(AppColor.textPrimary)
+        .padding(AppSpacing.space16)
+        .background(AppColor.surfaceCard, in: AppRadius.card())
+        .accessibilityElement(children: .contain)
+    }
+
+    @ViewBuilder private var summaryFacts: some View {
+        Label(BoardedFormat.duration(summary.duration), systemImage: "clock")
+        Label("\(summary.routeCount) routes", systemImage: "square.stack")
+        Label("\(summary.attempts.count) attempts", systemImage: "number")
+        Label("\(summary.sendCount) sends", systemImage: "checkmark.circle")
+            .accessibilityIdentifier("session-result-sends")
+        Label(summary.successRate.map(BoardedFormat.percent) ?? "—", systemImage: "percent")
+    }
 
     var body: some View {
         NavigationStack {
@@ -174,11 +250,30 @@ struct SessionResultView: View {
                     Text(summary.bestSend?.gradeLabel ?? "\(summary.attempts.count) attempts")
                         .font(AppTypography.displayL)
                         .foregroundStyle(summary.sendCount > 0 ? AppColor.accentDefault : AppColor.textPrimary)
-                    Text(summary.venue).font(AppTypography.titleM)
-                    metrics
+                    if let selectedImage, let artworkModel {
+                        SessionArtworkView(image: Image(uiImage: selectedImage), imageAlt: imageAlt, model: artworkModel)
+                            .accessibilityIdentifier("session-result-artwork")
+                    } else {
+                        opaqueSummary
+                    }
+                    PhotosPicker(selection: $picker, matching: .images) {
+                        Label(selectedImage == nil ? "Add session photo" : "Change session photo", systemImage: "photo")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(BoardedButtonStyle(.secondary))
+                    .accessibilityIdentifier("session-result-photo")
+                    if selectedImage != nil {
+                        BoardedTextField(
+                            label: "Photo description",
+                            prompt: "Describe the overhanging wall or climbing scene",
+                            text: $imageAlt,
+                            error: imageAlt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Photo description is required." : nil
+                        )
+                    }
                     if !summary.attempts.isEmpty {
                         Button("Share session") { share = true }
                             .buttonStyle(BoardedButtonStyle(.secondary))
+                            .disabled(selectedImage == nil || imageAlt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                             .accessibilityIdentifier("share-completed-session")
                     }
                     BoardedPrimaryButton(title: "Done", action: done)
@@ -186,33 +281,39 @@ struct SessionResultView: View {
                 .padding(AppLayout.screenMargin)
             }
             .boardedPageBackground()
-            .sheet(isPresented: $share) { ShareSendComposer(initialSessionID: summary.sessionID) }
-        }
-    }
-
-    @ViewBuilder private var metrics: some View {
-        if dynamicTypeSize.isAccessibilitySize {
-            VStack(alignment: .leading, spacing: AppSpacing.space16) { metricItems }
-        } else {
-            ViewThatFits {
-                HStack(spacing: AppSpacing.space12) { metricItems }
-                VStack(alignment: .leading, spacing: AppSpacing.space16) { metricItems }
+            .task {
+                if AppLaunchConfiguration.isUITestFixture {
+                    selectedImage = UITestFixtures.sessionImage
+                    imageAlt = UITestFixtures.sessionImageAlt
+                }
+            }
+            .onChange(of: picker) { _, value in
+                Task {
+                    if let data = try? await value?.loadTransferable(type: Data.self),
+                       let image = UIImage(data: data) {
+                        cropImage = image
+                        cropPresented = true
+                    }
+                }
+            }
+            .sheet(isPresented: $cropPresented) {
+                if let cropImage {
+                    PhotoCropView(image: cropImage) {
+                        selectedImage = $0
+                        imageAlt = ""
+                        cropPresented = false
+                    }
+                }
+            }
+            .sheet(isPresented: $share) {
+                ShareSendComposer(
+                    initialSessionID: summary.sessionID,
+                    featuredAttemptID: featuredAttempt?.id,
+                    image: selectedImage,
+                    imageAlt: imageAlt
+                )
             }
         }
-    }
-
-    @ViewBuilder private var metricItems: some View {
-        metric("Attempts", "\(summary.attempts.count)")
-        metric("Sends", "\(summary.sendCount)")
-        metric("Rate", summary.successRate.map(BoardedFormat.percent) ?? "—")
-    }
-
-    private func metric(_ title: String, _ value: String) -> some View {
-        VStack(alignment: .leading) {
-            Text(value).font(AppTypography.dataM)
-            Text(title).font(AppTypography.caption).foregroundStyle(AppColor.textSecondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("session-result")
     }
 }

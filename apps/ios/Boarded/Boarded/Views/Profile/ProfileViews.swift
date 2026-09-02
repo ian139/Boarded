@@ -102,7 +102,7 @@ struct ProfileView: View {
             BoardedInlineError(message: error) { Task { await model.load(userID: userID) } }
                 .accessibilityIdentifier("profile-error")
         } else if model.isEmpty {
-            BoardedRouteLineEmptyState(
+            BoardedEmptyState(
                 title: "Your journal starts here",
                 message: "Log a session and share it to build your climbing journal."
             )

@@ -8,6 +8,7 @@ enum AppTab: Hashable { case home, log, meetups, profile }
 }
 
 struct RootView: View {
+    @Environment(\.dynamicTypeSize) private var systemDynamicTypeSize
     @StateObject private var session = AppSession(fixture: AppLaunchConfiguration.isUITestFixture)
     @StateObject private var navigation = AppNavigation()
     @State private var authenticationPresented = false
@@ -23,11 +24,30 @@ struct RootView: View {
         .environmentObject(session)
         .environmentObject(navigation)
         .environment(\.boardedAuth, BoardedAuthContext(isAuthenticated: session.userId != nil, requestAuthentication: { authenticationPresented = true }))
-        .sheet(isPresented: $authenticationPresented) { NavigationStack { AuthenticationView() } }
+        .dynamicTypeSize(
+            AppLaunchConfiguration.isUITestFixture
+                ? UITestFixtures.requestedDynamicTypeSize ?? systemDynamicTypeSize
+                : systemDynamicTypeSize
+        )
+        .sheet(isPresented: $authenticationPresented) {
+            NavigationStack { AuthenticationView() }
+                .environmentObject(session)
+        }
         .task { await session.load() }
     }
 
-    private var launchState: some View { VStack(spacing:AppSpacing.space16) { Text("Boarded").font(AppTypography.displayL); BoardedRouteLine().frame(width:120,height:96); ProgressView().accessibilityLabel("Loading Boarded") }.frame(maxWidth:.infinity,maxHeight:.infinity).boardedPageBackground() }
+    private var launchState: some View {
+        VStack(spacing: AppSpacing.space16) {
+            Text("Boarded").font(AppTypography.displayL)
+            Image(systemName: "book.closed")
+                .font(AppTypography.titleL)
+                .foregroundStyle(AppColor.textSecondary)
+                .accessibilityHidden(true)
+            ProgressView().accessibilityLabel("Loading Boarded")
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .boardedPageBackground()
+    }
     private var tabs: some View {
         TabView(selection: $navigation.selectedTab) {
             NavigationStack { HomeFeedView() }.tabItem { Label("Home", systemImage: "house") }.tag(AppTab.home)

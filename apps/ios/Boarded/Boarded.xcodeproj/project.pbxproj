@@ -40,7 +40,6 @@
 		CC1100142F5D000100535751 /* SessionLoggerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC1100132F5D000100535751 /* SessionLoggerViewModel.swift */; };
 		CC1100162F5D000100535751 /* PostDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC1100152F5D000100535751 /* PostDetailViewModel.swift */; };
 		CC1100182F5D000100535751 /* MeetupsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC1100172F5D000100535751 /* MeetupsViewModel.swift */; };
-		DD0000012F70000100535751 /* BoardedRouteLine.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001012F70000100535751 /* BoardedRouteLine.swift */; };
 		DD0000022F70000100535751 /* Formatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001022F70000100535751 /* Formatting.swift */; };
 		DD0000032F70000100535751 /* AuthenticationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001032F70000100535751 /* AuthenticationView.swift */; };
 		DD0000042F70000100535751 /* SendPostCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001042F70000100535751 /* SendPostCard.swift */; };
@@ -102,7 +101,6 @@
 		CC1100132F5D000100535751 /* SessionLoggerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionLoggerViewModel.swift; sourceTree = "<group>"; };
 		CC1100152F5D000100535751 /* PostDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostDetailViewModel.swift; sourceTree = "<group>"; };
 		CC1100172F5D000100535751 /* MeetupsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetupsViewModel.swift; sourceTree = "<group>"; };
-		DD0001012F70000100535751 /* BoardedRouteLine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BoardedRouteLine.swift; path = Shared/BoardedRouteLine.swift; sourceTree = "<group>"; };
 		DD0001022F70000100535751 /* Formatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Formatting.swift; path = Shared/Formatting.swift; sourceTree = "<group>"; };
 		DD0001032F70000100535751 /* AuthenticationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AuthenticationView.swift; path = Auth/AuthenticationView.swift; sourceTree = "<group>"; };
 		DD0001042F70000100535751 /* SendPostCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SendPostCard.swift; path = Home/SendPostCard.swift; sourceTree = "<group>"; };
@@ -215,7 +213,6 @@
 			isa = PBXGroup;
 			children = (
 				3CDD08EB2F5A072900535751 /* Shared */,
-				DD0001012F70000100535751 /* BoardedRouteLine.swift */,
 				DD0001022F70000100535751 /* Formatting.swift */,
 				DD0001032F70000100535751 /* AuthenticationView.swift */,
 				DD0001042F70000100535751 /* SendPostCard.swift */,
@@ -406,7 +403,6 @@
 				CC1100142F5D000100535751 /* SessionLoggerViewModel.swift in Sources */,
 				CC1100162F5D000100535751 /* PostDetailViewModel.swift in Sources */,
 				CC1100182F5D000100535751 /* MeetupsViewModel.swift in Sources */,
-				DD0000012F70000100535751 /* BoardedRouteLine.swift in Sources */,
 				DD0000022F70000100535751 /* Formatting.swift in Sources */,
 				DD0000032F70000100535751 /* AuthenticationView.swift in Sources */,
 				DD0000042F70000100535751 /* SendPostCard.swift in Sources */,

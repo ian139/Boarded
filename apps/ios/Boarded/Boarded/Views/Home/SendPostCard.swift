@@ -12,8 +12,8 @@ struct SendPostCard: View {
     let item: SessionFeedItem
     var onLike: () -> Void = {}
     var showsActions = true
-
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     private var authorName: String { item.author.fullName?.trimmedNonEmpty ?? item.author.username?.trimmedNonEmpty ?? "Climber" }
 
     var body: some View {
@@ -46,23 +46,50 @@ struct SendPostCard: View {
         .accessibilityElement(children: .combine)
     }
 
-    private var photoComposition: some View {
-        VStack(spacing: 0) {
-            ZStack(alignment: .bottom) {
-                FeedPostImage(url: FeedImageURL.publicURL(for: item.imagePath), alt: item.imageAlt)
-                if !dynamicTypeSize.isAccessibilitySize {
-                    LinearGradient(colors: [.clear, AppColor.backgroundBase.opacity(0.82)], startPoint: .top, endPoint: .bottom)
-                        .accessibilityHidden(true)
-                    SessionFactShelf(session: item.session, overlayStyle: item.overlayStyle)
-                        .padding(AppSpacing.space12)
-                }
-            }
-            if dynamicTypeSize.isAccessibilitySize {
-                SessionFactShelf(session: item.session, overlayStyle: item.overlayStyle, opaque: true)
-            }
+    private var artworkModel: SessionArtworkModel {
+        SessionArtworkModel(
+            venue: item.session.venueName,
+            duration: TimeInterval(item.session.durationSeconds),
+            attemptCount: item.session.attemptCount,
+            sendCount: item.session.sendCount,
+            featuredRoute: item.session.featuredAttempt.routeName,
+            featuredGrade: item.session.featuredAttempt.gradeLabel,
+            outcome: item.session.featuredAttempt.outcome,
+            featuredAttemptNumber: item.session.featuredAttempt.attemptNumber,
+            overlayStyle: item.overlayStyle,
+            attemptOutcomes: [
+                SessionArtworkAttempt(number: 1, outcome: .sent),
+                SessionArtworkAttempt(number: 2, outcome: .fell),
+                SessionArtworkAttempt(number: 3, outcome: .stopped)
+            ]
+        )
+    }
+
+    @ViewBuilder private var photoComposition: some View {
+        if item.imagePath == UITestFixtures.localSessionImagePath,
+           let image = UITestFixtures.sessionImage {
+            fixturePhoto(image)
+        } else {
+            ProductionFeedPhoto(item: item)
         }
-        .clipShape(AppRadius.card())
-        .overlay { AppRadius.card().stroke(AppColor.strokeSubtle, lineWidth: AppStroke.hairline) }
+    }
+
+    @ViewBuilder private func fixturePhoto(_ image: UIImage) -> some View {
+        if dynamicTypeSize.isAccessibilitySize || UITestFixtures.usesAccessibilityLargeText {
+            SessionArtworkView(
+                image: Image(uiImage: image),
+                imageAlt: item.imageAlt,
+                model: artworkModel,
+                presentation: .screen,
+                forcesOpaqueContinuation: true
+            )
+        } else {
+            CanonicalSessionArtworkPreview(
+                image: image,
+                imageAlt: item.imageAlt,
+                model: artworkModel
+            )
+        }
     }
 
     private var actions: some View {
@@ -75,6 +102,7 @@ struct SendPostCard: View {
             .buttonStyle(.plain)
             .accessibilityLabel(item.isLiked ? "Unlike" : "Like")
             .accessibilityValue("\(item.likeCount) likes")
+            .modifier(LikeSelectionAccessibility(isSelected: item.isLiked))
             .accessibilityIdentifier("post-like")
 
             Label("\(item.commentCount)", systemImage: "bubble.right")
@@ -96,69 +124,97 @@ struct SendPostCard: View {
     }
 }
 
-struct SessionFactShelf: View {
-    let session: FeedSessionSummary
-    let overlayStyle: OverlayStyle
-    var opaque = false
 
-    private var outcome: FeedFeaturedAttempt { session.featuredAttempt }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.space12) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(session.venueName).font(AppTypography.titleM).fixedSize(horizontal: false, vertical: true)
-                Spacer(minLength: AppSpacing.space8)
-                Label(outcome.outcome.title, systemImage: outcome.outcome.systemImage)
-                    .font(AppTypography.labelM)
-                    .foregroundStyle(outcome.outcome == .sent ? AppColor.accentDefault : AppColor.textPrimary)
-            }
-            if overlayStyle == .attemptTimeline {
-                HStack(spacing: AppSpacing.space8) {
-                    ForEach(1...max(session.attemptCount, 1), id: \.self) { index in
-                        Circle().fill(index == outcome.attemptNumber ? AppColor.accentDefault : AppColor.textSecondary).frame(width: AppSpacing.space8, height: AppSpacing.space8)
-                    }
-                }
-                .accessibilityLabel("Featured attempt \(outcome.attemptNumber) of \(session.attemptCount)")
-            }
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: AppSpacing.space16) { facts }
-                VStack(alignment: .leading, spacing: AppSpacing.space8) { facts }
-            }
-            Text("\(outcome.gradeLabel) · \(outcome.routeName)")
-                .font(AppTypography.labelL).fixedSize(horizontal: false, vertical: true)
-        }
-        .foregroundStyle(AppColor.textPrimary)
-        .padding(AppSpacing.space16)
-        .background(opaque ? AppColor.surfaceCard : Color.clear)
-        .modifier(SessionShelfMaterial(enabled: !opaque))
-        .accessibilityElement(children: .contain)
+private struct ProductionFeedPhoto: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    let item: SessionFeedItem
+
+    private var artworkModel: SessionArtworkModel {
+        let attempt = item.session.featuredAttempt
+        return SessionArtworkModel(
+            venue: item.session.venueName,
+            duration: TimeInterval(item.session.durationSeconds),
+            attemptCount: item.session.attemptCount,
+            sendCount: item.session.sendCount,
+            featuredRoute: attempt.routeName,
+            featuredGrade: attempt.gradeLabel,
+            outcome: attempt.outcome,
+            featuredAttemptNumber: attempt.attemptNumber,
+            overlayStyle: item.overlayStyle
+        )
     }
 
-    @ViewBuilder private var facts: some View {
-        Label(BoardedFormat.duration(TimeInterval(session.durationSeconds)), systemImage: "clock")
-        Label("\(session.attemptCount) attempts", systemImage: "number")
-        Label("\(session.sendCount) sends", systemImage: "checkmark.circle")
+    @ViewBuilder var body: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(spacing: 0) {
+                FeedPostImage(path: item.sourceImagePath, alt: item.imageAlt)
+                SessionArtworkFacts(model: artworkModel, opaque: true)
+            }
+            .clipShape(AppRadius.card())
+            .overlay { AppRadius.card().stroke(AppColor.strokeSubtle, lineWidth: AppStroke.hairline) }
+        } else {
+            // Published post pixels already contain the flattened facts; a live
+            // shelf here would duplicate the exported composition.
+            basePhoto.modifier(FeedPhotoAccessibility(session: item.session))
+        }
+    }
+
+    private var basePhoto: some View {
+        FeedPostImage(path: item.imagePath, alt: item.imageAlt)
+            .clipShape(AppRadius.card())
+            .overlay { AppRadius.card().stroke(AppColor.strokeSubtle, lineWidth: AppStroke.hairline) }
     }
 }
 
-private struct SessionShelfMaterial: ViewModifier {
-    let enabled: Bool
+private struct FeedPhotoAccessibility: ViewModifier {
+    let session: FeedSessionSummary
+
+    private var featuredAttemptDescription: String {
+        let attempt = session.featuredAttempt
+        return "\(attempt.gradeLabel) \(attempt.routeName), \(attempt.outcome.title)"
+    }
+
     func body(content: Content) -> some View {
-        if enabled { content.boardedMaterial(.sessionFactShelf, in: AppRadius.card()) } else { content }
+        content
+            .accessibilityCustomContent(AccessibilityCustomContentKey("Venue"), Text(session.venueName))
+            .accessibilityCustomContent(AccessibilityCustomContentKey("Duration"), Text(BoardedFormat.duration(TimeInterval(session.durationSeconds))))
+            .accessibilityCustomContent(AccessibilityCustomContentKey("Attempts"), Text("\(session.attemptCount)"))
+            .accessibilityCustomContent(AccessibilityCustomContentKey("Sends"), Text("\(session.sendCount)"))
+            .accessibilityCustomContent(AccessibilityCustomContentKey("Featured attempt"), Text(featuredAttemptDescription))
     }
 }
 
 struct FeedPostImage: View {
-    let url: URL?
+    let path: String
     let alt: String
 
     var body: some View {
-        AsyncImage(url: url) { phase in
-            if case let .success(image) = phase { image.resizable().aspectRatio(contentMode: .fill) }
-            else { ZStack { AppColor.backgroundElevated; ProgressView().tint(AppColor.textSecondary) } }
+        Group {
+            if path == UITestFixtures.localSessionImagePath,
+               let image = UITestFixtures.sessionImage {
+                Image(uiImage: image).resizable().aspectRatio(contentMode: .fill)
+            } else {
+                AsyncImage(url: FeedImageURL.publicURL(for: path)) { phase in
+                    if case let .success(image) = phase { image.resizable().aspectRatio(contentMode: .fill) }
+                    else { ZStack { AppColor.backgroundElevated; ProgressView().tint(AppColor.textSecondary) } }
+                }
+            }
         }
         .frame(maxWidth: .infinity).aspectRatio(3.0 / 2.0, contentMode: .fit).clipped()
         .accessibilityLabel(alt)
+    }
+}
+
+private struct LikeSelectionAccessibility: ViewModifier {
+    let isSelected: Bool
+
+    @ViewBuilder func body(content: Content) -> some View {
+        if isSelected {
+            content.accessibilityAddTraits(.isSelected)
+        } else {
+            content
+        }
     }
 }
 

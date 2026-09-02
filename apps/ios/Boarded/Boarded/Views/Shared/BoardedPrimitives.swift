@@ -42,9 +42,9 @@ struct BoardedFeedCardSkeleton: View {
 
 // MARK: - Empty states
 
-/// Empty state: simplified route-line motif, serif headline, one sentence, one
-/// useful action.
-struct BoardedRouteLineEmptyState: View {
+/// Neutral empty state with a factual journal icon, serif headline, one sentence,
+/// and one useful action.
+struct BoardedEmptyState: View {
     let title: String
     let message: String
     var actionTitle: String?
@@ -52,8 +52,10 @@ struct BoardedRouteLineEmptyState: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.space16) {
-            BoardedRouteLine()
-                .frame(width: 120, height: 88)
+            Image(systemName: "book.closed")
+                .font(AppTypography.titleL)
+                .foregroundStyle(AppColor.textSecondary)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: AppSpacing.space8) {
                 Text(title)
                     .font(AppTypography.displayS)
@@ -344,5 +346,37 @@ struct BoardedContentChrome<Content: View>: View {
             .padding(.horizontal, AppSpacing.space16)
             .padding(.vertical, AppSpacing.space8)
             .boardedMaterial(.contentChrome, in: AppRadius.card())
+    }
+}
+
+/// Identity avatar: initials on a Slate disc with a hairline stroke.
+struct BoardedAvatar: View {
+    let name: String
+    var size: CGFloat = 40
+
+    private var initials: String {
+        let parts = name
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .split(separator: " ", omittingEmptySubsequences: true)
+        let letters = parts.prefix(2).compactMap { $0.first.map(String.init) }
+        return letters.joined().uppercased()
+    }
+
+    var body: some View {
+        ZStack {
+            Circle().fill(AppColor.backgroundElevated)
+            Circle().stroke(AppColor.strokeDefault, lineWidth: AppStroke.hairline)
+            if initials.isEmpty {
+                Image(systemName: "person.fill")
+                    .font(.system(size: size * 0.42))
+                    .foregroundStyle(AppColor.textSecondary)
+            } else {
+                Text(initials)
+                    .font(.system(size: size * 0.38, weight: .semibold))
+                    .foregroundStyle(AppColor.textPrimary)
+            }
+        }
+        .frame(width: size, height: size)
+        .accessibilityHidden(true)
     }
 }

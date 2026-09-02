@@ -1,4 +1,6 @@
 import Foundation
+import UIKit
+import SwiftUI
 
 enum UITestFixtures {
     static let userID = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
@@ -7,6 +9,34 @@ enum UITestFixtures {
     static let sessionID = UUID(uuidString: "22222222-3333-4444-8888-222222222222")!
     static let attemptID = UUID(uuidString: "33333333-3333-4333-8333-333333333333")!
     static let postID = UUID(uuidString: "44444444-4444-4444-8444-444444444444")!
+    static let localSessionImagePath = "fixture://session-wall"
+    static let sessionImageAlt = "Overhanging home bouldering wall with colorful holds and training volumes"
+    static var sessionImage: UIImage? { UIImage(named: "SessionFixtureWall") }
+    static var requestedDynamicTypeSize: DynamicTypeSize? {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let index = arguments.firstIndex(of: "-UIPreferredContentSizeCategoryName"),
+              arguments.indices.contains(index + 1)
+        else { return nil }
+        switch arguments[index + 1] {
+        case "UICTContentSizeCategoryXS": return .xSmall
+        case "UICTContentSizeCategoryS": return .small
+        case "UICTContentSizeCategoryM": return .medium
+        case "UICTContentSizeCategoryL": return .large
+        case "UICTContentSizeCategoryXL": return .xLarge
+        case "UICTContentSizeCategoryXXL": return .xxLarge
+        case "UICTContentSizeCategoryXXXL": return .xxxLarge
+        case "UICTContentSizeCategoryAccessibilityMedium": return .accessibility1
+        case "UICTContentSizeCategoryAccessibilityLarge": return .accessibility2
+        case "UICTContentSizeCategoryAccessibilityExtraLarge": return .accessibility3
+        case "UICTContentSizeCategoryAccessibilityExtraExtraLarge": return .accessibility4
+        case "UICTContentSizeCategoryAccessibilityExtraExtraExtraLarge": return .accessibility5
+        default: return nil
+        }
+    }
+
+    static var usesAccessibilityLargeText: Bool {
+        requestedDynamicTypeSize?.isAccessibilitySize == true
+    }
     static let feed: [SessionFeedItem] = [
         SessionFeedItem(
             id: postID,
@@ -14,15 +44,15 @@ enum UITestFixtures {
             sessionId: sessionID,
             featuredAttemptId: attemptID,
             caption: "First try, quiet feet.",
-            imagePath: "22222222-2222-4222-8222-222222222222/44444444-4444-4444-8444-444444444444.jpg",
-            imageAlt: "Climber topping out granite route",
-            overlayStyle: .stats,
+            imagePath: localSessionImagePath,
+            imageAlt: sessionImageAlt,
+            overlayStyle: .attemptTimeline,
             createdAt: now,
             updatedAt: now,
             author: FeedAuthor(id: otherID, username: "mara", fullName: "Mara Chen", avatarUrl: nil, bio: nil, homeArea: "North Shore"),
             session: FeedSessionSummary(
                 id: sessionID,
-                venueName: "Granite Works",
+                venueName: "Home Board",
                 startedAt: now.addingTimeInterval(-7200),
                 endedAt: now,
                 durationSeconds: 7200,
@@ -30,7 +60,7 @@ enum UITestFixtures {
                 sendCount: 3,
                 featuredAttempt: FeedFeaturedAttempt(
                     id: attemptID,
-                    routeName: "Granite Current",
+                    routeName: "Steep Circuit",
                     discipline: .boulder,
                     gradeSystem: .vScale,
                     gradeLabel: "V6",

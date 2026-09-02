@@ -10,7 +10,7 @@ struct MeetupsListView: View {
         ScrollView { VStack(alignment: .leading, spacing: AppSpacing.space16) {
             SearchField(text: $query, placeholder: "Search venue or area")
             HStack { BoardedFilterControl(title: "Scheduled", isSelected: model.selectedStatus == .scheduled) { model.selectedStatus = .scheduled; Task { await model.load() } }; BoardedFilterControl(title: "Cancelled", isSelected: model.selectedStatus == .cancelled) { model.selectedStatus = .cancelled; Task { await model.load() } } }
-            if model.isLoading { BoardedFeedCardSkeleton() } else if let error = model.errorMessage { BoardedInlineError(message: error) { Task { await model.load() } } } else if filtered.isEmpty { BoardedRouteLineEmptyState(title: "No meetups on this line", message: "Create a session and invite your crew.", actionTitle: "Create Meetup", action: requestCreate) } else { LazyVStack(spacing: 0) { ForEach(filtered) { item in NavigationLink { MeetupDetailView(meetup: item) } label: { MeetupRow(meetup: item) }.buttonStyle(.plain) } } }
+            if model.isLoading { BoardedFeedCardSkeleton() } else if let error = model.errorMessage { BoardedInlineError(message: error) { Task { await model.load() } } } else if filtered.isEmpty { BoardedEmptyState(title: "No meetups on this line", message: "Create a session and invite your crew.", actionTitle: "Create Meetup", action: requestCreate) } else { LazyVStack(spacing: 0) { ForEach(filtered) { item in NavigationLink { MeetupDetailView(meetup: item) } label: { MeetupRow(meetup: item) }.buttonStyle(.plain) } } }
         }.padding(AppLayout.screenMargin).boardedContentWidth().frame(maxWidth: .infinity) }.navigationTitle("Meetups").boardedPageBackground().toolbar { ToolbarItem(placement: .primaryAction) { Button(action: requestCreate) { Image(systemName: "plus").frame(minWidth: 44, minHeight: 44) }.accessibilityLabel("Create meetup") } }.sheet(isPresented: $create) { MeetupFormView(completion: { created in model.insert(created) }) }.task { await model.load() }
     }
     private func requestCreate() { if auth.isAuthenticated { create = true } else { auth.requestAuthentication() } }
@@ -93,6 +93,7 @@ struct MeetupDetailView: View {
             titleVisibility: .visible
         ) {
             Button("Cancel Meetup", role: .destructive) { Task { await cancel() } }
+                .accessibilityIdentifier("confirm-cancel-meetup")
             Button("Keep Meetup", role: .cancel) {}
         } message: {
             Text("Everyone will see that this meetup was cancelled.")
