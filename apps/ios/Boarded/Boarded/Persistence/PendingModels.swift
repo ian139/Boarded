@@ -86,6 +86,21 @@ final class PendingAttempt {
         self.syncStateRaw = syncState.rawValue
     }
 
+    var discipline: ClimbDiscipline {
+        get { ClimbDiscipline(rawValue: disciplineRaw) ?? .other }
+        set { disciplineRaw = newValue.rawValue }
+    }
+
+    var gradeSystem: GradeSystem {
+        get { GradeSystem(rawValue: gradeSystemRaw) ?? .custom }
+        set { gradeSystemRaw = newValue.rawValue }
+    }
+
+    var outcome: AttemptOutcome {
+        get { AttemptOutcome(rawValue: outcomeRaw) ?? .stopped }
+        set { outcomeRaw = newValue.rawValue }
+    }
+
     var syncState: SyncState {
         get { SyncState(rawValue: syncStateRaw) ?? .queued }
         set { syncStateRaw = newValue.rawValue }
