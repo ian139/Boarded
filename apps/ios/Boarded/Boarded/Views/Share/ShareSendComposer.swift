@@ -231,8 +231,10 @@ struct SessionArtworkFacts: View {
             .accessibilityLabel(BoardedFormat.duration(model.duration))
             .accessibilityIdentifier("session-duration")
         Label("\(model.attemptCount) attempts", systemImage: "number")
+            .accessibilityLabel("\(model.attemptCount) attempts")
             .accessibilityIdentifier("session-attempt-count")
         Label("\(model.sendCount) sends", systemImage: "checkmark.circle")
+            .accessibilityLabel("\(model.sendCount) sends")
             .accessibilityIdentifier("session-result-sends")
     }
 }
