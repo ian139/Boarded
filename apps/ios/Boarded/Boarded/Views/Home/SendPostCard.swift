@@ -13,6 +13,7 @@ struct SendPostCard: View {
     var onLike: () -> Void = {}
     var showsActions = true
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     private var authorName: String { item.author.fullName?.trimmedNonEmpty ?? item.author.username?.trimmedNonEmpty ?? "Climber" }
 
@@ -24,7 +25,11 @@ struct SendPostCard: View {
                 VStack(alignment: .leading, spacing: 0) {
                     if !dynamicTypeSize.isAccessibilitySize {
                         Color.clear
-                            .frame(height: AppSpacing.space40)
+                            .frame(
+                                height: horizontalSizeClass == .regular
+                                    ? AppLayout.regularFeedCaptionClearance
+                                    : AppLayout.compactFeedCaptionClearance
+                            )
                             .accessibilityHidden(true)
                     }
                     Text(caption)

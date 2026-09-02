@@ -186,6 +186,8 @@ enum AppLayout {
     static let attemptTimelineCompactThreshold = 8
     static let attemptTimelineCompactColumns = 24
     static let accessibilitySelectionMinHeight = minimumTarget * 2
+    static let compactFeedCaptionClearance = AppSpacing.space40
+    static let regularFeedCaptionClearance: CGFloat = 56
     static let contentMaxWidth: CGFloat = 560
 
     /// Horizontal margin for the current width class: 20 pt on compact
