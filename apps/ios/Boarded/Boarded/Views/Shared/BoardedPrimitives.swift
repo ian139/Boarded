@@ -280,3 +280,69 @@ struct BoardedPrimaryButton: View {
         .accessibilityLabel(title)
     }
 }
+
+// MARK: - Material depth
+
+/// Compact control or single-line fact over photography.
+struct BoardedPhotoHUD<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        content
+            .padding(.horizontal, AppSpacing.space12)
+            .frame(minHeight: AppLayout.minimumTarget)
+            .boardedMaterial(.photoHUD, in: Capsule())
+    }
+}
+
+/// Multi-fact shelf attached to photography. Reading content belongs in an
+/// opaque panel instead.
+struct BoardedSessionFactShelf<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        content
+            .padding(AppSpacing.space16)
+            .boardedMaterial(.sessionFactShelf, in: AppRadius.card())
+    }
+}
+
+/// Compact logger or media actions floating over underlapping content.
+struct BoardedFloatingRail<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        content
+            .padding(AppSpacing.space8)
+            .boardedMaterial(.floatingRail, in: AppRadius.card())
+    }
+}
+
+/// Navigation or tab chrome used only while scrolling content visibly
+/// underlaps it.
+struct BoardedContentChrome<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        content
+            .padding(.horizontal, AppSpacing.space16)
+            .padding(.vertical, AppSpacing.space8)
+            .boardedMaterial(.contentChrome, in: AppRadius.card())
+    }
+}

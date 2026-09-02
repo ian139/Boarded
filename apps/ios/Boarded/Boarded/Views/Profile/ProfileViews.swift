@@ -59,19 +59,29 @@ struct ProfileView: View {
     }
 
     private func header(_ profile: Profile) -> some View {
-        HStack(spacing: AppSpacing.space16) {
-            BoardedAvatar(name: profile.displayName, size: 72)
+        HStack(alignment: .center, spacing: AppSpacing.space16) {
+            ProfileIdentityImage(profile: profile) {
+                edit = true
+            }
             VStack(alignment: .leading, spacing: AppSpacing.space4) {
-                Text(profile.displayName).font(AppTypography.titleM)
+                Text(profile.displayName)
+                    .font(AppTypography.titleM)
+                    .foregroundStyle(AppColor.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
                 if let username = profile.username {
                     Text("@\(username)").foregroundStyle(AppColor.textSecondary)
                 }
                 if let home = profile.homeArea {
-                    Label(home, systemImage: "mappin").font(AppTypography.caption)
+                    Label(home, systemImage: "mappin")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
-        .accessibilityElement(children: .combine)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .boardedPanel(padding: AppLayout.featureCardPadding)
+        .accessibilityElement(children: .contain)
     }
 
     @ViewBuilder
@@ -154,6 +164,54 @@ struct ProfileView: View {
                 ForEach(model.posts) { SendPostCard(item: $0, showsActions: false) }
             }
         }
+    }
+}
+
+private struct ProfileIdentityImage: View {
+    let profile: Profile
+    let edit: () -> Void
+
+    var body: some View {
+        Group {
+            if let avatar = profile.avatarUrl.flatMap(URL.init(string:)) {
+                AsyncImage(url: avatar) { phase in
+                    switch phase {
+                    case let .success(image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .overlay(alignment: .bottomTrailing) {
+                                BoardedPhotoHUD {
+                                    Button(action: edit) {
+                                        Image(systemName: "pencil")
+                                            .foregroundStyle(AppColor.textPrimary)
+                                            .frame(
+                                                minWidth: AppLayout.minimumTarget,
+                                                minHeight: AppLayout.minimumTarget
+                                            )
+                                    }
+                                    .accessibilityLabel("Edit profile")
+                                }
+                            }
+                    case .empty:
+                        BoardedSkeleton(shape: AppRadius.card())
+                    case .failure:
+                        BoardedAvatar(name: profile.displayName, size: 96)
+                    @unknown default:
+                        BoardedAvatar(name: profile.displayName, size: 96)
+                    }
+                }
+            } else {
+                BoardedAvatar(name: profile.displayName, size: 96)
+            }
+        }
+        .frame(width: 96, height: 96)
+        .clipShape(AppRadius.card())
+        .overlay {
+            AppRadius.card()
+                .stroke(AppColor.strokeSubtle, lineWidth: AppStroke.hairline)
+        }
+        .accessibilityLabel("Profile photo of \(profile.displayName)")
     }
 }
 

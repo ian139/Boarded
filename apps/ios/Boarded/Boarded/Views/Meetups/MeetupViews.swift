@@ -46,17 +46,28 @@ struct MeetupDetailView: View {
                     Label("Cancelled meetup", systemImage: "xmark.circle.fill")
                         .foregroundStyle(AppColor.danger)
                 }
-                BoardedEyebrow(text: current.area)
-                Text(current.title).font(AppTypography.titleL)
-                Text(current.description).font(AppTypography.bodyL).foregroundStyle(AppColor.textSecondary)
-                VStack(alignment: .leading, spacing: AppSpacing.space8) {
-                    Label(current.venueName, systemImage: "mappin.and.ellipse")
-                    Label(BoardedFormat.dateTime(current.startsAt), systemImage: "calendar")
-                    if let capacity = current.capacity {
-                        Label("\(attendees.count + 1) of \(capacity) places", systemImage: "person.3")
+                VStack(alignment: .leading, spacing: AppSpacing.space16) {
+                    BoardedEyebrow(text: current.area)
+                    Text(current.title)
+                        .font(AppTypography.titleL)
+                        .foregroundStyle(AppColor.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    VStack(alignment: .leading, spacing: AppSpacing.space8) {
+                        Label(current.venueName, systemImage: "mappin.and.ellipse")
+                        Label(BoardedFormat.dateTime(current.startsAt), systemImage: "calendar")
+                        if let capacity = current.capacity {
+                            Label("\(attendees.count + 1) of \(capacity) places", systemImage: "person.3")
+                        }
                     }
+                    .font(AppTypography.bodyM)
+                    .foregroundStyle(AppColor.textSecondary)
                 }
-                .font(AppTypography.bodyM)
+                .boardedPanel(padding: AppLayout.featureCardPadding)
+                Text(current.description)
+                    .font(AppTypography.bodyL)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .boardedPanel()
                 actions
                 commentsView
             }
@@ -104,6 +115,7 @@ struct MeetupDetailView: View {
                 Text(error).font(AppTypography.labelM).foregroundStyle(AppColor.danger)
             }
         }
+        .boardedPanel()
     }
 
     private var commentsView: some View {
@@ -141,6 +153,7 @@ struct MeetupDetailView: View {
                     .accessibilityIdentifier("meetup-comment-submit")
             }
         }
+        .boardedPanel()
     }
 
     private var isFull: Bool { current.capacity.map { attendees.count + 1 >= $0 } ?? false }

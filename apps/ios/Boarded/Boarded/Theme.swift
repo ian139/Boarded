@@ -69,6 +69,42 @@ enum AppStroke {
     static let focusGap: CGFloat = 2
 }
 
+enum AppShadow {
+    static let materialColor = Color.black.opacity(0.24)
+    static let materialRadius: CGFloat = 12
+    static let materialY: CGFloat = 6
+}
+
+enum BoardedMaterialStyle {
+    case photoHUD
+    case sessionFactShelf
+    case floatingRail
+    case contentChrome
+
+    fileprivate var material: Material {
+        switch self {
+        case .photoHUD: return .ultraThinMaterial
+        case .sessionFactShelf, .floatingRail: return .thinMaterial
+        case .contentChrome: return .regularMaterial
+        }
+    }
+
+    fileprivate var tintOpacity: Double {
+        switch self {
+        case .photoHUD: return 0.58
+        case .sessionFactShelf, .floatingRail: return 0.64
+        case .contentChrome: return 0.72
+        }
+    }
+
+    fileprivate var opaqueFallback: Color {
+        switch self {
+        case .photoHUD, .contentChrome: return AppColor.backgroundBase
+        case .sessionFactShelf, .floatingRail: return AppColor.backgroundElevated
+        }
+    }
+}
+
 // MARK: - Motion
 
 enum AppMotion {
@@ -188,6 +224,65 @@ private struct BoardedPanelModifier: ViewModifier {
     }
 }
 
+private struct BoardedMaterialModifier<S: Shape>: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
+    let style: BoardedMaterialStyle
+    let shape: S
+
+    private var usesOpaqueFallback: Bool {
+        if reduceTransparency { return true }
+        guard contrast == .increased else { return false }
+        switch style {
+        case .photoHUD: return false
+        case .sessionFactShelf, .floatingRail, .contentChrome: return true
+        }
+    }
+
+    private var tintOpacity: Double {
+        contrast == .increased ? 0.72 : style.tintOpacity
+    }
+
+    private var leadingRimOpacity: Double {
+        reduceTransparency ? 0.18 : (contrast == .increased ? 0.32 : 0.18)
+    }
+
+    private var trailingRimOpacity: Double {
+        reduceTransparency ? 0.08 : (contrast == .increased ? 0.14 : 0.08)
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .background {
+                if usesOpaqueFallback {
+                    shape.fill(style.opaqueFallback)
+                } else {
+                    shape
+                        .fill(style.material)
+                        .overlay { shape.fill(AppColor.backgroundBase.opacity(tintOpacity)) }
+                }
+            }
+            .overlay {
+                shape.stroke(
+                    LinearGradient(
+                        colors: [
+                            AppColor.textPrimary.opacity(leadingRimOpacity),
+                            AppColor.textPrimary.opacity(trailingRimOpacity)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: AppStroke.hairline
+                )
+            }
+            .shadow(
+                color: usesOpaqueFallback ? .clear : AppShadow.materialColor,
+                radius: AppShadow.materialRadius,
+                y: AppShadow.materialY
+            )
+    }
+}
+
 private struct BoardedFocusRingModifier<S: Shape>: ViewModifier {
     @Environment(\.accessibilityDifferentiateWithoutColor) private var differentiateWithoutColor
     let isFocused: Bool
@@ -218,6 +313,13 @@ extension View {
     func boardedSurface<S: Shape>(in shape: S, interactive: Bool = false) -> some View { modifier(BoardedSurfaceModifier(shape: shape, interactive: interactive)) }
 
     func boardedFocusRing<S: Shape>(isFocused: Bool, in shape: S) -> some View { modifier(BoardedFocusRingModifier(isFocused: isFocused, shape: shape)) }
+
+    /// Bounded iOS material over visibly underlapping imagery or content.
+    /// Reduce Transparency and increased-contrast dense styles resolve to the
+    /// design-contract opaque fallback without changing layout.
+    func boardedMaterial<S: Shape>(_ style: BoardedMaterialStyle, in shape: S) -> some View {
+        modifier(BoardedMaterialModifier(style: style, shape: shape))
+    }
 
     /// Constrains readable content width on regular size classes.
     func boardedContentWidth() -> some View { frame(maxWidth: AppLayout.contentMaxWidth) }
