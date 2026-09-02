@@ -351,9 +351,23 @@ final class SessionSyncService: ObservableObject {
         let linkedDrafts = fetchAllDrafts().filter { $0.featuredAttemptId == attempt.id }
 
         var durableClaimIDs: [UUID: UUID] = [:]
+        var neverPublishedDraftIDs: Set<UUID> = []
         for draft in linkedDrafts {
-            if let claimID = try durablePublicationClaimID(draftID: draft.id) ?? draft.publicationClaimID {
+            let activeClaimID = PublicationCoordinator.activeClaimID(draftID: draft.id)
+            let durableClaimID = try durablePublicationClaimID(draftID: draft.id) ?? draft.publicationClaimID
+            if let claimID = activeClaimID ?? durableClaimID {
                 durableClaimIDs[draft.id] = claimID
+            }
+            let hasStarted: Bool
+            if draft.publicationStartedAt != nil {
+                hasStarted = true
+            } else {
+                hasStarted = try publicationHasStarted(draftID: draft.id)
+            }
+            let isClaimed = activeClaimID != nil || durableClaimID != nil
+            let isRemotePossible = draft.syncState != .queued
+            if !hasStarted && !isClaimed && !isRemotePossible {
+                neverPublishedDraftIDs.insert(draft.id)
             }
         }
 
@@ -415,13 +429,22 @@ final class SessionSyncService: ObservableObject {
         for fileName in stagedFileNames {
             DraftImageStore.finalizeStagedDeletion(fileName: fileName)
         }
+        if !neverPublishedDraftIDs.isEmpty {
+            let allDraftDeletions = fetchAllDraftDeletions()
+            for deletion in allDraftDeletions where neverPublishedDraftIDs.contains(deletion.id) {
+                modelContext.delete(deletion)
+            }
+            do {
+                try saveModelContext()
+            } catch {
+                modelContext.rollback()
+                state = .failed
+                errorMessage = error.localizedDescription
+                throw error
+            }
+        }
 
-        let hasPendingWork = !fetchPendingSessions().isEmpty
-            || !fetchPendingAttempts().isEmpty
-            || !fetchPendingDrafts().isEmpty
-            || !fetchPendingAttemptDeletions().isEmpty
-            || !fetchPendingDraftDeletions().isEmpty
-        state = requiresRemoteDelete || hasPendingWork ? .queued : .synced
+        state = hasPendingWork() ? .queued : .synced
         errorMessage = nil
     }
 

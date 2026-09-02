@@ -624,8 +624,59 @@ final class NativeContractTests: XCTestCase {
         let remainingDraftsAfterDelete2 = try context.fetch(FetchDescriptor<PendingSessionDraft>())
         XCTAssertTrue(remainingDraftsAfterDelete2.isEmpty)
         XCTAssertTrue(try context.fetch(FetchDescriptor<PendingAttempt>()).isEmpty)
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingAttemptDeletion>()).isEmpty)
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSessionDraft>()).isEmpty)
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingDraftDeletion>()).isEmpty)
         XCTAssertNil(DraftImageStore.read(fileName: fileName2))
         XCTAssertEqual(sync.state, .synced)
+    }
+
+    func testUndoAttemptRetainsTombstoneAndQueuedStateForStartedOrClaimedLinkedDraft() throws {
+        let context = try makeContext()
+        let repository = MockSessionRepository()
+        let sync = SessionSyncService(repository: repository, modelContext: context, userID: userID, connectivityOverride: false)
+
+        let sessionID = UUID(uuidString: "11111111-0000-4000-8000-000000000001")!
+        let attemptID = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
+        let attempt = pendingAttempt(id: attemptID, syncState: .queued)
+        attempt.sessionId = sessionID
+
+        let draftID = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
+        let fileName = "draft-\(draftID.uuidString).jpg"
+        let imageData = Data([0x01, 0x02, 0x03])
+        let claimID = UUID(uuidString: "33333333-3333-4333-8333-333333333333")!
+        let draft = PendingSessionDraft(
+            id: draftID,
+            sessionId: sessionID,
+            featuredAttemptId: attemptID,
+            caption: "Started draft",
+            imageFileName: fileName,
+            imageAlt: "Alt",
+            publicationStartedAt: Date(timeIntervalSince1970: 100),
+            publicationClaimID: claimID
+        )
+
+        context.insert(attempt)
+        context.insert(draft)
+        try context.save()
+        try DraftImageStore.write(imageData, fileName: fileName)
+        try DraftImageStore.write(
+            imageData,
+            fileName: DraftImageStore.sourceFileName(for: fileName)
+        )
+        defer { DraftImageStore.delete(fileName: fileName) }
+
+        try sync.delete(attempt: attempt)
+
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingAttempt>()).isEmpty)
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingAttemptDeletion>()).isEmpty)
+        XCTAssertTrue(try context.fetch(FetchDescriptor<PendingSessionDraft>()).isEmpty)
+        XCTAssertNil(DraftImageStore.read(fileName: fileName))
+
+        let tombstones = try context.fetch(FetchDescriptor<PendingDraftDeletion>())
+        XCTAssertEqual(tombstones.map(\.id), [draftID])
+        XCTAssertEqual(tombstones.first?.publicationClaimID, claimID)
+        XCTAssertEqual(sync.state, .queued)
     }
 
     func testDeleteAttemptOnlyDiscardsDraftWhenAttemptIsFeaturedAttemptInSameSession() async throws {
