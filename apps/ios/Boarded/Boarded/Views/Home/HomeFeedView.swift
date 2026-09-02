@@ -1,8 +1,8 @@
 import SwiftUI
 import SwiftData
 
-/// Home tab: the shared send feed. Readable by guests; posting and reactions
-/// require an account.
+/// Home tab: a photo-led journal of completed climbing sessions. Reading is
+/// public; publishing and reactions require an account.
 struct HomeFeedView: View {
     @EnvironmentObject private var session: AppSession
     @EnvironmentObject private var navigation: AppNavigation
@@ -47,14 +47,14 @@ struct HomeFeedView: View {
                     Image(systemName: "square.and.pencil")
                         .frame(minWidth: AppLayout.minimumTarget, minHeight: AppLayout.minimumTarget)
                 }
-                .accessibilityLabel("Share a send")
+                .accessibilityLabel("Share a session")
                 .accessibilityIdentifier("home-compose")
             }
         }
         .sheet(isPresented: $composerPresented) {
             ShareSendComposer()
         }
-        .navigationDestination(for: SendFeedItem.self) { item in
+        .navigationDestination(for: SessionFeedItem.self) { item in
             PostDetailView(item: item)
         }
         .onAppear {
@@ -129,11 +129,11 @@ struct HomeFeedView: View {
 
     private var emptyState: some View {
         BoardedRouteLineEmptyState(
-            title: "Nothing shared yet.",
+            title: "No session journal entries yet",
             message: auth.isAuthenticated
-                ? "Send a route, then share it with your crew."
-                : "Sign in to log sessions and share your sends.",
-            actionTitle: auth.isAuthenticated ? "Share a Send" : "Sign In",
+                ? "End a session, add a climbing photo, and share the whole result."
+                : "Sign in to log and share completed climbing sessions.",
+            actionTitle: auth.isAuthenticated ? "Share session" : "Sign In",
             action: {
                 if auth.isAuthenticated {
                     composerPresented = true

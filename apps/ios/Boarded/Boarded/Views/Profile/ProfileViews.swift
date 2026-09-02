@@ -4,7 +4,7 @@ import UIKit
 @MainActor
 final class ProductProfileViewModel: ObservableObject {
     @Published var statistics = ProfileStatistics.empty
-    @Published var posts: [SendFeedItem] = []
+    @Published var posts: [SessionFeedItem] = []
     @Published var loading = true
     @Published var error: String?
     private var hasLoaded = false
@@ -103,7 +103,7 @@ struct ProfileView: View {
         } else if model.isEmpty {
             BoardedRouteLineEmptyState(
                 title: "Your journal starts here",
-                message: "Log a session and share a send to build your climbing profile."
+                message: "Log a session and share it to build your climbing journal."
             )
             .accessibilityIdentifier("profile-empty")
         } else {
@@ -186,9 +186,9 @@ struct ProfileView: View {
 
     private var ownPosts: some View {
         VStack(alignment: .leading, spacing: AppSpacing.space12) {
-            BoardedSectionHeading(title: "Your posts")
+            BoardedSectionHeading(title: "Session journal")
             if model.posts.isEmpty {
-                Text("Share a completed climb to add it to your journal.")
+                Text("Share a completed session with a photo to add it to your journal.")
                     .font(AppTypography.bodyM)
                     .foregroundStyle(AppColor.textSecondary)
             } else {

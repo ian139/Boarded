@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Post detail: the send card with its comment thread and composer. Guests
-/// read the thread; commenting requires an account.
+/// Session journal detail with its opaque comment thread. Guests can read;
+/// commenting and reactions require an account.
 struct PostDetailView: View {
     @EnvironmentObject private var session: AppSession
     @Environment(\.boardedAuth) private var auth
@@ -10,13 +10,13 @@ struct PostDetailView: View {
     @State private var isLiked: Bool
     @State private var isTogglingLike = false
 
-    private let item: SendFeedItem
+    private let item: SessionFeedItem
     private let repository: any FeedRepository
 
-    init(item: SendFeedItem, repository: any FeedRepository = AppServices.feedRepository) {
+    init(item: SessionFeedItem, repository: any FeedRepository = AppServices.feedRepository) {
         self.item = item
         self.repository = repository
-        _viewModel = StateObject(wrappedValue: PostDetailViewModel(repository: repository, postID: item.id))
+        _viewModel = StateObject(wrappedValue: PostDetailViewModel(repository: repository, postID: item.id, post: item))
         _likeCount = State(initialValue: item.likeCount)
         _isLiked = State(initialValue: item.isLiked)
     }
@@ -35,12 +35,12 @@ struct PostDetailView: View {
             .frame(maxWidth: .infinity)
         }
         .boardedPageBackground()
-        .navigationTitle("Post")
+        .navigationTitle("Session journal")
         .navigationBarTitleDisplayMode(.inline)
         .task { await viewModel.load() }
     }
 
-    private var current: SendFeedItem {
+    private var current: SessionFeedItem {
         var updated = item
         updated.likeCount = likeCount
         updated.isLiked = isLiked

@@ -48,9 +48,13 @@ final class BoardedUITests: XCTestCase {
         app.buttons["Save Attempt"].tap()
         app.buttons["End Session"].tap(); app.buttons["End Session"].tap()
         XCTAssertTrue(app.staticTexts["SESSION COMPLETE"].waitForExistence(timeout: 5))
-        app.buttons["Share Send"].tap()
-        XCTAssertTrue(app.navigationBars["Share Send"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Public"].exists)
+        app.buttons["Share session"].tap()
+        XCTAssertTrue(app.navigationBars["Share session"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["share-featured-attempt"].exists)
+        XCTAssertTrue(app.segmentedControls["share-overlay"].exists)
+        XCTAssertTrue(app.buttons["share-photo"].exists)
+        XCTAssertTrue(app.textFields["Photo description"].exists)
+        XCTAssertTrue(app.otherElements["session-preview"].exists)
         capture("Share-preview-standard")
         app.buttons["Close"].tap(); app.buttons["Done"].tap()
         tab("Meetups")
@@ -82,9 +86,9 @@ final class BoardedUITests: XCTestCase {
         app.buttons["End Session"].tap(); app.buttons["End Session"].tap()
         XCTAssertTrue(app.staticTexts["SESSION COMPLETE"].waitForExistence(timeout: 5))
         capture("Session-result-accessibility-large")
-        app.buttons["Share Send"].tap()
-        XCTAssertTrue(app.navigationBars["Share Send"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Public"].exists)
+        app.buttons["Share session"].tap()
+        XCTAssertTrue(app.navigationBars["Share session"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.otherElements["session-preview"].exists)
         capture("Share-preview-accessibility-large")
         app.buttons["Close"].tap(); app.buttons["Done"].tap()
         tab("Meetups")
@@ -98,7 +102,7 @@ final class BoardedUITests: XCTestCase {
 
     func testGuestPromptsForShareCommentAndMeetupMutations() {
         tab("Profile"); app.buttons["Sign Out"].tap(); tab("Home")
-        app.buttons["Share a send"].tap()
+        app.buttons["Share a session"].tap()
         XCTAssertTrue(app.staticTexts["Boarded"].waitForExistence(timeout: 3)); app.buttons["Close"].tap()
         app.otherElements["feed-item"].firstMatch.tap()
         if app.buttons["comment-auth"].exists { app.buttons["comment-auth"].tap() }
@@ -110,7 +114,7 @@ final class BoardedUITests: XCTestCase {
     func testFeedLikeAndCommentUpdatesVisibleState() {
         XCTAssertTrue(app.otherElements["feed-list"].waitForExistence(timeout: 5))
         app.otherElements["feed-item"].firstMatch.tap()
-        XCTAssertTrue(app.navigationBars["Post"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Session journal"].waitForExistence(timeout: 5))
         let like = app.buttons["post-like"]
         XCTAssertTrue(like.exists); like.tap(); XCTAssertTrue(like.isSelected)
         let field = app.textFields["comment-field"]
@@ -133,10 +137,13 @@ final class BoardedUITests: XCTestCase {
         app.buttons["End Session"].tap(); app.buttons["End Session"].tap()
         XCTAssertTrue(app.staticTexts["SESSION COMPLETE"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Sends"].exists)
-        app.buttons["Share Send"].tap()
-        XCTAssertTrue(app.navigationBars["Share Send"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Public"].exists)
-        XCTAssertTrue(app.staticTexts["Anyone can see this post."].exists)
+        app.buttons["Share session"].tap()
+        XCTAssertTrue(app.navigationBars["Share session"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["share-featured-attempt"].exists)
+        XCTAssertTrue(app.segmentedControls["share-overlay"].exists)
+        XCTAssertTrue(app.buttons["share-photo"].exists)
+        XCTAssertTrue(app.textFields["Photo description"].exists)
+        XCTAssertFalse(app.buttons["publish-session"].isEnabled)
     }
 
     func testOfflineAttemptSurvivesRelaunch() {
@@ -178,7 +185,7 @@ final class BoardedUITests: XCTestCase {
     func testProfileSettingsPreferencesAndEdit() {
         tab("Profile")
         XCTAssertTrue(app.otherElements["profile-settings"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Your posts"].exists)
+        XCTAssertTrue(app.staticTexts["Session journal"].exists)
         XCTAssertTrue(app.staticTexts["Climbing preferences"].exists)
         XCTAssertTrue(app.staticTexts["Accessibility"].exists)
         XCTAssertTrue(app.staticTexts["About"].exists)
@@ -190,7 +197,7 @@ final class BoardedUITests: XCTestCase {
 
     func testReduceMotionAndLandscapeKeepPrimaryNavigationUsable() {
         app.terminate(); launch(["-UIAccessibilityReduceMotionEnabled", "YES"])
-        XCTAssertTrue(app.buttons["Share a send"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Share a session"].waitForExistence(timeout: 5))
         XCUIDevice.shared.orientation = .landscapeLeft
         XCTAssertTrue(app.tabBars.buttons["Meetups"].waitForExistence(timeout: 3))
         tab("Meetups"); XCTAssertTrue(app.navigationBars["Meetups"].exists)

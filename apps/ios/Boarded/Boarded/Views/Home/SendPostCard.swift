@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Public URL for a send-post image stored in the `social-media` bucket.
+/// Public URL for a session-journal image stored in the `social-media` bucket.
 enum FeedImageURL {
     static func publicURL(for path: String) -> URL? {
         guard let base = SupabaseConfig.current?.url else { return nil }
@@ -8,166 +8,163 @@ enum FeedImageURL {
     }
 }
 
-/// Feed card. The achievement leads: person and time, large serif grade,
-/// route name, image, then the reaction controls.
 struct SendPostCard: View {
-    let item: SendFeedItem
+    let item: SessionFeedItem
     var onLike: () -> Void = {}
     var showsActions = true
 
-    private var authorName: String { item.author.fullName?.trimmingCharacters(in: .whitespacesAndNewlines).nonEmpty ?? item.author.username?.nonEmpty ?? "Climber" }
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    private var authorName: String { item.author.fullName?.trimmedNonEmpty ?? item.author.username?.trimmedNonEmpty ?? "Climber" }
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.space12) {
             header
-            achievement
-            if let imagePath = item.imagePath, let url = FeedImageURL.publicURL(for: imagePath) {
-                FeedPostImage(url: url, alt: item.imageAlt)
-            }
-            if let caption = item.caption, !caption.isEmpty {
+            photoComposition
+            if let caption = item.caption?.trimmedNonEmpty {
                 Text(caption)
                     .font(AppTypography.bodyM)
                     .foregroundStyle(AppColor.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
+                    .padding(AppSpacing.space16)
+                    .background(AppColor.surfaceCard, in: AppRadius.card())
             }
-            if showsActions {
-                actions
-            }
+            if showsActions { actions }
         }
-        .boardedPanel()
         .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("send-post-card")
+        .accessibilityIdentifier("session-post-card")
     }
 
     private var header: some View {
         HStack(spacing: AppSpacing.space12) {
             BoardedAvatar(name: authorName, size: 40)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(authorName)
-                    .font(AppTypography.labelL)
-                    .foregroundStyle(AppColor.textPrimary)
-                    .lineLimit(2)
-                Text(BoardedFormat.relative(item.createdAt))
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppColor.textTertiary)
+            VStack(alignment: .leading, spacing: AppSpacing.space4) {
+                Text(authorName).font(AppTypography.labelL).foregroundStyle(AppColor.textPrimary)
+                Text(BoardedFormat.relative(item.createdAt)).font(AppTypography.caption).foregroundStyle(AppColor.textTertiary)
             }
             Spacer(minLength: 0)
         }
         .accessibilityElement(children: .combine)
     }
 
-    private var achievement: some View {
-        HStack(alignment: .firstTextBaseline, spacing: AppSpacing.space12) {
-            Text(item.attempt.gradeLabel)
-                .font(AppTypography.displayS)
-                .foregroundStyle(AppColor.textPrimary)
-                .fixedSize()
-                .accessibilityLabel("Grade \(item.attempt.gradeLabel)")
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.attempt.routeName)
-                    .font(AppTypography.bodyL)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text("\(item.attempt.discipline.title) · sent")
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppColor.textTertiary)
+    private var photoComposition: some View {
+        VStack(spacing: 0) {
+            ZStack(alignment: .bottom) {
+                FeedPostImage(url: FeedImageURL.publicURL(for: item.imagePath), alt: item.imageAlt)
+                if !dynamicTypeSize.isAccessibilitySize {
+                    LinearGradient(colors: [.clear, AppColor.backgroundBase.opacity(0.82)], startPoint: .top, endPoint: .bottom)
+                        .accessibilityHidden(true)
+                    SessionFactShelf(session: item.session, overlayStyle: item.overlayStyle)
+                        .padding(AppSpacing.space12)
+                }
             }
-            Spacer(minLength: 0)
+            if dynamicTypeSize.isAccessibilitySize {
+                SessionFactShelf(session: item.session, overlayStyle: item.overlayStyle, opaque: true)
+            }
         }
+        .clipShape(AppRadius.card())
+        .overlay { AppRadius.card().stroke(AppColor.strokeSubtle, lineWidth: AppStroke.hairline) }
     }
 
     private var actions: some View {
         HStack(spacing: AppSpacing.space20) {
             Button(action: onLike) {
-                HStack(spacing: AppSpacing.space4) {
-                    Image(systemName: item.isLiked ? "heart.fill" : "heart")
-                    if item.likeCount > 0 {
-                        Text("\(item.likeCount)")
-                            .font(AppTypography.labelM)
-                            .monospacedDigit()
-                    }
-                }
-                .foregroundStyle(item.isLiked ? AppColor.accentDefault : AppColor.textSecondary)
-                .frame(minWidth: AppLayout.minimumTarget, minHeight: AppLayout.minimumTarget)
-                .contentShape(Rectangle())
+                Label("\(item.likeCount)", systemImage: item.isLiked ? "heart.fill" : "heart")
+                    .foregroundStyle(item.isLiked ? AppColor.accentDefault : AppColor.textSecondary)
+                    .frame(minWidth: AppLayout.minimumTarget, minHeight: AppLayout.minimumTarget)
             }
             .buttonStyle(.plain)
             .accessibilityLabel(item.isLiked ? "Unlike" : "Like")
             .accessibilityValue("\(item.likeCount) likes")
             .accessibilityIdentifier("post-like")
 
-            HStack(spacing: AppSpacing.space4) {
-                Image(systemName: "bubble.right")
-                if item.commentCount > 0 {
-                    Text("\(item.commentCount)")
-                        .font(AppTypography.labelM)
-                        .monospacedDigit()
-                }
-            }
-            .foregroundStyle(AppColor.textSecondary)
-            .frame(minHeight: AppLayout.minimumTarget)
-            .accessibilityLabel("Comments")
-            .accessibilityValue("\(item.commentCount) comments")
-            .accessibilityIdentifier("post-comments")
-
+            Label("\(item.commentCount)", systemImage: "bubble.right")
+                .foregroundStyle(AppColor.textSecondary)
+                .frame(minHeight: AppLayout.minimumTarget)
+                .accessibilityLabel("\(item.commentCount) comments")
+                .accessibilityIdentifier("post-comments")
             Spacer(minLength: 0)
-
-            ShareLink(item: shareText) {
-                Image(systemName: "square.and.arrow.up")
-                    .foregroundStyle(AppColor.textSecondary)
-                    .frame(minWidth: AppLayout.minimumTarget, minHeight: AppLayout.minimumTarget)
-                    .contentShape(Rectangle())
-            }
-            .accessibilityLabel("Share post")
-            .accessibilityIdentifier("post-share")
+            ShareLink(item: shareText) { Image(systemName: "square.and.arrow.up").frame(minWidth: AppLayout.minimumTarget, minHeight: AppLayout.minimumTarget) }
+                .foregroundStyle(AppColor.textSecondary)
+                .accessibilityLabel("Share session journal entry")
         }
         .font(AppTypography.labelL)
     }
 
     private var shareText: String {
-        "\(authorName) sent \(item.attempt.gradeLabel) — \(item.attempt.routeName) on Boarded."
+        let attempt = item.session.featuredAttempt
+        return "\(authorName)'s session at \(item.session.venueName): \(attempt.gradeLabel) \(attempt.routeName), \(attempt.outcome.title) on Boarded."
     }
 }
 
-/// 3:2 post image with slate placeholder and alt-text accessibility.
+struct SessionFactShelf: View {
+    let session: FeedSessionSummary
+    let overlayStyle: OverlayStyle
+    var opaque = false
+
+    private var outcome: FeedFeaturedAttempt { session.featuredAttempt }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.space12) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(session.venueName).font(AppTypography.titleM).fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: AppSpacing.space8)
+                Label(outcome.outcome.title, systemImage: outcome.outcome.systemImage)
+                    .font(AppTypography.labelM)
+                    .foregroundStyle(outcome.outcome == .sent ? AppColor.accentDefault : AppColor.textPrimary)
+            }
+            if overlayStyle == .attemptTimeline {
+                HStack(spacing: AppSpacing.space8) {
+                    ForEach(1...max(session.attemptCount, 1), id: \.self) { index in
+                        Circle().fill(index == outcome.attemptNumber ? AppColor.accentDefault : AppColor.textSecondary).frame(width: AppSpacing.space8, height: AppSpacing.space8)
+                    }
+                }
+                .accessibilityLabel("Featured attempt \(outcome.attemptNumber) of \(session.attemptCount)")
+            }
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: AppSpacing.space16) { facts }
+                VStack(alignment: .leading, spacing: AppSpacing.space8) { facts }
+            }
+            Text("\(outcome.gradeLabel) · \(outcome.routeName)")
+                .font(AppTypography.labelL).fixedSize(horizontal: false, vertical: true)
+        }
+        .foregroundStyle(AppColor.textPrimary)
+        .padding(AppSpacing.space16)
+        .background(opaque ? AppColor.surfaceCard : Color.clear)
+        .modifier(SessionShelfMaterial(enabled: !opaque))
+        .accessibilityElement(children: .contain)
+    }
+
+    @ViewBuilder private var facts: some View {
+        Label(BoardedFormat.duration(TimeInterval(session.durationSeconds)), systemImage: "clock")
+        Label("\(session.attemptCount) attempts", systemImage: "number")
+        Label("\(session.sendCount) sends", systemImage: "checkmark.circle")
+    }
+}
+
+private struct SessionShelfMaterial: ViewModifier {
+    let enabled: Bool
+    func body(content: Content) -> some View {
+        if enabled { content.boardedMaterial(.sessionFactShelf, in: AppRadius.card()) } else { content }
+    }
+}
+
 struct FeedPostImage: View {
-    let url: URL
-    var alt: String?
+    let url: URL?
+    let alt: String
 
     var body: some View {
         AsyncImage(url: url) { phase in
-            switch phase {
-            case .success(let image):
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            case .failure:
-                placeholder(systemImage: "photo")
-            case .empty:
-                placeholder(systemImage: nil)
-            @unknown default:
-                placeholder(systemImage: nil)
-            }
+            if case let .success(image) = phase { image.resizable().aspectRatio(contentMode: .fill) }
+            else { ZStack { AppColor.backgroundElevated; ProgressView().tint(AppColor.textSecondary) } }
         }
-        .frame(maxWidth: .infinity)
-        .aspectRatio(3.0 / 2.0, contentMode: .fit)
-        .clipShape(AppRadius.card())
-        .overlay { AppRadius.card().stroke(AppColor.strokeSubtle, lineWidth: AppStroke.hairline) }
-        .accessibilityLabel(alt ?? "Climbing photo")
-    }
-
-    private func placeholder(systemImage: String?) -> some View {
-        ZStack {
-            AppColor.backgroundElevated
-            if let systemImage {
-                Image(systemName: systemImage)
-                    .font(.title2)
-                    .foregroundStyle(AppColor.textTertiary)
-            }
-        }
+        .frame(maxWidth: .infinity).aspectRatio(3.0 / 2.0, contentMode: .fit).clipped()
+        .accessibilityLabel(alt)
     }
 }
 
 private extension String {
-    var nonEmpty: String? { isEmpty ? nil : self }
+    var trimmedNonEmpty: String? {
+        let value = trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.isEmpty ? nil : value
+    }
 }

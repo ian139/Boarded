@@ -94,10 +94,10 @@ struct ActiveSessionView: View {
         .sheet(item: $result) { summary in SessionResultView(summary: summary) { dismiss() } }
     }
     private var queue: some View { VStack(alignment: .leading, spacing: AppSpacing.space8) { HStack { BoardedSectionHeading(title: "Attempts", subtitle: "Newest first"); Spacer(); if !logger.attempts.isEmpty { Button("Undo") { logger.undoLatestAttempt() }.accessibilityIdentifier("undo-attempt") } }; ForEach(logger.attempts.reversed()) { item in HStack { Text("#\(item.attemptNumber)").font(AppTypography.dataS); VStack(alignment: .leading) { Text(item.routeName); Text("\(item.gradeLabel) · \(BoardedFormat.timeOnly(item.occurredAt))").font(AppTypography.caption).foregroundStyle(AppColor.textSecondary) }; Spacer(); Label(item.outcome.title, systemImage: item.outcome.systemImage).foregroundStyle(item.outcome == .sent ? AppColor.accentDefault : AppColor.textPrimary) }.frame(minHeight: AppLayout.listRowMinHeight) } } }
-    private func end() { guard let active = logger.activeSession else { return }; let now = Date(); result = SessionSummary(venue: active.venueName, startedAt: active.startedAt, endedAt: now, attempts: logger.attempts); logger.endSession(at: now) }
+    private func end() { guard let active = logger.activeSession else { return }; let now = Date(); result = SessionSummary(sessionID: active.id, venue: active.venueName, startedAt: active.startedAt, endedAt: now, attempts: logger.attempts); logger.endSession(at: now) }
 }
 
-extension SessionSummary: Identifiable { var id: Date { startedAt } }
+extension SessionSummary: Identifiable { var id: UUID { sessionID } }
 
 struct OutcomeSheet: View {
     @Environment(\.dismiss) private var dismiss
@@ -176,16 +176,17 @@ struct SessionResultView: View {
                         .foregroundStyle(summary.sendCount > 0 ? AppColor.accentDefault : AppColor.textPrimary)
                     Text(summary.venue).font(AppTypography.titleM)
                     metrics
-                    if summary.sendCount > 0 {
-                        Button("Share Send") { share = true }
+                    if !summary.attempts.isEmpty {
+                        Button("Share session") { share = true }
                             .buttonStyle(BoardedButtonStyle(.secondary))
+                            .accessibilityIdentifier("share-completed-session")
                     }
                     BoardedPrimaryButton(title: "Done", action: done)
                 }
                 .padding(AppLayout.screenMargin)
             }
             .boardedPageBackground()
-            .sheet(isPresented: $share) { ShareSendComposer() }
+            .sheet(isPresented: $share) { ShareSendComposer(initialSessionID: summary.sessionID) }
         }
     }
 
