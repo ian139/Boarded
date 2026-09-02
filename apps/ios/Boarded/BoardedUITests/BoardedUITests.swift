@@ -75,6 +75,18 @@ final class BoardedUITests: XCTestCase {
             XCTAssertTrue(featuredRoute.label.contains("V6 · Steep Circuit"))
             XCTAssertTrue(featuredRoute.isHittable)
             XCTAssertLessThanOrEqual(featuredRoute.frame.maxY, preview.frame.maxY)
+            let duration = app.descendants(matching: .any)["session-duration"].firstMatch
+            XCTAssertTrue(duration.exists)
+            XCTAssertTrue(duration.label.contains("2:00:00"))
+            XCTAssertTrue(duration.isHittable)
+            let attempts = app.descendants(matching: .any)["session-attempt-count"].firstMatch
+            XCTAssertTrue(attempts.exists)
+            XCTAssertTrue(attempts.label.contains("48 attempts"))
+            XCTAssertTrue(attempts.isHittable)
+            let sends = app.descendants(matching: .any)["session-result-sends"].firstMatch
+            XCTAssertTrue(sends.exists)
+            XCTAssertTrue(sends.label.contains("16 sends"))
+            XCTAssertTrue(sends.isHittable)
             let caption = app.descendants(matching: .any)["session-post-caption"].firstMatch
             XCTAssertTrue(caption.exists)
             XCTAssertGreaterThanOrEqual(caption.frame.minY, preview.frame.maxY)

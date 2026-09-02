@@ -49,7 +49,7 @@ struct SessionArtworkView: View {
                         endPoint: .bottom
                     ).accessibilityHidden(true)
                     SessionArtworkFacts(model: model, usesMaterial: presentation == .screen)
-                        .padding(AppSpacing.space12)
+                        .padding(presentation == .export ? 0 : AppSpacing.space12)
                 }
                 if presentation == .export {
                     LinearGradient(
@@ -224,7 +224,9 @@ struct SessionArtworkFacts: View {
 
     @ViewBuilder private var facts: some View {
         Label(BoardedFormat.duration(model.duration), systemImage: "clock")
+            .accessibilityIdentifier("session-duration")
         Label("\(model.attemptCount) attempts", systemImage: "number")
+            .accessibilityIdentifier("session-attempt-count")
         Label("\(model.sendCount) sends", systemImage: "checkmark.circle")
             .accessibilityIdentifier("session-result-sends")
     }
