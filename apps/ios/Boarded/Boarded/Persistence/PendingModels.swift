@@ -209,9 +209,18 @@ final class PendingSessionDraft {
 enum DraftImageStore {
     enum Error: LocalizedError, Equatable {
         case invalidFileName
+        case stagingFailed(String)
+        case restorationFailed(String)
 
         var errorDescription: String? {
-            "Draft image file names must be a single local file name."
+            switch self {
+            case .invalidFileName:
+                return "Draft image file names must be a single local file name."
+            case .stagingFailed(let fileName):
+                return "Failed to stage deletion for image \(fileName)."
+            case .restorationFailed(let fileName):
+                return "Failed to restore staged image \(fileName)."
+            }
         }
     }
 
@@ -224,27 +233,107 @@ enum DraftImageStore {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     }
 
+    static func fileURL(for fileName: String) -> URL {
+        directory.appendingPathComponent(fileName, isDirectory: false)
+    }
+
+    static func stagingURL(for fileName: String) -> URL {
+        directory.appendingPathComponent("\(fileName).staging", isDirectory: false)
+    }
+
     static func write(_ data: Data, fileName: String) throws -> URL {
         guard isSafeFileName(fileName) else { throw Error.invalidFileName }
         try ensureDirectory()
-        let url = directory.appendingPathComponent(fileName, isDirectory: false)
+        let url = fileURL(for: fileName)
+        let stagingUrl = stagingURL(for: fileName)
+        if FileManager.default.fileExists(atPath: stagingUrl.path) {
+            try? FileManager.default.removeItem(at: stagingUrl)
+        }
         try data.write(to: url, options: .atomic)
         return url
     }
 
     static func read(fileName: String) -> Data? {
         guard isSafeFileName(fileName) else { return nil }
-        let url = directory.appendingPathComponent(fileName, isDirectory: false)
-        return try? Data(contentsOf: url)
+        let url = fileURL(for: fileName)
+        let stagingUrl = stagingURL(for: fileName)
+        if FileManager.default.fileExists(atPath: url.path) {
+            return try? Data(contentsOf: url)
+        }
+        if FileManager.default.fileExists(atPath: stagingUrl.path) {
+            try? FileManager.default.moveItem(at: stagingUrl, to: url)
+            return try? Data(contentsOf: url)
+        }
+        return nil
     }
 
     static func delete(fileName: String) {
         guard isSafeFileName(fileName) else { return }
-        let url = directory.appendingPathComponent(fileName, isDirectory: false)
+        let url = fileURL(for: fileName)
+        let stagingUrl = stagingURL(for: fileName)
         try? FileManager.default.removeItem(at: url)
+        try? FileManager.default.removeItem(at: stagingUrl)
     }
 
-    private static func isSafeFileName(_ fileName: String) -> Bool {
+    static func stageDeletion(fileName: String) throws {
+        guard isSafeFileName(fileName) else { throw Error.invalidFileName }
+        try ensureDirectory()
+        let url = fileURL(for: fileName)
+        let stagingUrl = stagingURL(for: fileName)
+        guard FileManager.default.fileExists(atPath: url.path) else { return }
+        if FileManager.default.fileExists(atPath: stagingUrl.path) {
+            try? FileManager.default.removeItem(at: stagingUrl)
+        }
+        do {
+            try FileManager.default.moveItem(at: url, to: stagingUrl)
+        } catch {
+            throw Error.stagingFailed(fileName)
+        }
+    }
+
+    static func restoreStagedDeletion(fileName: String) throws {
+        guard isSafeFileName(fileName) else { throw Error.invalidFileName }
+        let url = fileURL(for: fileName)
+        let stagingUrl = stagingURL(for: fileName)
+        guard FileManager.default.fileExists(atPath: stagingUrl.path) else { return }
+        if FileManager.default.fileExists(atPath: url.path) {
+            try? FileManager.default.removeItem(at: url)
+        }
+        do {
+            try FileManager.default.moveItem(at: stagingUrl, to: url)
+        } catch {
+            throw Error.restorationFailed(fileName)
+        }
+    }
+
+    static func finalizeStagedDeletion(fileName: String) {
+        guard isSafeFileName(fileName) else { return }
+        let url = fileURL(for: fileName)
+        let stagingUrl = stagingURL(for: fileName)
+        try? FileManager.default.removeItem(at: url)
+        try? FileManager.default.removeItem(at: stagingUrl)
+    }
+
+    static func reconcileStagedDeletions(activeFileNames: Set<String>) {
+        guard let files = try? FileManager.default.contentsOfDirectory(atPath: directory.path) else { return }
+        for file in files where file.hasSuffix(".staging") {
+            let baseFileName = String(file.dropLast(".staging".count))
+            guard isSafeFileName(baseFileName) else { continue }
+            let stagingUrl = directory.appendingPathComponent(file, isDirectory: false)
+            let primaryUrl = directory.appendingPathComponent(baseFileName, isDirectory: false)
+            if activeFileNames.contains(baseFileName) {
+                if !FileManager.default.fileExists(atPath: primaryUrl.path) {
+                    try? FileManager.default.moveItem(at: stagingUrl, to: primaryUrl)
+                } else {
+                    try? FileManager.default.removeItem(at: stagingUrl)
+                }
+            } else {
+                try? FileManager.default.removeItem(at: stagingUrl)
+            }
+        }
+    }
+
+    static func isSafeFileName(_ fileName: String) -> Bool {
         !fileName.isEmpty
             && fileName != "."
             && fileName != ".."

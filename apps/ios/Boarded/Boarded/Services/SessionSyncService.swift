@@ -33,7 +33,7 @@ final class SessionSyncService: ObservableObject {
         }
     }
 
-    private enum DraftImageCleanupError: LocalizedError {
+    enum DraftImageCleanupError: LocalizedError, Equatable {
         case invalidFileName(String)
         case failed(String, String)
 
@@ -62,6 +62,19 @@ final class SessionSyncService: ObservableObject {
     private var appActiveObserver: NSObjectProtocol?
 
     var isOnline: Bool { hasConnectivity }
+
+    /// Internal failure seam for testing persistence failures deterministically.
+    var saveHook: (() throws -> Void)?
+
+    /// Internal failure seam for testing image cleanup failures deterministically.
+    var imageRemover: ((String) throws -> Void)?
+
+    private func saveModelContext() throws {
+        if let saveHook {
+            try saveHook()
+        }
+        try modelContext.save()
+    }
 
     convenience init(
         repository: any SessionRepository,
@@ -117,6 +130,14 @@ final class SessionSyncService: ObservableObject {
             }
         }
         #endif
+        do {
+            let allDrafts = try modelContext.fetch(FetchDescriptor<PendingSessionDraft>())
+            let activeFileNames = Set(allDrafts.map(\.imageFileName).filter { !$0.isEmpty })
+            DraftImageStore.reconcileStagedDeletions(activeFileNames: activeFileNames)
+        } catch {
+            // Leave staged deletions untouched so a later recovery pass can
+            // reconcile them once draft rows are readable again.
+        }
     }
 
     deinit {
@@ -131,7 +152,7 @@ final class SessionSyncService: ObservableObject {
     func enqueue(session: PendingSession) throws {
         session.syncState = .queued
         modelContext.insert(session)
-        try modelContext.save()
+        try saveModelContext()
         state = .queued
         errorMessage = nil
     }
@@ -141,7 +162,7 @@ final class SessionSyncService: ObservableObject {
     func enqueue(attempt: PendingAttempt) throws {
         attempt.syncState = .queued
         modelContext.insert(attempt)
-        try modelContext.save()
+        try saveModelContext()
         state = .queued
         errorMessage = nil
     }
@@ -169,7 +190,7 @@ final class SessionSyncService: ObservableObject {
         draft.syncState = .queued
         modelContext.insert(draft)
         do {
-            try modelContext.save()
+            try saveModelContext()
         } catch {
             modelContext.rollback()
             if wroteImage && !draft.imageFileName.isEmpty {
@@ -194,11 +215,6 @@ final class SessionSyncService: ObservableObject {
     func delete(attempt: PendingAttempt) throws {
         guard attempt.userId == userID else { return }
         let linkedDrafts = fetchAllDrafts().filter { $0.featuredAttemptId == attempt.id }
-        let imageFileNames = linkedDrafts.map(\.imageFileName).filter { !$0.isEmpty }
-
-        for draft in linkedDrafts {
-            modelContext.delete(draft)
-        }
 
         let requiresRemoteDelete = attempt.syncState != .queued
         if requiresRemoteDelete, !fetchAllAttemptDeletions().contains(where: { $0.id == attempt.id }) {
@@ -209,12 +225,53 @@ final class SessionSyncService: ObservableObject {
         modelContext.delete(attempt)
 
         do {
-            try modelContext.save()
+            try saveModelContext()
         } catch {
             modelContext.rollback()
             state = .failed
             errorMessage = error.localizedDescription
             throw error
+        }
+
+        for draft in linkedDrafts {
+            let fileName = draft.imageFileName
+            if !fileName.isEmpty {
+                do {
+                    try cleanupDraftImage(fileName: fileName)
+                } catch let cleanupError {
+                    draft.syncState = .failed
+                    do {
+                        try saveModelContext()
+                    } catch {
+                        modelContext.rollback()
+                        try? DraftImageStore.restoreStagedDeletion(fileName: fileName)
+                        state = .failed
+                        errorMessage = error.localizedDescription
+                        throw error
+                    }
+                    try? DraftImageStore.restoreStagedDeletion(fileName: fileName)
+                    state = .failed
+                    errorMessage = cleanupError.localizedDescription
+                    throw cleanupError
+                }
+            }
+
+            modelContext.delete(draft)
+            do {
+                try saveModelContext()
+            } catch {
+                modelContext.rollback()
+                if !fileName.isEmpty {
+                    try? DraftImageStore.restoreStagedDeletion(fileName: fileName)
+                }
+                state = .failed
+                errorMessage = error.localizedDescription
+                throw error
+            }
+
+            if !fileName.isEmpty {
+                DraftImageStore.finalizeStagedDeletion(fileName: fileName)
+            }
         }
 
         let hasPendingWork = !fetchPendingSessions().isEmpty
@@ -223,23 +280,10 @@ final class SessionSyncService: ObservableObject {
             || !fetchPendingAttemptDeletions().isEmpty
         state = requiresRemoteDelete || hasPendingWork ? .queued : .synced
         errorMessage = nil
-
-        var cleanupError: DraftImageCleanupError?
-        for fileName in imageFileNames {
-            do {
-                try cleanupDraftImage(fileName: fileName)
-            } catch let error as DraftImageCleanupError {
-                cleanupError = cleanupError ?? error
-            }
-        }
-        if let cleanupError {
-            state = .failed
-            errorMessage = cleanupError.localizedDescription
-            throw cleanupError
-        }
     }
 
     /// Removes a pending or failed session-post draft.
+    /// If a remote post was created, it is deleted idempotently first.
     /// If an image is associated with the draft, its remote storage object is deleted
     /// idempotently before the local database row and cached image are removed.
     /// If remote deletion fails, the local draft and image are retained with a
@@ -254,6 +298,14 @@ final class SessionSyncService: ObservableObject {
         let path = canonicalImagePath(userID: userID, postID: draft.id)
 
         do {
+            try await feedRepository.deletePost(id: draft.id)
+        } catch {
+            state = .failed
+            errorMessage = error.localizedDescription
+            throw error
+        }
+
+        do {
             try await feedRepository.deletePostImage(path: path)
         } catch {
             state = .failed
@@ -261,26 +313,36 @@ final class SessionSyncService: ObservableObject {
             throw error
         }
 
-        modelContext.delete(draft)
-        do {
-            try modelContext.save()
-        } catch {
-            modelContext.rollback()
-            state = .failed
-            errorMessage = error.localizedDescription
-            throw error
-        }
-        state = hasPendingWork() ? .queued : .synced
-        errorMessage = nil
         if !fileName.isEmpty {
             do {
                 try cleanupDraftImage(fileName: fileName)
             } catch let error as DraftImageCleanupError {
+                try? DraftImageStore.restoreStagedDeletion(fileName: fileName)
                 state = .failed
                 errorMessage = error.localizedDescription
                 throw error
             }
         }
+
+        modelContext.delete(draft)
+        do {
+            try saveModelContext()
+        } catch {
+            modelContext.rollback()
+            if !fileName.isEmpty {
+                try? DraftImageStore.restoreStagedDeletion(fileName: fileName)
+            }
+            state = .failed
+            errorMessage = error.localizedDescription
+            throw error
+        }
+
+        if !fileName.isEmpty {
+            DraftImageStore.finalizeStagedDeletion(fileName: fileName)
+        }
+
+        state = hasPendingWork() ? .queued : .synced
+        errorMessage = nil
     }
 
     func replay() async {
@@ -557,17 +619,15 @@ final class SessionSyncService: ObservableObject {
             throw DraftImageCleanupError.invalidFileName(fileName)
         }
 
-        let url = DraftImageStore.directory.appendingPathComponent(fileName, isDirectory: false)
-        guard FileManager.default.fileExists(atPath: url.path) else { return }
-
-        do {
-            try FileManager.default.removeItem(at: url)
-        } catch {
-            throw DraftImageCleanupError.failed(fileName, error.localizedDescription)
+        if let imageRemover {
+            try imageRemover(fileName)
+            return
         }
 
-        if FileManager.default.fileExists(atPath: url.path) {
-            throw DraftImageCleanupError.failed(fileName, "The file is still present.")
+        do {
+            try DraftImageStore.stageDeletion(fileName: fileName)
+        } catch {
+            throw DraftImageCleanupError.failed(fileName, error.localizedDescription)
         }
     }
 

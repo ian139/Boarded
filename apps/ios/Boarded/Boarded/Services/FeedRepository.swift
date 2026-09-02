@@ -24,6 +24,7 @@ protocol FeedRepository: Sendable {
     ) async throws -> SessionPost
     func uploadPostImage(data: Data, path: String) async throws
     func deletePostImage(path: String) async throws
+    func deletePost(id: UUID) async throws
 }
 
 enum FeedRepositoryError: LocalizedError {
@@ -187,6 +188,12 @@ final class MockFeedRepository: FeedRepository, @unchecked Sendable {
         uploadedImages.removeValue(forKey: path)
     }
 
+    func deletePost(id: UUID) async throws {
+        lock.lock(); defer { lock.unlock() }
+        posts.removeAll { $0.id == id }
+        items.removeAll { $0.id == id }
+    }
+
     func hasUploadedImage(at path: String) -> Bool {
         lock.lock(); defer { lock.unlock() }
         return uploadedImages[path] != nil
@@ -336,6 +343,14 @@ struct SupabaseFeedRepository: FeedRepository, Sendable {
         _ = try await client.storage
             .from("social-media")
             .remove(paths: [path])
+    }
+
+    func deletePost(id: UUID) async throws {
+        guard let client else { throw FeedRepositoryError.unavailable }
+        _ = try await client.from("session_posts")
+            .delete()
+            .eq("id", value: id.uuidString)
+            .execute()
     }
 }
 
