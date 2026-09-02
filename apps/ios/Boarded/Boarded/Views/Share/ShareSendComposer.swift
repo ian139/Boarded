@@ -84,20 +84,24 @@ struct CanonicalSessionArtworkPreview: View {
     let model: SessionArtworkModel
 
     var body: some View {
-        GeometryReader { proxy in
-            let scale = min(proxy.size.width / 402, proxy.size.height / 268)
-            SessionArtworkView(
-                image: Image(uiImage: image),
-                imageAlt: imageAlt,
-                model: model,
-                presentation: .export
-            )
-            .environment(\.dynamicTypeSize, .large)
-            .frame(width: 402, height: 268)
-            .scaleEffect(scale, anchor: .topLeading)
-        }
-        .aspectRatio(402.0 / 268.0, contentMode: .fit)
-        .accessibilityIdentifier("canonical-session-artwork-preview")
+        Color.clear
+            .aspectRatio(402.0 / 268.0, contentMode: .fit)
+            .overlay(alignment: .topLeading) {
+                GeometryReader { proxy in
+                    let scale = proxy.size.width / 402
+                    SessionArtworkView(
+                        image: Image(uiImage: image),
+                        imageAlt: imageAlt,
+                        model: model,
+                        presentation: .export
+                    )
+                    .environment(\.dynamicTypeSize, .large)
+                    .frame(width: 402, height: 268)
+                    .scaleEffect(scale, anchor: .topLeading)
+                }
+            }
+            .clipped()
+            .accessibilityIdentifier("canonical-session-artwork-preview")
     }
 }
 

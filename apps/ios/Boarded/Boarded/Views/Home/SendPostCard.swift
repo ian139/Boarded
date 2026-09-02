@@ -27,6 +27,7 @@ struct SendPostCard: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(AppSpacing.space16)
                     .background(AppColor.surfaceCard, in: AppRadius.card())
+                    .accessibilityIdentifier("session-post-caption")
             }
             if showsActions { actions }
         }

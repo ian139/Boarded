@@ -73,6 +73,9 @@ final class BoardedUITests: XCTestCase {
             let featuredRoute = app.descendants(matching: .any)["session-featured-route"].firstMatch
             XCTAssertTrue(featuredRoute.exists)
             XCTAssertLessThanOrEqual(featuredRoute.frame.maxY, preview.frame.maxY)
+            let caption = app.descendants(matching: .any)["session-post-caption"].firstMatch
+            XCTAssertTrue(caption.exists)
+            XCTAssertGreaterThanOrEqual(caption.frame.minY, preview.frame.maxY)
         }
         capture("\(variant)-Home")
 
