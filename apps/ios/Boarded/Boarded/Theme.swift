@@ -184,7 +184,8 @@ enum AppLayout {
     static let chipMinHeight: CGFloat = 34
     static let attemptTimelineColumnMinWidth = minimumTarget * 2
     static let attemptTimelineCompactThreshold = 8
-    static let attemptTimelineCompactColumns = 16
+    static let attemptTimelineCompactColumns = 24
+    static let accessibilitySelectionMinHeight = minimumTarget * 2
     static let contentMaxWidth: CGFloat = 560
 
     /// Horizontal margin for the current width class: 20 pt on compact

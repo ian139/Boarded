@@ -163,6 +163,7 @@ struct SessionArtworkFacts: View {
             }
             Text("\(model.featuredGrade) · \(model.featuredRoute)")
                 .font(AppTypography.labelL).fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("session-featured-route")
         }
         .foregroundStyle(AppColor.textPrimary)
         .padding(AppSpacing.space16)
@@ -398,6 +399,11 @@ struct ShareSendComposer: View {
                         .tag(Optional(item.id))
                 }
             }
+            .frame(
+                minHeight: dynamicTypeSize.isAccessibilitySize
+                    ? AppLayout.accessibilitySelectionMinHeight
+                    : AppLayout.minimumTarget
+            )
             .accessibilityIdentifier("share-session")
         }
         if draft.sessionID != nil {
@@ -408,6 +414,11 @@ struct ShareSendComposer: View {
                         .tag(Optional(attempt.id))
                 }
             }
+            .frame(
+                minHeight: dynamicTypeSize.isAccessibilitySize
+                    ? AppLayout.accessibilitySelectionMinHeight
+                    : AppLayout.minimumTarget
+            )
             .accessibilityIdentifier("share-featured-attempt")
             Picker("Overlay", selection: $draft.overlayStyle) {
                 Text("Session stats").tag(OverlayStyle.stats)
@@ -425,6 +436,12 @@ struct ShareSendComposer: View {
         }
         .buttonStyle(BoardedButtonStyle(.secondary))
         .accessibilityIdentifier("share-photo")
+        if dynamicTypeSize.isAccessibilitySize {
+            Label("Scroll for photo details and final preview", systemImage: "chevron.down")
+                .font(AppTypography.caption)
+                .foregroundStyle(AppColor.textSecondary)
+                .accessibilityIdentifier("share-scroll-affordance")
+        }
         selectedPhoto
         BoardedTextField(
             label: "Photo description",

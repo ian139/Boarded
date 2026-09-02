@@ -70,6 +70,9 @@ final class BoardedUITests: XCTestCase {
             let preview = app.descendants(matching: .any)["canonical-session-artwork-preview"].firstMatch
             XCTAssertTrue(preview.exists)
             XCTAssertLessThanOrEqual(timeline.frame.maxY, preview.frame.maxY)
+            let featuredRoute = app.descendants(matching: .any)["session-featured-route"].firstMatch
+            XCTAssertTrue(featuredRoute.exists)
+            XCTAssertLessThanOrEqual(featuredRoute.frame.maxY, preview.frame.maxY)
         }
         capture("\(variant)-Home")
 
@@ -98,6 +101,13 @@ final class BoardedUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Share session"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.descendants(matching: .any)["session-preview"].exists)
         XCTAssertTrue(app.images[fixtureImageAlt].exists)
+        if variant.contains("accessibility-large") {
+            let sessionSelector = app.descendants(matching: .any)["share-session"].firstMatch
+            let attemptSelector = app.descendants(matching: .any)["share-featured-attempt"].firstMatch
+            XCTAssertGreaterThanOrEqual(sessionSelector.frame.height, 88)
+            XCTAssertGreaterThanOrEqual(attemptSelector.frame.height, 88)
+            XCTAssertTrue(app.descendants(matching: .any)["share-scroll-affordance"].exists)
+        }
         if variant.contains("accessibility-large") {
             let continuation = app.descendants(matching: .any)["session-facts-continuation"].firstMatch
             if !continuation.exists { app.swipeUp() }
