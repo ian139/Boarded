@@ -32,12 +32,12 @@ final class BoardedUITests: XCTestCase {
             tabBarButton.tap()
             return
         }
-        let fallback = app.buttons
-            .matching(identifier: name)
-            .matching(NSPredicate(format: "isHittable == true"))
-            .firstMatch
-        XCTAssertTrue(fallback.waitForExistence(timeout: 5))
-        XCTAssertTrue(fallback.isHittable)
+        let candidates = app.buttons.matching(identifier: name)
+        XCTAssertTrue(candidates.firstMatch.waitForExistence(timeout: 5))
+        guard let fallback = candidates.allElementsBoundByIndex.first(where: \.isHittable) else {
+            XCTFail("No visible, hittable \(name) navigation button")
+            return
+        }
         fallback.tap()
     }
 
