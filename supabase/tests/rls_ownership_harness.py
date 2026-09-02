@@ -16,6 +16,7 @@ import threading
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from http.client import HTTPResponse
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlparse
@@ -40,19 +41,25 @@ FILLER_EMAIL = "boarded-rls-harness-filler@local.invalid"
 OWNER_ROUTE_ID = "b5f0d878-5d47-4db8-90a5-3c5bc73f7c31"
 OWNER_SESSION_ID = "a5f0d878-5d47-4db8-90a5-3c5bc73f7c31"
 OTHER_SESSION_ID = "a6f0d878-5d47-4db8-90a5-3c5bc73f7c31"
+ACTIVE_SESSION_ID = "a4f0d878-5d47-4db8-90a5-3c5bc73f7c31"
+RACE_SESSION_ID = "a3f0d878-5d47-4db8-90a5-3c5bc73f7c31"
+
 OWNER_SENT_ATTEMPT_ID = "a7f0d878-5d47-4db8-90a5-3c5bc73f7c31"
 OWNER_FELL_ATTEMPT_ID = "a8f0d878-5d47-4db8-90a5-3c5bc73f7c31"
-OTHER_SENT_ATTEMPT_ID = "a9f0d878-5d47-4db8-90a5-3c5bc73f7c31"
-UNPOSTED_ATTEMPT_ID = "aa0d8780-5d47-4db8-90a5-3c5bc73f7c31"
-OWNER_POST_ID = "ab0d8780-5d47-4db8-90a5-3c5bc73f7c31"
-OTHER_POST_ID = "ac0d8780-5d47-4db8-90a5-3c5bc73f7c31"
+OTHER_FELL_ATTEMPT_ID = "a9f0d878-5d47-4db8-90a5-3c5bc73f7c31"
+ACTIVE_ATTEMPT_ID = "aa0d8780-5d47-4db8-90a5-3c5bc73f7c31"
+RACE_ATTEMPT_ID = "ab0d8780-5d47-4db8-90a5-3c5bc73f7c31"
+UNPOSTED_ATTEMPT_ID = "ac0d8780-5d47-4db8-90a5-3c5bc73f7c31"
+
+OWNER_POST_ID = "ba0d8780-5d47-4db8-90a5-3c5bc73f7c31"
+OTHER_POST_ID = "bb0d8780-5d47-4db8-90a5-3c5bc73f7c31"
+
 OWNER_MEETUP_ID = "ad0d8780-5d47-4db8-90a5-3c5bc73f7c31"
 OTHER_MEETUP_ID = "ae0d8780-5d47-4db8-90a5-3c5bc73f7c31"
 CANCELLED_MEETUP_ID = "af0d8780-5d47-4db8-90a5-3c5bc73f7c31"
 FILLER_MEETUP_ID = "b00d8780-5d47-4db8-90a5-3c5bc73f7c31"
 RACE_MEETUP_ID = "b10d8780-5d47-4db8-90a5-3c5bc73f7c31"
 PAST_MEETUP_ID = "b20d8780-5d47-4db8-90a5-3c5bc73f7c31"
-
 
 ROUTE_MARKER = "__boarded_rls_harness__"
 SECRET_NOTES = "__boarded_private_attempt_notes__"
@@ -208,63 +215,67 @@ def login(base: str, user: User) -> str:
 def setup_fixtures() -> None:
     users = ((OWNER_ID, OWNER_EMAIL), (OTHER_ID, OTHER_EMAIL), (FILLER_ID, FILLER_EMAIL))
     user_ids = ", ".join(sql_quote(item[0]) for item in users)
-    social_ids = ", ".join(
-        sql_quote(item)
-        for item in (
-            OWNER_POST_ID, OTHER_POST_ID, OWNER_SENT_ATTEMPT_ID, OWNER_FELL_ATTEMPT_ID,
-            OTHER_SENT_ATTEMPT_ID, UNPOSTED_ATTEMPT_ID, OWNER_SESSION_ID, OTHER_SESSION_ID,
-        )
-    )
     metadata = sql_quote(json.dumps({"provider": "email", "providers": ["email"]}, separators=(",", ":")))
     raw_metadata = {
         OWNER_ID: sql_quote(json.dumps({"sub": OWNER_ID, "email": OWNER_EMAIL, "email_verified": True}, separators=(",", ":"))),
         OTHER_ID: sql_quote(json.dumps({"sub": OTHER_ID, "email": OTHER_EMAIL, "email_verified": True}, separators=(",", ":"))),
         FILLER_ID: sql_quote(json.dumps({"sub": FILLER_ID, "email": FILLER_EMAIL, "email_verified": True}, separators=(",", ":"))),
     }
-    emails = (OWNER_EMAIL, OTHER_EMAIL, FILLER_EMAIL)
     sql = f"""
 BEGIN;
-DELETE FROM public.send_post_comments WHERE post_id IN ({sql_quote(OWNER_POST_ID)}, {sql_quote(OTHER_POST_ID)});
-DELETE FROM public.send_post_likes WHERE post_id IN ({sql_quote(OWNER_POST_ID)}, {sql_quote(OTHER_POST_ID)});
-DELETE FROM public.send_posts WHERE id IN ({social_ids});
+DELETE FROM public.session_post_comments WHERE post_id IN ({sql_quote(OWNER_POST_ID)}, {sql_quote(OTHER_POST_ID)});
+DELETE FROM public.session_post_likes WHERE post_id IN ({sql_quote(OWNER_POST_ID)}, {sql_quote(OTHER_POST_ID)});
+DELETE FROM public.session_posts WHERE id IN ({sql_quote(OWNER_POST_ID)}, {sql_quote(OTHER_POST_ID)});
 DELETE FROM public.meetup_comments WHERE meetup_id IN ({sql_quote(OWNER_MEETUP_ID)}, {sql_quote(OTHER_MEETUP_ID)}, {sql_quote(CANCELLED_MEETUP_ID)}, {sql_quote(FILLER_MEETUP_ID)}, {sql_quote(RACE_MEETUP_ID)}, {sql_quote(PAST_MEETUP_ID)});
 DELETE FROM public.meetup_attendees WHERE meetup_id IN ({sql_quote(OWNER_MEETUP_ID)}, {sql_quote(OTHER_MEETUP_ID)}, {sql_quote(CANCELLED_MEETUP_ID)}, {sql_quote(FILLER_MEETUP_ID)}, {sql_quote(RACE_MEETUP_ID)}, {sql_quote(PAST_MEETUP_ID)});
 DELETE FROM public.meetups WHERE id IN ({sql_quote(OWNER_MEETUP_ID)}, {sql_quote(OTHER_MEETUP_ID)}, {sql_quote(CANCELLED_MEETUP_ID)}, {sql_quote(FILLER_MEETUP_ID)}, {sql_quote(RACE_MEETUP_ID)}, {sql_quote(PAST_MEETUP_ID)});
 
-DELETE FROM public.climb_attempts WHERE id IN ({sql_quote(OWNER_SENT_ATTEMPT_ID)}, {sql_quote(OWNER_FELL_ATTEMPT_ID)}, {sql_quote(OTHER_SENT_ATTEMPT_ID)}, {sql_quote(UNPOSTED_ATTEMPT_ID)});
-DELETE FROM public.climbing_sessions WHERE id IN ({sql_quote(OWNER_SESSION_ID)}, {sql_quote(OTHER_SESSION_ID)});
+DELETE FROM public.climb_attempts WHERE id IN ({sql_quote(OWNER_SENT_ATTEMPT_ID)}, {sql_quote(OWNER_FELL_ATTEMPT_ID)}, {sql_quote(OTHER_FELL_ATTEMPT_ID)}, {sql_quote(ACTIVE_ATTEMPT_ID)}, {sql_quote(RACE_ATTEMPT_ID)}, {sql_quote(UNPOSTED_ATTEMPT_ID)});
+DELETE FROM public.climbing_sessions WHERE id IN ({sql_quote(OWNER_SESSION_ID)}, {sql_quote(OTHER_SESSION_ID)}, {sql_quote(ACTIVE_SESSION_ID)}, {sql_quote(RACE_SESSION_ID)});
 DELETE FROM public.routes WHERE id = {sql_quote(OWNER_ROUTE_ID)};
 DELETE FROM auth.users WHERE id IN ({user_ids});
+
 INSERT INTO auth.users (instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,confirmation_token,recovery_token,email_change_token_new,email_change,email_change_token_current,phone_change,raw_app_meta_data,raw_user_meta_data,is_super_admin,created_at,updated_at,is_anonymous)
 VALUES
  ({sql_quote(INSTANCE_ID)},{sql_quote(OWNER_ID)},'authenticated','authenticated',{sql_quote(OWNER_EMAIL)},crypt({sql_quote(PASSWORD)},gen_salt('bf')),now(),'','','','','','',{metadata}::jsonb,{raw_metadata[OWNER_ID]}::jsonb,false,now(),now(),false),
  ({sql_quote(INSTANCE_ID)},{sql_quote(OTHER_ID)},'authenticated','authenticated',{sql_quote(OTHER_EMAIL)},crypt({sql_quote(PASSWORD)},gen_salt('bf')),now(),'','','','','','',{metadata}::jsonb,{raw_metadata[OTHER_ID]}::jsonb,false,now(),now(),false),
  ({sql_quote(INSTANCE_ID)},{sql_quote(FILLER_ID)},'authenticated','authenticated',{sql_quote(FILLER_EMAIL)},crypt({sql_quote(PASSWORD)},gen_salt('bf')),now(),'','','','','','',{metadata}::jsonb,{raw_metadata[FILLER_ID]}::jsonb,false,now(),now(),false);
+
 INSERT INTO auth.identities (provider_id,user_id,identity_data,provider,last_sign_in_at,created_at,updated_at)
 VALUES
  ({sql_quote(OWNER_ID)},{sql_quote(OWNER_ID)},jsonb_build_object('sub',{sql_quote(OWNER_ID)},'email',{sql_quote(OWNER_EMAIL)}),'email',now(),now(),now()),
  ({sql_quote(OTHER_ID)},{sql_quote(OTHER_ID)},jsonb_build_object('sub',{sql_quote(OTHER_ID)},'email',{sql_quote(OTHER_EMAIL)}),'email',now(),now(),now()),
  ({sql_quote(FILLER_ID)},{sql_quote(FILLER_ID)},jsonb_build_object('sub',{sql_quote(FILLER_ID)},'email',{sql_quote(FILLER_EMAIL)}),'email',now(),now(),now());
+
 INSERT INTO public.profiles (id,username,home_area) VALUES
  ({sql_quote(OWNER_ID)},'rls-harness-owner','Boulder'),
  ({sql_quote(OTHER_ID)},'rls-harness-other','Golden'),
  ({sql_quote(FILLER_ID)},'rls-harness-filler','Denver');
+
 INSERT INTO public.routes (id,user_id,wall_id,name,grade_v,holds,is_public,created_at)
 VALUES ({sql_quote(OWNER_ROUTE_ID)},{sql_quote(OWNER_ID)},'rls-harness-wall',{sql_quote(ROUTE_MARKER + 'route')},'V3','[]'::jsonb,true,now());
+
 INSERT INTO public.climbing_sessions (id,user_id,venue_name,started_at,ended_at)
 VALUES
  ({sql_quote(OWNER_SESSION_ID)},{sql_quote(OWNER_ID)},'Owner Gym',now()-interval '1 hour',now()),
- ({sql_quote(OTHER_SESSION_ID)},{sql_quote(OTHER_ID)},'Other Gym',now()-interval '1 hour',now());
+ ({sql_quote(OTHER_SESSION_ID)},{sql_quote(OTHER_ID)},'Other Gym',now()-interval '1 hour',now()),
+ ({sql_quote(ACTIVE_SESSION_ID)},{sql_quote(OWNER_ID)},'Active Gym',now()-interval '30 minutes',NULL),
+ ({sql_quote(RACE_SESSION_ID)},{sql_quote(OWNER_ID)},'Race Gym',now()-interval '1 hour',now());
+
 INSERT INTO public.climb_attempts (id,session_id,user_id,board_route_id,route_name,discipline,grade_system,grade_label,outcome,attempt_number,notes,occurred_at)
 VALUES
  ({sql_quote(OWNER_SENT_ATTEMPT_ID)},{sql_quote(OWNER_SESSION_ID)},{sql_quote(OWNER_ID)},{sql_quote(OWNER_ROUTE_ID)},'Harness Send','board','v_scale','V3','sent',1,'owner public-safe note',now()),
- ({sql_quote(OWNER_FELL_ATTEMPT_ID)},{sql_quote(OWNER_SESSION_ID)},{sql_quote(OWNER_ID)},NULL,'Harness Fell','boulder','v_scale','V4','fell',1,{sql_quote(SECRET_NOTES)},now()),
- ({sql_quote(OTHER_SENT_ATTEMPT_ID)},{sql_quote(OTHER_SESSION_ID)},{sql_quote(OTHER_ID)},NULL,'Other Send','sport','yds','5.10a','sent',1,'other private note',now()),
- ({sql_quote(UNPOSTED_ATTEMPT_ID)},{sql_quote(OWNER_SESSION_ID)},{sql_quote(OWNER_ID)},NULL,'Unposted Secret','board','v_scale','V5','sent',2,{sql_quote(SECRET_NOTES)},now());
-INSERT INTO public.send_posts (id,user_id,attempt_id,caption,image_alt)
+ ({sql_quote(OWNER_FELL_ATTEMPT_ID)},{sql_quote(OWNER_SESSION_ID)},{sql_quote(OWNER_ID)},NULL,'Harness Fell','boulder','v_scale','V4','fell',2,{sql_quote(SECRET_NOTES)},now()),
+ ({sql_quote(UNPOSTED_ATTEMPT_ID)},{sql_quote(OWNER_SESSION_ID)},{sql_quote(OWNER_ID)},NULL,'Unposted Secret','board','v_scale','V5','sent',3,{sql_quote(SECRET_NOTES)},now()),
+ ({sql_quote(OTHER_FELL_ATTEMPT_ID)},{sql_quote(OTHER_SESSION_ID)},{sql_quote(OTHER_ID)},NULL,'Other Fell','sport','yds','5.10a','fell',1,'other private note',now()),
+ ({sql_quote(ACTIVE_ATTEMPT_ID)},{sql_quote(ACTIVE_SESSION_ID)},{sql_quote(OWNER_ID)},NULL,'Active Attempt','boulder','v_scale','V2','sent',1,'active note',now()),
+ ({sql_quote(RACE_ATTEMPT_ID)},{sql_quote(RACE_SESSION_ID)},{sql_quote(OWNER_ID)},NULL,'Race Attempt','boulder','v_scale','V6','stopped',1,'race note',now());
+
+INSERT INTO public.session_posts (id,user_id,session_id,featured_attempt_id,caption,image_path,image_alt,overlay_style)
 VALUES
- ({sql_quote(OWNER_POST_ID)},{sql_quote(OWNER_ID)},{sql_quote(OWNER_SENT_ATTEMPT_ID)},'Owner send','Owner send image alt'),
- ({sql_quote(OTHER_POST_ID)},{sql_quote(OTHER_ID)},{sql_quote(OTHER_SENT_ATTEMPT_ID)},'Other send','Other send image alt');
+ ({sql_quote(OWNER_POST_ID)},{sql_quote(OWNER_ID)},{sql_quote(OWNER_SESSION_ID)},{sql_quote(OWNER_SENT_ATTEMPT_ID)},'Owner session post',{sql_quote(f"{OWNER_ID}/{OWNER_POST_ID}.jpg")},'Owner session image alt','stats'),
+ ({sql_quote(OTHER_POST_ID)},{sql_quote(OTHER_ID)},{sql_quote(OTHER_SESSION_ID)},{sql_quote(OTHER_FELL_ATTEMPT_ID)},'Other session post',{sql_quote(f"{OTHER_ID}/{OTHER_POST_ID}.jpg")},'Other session image alt','attempt_timeline');
+
 INSERT INTO public.meetups (id,organizer_id,title,description,venue_name,area,starts_at,ends_at,capacity,status)
 VALUES
  ({sql_quote(OWNER_MEETUP_ID)},{sql_quote(OWNER_ID)},'Owner meetup','A public owner meetup','Owner Gym','Boulder',now()+interval '2 days',now()+interval '2 days 2 hours',2,'scheduled'),
@@ -301,10 +312,10 @@ def assert_rejected(result: ApiResult, description: str) -> None:
     if 200 <= result.status < 300:
         fail(f"{description} unexpectedly succeeded: HTTP {result.status} {result.body!r}")
 
+
 def assert_no_rows(result: ApiResult, description: str) -> None:
     if result.status != 200 or result.body != []:
         fail(f"{description} changed a row or returned an error: HTTP {result.status} {result.body!r}")
-
 
 
 def assert_route_ownership(base: str, owner_token: str, other_token: str) -> None:
@@ -327,6 +338,8 @@ def assert_route_ownership(base: str, owner_token: str, other_token: str) -> Non
     if not rows(public_read, "anonymous route read"):
         fail("anonymous route read did not return the public route")
     print("PASS: existing Boarded route owner and cross-user RLS remained intact")
+
+
 def assert_public_profiles_and_feed(base: str) -> None:
     profile = expect_api_result(
         request_json("GET", f"{base}/rest/v1/profiles?id=eq.{OWNER_ID}&select=id,username,home_area"),
@@ -335,27 +348,111 @@ def assert_public_profiles_and_feed(base: str) -> None:
     profile_rows = rows(profile, "anonymous public profile read")
     if len(profile_rows) != 1 or profile_rows[0].get("home_area") != "Boulder":
         fail(f"public profile/home_area read was wrong: {profile_rows!r}")
-    feed = rows(rpc(base, "get_send_feed", payload={"page_size": 50}), "anonymous send feed")
+
+    feed = rows(rpc(base, "get_session_feed", payload={"page_size": 50}), "anonymous session feed")
     post_ids = [item.get("id") for item in feed]
     if OWNER_POST_ID not in post_ids or OTHER_POST_ID not in post_ids:
-        fail(f"anonymous feed missed public posts: {post_ids!r}")
+        fail(f"anonymous feed missed public session posts: {post_ids!r}")
+
     serialized = json.dumps(feed, sort_keys=True)
     if UNPOSTED_ATTEMPT_ID in serialized or SECRET_NOTES in serialized:
         fail(f"feed leaked unposted/private attempt data: {serialized}")
+
     for item in feed:
-        if "notes" in item or "session_id" in item or "venue_name" in item:
-            fail(f"feed exposed owner-only field: {item!r}")
-        attempt = item.get("attempt")
-        if not isinstance(item.get("author"), dict) or not isinstance(attempt, dict):
-            fail(f"feed omitted nested author/attempt: {item!r}")
-        if any(key in attempt for key in ("notes", "session_id", "venue_name")):
-            fail(f"feed exposed private nested attempt field: {item!r}")
-        if "like_count" not in item or "comment_count" not in item or "is_liked" not in item:
-            fail(f"feed omitted engagement fields: {item!r}")
-    owner_feed = rows(rpc(base, "get_send_feed", payload={"author_filter": OWNER_ID, "page_size": 1}), "filtered send feed")
+        for field in (
+            "id", "user_id", "session_id", "featured_attempt_id", "caption",
+            "image_path", "image_alt", "overlay_style", "created_at", "updated_at",
+            "like_count", "comment_count", "is_liked",
+        ):
+            if field not in item:
+                fail(f"feed item missing field {field}: {item!r}")
+
+        if "notes" in item:
+            fail(f"feed exposed owner-only notes: {item!r}")
+
+        author = item.get("author")
+        if not isinstance(author, dict):
+            fail(f"feed omitted nested author: {item!r}")
+        for author_field in ("id", "username", "full_name", "avatar_url", "bio", "home_area"):
+            if author_field not in author:
+                fail(f"feed author missing field {author_field}: {author!r}")
+
+        session = item.get("session")
+        if not isinstance(session, dict):
+            fail(f"feed omitted nested session: {item!r}")
+        for session_field in ("id", "venue_name", "started_at", "ended_at", "duration_seconds", "attempt_count", "send_count", "featured_attempt"):
+            if session_field not in session:
+                fail(f"feed session missing field {session_field}: {session!r}")
+        if "notes" in session:
+            fail(f"feed session leaked notes: {session!r}")
+
+        featured_attempt = session.get("featured_attempt")
+        if not isinstance(featured_attempt, dict):
+            fail(f"feed session omitted featured_attempt: {session!r}")
+        for attempt_field in ("id", "route_name", "discipline", "grade_system", "grade_label", "outcome", "attempt_number", "occurred_at"):
+            if attempt_field not in featured_attempt:
+                fail(f"featured_attempt missing field {attempt_field}: {featured_attempt!r}")
+        if any(key in featured_attempt for key in ("notes", "session_id", "user_id")):
+            fail(f"featured_attempt leaked private field: {featured_attempt!r}")
+
+    # Verify that any attempt outcome may be featured (OTHER_POST_ID features a 'fell' attempt)
+    other_post = next((item for item in feed if item.get("id") == OTHER_POST_ID), None)
+    if not other_post:
+        fail(f"other post not found in feed: {feed!r}")
+    other_attempt_outcome = other_post.get("session", {}).get("featured_attempt", {}).get("outcome")
+    if other_attempt_outcome != "fell":
+        fail(f"featured attempt outcome was expected to be 'fell', got {other_attempt_outcome!r}")
+
+    # Verify overlay styles are preserved
+    owner_post = next((item for item in feed if item.get("id") == OWNER_POST_ID), None)
+    if not owner_post or owner_post.get("overlay_style") != "stats":
+        fail(f"owner post overlay_style expected 'stats', got {owner_post!r}")
+    if other_post.get("overlay_style") != "attempt_timeline":
+        fail(f"other post overlay_style expected 'attempt_timeline', got {other_post!r}")
+
+    # Verify stable two-page (created_at, id) cursor pagination without duplicates or omissions
+    feed_page1 = rows(
+        rpc(base, "get_session_feed", payload={"page_size": 1}),
+        "anonymous session feed page 1",
+    )
+    if len(feed_page1) != 1:
+        fail(f"session feed page 1 expected 1 item, got {feed_page1!r}")
+    item1 = feed_page1[0]
+    cursor_created_at = item1.get("created_at")
+    cursor_id = item1.get("id")
+    if not cursor_created_at or not cursor_id:
+        fail(f"session feed page 1 item missing cursor fields: {item1!r}")
+
+    feed_page2 = rows(
+        rpc(base, "get_session_feed", payload={
+            "before_created_at": cursor_created_at,
+            "before_id": cursor_id,
+            "page_size": 1,
+        }),
+        "anonymous session feed page 2",
+    )
+    if len(feed_page2) != 1:
+        fail(f"session feed page 2 expected 1 item, got {feed_page2!r}")
+    item2 = feed_page2[0]
+    if item1["id"] == item2["id"]:
+        fail(f"session feed returned duplicate item across pages: {item1['id']}")
+    if {item1["id"], item2["id"]} != {OWNER_POST_ID, OTHER_POST_ID}:
+        fail(f"two-page session feed missed expected posts: {item1['id']}, {item2['id']}")
+
+    feed_page3 = rows(
+        rpc(base, "get_session_feed", payload={
+            "before_created_at": item2.get("created_at"),
+            "before_id": item2.get("id"),
+            "page_size": 1,
+        }),
+        "anonymous session feed page 3 (past end)",
+    )
+    if feed_page3:
+        fail(f"session feed page 3 past end returned unexpected items: {feed_page3!r}")
+    owner_feed = rows(rpc(base, "get_session_feed", payload={"author_filter": OWNER_ID, "page_size": 1}), "filtered session feed")
     if len(owner_feed) != 1 or owner_feed[0].get("user_id") != OWNER_ID:
         fail(f"author-filtered feed was wrong: {owner_feed!r}")
-    print("PASS: anonymous public profile/feed, nested author/attempt, pagination fields, and non-leakage verified")
+    print("PASS: anonymous public profile/feed, nested author/session/featured_attempt, any-outcome featured attempt, and non-leakage verified")
 
 
 def assert_private_sessions_and_attempts(base: str, owner_token: str, other_token: str) -> None:
@@ -386,7 +483,22 @@ def assert_private_sessions_and_attempts(base: str, owner_token: str, other_toke
     )
     if other_attempts:
         fail(f"other user read owner attempts: {other_attempts!r}")
-    print("PASS: sessions and attempts are owner-only while public send projection stays safe")
+    anon_attempts = expect_api_result(request_json("GET", f"{base}/rest/v1/climb_attempts?session_id=eq.{OWNER_SESSION_ID}&select=*"), "anonymous attempt read")
+    if anon_attempts.status not in {200, 401, 403} or (anon_attempts.status == 200 and anon_attempts.body):
+        fail(f"anonymous attempt read leaked private data: HTTP {anon_attempts.status} {anon_attempts.body!r}")
+    anon_direct_attempt = expect_api_result(
+        request_json("GET", f"{base}/rest/v1/climb_attempts?id=eq.{OWNER_SENT_ATTEMPT_ID}&select=*"),
+        "anonymous direct attempt read",
+    )
+    if anon_direct_attempt.status not in {200, 401, 403} or (anon_direct_attempt.status == 200 and anon_direct_attempt.body):
+        fail(f"anonymous direct attempt read leaked private data: HTTP {anon_direct_attempt.status} {anon_direct_attempt.body!r}")
+    anon_all_attempts = expect_api_result(
+        request_json("GET", f"{base}/rest/v1/climb_attempts?select=*"),
+        "anonymous all attempts read",
+    )
+    if anon_all_attempts.status not in {200, 401, 403} or (anon_all_attempts.status == 200 and anon_all_attempts.body):
+        fail(f"anonymous all attempts read leaked private data: HTTP {anon_all_attempts.status} {anon_all_attempts.body!r}")
+    print("PASS: sessions and attempts are owner-only while public session projection stays safe")
 
 
 def assert_social_mutations(base: str, owner_token: str, other_token: str) -> None:
@@ -396,6 +508,7 @@ def assert_social_mutations(base: str, owner_token: str, other_token: str) -> No
     def patch(table: str, query: str, token: str, body: object, description: str) -> ApiResult:
         return expect_api_result(request_json("PATCH", f"{base}/rest/v1/{table}?{query}", token, body), description)
 
+    # 1. Climbing sessions & attempts mutations / cross-user checks
     assert_rejected(post("climbing_sessions", other_token, {"user_id": OWNER_ID, "venue_name": "cross", "started_at": "2030-01-01T00:00:00Z"}, "cross-user session insert"), "cross-user session insert")
     assert_no_rows(patch("climbing_sessions", f"id=eq.{OWNER_SESSION_ID}", other_token, {"venue_name": "cross"}, "cross-user session update"), "cross-user session update")
     assert_rejected(patch("climbing_sessions", f"id=eq.{OWNER_SESSION_ID}", owner_token, {"user_id": OTHER_ID}, "owner session user mutation"), "owner session user mutation")
@@ -420,55 +533,229 @@ def assert_social_mutations(base: str, owner_token: str, other_token: str) -> No
     if len(attempt_after_route_delete) != 1 or attempt_after_route_delete[0].get("board_route_id") is not None:
         fail(f"route delete did not null the child board_route_id: {attempt_after_route_delete!r}")
     assert_no_rows(patch("climb_attempts", f"id=eq.{OWNER_SENT_ATTEMPT_ID}", other_token, {"notes": "cross"}, "cross-user attempt update"), "cross-user attempt update")
-    assert_rejected(post("send_posts", owner_token, {"user_id": OWNER_ID, "attempt_id": OWNER_FELL_ATTEMPT_ID, "caption": "fell post", "image_alt": "alt"}, "unsent post trigger"), "unsent post trigger")
-    assert_rejected(patch("climb_attempts", f"id=eq.{OWNER_SENT_ATTEMPT_ID}", owner_token, {"outcome": "fell"}, "published attempt outcome downgrade"), "published attempt outcome downgrade")
-    assert_rejected(patch("send_posts", f"id=eq.{OWNER_POST_ID}", owner_token, {"user_id": OTHER_ID}, "owner post user mutation"), "owner post user mutation")
-    assert_rejected(patch("send_posts", f"id=eq.{OWNER_POST_ID}", owner_token, {"attempt_id": OTHER_SENT_ATTEMPT_ID}, "owner post attempt mutation"), "owner post attempt mutation")
-    assert_no_rows(patch("send_posts", f"id=eq.{OWNER_POST_ID}", other_token, {"caption": "cross"}, "cross-user post update"), "cross-user post update")
-    assert_no_rows(expect_api_result(request_json("DELETE", f"{base}/rest/v1/send_posts?id=eq.{OWNER_POST_ID}", other_token), "cross-user post delete"), "cross-user post delete")
 
-    canonical_path = f"{OWNER_ID}/{OWNER_POST_ID}.jpg"
-    canonical_update = patch("send_posts", f"id=eq.{OWNER_POST_ID}", owner_token, {"image_path": canonical_path}, "canonical image path")
-    if canonical_update.status != 200:
-        fail(f"canonical image path was rejected: HTTP {canonical_update.status} {canonical_update.body!r}")
+    # 2. Session post validation & rejection tests
+    # Active session rejection (ended_at IS NULL)
+    active_post_id = str(uuid.uuid4())
+    assert_rejected(
+        post("session_posts", owner_token, {
+            "id": active_post_id,
+            "user_id": OWNER_ID,
+            "session_id": ACTIVE_SESSION_ID,
+            "featured_attempt_id": ACTIVE_ATTEMPT_ID,
+            "caption": "active session post",
+            "image_path": f"{OWNER_ID}/{active_post_id}.jpg",
+            "image_alt": "active alt",
+            "overlay_style": "stats",
+        }, "active session post rejected"),
+        "active session post rejected",
+    )
+
+    # Mismatched session/attempt rejection (attempt from other session)
+    mismatch_post_id = str(uuid.uuid4())
+    assert_rejected(
+        post("session_posts", owner_token, {
+            "id": mismatch_post_id,
+            "user_id": OWNER_ID,
+            "session_id": OWNER_SESSION_ID,
+            "featured_attempt_id": OTHER_FELL_ATTEMPT_ID,
+            "caption": "mismatched attempt post",
+            "image_path": f"{OWNER_ID}/{mismatch_post_id}.jpg",
+            "image_alt": "mismatch alt",
+        }, "mismatched attempt post rejected"),
+        "mismatched attempt post rejected",
+    )
+
+    # Mismatched author rejection (post user_id != session user_id)
+    assert_rejected(
+        post("session_posts", other_token, {
+            "id": str(uuid.uuid4()),
+            "user_id": OTHER_ID,
+            "session_id": OWNER_SESSION_ID,
+            "featured_attempt_id": OWNER_SENT_ATTEMPT_ID,
+            "caption": "spoofed author session post",
+            "image_path": f"{OTHER_ID}/{OWNER_POST_ID}.jpg",
+            "image_alt": "spoof alt",
+        }, "spoofed author session post rejected"),
+        "spoofed author session post rejected",
+    )
+
+    # Duplicate post rejection (session already has a post)
+    dup_post_id = str(uuid.uuid4())
+    assert_rejected(
+        post("session_posts", owner_token, {
+            "id": dup_post_id,
+            "user_id": OWNER_ID,
+            "session_id": OWNER_SESSION_ID,
+            "featured_attempt_id": OWNER_FELL_ATTEMPT_ID,
+            "caption": "duplicate session post",
+            "image_path": f"{OWNER_ID}/{dup_post_id}.jpg",
+            "image_alt": "dup alt",
+        }, "duplicate session post rejected"),
+        "duplicate session post rejected",
+    )
+
+    # Published session reopen rejection
+    assert_rejected(
+        patch("climbing_sessions", f"id=eq.{OWNER_SESSION_ID}", owner_token, {"ended_at": None}, "published session reopen"),
+        "published session reopen",
+    )
+
+    # Parent and cursor immutability on session_posts
+    assert_rejected(patch("session_posts", f"id=eq.{OWNER_POST_ID}", owner_token, {"id": str(uuid.uuid4())}, "owner post id mutation"), "owner post id mutation")
+    assert_rejected(patch("session_posts", f"id=eq.{OWNER_POST_ID}", owner_token, {"created_at": "2020-01-01T00:00:00Z"}, "owner post created_at mutation"), "owner post created_at mutation")
+    assert_rejected(patch("session_posts", f"id=eq.{OWNER_POST_ID}", owner_token, {"user_id": OTHER_ID}, "owner post user mutation"), "owner post user mutation")
+    assert_rejected(patch("session_posts", f"id=eq.{OWNER_POST_ID}", owner_token, {"session_id": OTHER_SESSION_ID}, "owner post session mutation"), "owner post session mutation")
+    assert_rejected(patch("session_posts", f"id=eq.{OWNER_POST_ID}", owner_token, {"featured_attempt_id": OWNER_FELL_ATTEMPT_ID}, "owner post featured attempt mutation"), "owner post featured attempt mutation")
+
+    # Cross-user post update/delete denial
+    assert_no_rows(patch("session_posts", f"id=eq.{OWNER_POST_ID}", other_token, {"caption": "cross"}, "cross-user post update"), "cross-user post update")
+    assert_no_rows(expect_api_result(request_json("DELETE", f"{base}/rest/v1/session_posts?id=eq.{OWNER_POST_ID}", other_token), "cross-user post delete"), "cross-user post delete")
+
+    # Image path canonical constraints
     for foreign_path, description in (
         (f"{OTHER_ID}/{OWNER_POST_ID}.jpg", "foreign image owner prefix"),
         (f"{OWNER_ID}/{OTHER_POST_ID}.jpg", "foreign image post reference"),
+        ("invalid/path.png", "invalid non-canonical path"),
+        ("", "blank image path"),
     ):
         assert_rejected(
-            patch("send_posts", f"id=eq.{OWNER_POST_ID}", owner_token, {"image_path": foreign_path}, description),
+            patch("session_posts", f"id=eq.{OWNER_POST_ID}", owner_token, {"image_path": foreign_path}, description),
             description,
         )
 
-    assert_rejected(post("send_post_likes", other_token, {"post_id": OWNER_POST_ID, "user_id": OWNER_ID}, "cross-user like insert"), "cross-user like insert")
-    owner_like = post("send_post_likes", owner_token, {"post_id": OWNER_POST_ID, "user_id": OWNER_ID}, "owner like insert")
+    # Blank image_alt rejected
+    assert_rejected(
+        patch("session_posts", f"id=eq.{OWNER_POST_ID}", owner_token, {"image_alt": "   "}, "blank image alt"),
+        "blank image alt",
+    )
+
+    # Invalid overlay_style rejected
+    assert_rejected(
+        patch("session_posts", f"id=eq.{OWNER_POST_ID}", owner_token, {"overlay_style": "invalid_style"}, "invalid overlay style"),
+        "invalid overlay style",
+    )
+
+    # Normalization of hostile created_at on session_posts insert to server time
+    norm_session_id = str(uuid.uuid4())
+    norm_attempt_id = str(uuid.uuid4())
+    norm_post_id = str(uuid.uuid4())
+    hostile_created_at = "2099-01-01T00:00:00Z"
+    try:
+        norm_session = post(
+            "climbing_sessions",
+            owner_token,
+            {
+                "id": norm_session_id,
+                "user_id": OWNER_ID,
+                "venue_name": "Normalization Session",
+                "started_at": "2026-01-01T00:00:00Z",
+                "ended_at": "2026-01-01T01:00:00Z",
+            },
+            "normalization session insert",
+        )
+        if norm_session.status not in {200, 201}:
+            fail(f"normalization session insert failed: HTTP {norm_session.status} {norm_session.body!r}")
+
+        norm_attempt = post(
+            "climb_attempts",
+            owner_token,
+            {
+                "id": norm_attempt_id,
+                "session_id": norm_session_id,
+                "user_id": OWNER_ID,
+                "route_name": "Normalization Attempt",
+                "discipline": "boulder",
+                "grade_system": "v_scale",
+                "grade_label": "V4",
+                "outcome": "sent",
+                "attempt_number": 1,
+                "occurred_at": "2026-01-01T00:30:00Z",
+            },
+            "normalization attempt insert",
+        )
+        if norm_attempt.status not in {200, 201}:
+            fail(f"normalization attempt insert failed: HTTP {norm_attempt.status} {norm_attempt.body!r}")
+
+        norm_post = post(
+            "session_posts",
+            owner_token,
+            {
+                "id": norm_post_id,
+                "user_id": OWNER_ID,
+                "session_id": norm_session_id,
+                "featured_attempt_id": norm_attempt_id,
+                "caption": "hostile created_at post",
+                "image_path": f"{OWNER_ID}/{norm_post_id}.jpg",
+                "image_alt": "normalization alt",
+                "overlay_style": "stats",
+                "created_at": hostile_created_at,
+            },
+            "hostile created_at session post insert",
+        )
+        post_row_list = rows(norm_post, "hostile created_at session post insert")
+        if len(post_row_list) != 1:
+            fail(f"hostile created_at post insert did not return representation: {norm_post.body!r}")
+        returned_created_at = post_row_list[0].get("created_at")
+        if not returned_created_at or returned_created_at == hostile_created_at:
+            fail(f"session post created_at was not normalized away from hostile value: {returned_created_at!r}")
+        parsed_returned = datetime.fromisoformat(str(returned_created_at).replace("Z", "+00:00"))
+        if abs((datetime.now(timezone.utc) - parsed_returned).total_seconds()) > 300:
+            fail(f"session post returned created_at {returned_created_at!r} is not near server time")
+
+        stored_post = rows(
+            expect_api_result(
+                request_json("GET", f"{base}/rest/v1/session_posts?id=eq.{norm_post_id}&select=id,created_at", owner_token),
+                "stored hostile post read",
+            ),
+            "stored hostile post read",
+        )
+        if len(stored_post) != 1:
+            fail(f"stored hostile post not found: {stored_post!r}")
+        stored_created_at = stored_post[0].get("created_at")
+        if not stored_created_at or stored_created_at == hostile_created_at:
+            fail(f"stored session post created_at was not normalized away from hostile value: {stored_created_at!r}")
+        parsed_stored = datetime.fromisoformat(str(stored_created_at).replace("Z", "+00:00"))
+        if abs((datetime.now(timezone.utc) - parsed_stored).total_seconds()) > 300:
+            fail(f"stored session post created_at {stored_created_at!r} is not near server time")
+    finally:
+        request_json("DELETE", f"{base}/rest/v1/session_posts?id=eq.{norm_post_id}", owner_token)
+        request_json("DELETE", f"{base}/rest/v1/climb_attempts?id=eq.{norm_attempt_id}", owner_token)
+        request_json("DELETE", f"{base}/rest/v1/climbing_sessions?id=eq.{norm_session_id}", owner_token)
+
+    # Likes & comments
+    assert_rejected(post("session_post_likes", other_token, {"post_id": OWNER_POST_ID, "user_id": OWNER_ID}, "cross-user like insert"), "cross-user like insert")
+    owner_like = post("session_post_likes", owner_token, {"post_id": OWNER_POST_ID, "user_id": OWNER_ID}, "owner like insert")
     if owner_like.status not in {200, 201}:
         fail(f"owner like insert failed: HTTP {owner_like.status} {owner_like.body!r}")
-    other_like = post("send_post_likes", other_token, {"post_id": OWNER_POST_ID, "user_id": OTHER_ID}, "other-user like insert")
+    other_like = post("session_post_likes", other_token, {"post_id": OWNER_POST_ID, "user_id": OTHER_ID}, "other-user like insert")
     if other_like.status not in {200, 201}:
         fail(f"other-user like insert failed: HTTP {other_like.status} {other_like.body!r}")
-    liked_feed = rows(rpc(base, "get_send_feed", owner_token, {"author_filter": OWNER_ID, "page_size": 1}), "authenticated liked feed")
-    if len(liked_feed) != 1 or liked_feed[0].get("id") != OWNER_POST_ID or liked_feed[0].get("is_liked") is not True:
-        fail(f"authenticated viewer did not see is_liked=true: {liked_feed!r}")
-    assert_no_rows(patch("send_post_likes", f"post_id=eq.{OWNER_POST_ID}&user_id=eq.{OWNER_ID}", owner_token, {"post_id": OTHER_POST_ID}, "owner like parent mutation"), "owner like parent mutation")
-    assert_no_rows(patch("send_post_likes", f"post_id=eq.{OWNER_POST_ID}&user_id=eq.{OWNER_ID}", owner_token, {"user_id": OTHER_ID}, "owner like user mutation"), "owner like user mutation")
-    assert_no_rows(expect_api_result(request_json("DELETE", f"{base}/rest/v1/send_post_likes?post_id=eq.{OWNER_POST_ID}&user_id=eq.{OWNER_ID}", other_token), "cross-user like delete"), "cross-user like delete")
 
-    post_comment = post("send_post_comments", owner_token, {"post_id": OWNER_POST_ID, "user_id": OWNER_ID, "content": "owner comment"}, "owner post comment")
+    liked_feed = rows(rpc(base, "get_session_feed", owner_token, {"author_filter": OWNER_ID, "page_size": 1}), "authenticated liked feed")
+    if len(liked_feed) != 1 or liked_feed[0].get("id") != OWNER_POST_ID or liked_feed[0].get("is_liked") is not True or liked_feed[0].get("like_count") != 2:
+        fail(f"authenticated viewer did not see is_liked=true and like_count=2: {liked_feed!r}")
+
+    assert_no_rows(patch("session_post_likes", f"post_id=eq.{OWNER_POST_ID}&user_id=eq.{OWNER_ID}", owner_token, {"post_id": OTHER_POST_ID}, "owner like parent mutation"), "owner like parent mutation")
+    assert_no_rows(patch("session_post_likes", f"post_id=eq.{OWNER_POST_ID}&user_id=eq.{OWNER_ID}", owner_token, {"user_id": OTHER_ID}, "owner like user mutation"), "owner like user mutation")
+    assert_no_rows(expect_api_result(request_json("DELETE", f"{base}/rest/v1/session_post_likes?post_id=eq.{OWNER_POST_ID}&user_id=eq.{OWNER_ID}", other_token), "cross-user like delete"), "cross-user like delete")
+
+    post_comment = post("session_post_comments", owner_token, {"post_id": OWNER_POST_ID, "user_id": OWNER_ID, "content": "owner comment"}, "owner post comment")
     comment_rows = rows(post_comment, "owner post comment")
     if len(comment_rows) != 1:
         fail(f"owner post comment did not return one row: {comment_rows!r}")
     comment_id = comment_rows[0]["id"]
-    other_comment = post("send_post_comments", other_token, {"post_id": OWNER_POST_ID, "user_id": OTHER_ID, "content": "other comment"}, "other-user post comment")
+    other_comment = post("session_post_comments", other_token, {"post_id": OWNER_POST_ID, "user_id": OTHER_ID, "content": "other comment"}, "other-user post comment")
     if other_comment.status not in {200, 201}:
         fail(f"other-user post comment failed: HTTP {other_comment.status} {other_comment.body!r}")
-    assert_rejected(patch("send_post_comments", f"id=eq.{comment_id}", owner_token, {"post_id": OTHER_POST_ID}, "owner comment parent mutation"), "owner comment parent mutation")
-    assert_rejected(patch("send_post_comments", f"id=eq.{comment_id}", owner_token, {"user_id": OTHER_ID}, "owner comment user mutation"), "owner comment user mutation")
-    assert_rejected(post("send_post_comments", other_token, {"post_id": OWNER_POST_ID, "user_id": OWNER_ID, "content": "cross comment"}, "cross-user post comment"), "cross-user post comment")
-    assert_no_rows(patch("send_post_comments", f"id=eq.{comment_id}", other_token, {"content": "cross"}, "cross-user comment update"), "cross-user comment update")
 
-    assert_no_rows(expect_api_result(request_json("DELETE", f"{base}/rest/v1/send_post_comments?id=eq.{comment_id}", other_token), "cross-user comment delete"), "cross-user comment delete")
+    assert_rejected(patch("session_post_comments", f"id=eq.{comment_id}", owner_token, {"post_id": OTHER_POST_ID}, "owner comment parent mutation"), "owner comment parent mutation")
+    assert_rejected(patch("session_post_comments", f"id=eq.{comment_id}", owner_token, {"user_id": OTHER_ID}, "owner comment user mutation"), "owner comment user mutation")
+    assert_rejected(post("session_post_comments", other_token, {"post_id": OWNER_POST_ID, "user_id": OWNER_ID, "content": "cross comment"}, "cross-user post comment"), "cross-user post comment")
+    assert_no_rows(patch("session_post_comments", f"id=eq.{comment_id}", other_token, {"content": "cross"}, "cross-user comment update"), "cross-user comment update")
+    assert_no_rows(expect_api_result(request_json("DELETE", f"{base}/rest/v1/session_post_comments?id=eq.{comment_id}", other_token), "cross-user comment delete"), "cross-user comment delete")
 
+    # Meetups mutations
     assert_rejected(post("meetups", other_token, {"organizer_id": OWNER_ID, "title": "cross", "description": "cross", "venue_name": "venue", "area": "area", "starts_at": "2030-01-01T00:00:00Z"}, "cross-user meetup insert"), "cross-user meetup insert")
     assert_no_rows(patch("meetups", f"id=eq.{OWNER_MEETUP_ID}", other_token, {"title": "cross"}, "cross-user meetup update"), "cross-user meetup update")
     assert_no_rows(expect_api_result(request_json("DELETE", f"{base}/rest/v1/meetups?id=eq.{OWNER_MEETUP_ID}", other_token), "cross-user meetup delete"), "cross-user meetup delete")
@@ -476,54 +763,67 @@ def assert_social_mutations(base: str, owner_token: str, other_token: str) -> No
     assert_rejected(post("meetup_attendees", other_token, {"meetup_id": OWNER_MEETUP_ID, "user_id": OTHER_ID}, "direct attendee insert"), "direct attendee insert")
     meetup_comment = post("meetup_comments", owner_token, {"meetup_id": OWNER_MEETUP_ID, "user_id": OWNER_ID, "content": "owner meetup comment"}, "owner meetup comment")
     meetup_comment_rows = rows(meetup_comment, "owner meetup comment")
-    comment_id = meetup_comment_rows[0]["id"]
-    assert_rejected(patch("meetup_comments", f"id=eq.{comment_id}", owner_token, {"meetup_id": OTHER_MEETUP_ID}, "owner meetup comment parent mutation"), "owner meetup comment parent mutation")
-    assert_rejected(patch("meetup_comments", f"id=eq.{comment_id}", owner_token, {"user_id": OTHER_ID}, "owner meetup comment user mutation"), "owner meetup comment user mutation")
+    m_comment_id = meetup_comment_rows[0]["id"]
+    assert_rejected(patch("meetup_comments", f"id=eq.{m_comment_id}", owner_token, {"meetup_id": OTHER_MEETUP_ID}, "owner meetup comment parent mutation"), "owner meetup comment parent mutation")
+    assert_rejected(patch("meetup_comments", f"id=eq.{m_comment_id}", owner_token, {"user_id": OTHER_ID}, "owner meetup comment user mutation"), "owner meetup comment user mutation")
     assert_rejected(post("meetup_comments", other_token, {"meetup_id": OWNER_MEETUP_ID, "user_id": OWNER_ID, "content": "cross meetup comment"}, "cross-user meetup comment"), "cross-user meetup comment")
-    assert_no_rows(patch("meetup_comments", f"id=eq.{comment_id}", other_token, {"content": "cross"}, "cross-user meetup comment update"), "cross-user meetup comment update")
-    assert_no_rows(expect_api_result(request_json("DELETE", f"{base}/rest/v1/meetup_comments?id=eq.{comment_id}", other_token), "cross-user meetup comment delete"), "cross-user meetup comment delete")
-    print("PASS: owner matching, canonical images, immutable parents, engagement, and cross-user social mutations verified")
+    assert_no_rows(patch("meetup_comments", f"id=eq.{m_comment_id}", other_token, {"content": "cross"}, "cross-user meetup comment update"), "cross-user meetup comment update")
+    assert_no_rows(expect_api_result(request_json("DELETE", f"{base}/rest/v1/meetup_comments?id=eq.{m_comment_id}", other_token), "cross-user meetup comment delete"), "cross-user meetup comment delete")
+    print("PASS: owner matching, canonical images, immutable parents, engagement, server-normalized created_at, active/mismatched/duplicate rejection, and cross-user social mutations verified")
 
-def assert_concurrent_publish_downgrade(base: str, owner_token: str) -> None:
+
+def assert_concurrent_publish_reopen(base: str, owner_token: str) -> None:
     barrier = threading.Barrier(2)
+    race_post_id = str(uuid.uuid4())
 
     def publish() -> ApiResult:
         barrier.wait(timeout=15)
         return expect_api_result(
             request_json(
                 "POST",
-                f"{base}/rest/v1/send_posts",
+                f"{base}/rest/v1/session_posts",
                 owner_token,
-                {"user_id": OWNER_ID, "attempt_id": UNPOSTED_ATTEMPT_ID, "caption": "race publish"},
+                {
+                    "id": race_post_id,
+                    "user_id": OWNER_ID,
+                    "session_id": RACE_SESSION_ID,
+                    "featured_attempt_id": RACE_ATTEMPT_ID,
+                    "caption": "race publish post",
+                    "image_path": f"{OWNER_ID}/{race_post_id}.jpg",
+                    "image_alt": "race publish alt",
+                    "overlay_style": "stats",
+                },
             ),
             "concurrent publish",
         )
 
-    def downgrade() -> ApiResult:
+    def reopen() -> ApiResult:
         barrier.wait(timeout=15)
         return expect_api_result(
             request_json(
                 "PATCH",
-                f"{base}/rest/v1/climb_attempts?id=eq.{UNPOSTED_ATTEMPT_ID}",
+                f"{base}/rest/v1/climbing_sessions?id=eq.{RACE_SESSION_ID}",
                 owner_token,
-                {"outcome": "fell"},
+                {"ended_at": None},
             ),
-            "concurrent downgrade",
+            "concurrent reopen",
         )
 
     with ThreadPoolExecutor(max_workers=2) as executor:
-        futures = [executor.submit(publish), executor.submit(downgrade)]
+        futures = [executor.submit(publish), executor.submit(reopen)]
         race_results = [future.result() for future in futures]
+
     successes = [result for result in race_results if 200 <= result.status < 300]
     rejections = [result for result in race_results if not 200 <= result.status < 300]
     if len(successes) != 1 or len(rejections) != 1:
-        fail(f"concurrent publish/downgrade was not one success/one rejection: {race_results!r}")
-    feed = rows(rpc(base, "get_send_feed", payload={"page_size": 50}), "post-race send feed")
+        fail(f"concurrent publish/reopen was not one success/one rejection: {race_results!r}")
+
+    feed = rows(rpc(base, "get_session_feed", payload={"page_size": 50}), "post-race session feed")
     for item in feed:
-        attempt = item.get("attempt")
-        if not isinstance(attempt, dict) or attempt.get("outcome") != "sent":
-            fail(f"public post joined to non-sent attempt: {item!r}")
-    print("PASS: concurrent publish-vs-downgrade never exposes a non-sent attempt")
+        session = item.get("session")
+        if not isinstance(session, dict) or session.get("ended_at") is None:
+            fail(f"public session post joined to non-ended session: {item!r}")
+    print("PASS: concurrent publish-vs-reopen never exposes an open or reopened session")
 
 
 def rpc(base: str, function: str, token: str | None = None, payload: object | None = None) -> ApiResult:
@@ -676,7 +976,7 @@ def run() -> None:
         assert_public_profiles_and_feed(base)
         assert_private_sessions_and_attempts(base, owner_token, other_token)
         assert_social_mutations(base, owner_token, other_token)
-        assert_concurrent_publish_downgrade(base, owner_token)
+        assert_concurrent_publish_reopen(base, owner_token)
         assert_public_meetups_and_joins(base, owner_token, other_token)
         assert_storage_ownership(base, owner_token, other_token)
     finally:
