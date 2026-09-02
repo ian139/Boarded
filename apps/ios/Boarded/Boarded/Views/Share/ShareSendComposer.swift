@@ -53,6 +53,7 @@ struct SessionArtworkView: View {
                         usesMaterial: presentation == .screen,
                         compactLayout: presentation == .export
                     )
+                    .padding(presentation == .screen ? AppSpacing.space12 : 0)
                 }
                 if presentation == .export {
                     LinearGradient(

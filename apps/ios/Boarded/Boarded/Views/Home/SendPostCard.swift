@@ -13,7 +13,6 @@ struct SendPostCard: View {
     var onLike: () -> Void = {}
     var showsActions = true
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     private var authorName: String { item.author.fullName?.trimmedNonEmpty ?? item.author.username?.trimmedNonEmpty ?? "Climber" }
 
@@ -22,24 +21,13 @@ struct SendPostCard: View {
             header
             photoComposition
             if let caption = item.caption?.trimmedNonEmpty {
-                VStack(alignment: .leading, spacing: 0) {
-                    if !dynamicTypeSize.isAccessibilitySize {
-                        Color.clear
-                            .frame(
-                                height: horizontalSizeClass == .regular
-                                    ? AppLayout.regularFeedCaptionClearance
-                                    : AppLayout.compactFeedCaptionClearance
-                            )
-                            .accessibilityHidden(true)
-                    }
-                    Text(caption)
-                        .font(AppTypography.bodyM)
-                        .foregroundStyle(AppColor.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(AppSpacing.space16)
-                        .background(AppColor.surfaceCard, in: AppRadius.card())
-                        .accessibilityIdentifier("session-post-caption")
-                }
+                Text(caption)
+                    .font(AppTypography.bodyM)
+                    .foregroundStyle(AppColor.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(AppSpacing.space16)
+                    .background(AppColor.surfaceCard, in: AppRadius.card())
+                    .accessibilityIdentifier("session-post-caption")
             }
             if showsActions { actions }
         }
