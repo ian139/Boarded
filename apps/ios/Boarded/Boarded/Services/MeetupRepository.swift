@@ -344,7 +344,7 @@ private struct MeetupStatusUpdate: Encodable {
     let status: MeetupStatus
 }
 
-private struct JoinMeetupParameters: Encodable {
+private nonisolated struct JoinMeetupParameters: Encodable, Sendable {
     let meetup_id: UUID
 }
 
