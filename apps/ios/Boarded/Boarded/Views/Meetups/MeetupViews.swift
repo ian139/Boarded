@@ -22,22 +22,190 @@ struct MeetupDetailView: View {
     @EnvironmentObject private var session: AppSession
     @Environment(\.boardedAuth) private var auth
     let meetup: Meetup
-    @State private var current: Meetup; @State private var attendees: [MeetupAttendee] = []; @State private var comments: [MeetupComment] = []; @State private var joined = false; @State private var comment = ""; @State private var edit = false; @State private var error: String?
+    @State private var current: Meetup
+    @State private var attendees: [MeetupAttendee] = []
+    @State private var comments: [MeetupComment] = []
+    @State private var joined = false
+    @State private var comment = ""
+    @State private var edit = false
+    @State private var error: String?
+    @State private var commentsError: String?
+    @State private var commentsLoading = true
+    @State private var confirmCancellation = false
     private let repository = AppServices.meetupRepository
-    init(meetup: Meetup) { self.meetup = meetup; _current = State(initialValue: meetup) }
-    var body: some View { ScrollView { VStack(alignment: .leading, spacing: AppSpacing.space24) {
-        if current.status == .cancelled { Label("Cancelled meetup", systemImage: "xmark.circle.fill").foregroundStyle(AppColor.danger) }
-        BoardedEyebrow(text: current.area); Text(current.title).font(AppTypography.titleL); Text(current.description).font(AppTypography.bodyL).foregroundStyle(AppColor.textSecondary)
-        VStack(alignment: .leading, spacing: AppSpacing.space8) { Label(current.venueName, systemImage: "mappin.and.ellipse"); Label(BoardedFormat.dateTime(current.startsAt), systemImage: "calendar"); if let capacity = current.capacity { Label("\(attendees.count + 1) of \(capacity) places", systemImage: "person.3") } }.font(AppTypography.bodyM)
-        actions; commentsView
-    }.padding(AppLayout.screenMargin).boardedContentWidth().frame(maxWidth: .infinity) }.navigationTitle("Meetup").navigationBarTitleDisplayMode(.inline).boardedPageBackground().toolbar { if current.organizerId == session.userId { ToolbarItem(placement: .primaryAction) { Button("Edit") { edit = true } } } }.sheet(isPresented: $edit) { MeetupFormView(meetup: current) { current = $0 } }.task { await load() } }
-    private var actions: some View { VStack(spacing: AppSpacing.space12) { if current.organizerId == session.userId { Button("Cancel Meetup") { Task { await cancel() } }.buttonStyle(BoardedButtonStyle(.destructive)) } else if current.status == .scheduled { BoardedPrimaryButton(title: joined ? "Leave Meetup" : (isFull ? "Meetup Full" : "Join Meetup")) { mutateAttendance() }.disabled(isFull && !joined) }; if let error { Text(error).font(AppTypography.labelM).foregroundStyle(AppColor.danger) } } }
-    private var commentsView: some View { VStack(alignment: .leading, spacing: AppSpacing.space12) { BoardedSectionHeading(title: "Comments"); ForEach(comments) { Text($0.content).font(AppTypography.bodyL).frame(maxWidth: .infinity, alignment: .leading) }; HStack { TextField("Add a comment", text: $comment).padding(AppSpacing.space12).boardedSurface(in: AppRadius.control, interactive: true); Button("Post") { post() }.disabled(comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) } } }
+
+    init(meetup: Meetup) {
+        self.meetup = meetup
+        _current = State(initialValue: meetup)
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: AppSpacing.space24) {
+                if current.status == .cancelled {
+                    Label("Cancelled meetup", systemImage: "xmark.circle.fill")
+                        .foregroundStyle(AppColor.danger)
+                }
+                BoardedEyebrow(text: current.area)
+                Text(current.title).font(AppTypography.titleL)
+                Text(current.description).font(AppTypography.bodyL).foregroundStyle(AppColor.textSecondary)
+                VStack(alignment: .leading, spacing: AppSpacing.space8) {
+                    Label(current.venueName, systemImage: "mappin.and.ellipse")
+                    Label(BoardedFormat.dateTime(current.startsAt), systemImage: "calendar")
+                    if let capacity = current.capacity {
+                        Label("\(attendees.count + 1) of \(capacity) places", systemImage: "person.3")
+                    }
+                }
+                .font(AppTypography.bodyM)
+                actions
+                commentsView
+            }
+            .padding(AppLayout.screenMargin)
+            .boardedContentWidth()
+            .frame(maxWidth: .infinity)
+        }
+        .navigationTitle("Meetup")
+        .navigationBarTitleDisplayMode(.inline)
+        .boardedPageBackground()
+        .accessibilityIdentifier("meetup-detail")
+        .toolbar {
+            if current.organizerId == session.userId {
+                ToolbarItem(placement: .primaryAction) { Button("Edit") { edit = true } }
+            }
+        }
+        .sheet(isPresented: $edit) { MeetupFormView(meetup: current) { current = $0 } }
+        .confirmationDialog(
+            "Cancel this meetup?",
+            isPresented: $confirmCancellation,
+            titleVisibility: .visible
+        ) {
+            Button("Cancel Meetup", role: .destructive) { Task { await cancel() } }
+            Button("Keep Meetup", role: .cancel) {}
+        } message: {
+            Text("Everyone will see that this meetup was cancelled.")
+        }
+        .task { await load() }
+    }
+
+    private var actions: some View {
+        VStack(spacing: AppSpacing.space12) {
+            if current.organizerId == session.userId, current.status == .scheduled {
+                Button("Cancel Meetup") { confirmCancellation = true }
+                    .buttonStyle(BoardedButtonStyle(.destructive))
+                    .accessibilityIdentifier("meetup-cancel")
+            } else if current.status == .scheduled {
+                BoardedPrimaryButton(title: joined ? "Leave Meetup" : (isFull ? "Meetup Full" : "Join Meetup")) {
+                    mutateAttendance()
+                }
+                .disabled(isFull && !joined)
+                .accessibilityIdentifier(joined ? "meetup-leave" : "meetup-join")
+            }
+            if let error {
+                Text(error).font(AppTypography.labelM).foregroundStyle(AppColor.danger)
+            }
+        }
+    }
+
+    private var commentsView: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.space12) {
+            BoardedSectionHeading(title: "Comments")
+            if commentsLoading {
+                ProgressView("Loading comments…")
+                    .accessibilityIdentifier("meetup-comments-loading")
+            } else if let commentsError {
+                BoardedInlineError(message: commentsError) { Task { await loadComments() } }
+                    .accessibilityIdentifier("meetup-comments-error")
+            } else if comments.isEmpty {
+                VStack(alignment: .leading, spacing: AppSpacing.space4) {
+                    Text("Start the conversation").font(AppTypography.labelL)
+                    Text("Ask about partners, timing, or what to bring.")
+                        .font(AppTypography.bodyM)
+                        .foregroundStyle(AppColor.textSecondary)
+                }
+                .accessibilityIdentifier("meetup-comments-empty")
+            } else {
+                ForEach(comments.sorted { $0.createdAt < $1.createdAt }) {
+                    Text($0.content)
+                        .font(AppTypography.bodyL)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .accessibilityIdentifier("meetup-comments-list")
+            }
+            HStack {
+                TextField("Add a comment", text: $comment)
+                    .padding(AppSpacing.space12)
+                    .boardedSurface(in: AppRadius.control, interactive: true)
+                    .accessibilityIdentifier("meetup-comment-field")
+                Button("Post") { post() }
+                    .disabled(comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .accessibilityIdentifier("meetup-comment-submit")
+            }
+        }
+    }
+
     private var isFull: Bool { current.capacity.map { attendees.count + 1 >= $0 } ?? false }
-    private func load() async { do { async let a = repository.fetchAttendees(meetupID: current.id); async let c = repository.fetchComments(meetupID: current.id); (attendees, comments) = try await (a,c); joined = attendees.contains { $0.userId == session.userId } } catch { self.error = error.localizedDescription } }
-    private func mutateAttendance() { guard auth.isAuthenticated else { auth.requestAuthentication(); return }; Task { do { if joined { try await repository.leaveMeetup(id: current.id); if let userID = session.userId { attendees.removeAll { $0.userId == userID } }; joined = false } else { let attendee = try await repository.joinMeetup(id: current.id); if !attendees.contains(where: { $0.userId == attendee.userId }) { attendees.append(attendee) }; joined = true } } catch { self.error = error.localizedDescription } } }
-    private func post() { guard auth.isAuthenticated else { auth.requestAuthentication(); return }; Task { do { comments.append(try await repository.createComment(meetupID: current.id, content: comment)); comment = "" } catch { self.error = error.localizedDescription } } }
-    private func cancel() async { do { current = try await repository.cancelMeetup(id: current.id) } catch { self.error = error.localizedDescription } }
+
+    private func load() async {
+        do {
+            attendees = try await repository.fetchAttendees(meetupID: current.id)
+            joined = attendees.contains { $0.userId == session.userId }
+        } catch {
+            self.error = error.localizedDescription
+        }
+        await loadComments()
+    }
+
+    private func loadComments() async {
+        commentsLoading = true
+        commentsError = nil
+        defer { commentsLoading = false }
+        do {
+            comments = try await repository.fetchComments(meetupID: current.id)
+                .sorted { $0.createdAt < $1.createdAt }
+        } catch {
+            commentsError = error.localizedDescription
+        }
+    }
+
+    private func mutateAttendance() {
+        guard auth.isAuthenticated else { auth.requestAuthentication(); return }
+        Task {
+            do {
+                if joined {
+                    try await repository.leaveMeetup(id: current.id)
+                    if let userID = session.userId { attendees.removeAll { $0.userId == userID } }
+                    joined = false
+                } else {
+                    let attendee = try await repository.joinMeetup(id: current.id)
+                    if !attendees.contains(where: { $0.userId == attendee.userId }) { attendees.append(attendee) }
+                    joined = true
+                }
+            } catch {
+                self.error = error.localizedDescription
+            }
+        }
+    }
+
+    private func post() {
+        guard auth.isAuthenticated else { auth.requestAuthentication(); return }
+        Task {
+            do {
+                comments.append(try await repository.createComment(meetupID: current.id, content: comment))
+                comments.sort { $0.createdAt < $1.createdAt }
+                comment = ""
+            } catch {
+                commentsError = error.localizedDescription
+            }
+        }
+    }
+
+    private func cancel() async {
+        do {
+            current = try await repository.cancelMeetup(id: current.id)
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
 }
 
 struct MeetupFormView: View {

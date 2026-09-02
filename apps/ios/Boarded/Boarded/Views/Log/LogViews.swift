@@ -63,13 +63,118 @@ extension SessionSummary: Identifiable { var id: Date { startedAt } }
 
 struct OutcomeSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var route = ""; @State private var discipline = ClimbDiscipline.boulder; @State private var system = GradeSystem.vScale; @State private var grade = "V0"; @State private var notes = ""; @State private var outcome = AttemptOutcome.sent
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @State private var route = ""
+    @State private var discipline = ClimbDiscipline.boulder
+    @State private var system = GradeSystem.vScale
+    @State private var grade = "V0"
+    @State private var notes = ""
+    @State private var outcome = AttemptOutcome.sent
     let submit: (String, ClimbDiscipline, GradeSystem, String, AttemptOutcome, String?) -> Void
-    var body: some View { NavigationStack { ScrollView { VStack(spacing: AppSpacing.space16) { BoardedTextField(label: "Route", prompt: "Route name", text: $route); Picker("Discipline", selection: $discipline) { ForEach(ClimbDiscipline.allCases, id: \.self) { Text($0.title).tag($0) } }; Picker("Grade", selection: $grade) { ForEach(GradeCatalog.grades(for: system), id: \.self) { Text($0).tag($0) } }; BoardedTextEditor(label: "Notes", prompt: "Optional", text: $notes); HStack { ForEach(AttemptOutcome.allCases, id: \.self) { value in Button { outcome = value } label: { Label(value.title, systemImage: value.systemImage).frame(maxWidth: .infinity, minHeight: 52).background(outcome == value ? AppColor.accentSoft : AppColor.surfaceCard, in: AppRadius.control) }.buttonStyle(.plain) } }; BoardedPrimaryButton(title: "Save Attempt") { submit(route, discipline, system, grade, outcome, notes.isEmpty ? nil : notes); dismiss() }.disabled(route.isEmpty) }.padding(AppLayout.screenMargin) }.navigationTitle("Attempt").boardedPageBackground() } }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: AppSpacing.space16) {
+                    BoardedTextField(label: "Route", prompt: "Route name", text: $route)
+                    Picker("Discipline", selection: $discipline) {
+                        ForEach(ClimbDiscipline.allCases, id: \.self) { Text($0.title).tag($0) }
+                    }
+                    Picker("Grade", selection: $grade) {
+                        ForEach(GradeCatalog.grades(for: system), id: \.self) { Text($0).tag($0) }
+                    }
+                    BoardedTextEditor(label: "Notes", prompt: "Optional", text: $notes)
+                    outcomeChoices
+                    BoardedPrimaryButton(title: "Save Attempt") {
+                        submit(route, discipline, system, grade, outcome, notes.isEmpty ? nil : notes)
+                        dismiss()
+                    }
+                    .disabled(route.isEmpty)
+                }
+                .padding(AppLayout.screenMargin)
+            }
+            .navigationTitle("Attempt")
+            .boardedPageBackground()
+        }
+    }
+
+    @ViewBuilder private var outcomeChoices: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(spacing: AppSpacing.space8) { outcomeButtons }
+        } else {
+            ViewThatFits {
+                HStack(spacing: AppSpacing.space8) { outcomeButtons }
+                VStack(spacing: AppSpacing.space8) { outcomeButtons }
+            }
+        }
+    }
+
+    @ViewBuilder private var outcomeButtons: some View {
+        ForEach(AttemptOutcome.allCases, id: \.self) { value in
+            Button { outcome = value } label: {
+                Label(value.title, systemImage: value.systemImage)
+                    .frame(maxWidth: .infinity, minHeight: AppLayout.primaryControlHeight)
+                    .background(outcome == value ? AppColor.accentSoft : AppColor.surfaceCard, in: AppRadius.control)
+            }
+            .buttonStyle(.plain)
+            .accessibilityAddTraits(outcome == value ? .isSelected : [])
+        }
+    }
 }
 
 struct SessionResultView: View {
-    let summary: SessionSummary; let done: () -> Void; @State private var share = false
-    var body: some View { NavigationStack { ScrollView { VStack(alignment: .leading, spacing: AppSpacing.space24) { BoardedEyebrow(text: "Session Complete"); Text(summary.bestSend?.gradeLabel ?? "\(summary.attempts.count) attempts").font(AppTypography.displayL).foregroundStyle(summary.sendCount > 0 ? AppColor.accentDefault : AppColor.textPrimary); Text(summary.venue).font(AppTypography.titleM); HStack { metric("Attempts", "\(summary.attempts.count)"); metric("Sends", "\(summary.sendCount)"); metric("Rate", summary.successRate.map(BoardedFormat.percent) ?? "—") }; BoardedRouteLine().frame(height: 140); if summary.sendCount > 0 { Button("Share Send") { share = true }.buttonStyle(BoardedButtonStyle(.secondary)) }; BoardedPrimaryButton(title: "Done", action: done) }.padding(AppLayout.screenMargin) }.boardedPageBackground().sheet(isPresented: $share) { ShareSendComposer() } } }
-    private func metric(_ title: String, _ value: String) -> some View { VStack(alignment: .leading) { Text(value).font(AppTypography.dataM); Text(title).font(AppTypography.caption).foregroundStyle(AppColor.textSecondary) }.frame(maxWidth: .infinity, alignment: .leading) }
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    let summary: SessionSummary
+    let done: () -> Void
+    @State private var share = false
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: AppSpacing.space24) {
+                    BoardedEyebrow(text: "Session Complete")
+                    Text(summary.bestSend?.gradeLabel ?? "\(summary.attempts.count) attempts")
+                        .font(AppTypography.displayL)
+                        .foregroundStyle(summary.sendCount > 0 ? AppColor.accentDefault : AppColor.textPrimary)
+                    Text(summary.venue).font(AppTypography.titleM)
+                    metrics
+                    BoardedRouteLine().frame(height: 140)
+                    if summary.sendCount > 0 {
+                        Button("Share Send") { share = true }
+                            .buttonStyle(BoardedButtonStyle(.secondary))
+                    }
+                    BoardedPrimaryButton(title: "Done", action: done)
+                }
+                .padding(AppLayout.screenMargin)
+            }
+            .boardedPageBackground()
+            .sheet(isPresented: $share) { ShareSendComposer() }
+        }
+    }
+
+    @ViewBuilder private var metrics: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: AppSpacing.space16) { metricItems }
+        } else {
+            ViewThatFits {
+                HStack(spacing: AppSpacing.space12) { metricItems }
+                VStack(alignment: .leading, spacing: AppSpacing.space16) { metricItems }
+            }
+        }
+    }
+
+    @ViewBuilder private var metricItems: some View {
+        metric("Attempts", "\(summary.attempts.count)")
+        metric("Sends", "\(summary.sendCount)")
+        metric("Rate", summary.successRate.map(BoardedFormat.percent) ?? "—")
+    }
+
+    private func metric(_ title: String, _ value: String) -> some View {
+        VStack(alignment: .leading) {
+            Text(value).font(AppTypography.dataM)
+            Text(title).font(AppTypography.caption).foregroundStyle(AppColor.textSecondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+    }
 }

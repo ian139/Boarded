@@ -92,6 +92,13 @@ struct ShareSendComposer: View {
                     }
                 }
                 .accessibilityIdentifier("share-attempt")
+                Label("Public", systemImage: "globe")
+                    .font(AppTypography.labelL)
+                    .foregroundStyle(AppColor.textPrimary)
+                    .accessibilityLabel("Audience: Public")
+                Text("Anyone can see this post.")
+                    .font(AppTypography.bodyM)
+                    .foregroundStyle(AppColor.textSecondary)
             }
             PhotosPicker(
                 selection: $picker,
@@ -153,6 +160,10 @@ struct ShareSendComposer: View {
     private var preview: some View {
         VStack(alignment: .leading, spacing: AppSpacing.space8) {
             BoardedSectionHeading(title: "Preview")
+            Label("Public", systemImage: "globe")
+                .font(AppTypography.labelM)
+                .foregroundStyle(AppColor.textSecondary)
+                .accessibilityLabel("Audience: Public")
             Text(attempts.first(where: { $0.id == draft.attemptID })?.gradeLabel ?? "Grade")
                 .font(AppTypography.displayS)
             Text(draft.caption.isEmpty ? "Your caption" : draft.caption)
@@ -241,9 +252,94 @@ struct ShareSendComposer: View {
 
 struct PhotoCropView: View {
     @Environment(\.dismiss) private var dismiss
-    let image: UIImage; let completion: (UIImage) -> Void
-    @State private var scale: CGFloat = 1; @State private var offset: CGSize = .zero
-    var body: some View { NavigationStack { GeometryReader { proxy in ZStack { AppColor.backgroundBase; Image(uiImage: image).resizable().scaledToFill().scaleEffect(scale).offset(offset).gesture(DragGesture().onChanged { offset = $0.translation }).simultaneousGesture(MagnificationGesture().onChanged { scale = max(1, $0) }) }.frame(width: proxy.size.width, height: proxy.size.width * 2/3).clipShape(AppRadius.card()).position(x: proxy.size.width/2, y: proxy.size.height/2) }.navigationTitle("Crop 3:2").toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }; ToolbarItem(placement: .confirmationAction) { Button("Use Photo") { completion(SendImageProcessor.crop(image, scale: scale, offset: offset)) } } }.boardedPageBackground() } }
+    let image: UIImage
+    let completion: (UIImage) -> Void
+    @State private var scale: CGFloat = 1
+    @State private var offset: CGSize = .zero
+    @State private var dragStart: CGSize = .zero
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: AppSpacing.space16) {
+                GeometryReader { proxy in
+                    ZStack {
+                        AppColor.backgroundBase
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                            .scaleEffect(scale)
+                            .offset(offset)
+                            .gesture(
+                                DragGesture()
+                                    .onChanged {
+                                        offset = CGSize(
+                                            width: dragStart.width + $0.translation.width,
+                                            height: dragStart.height + $0.translation.height
+                                        )
+                                    }
+                                    .onEnded { _ in dragStart = offset }
+                            )
+                            .simultaneousGesture(
+                                MagnificationGesture()
+                                    .onChanged { scale = min(4, max(1, $0)) }
+                            )
+                            .accessibilityLabel("Photo crop")
+                            .accessibilityValue("Zoom \(Int(scale * 100)) percent")
+                            .accessibilityAdjustableAction { direction in
+                                scale = min(4, max(1, scale + (direction == .increment ? 0.25 : -0.25)))
+                            }
+                            .accessibilityAction(named: "Move left") { moveCrop(x: -1, y: 0) }
+                            .accessibilityAction(named: "Move right") { moveCrop(x: 1, y: 0) }
+                            .accessibilityAction(named: "Move up") { moveCrop(x: 0, y: -1) }
+                            .accessibilityAction(named: "Move down") { moveCrop(x: 0, y: 1) }
+                            .accessibilityAction(named: "Reset crop") { reset() }
+                    }
+                    .frame(width: proxy.size.width, height: proxy.size.width * 2 / 3)
+                    .clipShape(AppRadius.card())
+                    .position(x: proxy.size.width / 2, y: proxy.size.height / 2)
+                }
+                .accessibilityIdentifier("photo-crop")
+
+                ViewThatFits {
+                    HStack(spacing: AppSpacing.space8) { cropControls }
+                    VStack(spacing: AppSpacing.space8) { cropControls }
+                }
+                .padding(.horizontal, AppLayout.screenMargin)
+            }
+            .navigationTitle("Crop 3:2")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Use Photo") {
+                        completion(SendImageProcessor.crop(image, scale: scale, offset: offset))
+                    }
+                }
+            }
+            .boardedPageBackground()
+        }
+    }
+
+    @ViewBuilder private var cropControls: some View {
+        Button("Position left", systemImage: "arrow.left") { moveCrop(x: -1, y: 0) }
+        Button("Position up", systemImage: "arrow.up") { moveCrop(x: 0, y: -1) }
+        Button("Reset", systemImage: "arrow.counterclockwise") { reset() }
+        Button("Position down", systemImage: "arrow.down") { moveCrop(x: 0, y: 1) }
+        Button("Position right", systemImage: "arrow.right") { moveCrop(x: 1, y: 0) }
+    }
+
+    private func moveCrop(x: CGFloat, y: CGFloat) {
+        offset.width += x * AppSpacing.space16
+        offset.height += y * AppSpacing.space16
+        dragStart = offset
+    }
+
+    private func reset() {
+        scale = 1
+        offset = .zero
+        dragStart = .zero
+    }
 }
 
 enum SendImageProcessor {
