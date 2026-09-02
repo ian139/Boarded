@@ -72,6 +72,7 @@ struct SessionArtworkView: View {
                         .accessibilityHidden(true)
                 }
             }
+            .frame(height: presentation == .export ? 268 : nil, alignment: .bottom)
             if usesContinuation { SessionArtworkFacts(model: model, opaque: true) }
         }
         .background(AppColor.backgroundBase)
