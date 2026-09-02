@@ -47,6 +47,8 @@ RACE_SESSION_ID = "a3f0d878-5d47-4db8-90a5-3c5bc73f7c31"
 OWNER_SENT_ATTEMPT_ID = "a7f0d878-5d47-4db8-90a5-3c5bc73f7c31"
 OWNER_FELL_ATTEMPT_ID = "a8f0d878-5d47-4db8-90a5-3c5bc73f7c31"
 OTHER_FELL_ATTEMPT_ID = "a9f0d878-5d47-4db8-90a5-3c5bc73f7c31"
+OTHER_PREPUBLISH_ATTEMPT_ID = "b30d8780-5d47-4db8-90a5-3c5bc73f7c31"
+OTHER_LATER_ATTEMPT_ID = "b40d8780-5d47-4db8-90a5-3c5bc73f7c31"
 ACTIVE_ATTEMPT_ID = "aa0d8780-5d47-4db8-90a5-3c5bc73f7c31"
 RACE_ATTEMPT_ID = "ab0d8780-5d47-4db8-90a5-3c5bc73f7c31"
 UNPOSTED_ATTEMPT_ID = "ac0d8780-5d47-4db8-90a5-3c5bc73f7c31"
@@ -230,7 +232,7 @@ DELETE FROM public.meetup_comments WHERE meetup_id IN ({sql_quote(OWNER_MEETUP_I
 DELETE FROM public.meetup_attendees WHERE meetup_id IN ({sql_quote(OWNER_MEETUP_ID)}, {sql_quote(OTHER_MEETUP_ID)}, {sql_quote(CANCELLED_MEETUP_ID)}, {sql_quote(FILLER_MEETUP_ID)}, {sql_quote(RACE_MEETUP_ID)}, {sql_quote(PAST_MEETUP_ID)});
 DELETE FROM public.meetups WHERE id IN ({sql_quote(OWNER_MEETUP_ID)}, {sql_quote(OTHER_MEETUP_ID)}, {sql_quote(CANCELLED_MEETUP_ID)}, {sql_quote(FILLER_MEETUP_ID)}, {sql_quote(RACE_MEETUP_ID)}, {sql_quote(PAST_MEETUP_ID)});
 
-DELETE FROM public.climb_attempts WHERE id IN ({sql_quote(OWNER_SENT_ATTEMPT_ID)}, {sql_quote(OWNER_FELL_ATTEMPT_ID)}, {sql_quote(OTHER_FELL_ATTEMPT_ID)}, {sql_quote(ACTIVE_ATTEMPT_ID)}, {sql_quote(RACE_ATTEMPT_ID)}, {sql_quote(UNPOSTED_ATTEMPT_ID)});
+DELETE FROM public.climb_attempts WHERE id IN ({sql_quote(OWNER_SENT_ATTEMPT_ID)}, {sql_quote(OWNER_FELL_ATTEMPT_ID)}, {sql_quote(OTHER_FELL_ATTEMPT_ID)}, {sql_quote(OTHER_PREPUBLISH_ATTEMPT_ID)}, {sql_quote(OTHER_LATER_ATTEMPT_ID)}, {sql_quote(ACTIVE_ATTEMPT_ID)}, {sql_quote(RACE_ATTEMPT_ID)}, {sql_quote(UNPOSTED_ATTEMPT_ID)});
 DELETE FROM public.climbing_sessions WHERE id IN ({sql_quote(OWNER_SESSION_ID)}, {sql_quote(OTHER_SESSION_ID)}, {sql_quote(ACTIVE_SESSION_ID)}, {sql_quote(RACE_SESSION_ID)});
 DELETE FROM public.routes WHERE id = {sql_quote(OWNER_ROUTE_ID)};
 DELETE FROM auth.users WHERE id IN ({user_ids});
@@ -268,6 +270,7 @@ VALUES
  ({sql_quote(OWNER_FELL_ATTEMPT_ID)},{sql_quote(OWNER_SESSION_ID)},{sql_quote(OWNER_ID)},NULL,'Harness Fell','boulder','v_scale','V4','fell',2,{sql_quote(SECRET_NOTES)},now()),
  ({sql_quote(UNPOSTED_ATTEMPT_ID)},{sql_quote(OWNER_SESSION_ID)},{sql_quote(OWNER_ID)},NULL,'Unposted Secret','board','v_scale','V5','sent',3,{sql_quote(SECRET_NOTES)},now()),
  ({sql_quote(OTHER_FELL_ATTEMPT_ID)},{sql_quote(OTHER_SESSION_ID)},{sql_quote(OTHER_ID)},NULL,'Other Fell','sport','yds','5.10a','fell',1,'other private note',now()),
+ ({sql_quote(OTHER_PREPUBLISH_ATTEMPT_ID)},{sql_quote(OTHER_SESSION_ID)},{sql_quote(OTHER_ID)},NULL,'Other Sent','sport','yds','5.10b','sent',2,'other private note',now()),
  ({sql_quote(ACTIVE_ATTEMPT_ID)},{sql_quote(ACTIVE_SESSION_ID)},{sql_quote(OWNER_ID)},NULL,'Active Attempt','boulder','v_scale','V2','sent',1,'active note',now()),
  ({sql_quote(RACE_ATTEMPT_ID)},{sql_quote(RACE_SESSION_ID)},{sql_quote(OWNER_ID)},NULL,'Race Attempt','boulder','v_scale','V6','stopped',1,'race note',now());
 
@@ -340,7 +343,7 @@ def assert_route_ownership(base: str, owner_token: str, other_token: str) -> Non
     print("PASS: existing Boarded route owner and cross-user RLS remained intact")
 
 
-def assert_public_profiles_and_feed(base: str) -> None:
+def assert_public_profiles_and_feed(base: str, other_token: str) -> None:
     profile = expect_api_result(
         request_json("GET", f"{base}/rest/v1/profiles?id=eq.{OWNER_ID}&select=id,username,home_area"),
         "anonymous public profile read",
@@ -380,7 +383,7 @@ def assert_public_profiles_and_feed(base: str) -> None:
         session = item.get("session")
         if not isinstance(session, dict):
             fail(f"feed omitted nested session: {item!r}")
-        for session_field in ("id", "venue_name", "started_at", "ended_at", "duration_seconds", "attempt_count", "send_count", "featured_attempt"):
+        for session_field in ("id", "venue_name", "started_at", "ended_at", "duration_seconds", "attempt_count", "send_count", "featured_attempt", "attempt_timeline"):
             if session_field not in session:
                 fail(f"feed session missing field {session_field}: {session!r}")
         if "notes" in session:
@@ -403,12 +406,99 @@ def assert_public_profiles_and_feed(base: str) -> None:
     if other_attempt_outcome != "fell":
         fail(f"featured attempt outcome was expected to be 'fell', got {other_attempt_outcome!r}")
 
-    # Verify overlay styles are preserved
+    # Verify overlay styles and publish-time timeline privacy.
     owner_post = next((item for item in feed if item.get("id") == OWNER_POST_ID), None)
     if not owner_post or owner_post.get("overlay_style") != "stats":
         fail(f"owner post overlay_style expected 'stats', got {owner_post!r}")
     if other_post.get("overlay_style") != "attempt_timeline":
         fail(f"other post overlay_style expected 'attempt_timeline', got {other_post!r}")
+    owner_session = owner_post.get("session", {})
+    other_session = other_post.get("session", {})
+    if owner_session.get("attempt_timeline") is not None:
+        fail(f"stats post exposed an attempt timeline: {owner_session!r}")
+    expected_timeline = [
+        {"attempt_number": 1, "outcome": "fell"},
+        {"attempt_number": 2, "outcome": "sent"},
+    ]
+    other_timeline = other_session.get("attempt_timeline")
+    if other_timeline != expected_timeline:
+        fail(f"attempt timeline was not the expected ordered public sequence: {other_timeline!r}")
+    for timeline_entry in other_timeline:
+        if set(timeline_entry) != {"attempt_number", "outcome"}:
+            fail(f"attempt timeline exposed private fields: {other_timeline!r}")
+
+    # The private snapshot table is inaccessible to anonymous and authenticated
+    # REST clients, so neither role can read or spoof the server-authored row.
+    snapshot_table = f"{base}/rest/v1/session_post_attempt_timeline_snapshots?post_id=eq.{OTHER_POST_ID}&select=*"
+    for token, description in (
+        (None, "anonymous private timeline snapshot read"),
+        (other_token, "authenticated private timeline snapshot read"),
+    ):
+        snapshot_read = expect_api_result(request_json("GET", snapshot_table, token), description)
+        if snapshot_read.status not in {200, 401, 403, 404}:
+            fail(f"{description} returned unexpected HTTP {snapshot_read.status}: {snapshot_read.body!r}")
+        if snapshot_read.status == 200 and snapshot_read.body:
+            fail(f"{description} exposed private snapshot data: {snapshot_read.body!r}")
+    assert_rejected(
+        expect_api_result(
+            request_json(
+                "POST",
+                f"{base}/rest/v1/session_post_attempt_timeline_snapshots",
+                other_token,
+                {"post_id": OTHER_POST_ID, "timeline": [{"attempt_number": 999, "outcome": "sent"}]},
+            ),
+            "private timeline snapshot spoof",
+        ),
+        "private timeline snapshot spoof",
+    )
+
+    # Later attempt inserts and updates do not alter the publish-time snapshot.
+    later_attempt_insert = expect_api_result(
+        request_json(
+            "POST",
+            f"{base}/rest/v1/climb_attempts",
+            other_token,
+            {
+                "id": OTHER_LATER_ATTEMPT_ID,
+                "session_id": OTHER_SESSION_ID,
+                "user_id": OTHER_ID,
+                "route_name": "Other Later",
+                "discipline": "sport",
+                "grade_system": "yds",
+                "grade_label": "5.10b",
+                "outcome": "sent",
+                "attempt_number": 3,
+                "notes": SECRET_NOTES,
+                "occurred_at": datetime.now(timezone.utc).isoformat(),
+            },
+        ),
+        "later attempt insert",
+    )
+    if later_attempt_insert.status not in {200, 201}:
+        fail(f"later attempt insert failed: HTTP {later_attempt_insert.status} {later_attempt_insert.body!r}")
+    later_attempt_update = expect_api_result(
+        request_json(
+            "PATCH",
+            f"{base}/rest/v1/climb_attempts?id=eq.{OTHER_LATER_ATTEMPT_ID}",
+            other_token,
+            {"outcome": "stopped", "notes": SECRET_NOTES},
+        ),
+        "later attempt update",
+    )
+    if later_attempt_update.status != 200:
+        fail(f"later attempt update failed: HTTP {later_attempt_update.status} {later_attempt_update.body!r}")
+    feed_after_mutation = rows(rpc(base, "get_session_feed", payload={"page_size": 50}), "anonymous session feed after attempt mutation")
+    other_post_after_mutation = next((item for item in feed_after_mutation if item.get("id") == OTHER_POST_ID), None)
+    if not other_post_after_mutation:
+        fail(f"other post disappeared after attempt mutation: {feed_after_mutation!r}")
+    if other_post_after_mutation.get("session", {}).get("attempt_timeline") != expected_timeline:
+        fail(f"attempt timeline changed after later attempt mutation: {other_post_after_mutation!r}")
+    owner_post_after_mutation = next((item for item in feed_after_mutation if item.get("id") == OWNER_POST_ID), None)
+    if owner_post_after_mutation and owner_post_after_mutation.get("session", {}).get("attempt_timeline") is not None:
+        fail(f"stats post exposed a timeline after attempt mutation: {owner_post_after_mutation!r}")
+    serialized_after_mutation = json.dumps(feed_after_mutation, sort_keys=True)
+    if OTHER_LATER_ATTEMPT_ID in serialized_after_mutation or SECRET_NOTES in serialized_after_mutation:
+        fail(f"feed leaked later/private attempt data after mutation: {serialized_after_mutation}")
 
     # Verify stable two-page (created_at, id) cursor pagination without duplicates or omissions
     feed_page1 = rows(
@@ -452,7 +542,7 @@ def assert_public_profiles_and_feed(base: str) -> None:
     owner_feed = rows(rpc(base, "get_session_feed", payload={"author_filter": OWNER_ID, "page_size": 1}), "filtered session feed")
     if len(owner_feed) != 1 or owner_feed[0].get("user_id") != OWNER_ID:
         fail(f"author-filtered feed was wrong: {owner_feed!r}")
-    print("PASS: anonymous public profile/feed, nested author/session/featured_attempt, any-outcome featured attempt, and non-leakage verified")
+    print("PASS: anonymous public profile/feed, immutable attempt timeline privacy, nested author/session/featured_attempt, any-outcome featured attempt, and non-leakage verified")
 
 
 def assert_private_sessions_and_attempts(base: str, owner_token: str, other_token: str) -> None:
@@ -973,7 +1063,7 @@ def run() -> None:
         owner_token = login(base, User(OWNER_ID, OWNER_EMAIL))
         other_token = login(base, User(OTHER_ID, OTHER_EMAIL))
         assert_route_ownership(base, owner_token, other_token)
-        assert_public_profiles_and_feed(base)
+        assert_public_profiles_and_feed(base, other_token)
         assert_private_sessions_and_attempts(base, owner_token, other_token)
         assert_social_mutations(base, owner_token, other_token)
         assert_concurrent_publish_reopen(base, owner_token)

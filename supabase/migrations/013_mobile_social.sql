@@ -102,6 +102,15 @@ CREATE TABLE public.session_posts (
     CHECK (overlay_style IN ('stats', 'attempt_timeline'))
 );
 
+-- Attempt timelines are server-authored snapshots kept out of the public
+-- session_posts relation.  Only the SECURITY DEFINER feed RPC can read them.
+CREATE TABLE public.session_post_attempt_timeline_snapshots (
+  post_id UUID PRIMARY KEY REFERENCES public.session_posts(id) ON DELETE CASCADE,
+  timeline JSONB NOT NULL DEFAULT '[]'::jsonb
+);
+ALTER TABLE public.session_post_attempt_timeline_snapshots ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.session_post_attempt_timeline_snapshots FROM PUBLIC, anon, authenticated;
+
 CREATE TABLE public.session_post_likes (
   post_id UUID NOT NULL REFERENCES public.session_posts(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -227,12 +236,15 @@ BEGIN
      ) THEN
     RAISE EXCEPTION 'attempt board_route_id is immutable while the route exists' USING ERRCODE = '42501';
   ELSIF TG_TABLE_NAME = 'session_posts'
-     AND (NEW.id IS DISTINCT FROM OLD.id
+     AND (
+       NEW.id IS DISTINCT FROM OLD.id
        OR NEW.created_at IS DISTINCT FROM OLD.created_at
        OR NEW.user_id IS DISTINCT FROM OLD.user_id
        OR NEW.session_id IS DISTINCT FROM OLD.session_id
-       OR NEW.featured_attempt_id IS DISTINCT FROM OLD.featured_attempt_id) THEN
-    RAISE EXCEPTION 'post identity, cursor fields, ownership, session_id, and featured_attempt_id are immutable' USING ERRCODE = '42501';
+       OR NEW.featured_attempt_id IS DISTINCT FROM OLD.featured_attempt_id
+     ) THEN
+    RAISE EXCEPTION 'post identity, cursor fields, ownership, session_id, and featured_attempt_id are immutable'
+      USING ERRCODE = '42501';
   ELSIF TG_TABLE_NAME = 'session_post_likes'
      AND (NEW.post_id IS DISTINCT FROM OLD.post_id
        OR NEW.user_id IS DISTINCT FROM OLD.user_id) THEN
@@ -309,6 +321,33 @@ BEGIN
 END;
 $$;
 
+-- Capture only public attempt facts at publish time; later attempt mutations
+-- cannot alter the immutable snapshot returned by the public feed.
+CREATE OR REPLACE FUNCTION public.snapshot_session_post_attempt_timeline()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+BEGIN
+  INSERT INTO public.session_post_attempt_timeline_snapshots (post_id, timeline)
+  SELECT NEW.id, COALESCE(
+    jsonb_agg(
+      jsonb_build_object(
+        'attempt_number', ca.attempt_number,
+        'outcome', ca.outcome
+      )
+      ORDER BY ca.attempt_number, ca.occurred_at, ca.id
+    ),
+    '[]'::jsonb
+  )
+    FROM public.climb_attempts AS ca
+   WHERE ca.session_id = NEW.session_id
+     AND ca.user_id = NEW.user_id;
+  RETURN NEW;
+END;
+$$;
+
 -- Prevent reopening a session once it has been published as a session post.
 CREATE OR REPLACE FUNCTION public.prevent_published_session_reopen()
 RETURNS trigger
@@ -353,6 +392,11 @@ DROP TRIGGER IF EXISTS ensure_session_post_validity ON public.session_posts;
 CREATE TRIGGER ensure_session_post_validity
   BEFORE INSERT OR UPDATE ON public.session_posts
   FOR EACH ROW EXECUTE FUNCTION public.ensure_session_post_validity();
+
+DROP TRIGGER IF EXISTS snapshot_session_post_attempt_timeline ON public.session_posts;
+CREATE TRIGGER snapshot_session_post_attempt_timeline
+  AFTER INSERT ON public.session_posts
+  FOR EACH ROW EXECUTE FUNCTION public.snapshot_session_post_attempt_timeline();
 
 DROP TRIGGER IF EXISTS prevent_session_post_like_parent_change ON public.session_post_likes;
 CREATE TRIGGER prevent_session_post_like_parent_change
@@ -586,10 +630,10 @@ $$;
 REVOKE ALL ON FUNCTION public.join_meetup(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.join_meetup(uuid) TO authenticated;
 
--- Public session feed RPC: selects safe post fields, nested author, and session
--- projection with attempt count, send count, and safe featured attempt fields.
+-- Public session feed RPC: selects safe post fields, nested author, session,
+-- and immutable public attempt timeline facts.
 -- This bypasses owner-only RLS intentionally, but never selects raw sessions,
--- notes, or unrelated private attempts.
+-- notes, or live/unrelated private attempts.
 CREATE OR REPLACE FUNCTION public.get_session_feed(
   before_created_at TIMESTAMPTZ DEFAULT NULL,
   before_id UUID DEFAULT NULL,
@@ -639,17 +683,14 @@ AS $$
         'attempt_number', ca.attempt_number,
         'occurred_at', ca.occurred_at
       ),
-      'attempt_timeline', (
-        SELECT jsonb_agg(
-          jsonb_build_object(
-            'attempt_number', ca_timeline.attempt_number,
-            'outcome', ca_timeline.outcome
-          )
-          ORDER BY ca_timeline.attempt_number
+      'attempt_timeline', CASE
+        WHEN sp.overlay_style = 'attempt_timeline' THEN (
+          SELECT timeline.timeline
+            FROM public.session_post_attempt_timeline_snapshots AS timeline
+           WHERE timeline.post_id = sp.id
         )
-        FROM public.climb_attempts AS ca_timeline
-        WHERE ca_timeline.session_id = cs.id
-      )
+        ELSE NULL
+      END
     ),
     'like_count', (SELECT count(*)::INTEGER FROM public.session_post_likes AS spl WHERE spl.post_id = sp.id),
     'comment_count', (SELECT count(*)::INTEGER FROM public.session_post_comments AS spc WHERE spc.post_id = sp.id),
