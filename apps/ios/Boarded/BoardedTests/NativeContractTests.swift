@@ -225,6 +225,72 @@ final class NativeContractTests: XCTestCase {
         XCTAssertFalse(attempt(outcome: .stopped).isSendEligible)
     }
 
+    func testActiveSessionStoreScopesRowsToSignedInUser() throws {
+        let context = try makeContext()
+        let otherID = UUID(uuidString: "00000000-0000-0000-0000-000000000002")!
+        let currentSession = PendingSession(
+            id: UUID(uuidString: "00000000-0000-4000-8000-000000000010")!,
+            userId: userID,
+            venueName: "Current gym",
+            startedAt: Date(timeIntervalSince1970: 100),
+            endedAt: nil
+        )
+        let otherSession = PendingSession(
+            id: UUID(uuidString: "00000000-0000-4000-8000-000000000020")!,
+            userId: otherID,
+            venueName: "Other gym",
+            startedAt: Date(timeIntervalSince1970: 200),
+            endedAt: nil
+        )
+        let currentSend = pendingAttempt(
+            id: UUID(uuidString: "00000000-0000-4000-8000-000000000011")!,
+            syncState: .synced
+        )
+        currentSend.sessionId = currentSession.id
+        let currentQueued = pendingAttempt(
+            id: UUID(uuidString: "00000000-0000-4000-8000-000000000012")!,
+            syncState: .queued
+        )
+        currentQueued.sessionId = currentSession.id
+        currentQueued.occurredAt = Date(timeIntervalSince1970: 175)
+        let otherSend = pendingAttempt(
+            id: UUID(uuidString: "00000000-0000-4000-8000-000000000021")!,
+            syncState: .synced
+        )
+        otherSend.sessionId = otherSession.id
+        otherSend.userId = otherID
+
+        context.insert(currentSession)
+        context.insert(otherSession)
+        context.insert(currentSend)
+        context.insert(currentQueued)
+        context.insert(otherSend)
+        try context.save()
+
+        XCTAssertEqual(
+            ActiveSessionStore.fetchActive(userID: userID, in: context)?.id,
+            currentSession.id
+        )
+        XCTAssertNil(ActiveSessionStore.fetchActive(userID: nil, in: context))
+        XCTAssertEqual(
+            ActiveSessionStore.attempts(
+                sessionID: currentSession.id,
+                userID: userID,
+                in: context
+            ).map(\.id),
+            [currentQueued.id, currentSend.id]
+        )
+        XCTAssertEqual(
+            ActiveSessionStore.sendableAttempts(userID: userID, in: context).map(\.id),
+            [currentSend.id]
+        )
+        XCTAssertEqual(
+            ActiveSessionStore.sendableAttempts(userID: otherID, in: context).map(\.id),
+            [otherSend.id]
+        )
+        XCTAssertTrue(ActiveSessionStore.sendableAttempts(userID: nil, in: context).isEmpty)
+    }
+
     // MARK: - Grade statistics
 
     func testGradeStatsSendRateAndBestGrade() {

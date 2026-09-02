@@ -14,6 +14,7 @@ struct ShareDraft: Equatable {
 }
 
 struct ShareSendComposer: View {
+    @EnvironmentObject private var session: AppSession
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
     @State private var draft = ShareDraft(attemptID: nil, caption: "", imageAlt: "", image: nil)
@@ -23,39 +24,218 @@ struct ShareSendComposer: View {
     @State private var progress = 0.0
     @State private var error: String?
     @State private var published = false
+    @State private var pendingDraft: PendingSendDraft?
     @State private var sync: SessionSyncService?
-    private var attempts: [PendingAttempt] { ActiveSessionStore.sendableAttempts(in: context) }
+
+    private var attempts: [PendingAttempt] {
+        ActiveSessionStore.sendableAttempts(userID: session.userId, in: context)
+    }
 
     var body: some View {
-        NavigationStack { ScrollView { VStack(alignment: .leading, spacing: AppSpacing.space24) {
-            if published { success } else { form }
-        }.padding(AppLayout.screenMargin).boardedContentWidth().frame(maxWidth: .infinity) }.navigationTitle("Share Send").navigationBarTitleDisplayMode(.inline).boardedPageBackground().toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } } } }
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: AppSpacing.space24) {
+                    if published { success } else { form }
+                }
+                .padding(AppLayout.screenMargin)
+                .boardedContentWidth()
+                .frame(maxWidth: .infinity)
+            }
+            .navigationTitle("Share Send")
+            .navigationBarTitleDisplayMode(.inline)
+            .boardedPageBackground()
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") { dismiss() }
+                }
+            }
+        }
         .task { sync = AppServices.makeSessionSyncService(modelContext: context) }
-        .onChange(of: picker) { _, value in Task { if let data = try? await value?.loadTransferable(type: Data.self), let image = UIImage(data: data) { cropImage = image; cropPresented = true } } }
-        .sheet(isPresented: $cropPresented) { if let cropImage { PhotoCropView(image: cropImage) { image in draft = draft.replacing(image: image); cropPresented = false } } }
+        .onChange(of: picker) { _, value in
+            Task {
+                if let data = try? await value?.loadTransferable(type: Data.self),
+                   let image = UIImage(data: data) {
+                    cropImage = image
+                    cropPresented = true
+                }
+            }
+        }
+        .sheet(isPresented: $cropPresented) {
+            if let cropImage {
+                PhotoCropView(image: cropImage) { image in
+                    draft = draft.replacing(image: image)
+                    cropPresented = false
+                }
+            }
+        }
     }
 
     private var form: some View {
         Group {
             BoardedEyebrow(text: "Achievement")
-            if attempts.isEmpty { BoardedRouteLineEmptyState(title: "Nothing ready to share", message: "Log and sync a sent attempt first.") }
-            else { Picker("Sent attempt", selection: Binding(get: { draft.attemptID }, set: { draft = draft.replacing(attemptID: $0) })) { Text("Choose a send").tag(UUID?.none); ForEach(attempts) { Text("\($0.gradeLabel) — \($0.routeName)").tag(Optional($0.id)) } }.accessibilityIdentifier("share-attempt") }
-            PhotosPicker(selection: $picker, matching: .images) { Label(draft.image == nil ? "Add Photo" : "Change Photo", systemImage: "photo").frame(maxWidth: .infinity) }.buttonStyle(BoardedButtonStyle(.secondary))
-            if let image = draft.image { Image(uiImage: image).resizable().scaledToFill().aspectRatio(3/2, contentMode: .fit).clipShape(AppRadius.card()) }
-            BoardedTextEditor(label: "Caption", prompt: "A concise note about the send", text: Binding(get: { draft.caption }, set: { draft = draft.replacing(caption: $0) }))
-            BoardedTextField(label: "Image description", prompt: "Describe the photo for screen readers", text: Binding(get: { draft.imageAlt }, set: { draft = draft.replacing(imageAlt: $0) }), error: draft.image != nil && draft.imageAlt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Image description is required." : nil)
+            if attempts.isEmpty {
+                BoardedRouteLineEmptyState(
+                    title: "Nothing ready to share",
+                    message: "Log and sync a sent attempt first."
+                )
+            } else {
+                Picker(
+                    "Sent attempt",
+                    selection: Binding(
+                        get: { draft.attemptID },
+                        set: { draft = draft.replacing(attemptID: $0) }
+                    )
+                ) {
+                    Text("Choose a send").tag(UUID?.none)
+                    ForEach(attempts) {
+                        Text("\($0.gradeLabel) — \($0.routeName)").tag(Optional($0.id))
+                    }
+                }
+                .accessibilityIdentifier("share-attempt")
+            }
+            PhotosPicker(
+                selection: $picker,
+                matching: .images
+            ) {
+                Label(
+                    draft.image == nil ? "Add Photo" : "Change Photo",
+                    systemImage: "photo"
+                )
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(BoardedButtonStyle(.secondary))
+            if let image = draft.image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .aspectRatio(3 / 2, contentMode: .fit)
+                    .clipShape(AppRadius.card())
+            }
+            BoardedTextEditor(
+                label: "Caption",
+                prompt: "A concise note about the send",
+                text: Binding(
+                    get: { draft.caption },
+                    set: { draft = draft.replacing(caption: $0) }
+                )
+            )
+            BoardedTextField(
+                label: "Image description",
+                prompt: "Describe the photo for screen readers",
+                text: Binding(
+                    get: { draft.imageAlt },
+                    set: { draft = draft.replacing(imageAlt: $0) }
+                ),
+                error: draft.image != nil
+                    && draft.imageAlt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    ? "Image description is required."
+                    : nil
+            )
             preview
-            if progress > 0 && progress < 1 { ProgressView(value: progress).tint(AppColor.accentDefault).accessibilityLabel("Publishing progress") }
-            if let error { BoardedInlineError(message: error) { publish() } }
-            BoardedPrimaryButton(title: error == nil ? "Publish" : "Retry", systemImage: "paperplane.fill") { publish() }.disabled(!valid)
+            if progress > 0 && progress < 1 {
+                ProgressView(value: progress)
+                    .tint(AppColor.accentDefault)
+                    .accessibilityLabel("Publishing progress")
+            }
+            if let error {
+                BoardedInlineError(message: error) { publish() }
+            }
+            BoardedPrimaryButton(
+                title: error == nil ? "Publish" : "Retry",
+                systemImage: "paperplane.fill"
+            ) {
+                publish()
+            }
+            .disabled(!valid)
         }
     }
-    private var preview: some View { VStack(alignment: .leading, spacing: AppSpacing.space8) { BoardedSectionHeading(title: "Preview"); Text(attempts.first(where: { $0.id == draft.attemptID })?.gradeLabel ?? "Grade").font(AppTypography.displayS); Text(draft.caption.isEmpty ? "Your caption" : draft.caption).font(AppTypography.bodyM).foregroundStyle(AppColor.textSecondary) }.boardedPanel() }
-    private var success: some View { VStack(alignment: .leading, spacing: AppSpacing.space24) { BoardedEyebrow(text: "Shared"); Text("Your send is on the line.").font(AppTypography.displayS); BoardedRouteLine().frame(height: 160); BoardedPrimaryButton(title: "Done") { dismiss() } }.accessibilityIdentifier("share-success") }
-    private var valid: Bool { draft.attemptID != nil && (draft.image == nil || !draft.imageAlt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) }
+
+    private var preview: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.space8) {
+            BoardedSectionHeading(title: "Preview")
+            Text(attempts.first(where: { $0.id == draft.attemptID })?.gradeLabel ?? "Grade")
+                .font(AppTypography.displayS)
+            Text(draft.caption.isEmpty ? "Your caption" : draft.caption)
+                .font(AppTypography.bodyM)
+                .foregroundStyle(AppColor.textSecondary)
+        }
+        .boardedPanel()
+    }
+
+    private var success: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.space24) {
+            BoardedEyebrow(text: "Shared")
+            Text("Your send is on the line.").font(AppTypography.displayS)
+            BoardedRouteLine().frame(height: 160)
+            BoardedPrimaryButton(title: "Done") { dismiss() }
+        }
+        .accessibilityIdentifier("share-success")
+    }
+
+    private var valid: Bool {
+        draft.attemptID != nil
+            && (draft.image == nil
+                || !draft.imageAlt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+    }
+
     private func publish() {
-        guard valid, let id = draft.attemptID, let sync else { return }; error = nil; progress = 0.2
-        Task { do { let data = try draft.image.map(SendImageProcessor.jpeg); progress = 0.6; let pending = PendingSendDraft(attemptId: id, caption: draft.caption.trimmedOrNil, imageFileName: data == nil ? nil : "\(UUID().uuidString).jpg", imageAlt: draft.imageAlt.trimmedOrNil); try sync.enqueue(draft: pending, imageData: data); progress = 0.85; await sync.replay(); progress = 1; published = true } catch { self.error = error.localizedDescription; progress = 0 } }
+        guard valid, let id = draft.attemptID, let sync else { return }
+        error = nil
+        progress = 0.2
+
+        Task {
+            do {
+                let data = try draft.image.map(SendImageProcessor.jpeg)
+                progress = 0.6
+
+                let pending: PendingSendDraft
+                if let existing = pendingDraft, existing.attemptId == id {
+                    pending = existing
+                    pending.caption = draft.caption.trimmedOrNil
+                    pending.imageAlt = draft.imageAlt.trimmedOrNil
+                    if let data {
+                        let fileName = pending.imageFileName ?? "\(pending.id.uuidString).jpg"
+                        pending.imageFileName = fileName
+                        try DraftImageStore.write(data, fileName: fileName)
+                    }
+                    try context.save()
+                } else {
+                    let created = PendingSendDraft(
+                        attemptId: id,
+                        caption: draft.caption.trimmedOrNil,
+                        imageFileName: data == nil ? nil : "\(UUID().uuidString).jpg",
+                        imageAlt: draft.imageAlt.trimmedOrNil
+                    )
+                    try sync.enqueue(draft: created, imageData: data)
+                    pendingDraft = created
+                    pending = created
+                }
+
+                progress = 0.85
+                await sync.replay()
+
+                guard sync.state == .synced, !hasPendingDraft(id: pending.id) else {
+                    error = sync.errorMessage
+                        ?? "Your draft is saved. Retry to share it."
+                    progress = 0
+                    return
+                }
+
+                progress = 1
+                published = true
+            } catch {
+                self.error = error.localizedDescription
+                progress = 0
+            }
+        }
+    }
+
+    private func hasPendingDraft(id: UUID) -> Bool {
+        let descriptor = FetchDescriptor<PendingSendDraft>(
+            predicate: #Predicate { $0.id == id }
+        )
+        guard let drafts = try? context.fetch(descriptor) else { return true }
+        return !drafts.isEmpty
     }
 }
 

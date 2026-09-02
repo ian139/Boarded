@@ -2,23 +2,36 @@ import Foundation
 import SwiftData
 
 enum ActiveSessionStore {
-    static func fetchActive(in context: ModelContext) -> PendingSession? {
-        var descriptor = FetchDescriptor<PendingSession>(predicate: #Predicate { $0.endedAt == nil })
+    static func fetchActive(userID: UUID?, in context: ModelContext) -> PendingSession? {
+        guard let userID else { return nil }
+        var descriptor = FetchDescriptor<PendingSession>(
+            predicate: #Predicate { $0.userId == userID && $0.endedAt == nil },
+            sortBy: [SortDescriptor(\.startedAt, order: .reverse)]
+        )
         descriptor.fetchLimit = 1
         return (try? context.fetch(descriptor))?.first
     }
 
-    static func attempts(sessionID: UUID, in context: ModelContext) -> [PendingAttempt] {
+    static func attempts(sessionID: UUID, userID: UUID?, in context: ModelContext) -> [PendingAttempt] {
+        guard let userID else { return [] }
         let descriptor = FetchDescriptor<PendingAttempt>(
-            predicate: #Predicate { $0.sessionId == sessionID },
+            predicate: #Predicate { $0.sessionId == sessionID && $0.userId == userID },
             sortBy: [SortDescriptor(\.occurredAt, order: .reverse)]
         )
         return (try? context.fetch(descriptor)) ?? []
     }
 
-    static func sendableAttempts(in context: ModelContext) -> [PendingAttempt] {
-        let descriptor = FetchDescriptor<PendingAttempt>(sortBy: [SortDescriptor(\.occurredAt, order: .reverse)])
-        return ((try? context.fetch(descriptor)) ?? []).filter { $0.outcome == .sent && $0.syncState == .synced }
+    static func sendableAttempts(userID: UUID?, in context: ModelContext) -> [PendingAttempt] {
+        guard let userID else { return [] }
+        let descriptor = FetchDescriptor<PendingAttempt>(
+            predicate: #Predicate {
+                $0.userId == userID
+                    && $0.outcomeRaw == "sent"
+                    && $0.syncStateRaw == "synced"
+            },
+            sortBy: [SortDescriptor(\.occurredAt, order: .reverse)]
+        )
+        return (try? context.fetch(descriptor)) ?? []
     }
 }
 

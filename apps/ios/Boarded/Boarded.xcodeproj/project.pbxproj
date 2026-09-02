@@ -102,18 +102,18 @@
 		CC1100132F5D000100535751 /* SessionLoggerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionLoggerViewModel.swift; sourceTree = "<group>"; };
 		CC1100152F5D000100535751 /* PostDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostDetailViewModel.swift; sourceTree = "<group>"; };
 		CC1100172F5D000100535751 /* MeetupsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetupsViewModel.swift; sourceTree = "<group>"; };
-		DD0001012F70000100535751 /* BoardedRouteLine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BoardedRouteLine.swift; path = Boarded/Views/Shared/BoardedRouteLine.swift; sourceTree = "<group>"; };
-		DD0001022F70000100535751 /* Formatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Formatting.swift; path = Boarded/Views/Shared/Formatting.swift; sourceTree = "<group>"; };
-		DD0001032F70000100535751 /* AuthenticationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AuthenticationView.swift; path = Boarded/Views/Auth/AuthenticationView.swift; sourceTree = "<group>"; };
-		DD0001042F70000100535751 /* SendPostCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SendPostCard.swift; path = Boarded/Views/Home/SendPostCard.swift; sourceTree = "<group>"; };
-		DD0001052F70000100535751 /* HomeFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = HomeFeedView.swift; path = Boarded/Views/Home/HomeFeedView.swift; sourceTree = "<group>"; };
-		DD0001062F70000100535751 /* PostDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PostDetailView.swift; path = Boarded/Views/Home/PostDetailView.swift; sourceTree = "<group>"; };
-		DD0001072F70000100535751 /* ActiveSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ActiveSessionStore.swift; path = Boarded/Views/Log/ActiveSessionStore.swift; sourceTree = "<group>"; };
-		DD0001082F70000100535751 /* LogViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LogViews.swift; path = Boarded/Views/Log/LogViews.swift; sourceTree = "<group>"; };
-		DD0001092F70000100535751 /* ShareSendComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ShareSendComposer.swift; path = Boarded/Views/Share/ShareSendComposer.swift; sourceTree = "<group>"; };
-		DD00010A2F70000100535751 /* MeetupViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MeetupViews.swift; path = Boarded/Views/Meetups/MeetupViews.swift; sourceTree = "<group>"; };
-		DD00010B2F70000100535751 /* ProfileViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ProfileViews.swift; path = Boarded/Views/Profile/ProfileViews.swift; sourceTree = "<group>"; };
-		DD00010C2F70000100535751 /* UITestFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = UITestFixtures.swift; path = Boarded/Services/UITestFixtures.swift; sourceTree = "<group>"; };
+		DD0001012F70000100535751 /* BoardedRouteLine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BoardedRouteLine.swift; path = Shared/BoardedRouteLine.swift; sourceTree = "<group>"; };
+		DD0001022F70000100535751 /* Formatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Formatting.swift; path = Shared/Formatting.swift; sourceTree = "<group>"; };
+		DD0001032F70000100535751 /* AuthenticationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AuthenticationView.swift; path = Auth/AuthenticationView.swift; sourceTree = "<group>"; };
+		DD0001042F70000100535751 /* SendPostCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SendPostCard.swift; path = Home/SendPostCard.swift; sourceTree = "<group>"; };
+		DD0001052F70000100535751 /* HomeFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = HomeFeedView.swift; path = Home/HomeFeedView.swift; sourceTree = "<group>"; };
+		DD0001062F70000100535751 /* PostDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PostDetailView.swift; path = Home/PostDetailView.swift; sourceTree = "<group>"; };
+		DD0001072F70000100535751 /* ActiveSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ActiveSessionStore.swift; path = Log/ActiveSessionStore.swift; sourceTree = "<group>"; };
+		DD0001082F70000100535751 /* LogViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LogViews.swift; path = Log/LogViews.swift; sourceTree = "<group>"; };
+		DD0001092F70000100535751 /* ShareSendComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ShareSendComposer.swift; path = Share/ShareSendComposer.swift; sourceTree = "<group>"; };
+		DD00010A2F70000100535751 /* MeetupViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MeetupViews.swift; path = Meetups/MeetupViews.swift; sourceTree = "<group>"; };
+		DD00010B2F70000100535751 /* ProfileViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ProfileViews.swift; path = Profile/ProfileViews.swift; sourceTree = "<group>"; };
+		DD00010C2F70000100535751 /* UITestFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = UITestFixtures.swift; path = UITestFixtures.swift; sourceTree = "<group>"; };
 		AA1100112F5B000100535751 /* BoardedUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardedUITests.swift; sourceTree = "<group>"; };
 		AA1100122F5B000100535751 /* BoardedUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BoardedUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -187,6 +187,7 @@
 				CC1100092F5D000100535751 /* FeedRepository.swift */,
 				CC11000B2F5D000100535751 /* MeetupRepository.swift */,
 				CC11000D2F5D000100535751 /* SessionSyncService.swift */,
+				DD00010C2F70000100535751 /* UITestFixtures.swift */,
 			);
 			name = Services;
 			path = Boarded/Services;
@@ -225,7 +226,6 @@
 				DD0001092F70000100535751 /* ShareSendComposer.swift */,
 				DD00010A2F70000100535751 /* MeetupViews.swift */,
 				DD00010B2F70000100535751 /* ProfileViews.swift */,
-				DD00010C2F70000100535751 /* UITestFixtures.swift */,
 			);
 			name = Views;
 			path = Boarded/Views;

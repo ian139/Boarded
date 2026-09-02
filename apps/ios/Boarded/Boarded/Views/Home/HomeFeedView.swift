@@ -58,7 +58,7 @@ struct HomeFeedView: View {
             PostDetailView(item: item)
         }
         .task {
-            activeSession = ActiveSessionStore.fetchActive(in: modelContext)
+            activeSession = ActiveSessionStore.fetchActive(userID: session.userId, in: modelContext)
             if viewModel.items.isEmpty {
                 await viewModel.load()
             }
