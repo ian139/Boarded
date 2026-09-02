@@ -241,6 +241,16 @@ struct FeedFeaturedAttempt: Codable, Hashable, Sendable {
     }
 }
 
+struct FeedAttemptTimelineItem: Codable, Hashable, Sendable {
+    let attemptNumber: Int
+    let outcome: AttemptOutcome
+
+    enum CodingKeys: String, CodingKey {
+        case attemptNumber = "attempt_number"
+        case outcome
+    }
+}
+
 struct FeedSessionSummary: Codable, Hashable, Sendable {
     let id: UUID
     let venueName: String
@@ -250,6 +260,29 @@ struct FeedSessionSummary: Codable, Hashable, Sendable {
     let attemptCount: Int
     let sendCount: Int
     let featuredAttempt: FeedFeaturedAttempt
+    let attemptTimeline: [FeedAttemptTimelineItem]?
+
+    init(
+        id: UUID,
+        venueName: String,
+        startedAt: Date,
+        endedAt: Date,
+        durationSeconds: Int,
+        attemptCount: Int,
+        sendCount: Int,
+        featuredAttempt: FeedFeaturedAttempt,
+        attemptTimeline: [FeedAttemptTimelineItem]? = nil
+    ) {
+        self.id = id
+        self.venueName = venueName
+        self.startedAt = startedAt
+        self.endedAt = endedAt
+        self.durationSeconds = durationSeconds
+        self.attemptCount = attemptCount
+        self.sendCount = sendCount
+        self.featuredAttempt = featuredAttempt
+        self.attemptTimeline = attemptTimeline
+    }
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -260,6 +293,7 @@ struct FeedSessionSummary: Codable, Hashable, Sendable {
         case attemptCount = "attempt_count"
         case sendCount = "send_count"
         case featuredAttempt = "featured_attempt"
+        case attemptTimeline = "attempt_timeline"
     }
 }
 

@@ -164,6 +164,7 @@ final class PendingDraftDeletion {
     @Attribute(.unique) var id: UUID
     var userId: UUID
     var imageFileName: String
+    var publicationClaimID: UUID?
     var createdAt: Date
     var syncStateRaw: String
 
@@ -171,12 +172,14 @@ final class PendingDraftDeletion {
         id: UUID,
         userId: UUID,
         imageFileName: String,
+        publicationClaimID: UUID? = nil,
         createdAt: Date = Date(),
         syncState: SyncState = .queued
     ) {
         self.id = id
         self.userId = userId
         self.imageFileName = imageFileName
+        self.publicationClaimID = publicationClaimID
         self.createdAt = createdAt
         self.syncStateRaw = syncState.rawValue
     }
@@ -199,6 +202,8 @@ final class PendingSessionDraft {
     var imageFileName: String
     var imageAlt: String
     var overlayStyleRaw: String
+    var publicationStartedAt: Date?
+    var publicationClaimID: UUID?
     var createdAt: Date
     var syncStateRaw: String
 
@@ -211,7 +216,9 @@ final class PendingSessionDraft {
         imageAlt: String,
         overlayStyle: OverlayStyle = .stats,
         createdAt: Date = Date(),
-        syncState: SyncState = .queued
+        syncState: SyncState = .queued,
+        publicationStartedAt: Date? = nil,
+        publicationClaimID: UUID? = nil
     ) {
         self.id = id
         self.sessionId = sessionId
@@ -220,6 +227,8 @@ final class PendingSessionDraft {
         self.imageFileName = imageFileName
         self.imageAlt = imageAlt
         self.overlayStyleRaw = overlayStyle.rawValue
+        self.publicationStartedAt = publicationStartedAt
+        self.publicationClaimID = publicationClaimID
         self.createdAt = createdAt
         self.syncStateRaw = syncState.rawValue
     }

@@ -8,6 +8,7 @@ protocol FeedRepository: Sendable {
     func createPost(
         sessionID: UUID,
         featuredAttemptID: UUID,
+        sessionSummary: FeedSessionSummary,
         caption: String?,
         imagePath: String,
         imageAlt: String,
@@ -17,6 +18,7 @@ protocol FeedRepository: Sendable {
         id: UUID,
         sessionID: UUID,
         featuredAttemptID: UUID,
+        sessionSummary: FeedSessionSummary,
         caption: String?,
         imagePath: String,
         imageAlt: String,
@@ -133,6 +135,7 @@ final class MockFeedRepository: FeedRepository, @unchecked Sendable {
     func createPost(
         sessionID: UUID,
         featuredAttemptID: UUID,
+        sessionSummary: FeedSessionSummary,
         caption: String?,
         imagePath: String,
         imageAlt: String,
@@ -142,6 +145,7 @@ final class MockFeedRepository: FeedRepository, @unchecked Sendable {
             id: UUID(),
             sessionID: sessionID,
             featuredAttemptID: featuredAttemptID,
+            sessionSummary: sessionSummary,
             caption: caption,
             imagePath: imagePath,
             imageAlt: imageAlt,
@@ -153,6 +157,7 @@ final class MockFeedRepository: FeedRepository, @unchecked Sendable {
         id: UUID,
         sessionID: UUID,
         featuredAttemptID: UUID,
+        sessionSummary: FeedSessionSummary,
         caption: String?,
         imagePath: String,
         imageAlt: String,
@@ -175,36 +180,9 @@ final class MockFeedRepository: FeedRepository, @unchecked Sendable {
             updatedAt: now
         )
         posts.append(post)
-
-        // Reuse the matching fixture's factual session and featured-attempt
-        // details so a newly published card is immediately renderable by the
-        // same feed surface as seeded items.
         let fixture = items.first {
             $0.sessionId == sessionID && $0.featuredAttemptId == featuredAttemptID
-        } ?? items.first { $0.sessionId == sessionID } ?? items.first
-        let fixtureSession = fixture?.session
-        let fixtureAttempt = fixtureSession?.featuredAttempt
-        let featuredAttempt = FeedFeaturedAttempt(
-            id: featuredAttemptID,
-            routeName: fixtureAttempt?.routeName ?? "Featured attempt",
-            discipline: fixtureAttempt?.discipline ?? .other,
-            gradeSystem: fixtureAttempt?.gradeSystem ?? .custom,
-            gradeLabel: fixtureAttempt?.gradeLabel ?? "—",
-            outcome: fixtureAttempt?.outcome ?? .stopped,
-            attemptNumber: fixtureAttempt?.attemptNumber ?? 1,
-            occurredAt: fixtureAttempt?.occurredAt ?? now
-        )
-        let session = FeedSessionSummary(
-            id: sessionID,
-            venueName: fixtureSession?.venueName ?? "Session",
-            startedAt: fixtureSession?.startedAt ?? now,
-            endedAt: fixtureSession?.endedAt ?? now,
-            durationSeconds: fixtureSession?.durationSeconds ?? 0,
-            attemptCount: fixtureSession?.attemptCount ?? 0,
-            sendCount: fixtureSession?.sendCount ?? 0,
-            featuredAttempt: featuredAttempt,
-            attemptTimeline: fixtureSession?.attemptTimeline
-        )
+        } ?? items.first { $0.sessionId == sessionID }
         let author = FeedAuthor(
             id: currentUserID,
             username: fixture?.author.username,
@@ -226,7 +204,7 @@ final class MockFeedRepository: FeedRepository, @unchecked Sendable {
                 createdAt: post.createdAt,
                 updatedAt: post.updatedAt,
                 author: author,
-                session: session,
+                session: sessionSummary,
                 likeCount: 0,
                 commentCount: 0,
                 isLiked: false
@@ -334,6 +312,7 @@ struct SupabaseFeedRepository: FeedRepository, Sendable {
     func createPost(
         sessionID: UUID,
         featuredAttemptID: UUID,
+        sessionSummary: FeedSessionSummary,
         caption: String?,
         imagePath: String,
         imageAlt: String,
@@ -343,6 +322,7 @@ struct SupabaseFeedRepository: FeedRepository, Sendable {
             id: UUID(),
             sessionID: sessionID,
             featuredAttemptID: featuredAttemptID,
+            sessionSummary: sessionSummary,
             caption: caption,
             imagePath: imagePath,
             imageAlt: imageAlt,
@@ -354,6 +334,7 @@ struct SupabaseFeedRepository: FeedRepository, Sendable {
         id: UUID,
         sessionID: UUID,
         featuredAttemptID: UUID,
+        sessionSummary _: FeedSessionSummary,
         caption: String?,
         imagePath: String,
         imageAlt: String,

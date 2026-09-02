@@ -13,6 +13,30 @@ import UIKit
 /// retried on the next connectivity or app-active trigger.
 @MainActor
 final class SessionSyncService: ObservableObject {
+
+    @MainActor
+    private enum PublicationCoordinator {
+        private static var activeClaims: [UUID: UUID] = [:]
+
+        static func acquire(draftID: UUID, claimID: UUID) -> Bool {
+            guard activeClaims[draftID] == nil else { return false }
+            activeClaims[draftID] = claimID
+            return true
+        }
+
+        static func release(draftID: UUID, claimID: UUID) {
+            guard activeClaims[draftID] == claimID else { return }
+            activeClaims.removeValue(forKey: draftID)
+        }
+
+        static func isActive(draftID: UUID, claimID: UUID) -> Bool {
+            activeClaims[draftID] == claimID
+        }
+
+        static func activeClaimID(draftID: UUID) -> UUID? {
+            activeClaims[draftID]
+        }
+    }
     private enum ReplayError: LocalizedError {
         case missingImage(UUID)
         case missingSourceImage(UUID)
@@ -56,6 +80,7 @@ final class SessionSyncService: ObservableObject {
     enum DraftMediaError: LocalizedError, Equatable {
         case sourceDataRequired
         case incompletePair(String)
+        case publicationAlreadyStarted
 
         var errorDescription: String? {
             switch self {
@@ -63,6 +88,8 @@ final class SessionSyncService: ObservableObject {
                 return "Choose a photo before sharing this session."
             case .incompletePair:
                 return "This photo could not be saved. Choose it again to retry."
+            case .publicationAlreadyStarted:
+                return "This photo has already started publishing. Discard it and share it again."
             }
         }
     }
@@ -199,6 +226,9 @@ final class SessionSyncService: ObservableObject {
     /// companion are durable. A creation marker lets startup reconcile every
     /// termination window without exposing a half-written pair.
     func enqueue(draft: PendingSessionDraft, imageData: Data, sourceData: Data) throws {
+        guard !imageData.isEmpty, !sourceData.isEmpty else {
+            throw DraftMediaError.sourceDataRequired
+        }
         let fileName = draft.imageFileName.isEmpty ? "\(draft.id.uuidString).jpg" : draft.imageFileName
         let priorDrafts = fetchAllDrafts().filter { $0.sessionId == draft.sessionId && $0.id != draft.id }
         let priorDeletionIDs = Set(fetchAllDraftDeletions().map(\.id))
@@ -220,7 +250,12 @@ final class SessionSyncService: ObservableObject {
             draft.syncState = .queued
             for prior in priorDrafts where !priorDeletionIDs.contains(prior.id) {
                 modelContext.insert(
-                    PendingDraftDeletion(id: prior.id, userId: userID, imageFileName: prior.imageFileName)
+                    PendingDraftDeletion(
+                        id: prior.id,
+                        userId: userID,
+                        imageFileName: prior.imageFileName,
+                        publicationClaimID: prior.publicationClaimID
+                    )
                 )
             }
             for prior in priorDrafts {
@@ -255,6 +290,13 @@ final class SessionSyncService: ObservableObject {
         imageData: Data,
         sourceData: Data
     ) throws {
+        guard !imageData.isEmpty, !sourceData.isEmpty else {
+            throw DraftMediaError.sourceDataRequired
+        }
+        guard draft.publicationStartedAt == nil,
+              try publicationHasStarted(draftID: draft.id) == false else {
+            throw DraftMediaError.publicationAlreadyStarted
+        }
         let oldFileName = draft.imageFileName
         let newFileName = "\(UUID().uuidString).jpg"
         var stagedOld = false
@@ -308,6 +350,13 @@ final class SessionSyncService: ObservableObject {
         guard attempt.userId == userID else { return }
         let linkedDrafts = fetchAllDrafts().filter { $0.featuredAttemptId == attempt.id }
 
+        var durableClaimIDs: [UUID: UUID] = [:]
+        for draft in linkedDrafts {
+            if let claimID = try durablePublicationClaimID(draftID: draft.id) ?? draft.publicationClaimID {
+                durableClaimIDs[draft.id] = claimID
+            }
+        }
+
         // Stage every linked draft image (primary + source sidecar) while the
         // draft rows are still live so a crash never leaves a row pointing at
         // a missing file. If any staging fails, restore everything already
@@ -339,7 +388,12 @@ final class SessionSyncService: ObservableObject {
         for draft in linkedDrafts {
             if !fetchAllDraftDeletions().contains(where: { $0.id == draft.id }) {
                 modelContext.insert(
-                    PendingDraftDeletion(id: draft.id, userId: userID, imageFileName: draft.imageFileName)
+                    PendingDraftDeletion(
+                        id: draft.id,
+                        userId: userID,
+                        imageFileName: draft.imageFileName,
+                        publicationClaimID: durableClaimIDs[draft.id]
+                    )
                 )
             }
             modelContext.delete(draft)
@@ -386,13 +440,30 @@ final class SessionSyncService: ObservableObject {
         let fileName = draft.imageFileName
         let path = canonicalImagePath(userID: userID, postID: draft.id)
         let sourcePath = sourceImagePath(for: path)
-        let isInFlight = draft.syncState == .syncing
+        let durableClaimID: UUID?
+        do {
+            if let activeClaimID = PublicationCoordinator.activeClaimID(draftID: draft.id) {
+                durableClaimID = activeClaimID
+            } else {
+                durableClaimID = try durablePublicationClaimID(draftID: draft.id)
+                    ?? draft.publicationClaimID
+            }
+        } catch {
+            state = .failed
+            errorMessage = error.localizedDescription
+            throw error
+        }
 
         // Persist a durable replay-excluded deletion intent before the first
         // remote await so a discarded post can never republish after a crash.
         if !fetchAllDraftDeletions().contains(where: { $0.id == draft.id }) {
             modelContext.insert(
-                PendingDraftDeletion(id: draft.id, userId: userID, imageFileName: fileName)
+                PendingDraftDeletion(
+                    id: draft.id,
+                    userId: userID,
+                    imageFileName: fileName,
+                    publicationClaimID: durableClaimID
+                )
             )
         }
         do {
@@ -404,6 +475,14 @@ final class SessionSyncService: ObservableObject {
             throw error
         }
 
+        // A different service that did not acquire the durable generation may
+        // persist discard intent, but it must not delete the owner's remote
+        // objects while publication is still in flight.
+        if PublicationCoordinator.activeClaimID(draftID: draft.id) != nil {
+            state = .queued
+            errorMessage = DraftMediaError.publicationAlreadyStarted.errorDescription
+            throw DraftMediaError.publicationAlreadyStarted
+        }
         // Stage both local objects while the draft row is live. Every failure
         // below restores the pair and leaves the tombstone retryable.
         if !fileName.isEmpty {
@@ -417,22 +496,17 @@ final class SessionSyncService: ObservableObject {
             }
         }
 
-        do {
-            try await feedRepository.deletePost(id: draft.id)
-            try await feedRepository.deletePostImage(path: path)
-            try await feedRepository.deletePostImage(path: sourcePath)
-        } catch {
+        guard await deleteRemotePublication(postID: draft.id, userID: userID) else {
             if !fileName.isEmpty {
                 try? DraftImageStore.restoreStagedDeletion(fileName: fileName)
             }
             state = .failed
-            errorMessage = error.localizedDescription
-            throw error
+            errorMessage = "This photo could not be deleted. Try again."
+            throw FeedRepositoryError.unavailable
         }
 
         modelContext.delete(draft)
-        if let deletion = fetchAllDraftDeletions().first(where: { $0.id == draft.id }),
-           !isInFlight {
+        if let deletion = fetchAllDraftDeletions().first(where: { $0.id == draft.id }) {
             modelContext.delete(deletion)
         }
         do {
@@ -565,11 +639,31 @@ final class SessionSyncService: ObservableObject {
         // tombstone and staged files.
         var draftDeletionFailed = false
         for deletion in fetchPendingDraftDeletions() {
-            deletion.syncState = .syncing
-            try? modelContext.save()
-            let fileName = deletion.imageFileName
             let activeDraft = fetchAllDrafts().first(where: { $0.id == deletion.id })
-            let isInFlight = activeDraft?.syncState == .syncing
+            let publicationClaimID = deletion.publicationClaimID ?? activeDraft?.publicationClaimID
+            if PublicationCoordinator.activeClaimID(draftID: deletion.id) != nil {
+                continue
+            }
+            let cleanupClaimID = publicationClaimID ?? UUID()
+            guard PublicationCoordinator.acquire(draftID: deletion.id, claimID: cleanupClaimID) else {
+                continue
+            }
+            defer {
+                PublicationCoordinator.release(draftID: deletion.id, claimID: cleanupClaimID)
+            }
+
+            deletion.publicationClaimID = cleanupClaimID
+            deletion.syncState = .syncing
+            do {
+                try saveModelContext()
+            } catch {
+                modelContext.rollback()
+                draftDeletionFailed = true
+                errorMessage = error.localizedDescription
+                continue
+            }
+
+            let fileName = deletion.imageFileName
             if !fileName.isEmpty {
                 do {
                     try cleanupDraftImage(fileName: fileName)
@@ -582,28 +676,22 @@ final class SessionSyncService: ObservableObject {
                 }
             }
 
-            let path = canonicalImagePath(userID: deletion.userId, postID: deletion.id)
-            do {
-                try await feedRepository.deletePost(id: deletion.id)
-                try await feedRepository.deletePostImage(path: path)
-                try await feedRepository.deletePostImage(path: sourceImagePath(for: path))
-            } catch {
+            let converged = await deleteRemotePublication(postID: deletion.id, userID: deletion.userId)
+            guard converged else {
                 if !fileName.isEmpty {
                     try? DraftImageStore.restoreStagedDeletion(fileName: fileName)
                 }
                 deletion.syncState = .failed
                 try? modelContext.save()
                 draftDeletionFailed = true
-                errorMessage = error.localizedDescription
+                errorMessage = "This photo could not be deleted. Try again."
                 continue
             }
 
             if let activeDraft {
                 modelContext.delete(activeDraft)
             }
-            if !isInFlight {
-                modelContext.delete(deletion)
-            }
+            modelContext.delete(deletion)
             do {
                 try modelContext.save()
             } catch {
@@ -630,14 +718,35 @@ final class SessionSyncService: ObservableObject {
 
         var seenDraftSessionIDs = Set<UUID>()
         for draft in pendingDrafts {
+            guard fetchAllDrafts().contains(where: { $0.id == draft.id }),
+                  !fetchAllDraftDeletions().contains(where: { $0.id == draft.id }) else {
+                continue
+            }
             guard seenDraftSessionIDs.insert(draft.sessionId).inserted else {
                 // Duplicate pending draft: persist a deletion tombstone,
                 // stage its pair, and clean both remote objects before the
                 // local row is removed.
                 let fileName = draft.imageFileName
-                if !fetchAllDraftDeletions().contains(where: { $0.id == draft.id }) {
+                let existingDeletion = fetchAllDraftDeletions().first(where: { $0.id == draft.id })
+                let publicationClaimID = existingDeletion?.publicationClaimID ?? draft.publicationClaimID
+                if PublicationCoordinator.activeClaimID(draftID: draft.id) != nil {
+                    continue
+                }
+                let cleanupClaimID = publicationClaimID ?? UUID()
+                guard PublicationCoordinator.acquire(draftID: draft.id, claimID: cleanupClaimID) else {
+                    continue
+                }
+                defer {
+                    PublicationCoordinator.release(draftID: draft.id, claimID: cleanupClaimID)
+                }
+                if existingDeletion == nil {
                     modelContext.insert(
-                        PendingDraftDeletion(id: draft.id, userId: userID, imageFileName: fileName)
+                        PendingDraftDeletion(
+                            id: draft.id,
+                            userId: userID,
+                            imageFileName: fileName,
+                            publicationClaimID: cleanupClaimID
+                        )
                     )
                 }
                 do {
@@ -645,10 +754,14 @@ final class SessionSyncService: ObservableObject {
                     if !fileName.isEmpty {
                         try cleanupDraftImage(fileName: fileName)
                     }
-                    let path = canonicalImagePath(userID: userID, postID: draft.id)
-                    try await feedRepository.deletePost(id: draft.id)
-                    try await feedRepository.deletePostImage(path: path)
-                    try await feedRepository.deletePostImage(path: sourceImagePath(for: path))
+                    guard await deleteRemotePublication(postID: draft.id, userID: userID) else {
+                        if !fileName.isEmpty {
+                            try? DraftImageStore.restoreStagedDeletion(fileName: fileName)
+                        }
+                        draftFailed = true
+                        errorMessage = "This photo could not be deleted. Try again."
+                        continue
+                    }
                     modelContext.delete(draft)
                     if let deletion = fetchAllDraftDeletions().first(where: { $0.id == draft.id }) {
                         modelContext.delete(deletion)
@@ -666,10 +779,9 @@ final class SessionSyncService: ObservableObject {
                 }
                 continue
             }
-
             guard let session = sessionsByID[draft.sessionId],
                   session.userId == userID,
-                  session.endedAt != nil,
+                  let endedAt = session.endedAt,
                   session.syncState == .synced,
                   let featuredAttempt = attemptsByID[draft.featuredAttemptId],
                   featuredAttempt.userId == userID,
@@ -678,15 +790,21 @@ final class SessionSyncService: ObservableObject {
                 continue
             }
 
-            draft.syncState = .syncing
+            let publicationClaimID: UUID
             do {
-                try saveModelContext()
+                guard let acquiredClaimID = try acquirePublicationClaim(for: draft) else {
+                    continue
+                }
+                publicationClaimID = acquiredClaimID
             } catch {
-                modelContext.rollback()
                 replayFailed = true
                 errorMessage = error.localizedDescription
                 continue
             }
+            defer {
+                PublicationCoordinator.release(draftID: draft.id, claimID: publicationClaimID)
+            }
+
             let claimedImageFileName = draft.imageFileName
             var stagedFileName: String?
             do {
@@ -698,6 +816,36 @@ final class SessionSyncService: ObservableObject {
                 guard let sourceData = DraftImageStore.read(fileName: sourceFileName) else {
                     throw ReplayError.missingSourceImage(draft.id)
                 }
+                let orderedAttempts = attemptsByID.values
+                    .filter { $0.sessionId == session.id && $0.userId == userID }
+                    .sorted {
+                        if $0.attemptNumber != $1.attemptNumber {
+                            return $0.attemptNumber < $1.attemptNumber
+                        }
+                        return $0.occurredAt < $1.occurredAt
+                    }
+                let sessionSummary = FeedSessionSummary(
+                    id: session.id,
+                    venueName: session.venueName,
+                    startedAt: session.startedAt,
+                    endedAt: endedAt,
+                    durationSeconds: max(0, Int(endedAt.timeIntervalSince(session.startedAt))),
+                    attemptCount: orderedAttempts.count,
+                    sendCount: orderedAttempts.filter { $0.outcome == .sent }.count,
+                    featuredAttempt: FeedFeaturedAttempt(
+                        id: featuredAttempt.id,
+                        routeName: featuredAttempt.routeName,
+                        discipline: featuredAttempt.discipline,
+                        gradeSystem: featuredAttempt.gradeSystem,
+                        gradeLabel: featuredAttempt.gradeLabel,
+                        outcome: featuredAttempt.outcome,
+                        attemptNumber: featuredAttempt.attemptNumber,
+                        occurredAt: featuredAttempt.occurredAt
+                    ),
+                    attemptTimeline: orderedAttempts.map {
+                        FeedAttemptTimelineItem(attemptNumber: $0.attemptNumber, outcome: $0.outcome)
+                    }
+                )
                 let path = canonicalImagePath(userID: session.userId, postID: draft.id)
                 let sourcePath = sourceImagePath(for: path)
                 do {
@@ -706,8 +854,12 @@ final class SessionSyncService: ObservableObject {
                     await compensateRemotePublication(postID: draft.id, userID: session.userId)
                     throw error
                 }
-                guard publicationIsActive(draftID: draft.id, expectedImageFileName: claimedImageFileName) else {
-                    await compensateRemotePublication(postID: draft.id, userID: session.userId)
+                guard publicationIsActive(
+                    draftID: draft.id,
+                    expectedImageFileName: claimedImageFileName,
+                    expectedClaimID: publicationClaimID
+                ) else {
+                    _ = await compensateAndFinalizeCancelledPublication(draft: draft, userID: session.userId)
                     throw ReplayError.publicationCancelled(draft.id)
                 }
 
@@ -717,8 +869,12 @@ final class SessionSyncService: ObservableObject {
                     await compensateRemotePublication(postID: draft.id, userID: session.userId)
                     throw error
                 }
-                guard publicationIsActive(draftID: draft.id, expectedImageFileName: claimedImageFileName) else {
-                    await compensateRemotePublication(postID: draft.id, userID: session.userId)
+                guard publicationIsActive(
+                    draftID: draft.id,
+                    expectedImageFileName: claimedImageFileName,
+                    expectedClaimID: publicationClaimID
+                ) else {
+                    _ = await compensateAndFinalizeCancelledPublication(draft: draft, userID: session.userId)
                     throw ReplayError.publicationCancelled(draft.id)
                 }
 
@@ -726,18 +882,26 @@ final class SessionSyncService: ObservableObject {
                     id: draft.id,
                     sessionID: draft.sessionId,
                     featuredAttemptID: draft.featuredAttemptId,
+                    sessionSummary: sessionSummary,
                     caption: draft.caption,
                     imagePath: path,
                     imageAlt: draft.imageAlt,
                     overlayStyle: draft.overlayStyle
                 )
-                guard publicationIsActive(draftID: draft.id, expectedImageFileName: claimedImageFileName) else {
-                    await compensateRemotePublication(postID: draft.id, userID: session.userId)
+                guard publicationIsActive(
+                    draftID: draft.id,
+                    expectedImageFileName: claimedImageFileName,
+                    expectedClaimID: publicationClaimID
+                ) else {
+                    _ = await compensateAndFinalizeCancelledPublication(draft: draft, userID: session.userId)
                     throw ReplayError.publicationCancelled(draft.id)
                 }
-
-                guard publicationIsActive(draftID: draft.id, expectedImageFileName: claimedImageFileName) else {
-                    await compensateRemotePublication(postID: draft.id, userID: session.userId)
+                guard publicationIsActive(
+                    draftID: draft.id,
+                    expectedImageFileName: claimedImageFileName,
+                    expectedClaimID: publicationClaimID
+                ) else {
+                    _ = await compensateAndFinalizeCancelledPublication(draft: draft, userID: session.userId)
                     throw ReplayError.publicationCancelled(draft.id)
                 }
                 if !fileName.isEmpty {
@@ -929,9 +1093,59 @@ final class SessionSyncService: ObservableObject {
             && !fileName.contains("\0")
     }
 
+    private func durablePublicationClaimID(draftID: UUID) throws -> UUID? {
+        let durableContext = ModelContext(modelContext.container)
+        let tombstone = try durableContext.fetch(FetchDescriptor<PendingDraftDeletion>())
+            .first(where: { $0.id == draftID })
+        if let tombstoneClaimID = tombstone?.publicationClaimID {
+            return tombstoneClaimID
+        }
+        return try durableContext.fetch(FetchDescriptor<PendingSessionDraft>())
+            .first(where: { $0.id == draftID })?
+            .publicationClaimID
+    }
+
+    private func acquirePublicationClaim(for draft: PendingSessionDraft) throws -> UUID? {
+        let durableDraft = ModelContext(modelContext.container)
+        let persistedDraft = try durableDraft.fetch(FetchDescriptor<PendingSessionDraft>())
+            .first(where: { $0.id == draft.id })
+        if let persistedClaimID = persistedDraft?.publicationClaimID,
+           PublicationCoordinator.isActive(draftID: draft.id, claimID: persistedClaimID) {
+            return nil
+        }
+
+        let claimID = UUID()
+        guard PublicationCoordinator.acquire(draftID: draft.id, claimID: claimID) else {
+            return nil
+        }
+        let previousStartedAt = draft.publicationStartedAt
+        let previousClaimID = draft.publicationClaimID
+        draft.publicationStartedAt = persistedDraft?.publicationStartedAt
+            ?? previousStartedAt
+            ?? Date()
+        draft.publicationClaimID = claimID
+        do {
+            try saveModelContext()
+            return claimID
+        } catch {
+            modelContext.rollback()
+            draft.publicationStartedAt = previousStartedAt
+            draft.publicationClaimID = previousClaimID
+            PublicationCoordinator.release(draftID: draft.id, claimID: claimID)
+            throw error
+        }
+    }
+
+    private func publicationHasStarted(draftID: UUID) throws -> Bool {
+        let durableContext = ModelContext(modelContext.container)
+        return try durableContext.fetch(FetchDescriptor<PendingSessionDraft>())
+            .contains(where: { $0.id == draftID && $0.publicationStartedAt != nil })
+    }
+
     private func publicationIsActive(
         draftID: UUID,
-        expectedImageFileName: String
+        expectedImageFileName: String,
+        expectedClaimID: UUID
     ) -> Bool {
         // A separate context prevents a concurrent replacement/discard from
         // being hidden by this service's registered model objects.
@@ -951,7 +1165,9 @@ final class SessionSyncService: ObservableObject {
             .first(where: {
                 $0.id == draftID && ownedSessionIDsIncludingAttempts.contains($0.sessionId)
             }),
-            currentDraft.imageFileName == expectedImageFileName else {
+            currentDraft.imageFileName == expectedImageFileName,
+            currentDraft.publicationStartedAt != nil,
+            currentDraft.publicationClaimID == expectedClaimID else {
             return false
         }
         let hasDeletionIntent = ((try? durableContext.fetch(FetchDescriptor<PendingDraftDeletion>())) ?? [])
@@ -959,23 +1175,62 @@ final class SessionSyncService: ObservableObject {
         return !hasDeletionIntent
     }
 
-    private func compensateRemotePublication(postID: UUID, userID: UUID) async {
+    private func deleteRemotePublication(postID: UUID, userID: UUID) async -> Bool {
         let path = canonicalImagePath(userID: userID, postID: postID)
+        var succeeded = true
         do {
             try await feedRepository.deletePost(id: postID)
         } catch {
-            // Best-effort compensation is retried by the durable tombstone.
+            succeeded = false
         }
         do {
             try await feedRepository.deletePostImage(path: path)
         } catch {
-            // Best-effort compensation is retried by the durable tombstone.
+            succeeded = false
         }
         do {
             try await feedRepository.deletePostImage(path: sourceImagePath(for: path))
         } catch {
-            // Best-effort compensation is retried by the durable tombstone.
+            succeeded = false
         }
+        return succeeded
+    }
+
+    private func compensateAndFinalizeCancelledPublication(
+        draft: PendingSessionDraft,
+        userID: UUID
+    ) async -> Bool {
+        guard await deleteRemotePublication(postID: draft.id, userID: userID) else {
+            return false
+        }
+
+        let fileName = draft.imageFileName
+        var staged = false
+        do {
+            if !fileName.isEmpty {
+                try cleanupDraftImage(fileName: fileName)
+                staged = true
+            }
+            modelContext.delete(draft)
+            if let deletion = fetchAllDraftDeletions().first(where: { $0.id == draft.id }) {
+                modelContext.delete(deletion)
+            }
+            try saveModelContext()
+            if staged {
+                DraftImageStore.finalizeStagedDeletion(fileName: fileName)
+            }
+            return true
+        } catch {
+            modelContext.rollback()
+            if staged {
+                try? DraftImageStore.restoreStagedDeletion(fileName: fileName)
+            }
+            return false
+        }
+    }
+
+    private func compensateRemotePublication(postID: UUID, userID: UUID) async {
+        _ = await deleteRemotePublication(postID: postID, userID: userID)
     }
 
 
