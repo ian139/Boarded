@@ -57,11 +57,7 @@ struct SendPostCard: View {
             outcome: item.session.featuredAttempt.outcome,
             featuredAttemptNumber: item.session.featuredAttempt.attemptNumber,
             overlayStyle: item.overlayStyle,
-            attemptOutcomes: [
-                SessionArtworkAttempt(number: 1, outcome: .sent),
-                SessionArtworkAttempt(number: 2, outcome: .fell),
-                SessionArtworkAttempt(number: 3, outcome: .stopped)
-            ]
+            attemptOutcomes: item.session.artworkAttempts
         )
     }
 
@@ -141,7 +137,8 @@ private struct ProductionFeedPhoto: View {
             featuredGrade: attempt.gradeLabel,
             outcome: attempt.outcome,
             featuredAttemptNumber: attempt.attemptNumber,
-            overlayStyle: item.overlayStyle
+            overlayStyle: item.overlayStyle,
+            attemptOutcomes: item.session.artworkAttempts
         )
     }
 
@@ -174,6 +171,25 @@ private struct FeedPhotoAccessibility: ViewModifier {
         let attempt = session.featuredAttempt
         return "\(attempt.gradeLabel) \(attempt.routeName), \(attempt.outcome.title)"
     }
+    private var attemptTimelineDescription: String {
+        session.artworkAttempts
+            .map { "Attempt \($0.number), \($0.outcome.title)" }
+            .joined(separator: "; ")
+    }
+
+    private var factSummary: String {
+        [
+            "Venue \(session.venueName)",
+            "Duration \(BoardedFormat.duration(TimeInterval(session.durationSeconds)))",
+            "\(session.attemptCount) attempts",
+            "\(session.sendCount) sends",
+            "Featured attempt \(featuredAttemptDescription)",
+            attemptTimelineDescription
+        ]
+        .filter { !$0.isEmpty }
+        .joined(separator: ", ")
+    }
+
 
     func body(content: Content) -> some View {
         content
@@ -182,8 +198,18 @@ private struct FeedPhotoAccessibility: ViewModifier {
             .accessibilityCustomContent(AccessibilityCustomContentKey("Attempts"), Text("\(session.attemptCount)"))
             .accessibilityCustomContent(AccessibilityCustomContentKey("Sends"), Text("\(session.sendCount)"))
             .accessibilityCustomContent(AccessibilityCustomContentKey("Featured attempt"), Text(featuredAttemptDescription))
+            .accessibilityCustomContent(AccessibilityCustomContentKey("Attempt timeline"), Text(attemptTimelineDescription))
+            .accessibilityValue(factSummary)
     }
 }
+private extension FeedSessionSummary {
+    var artworkAttempts: [SessionArtworkAttempt] {
+        (attemptTimeline ?? []).map {
+            SessionArtworkAttempt(number: $0.attemptNumber, outcome: $0.outcome)
+        }
+    }
+}
+
 
 struct FeedPostImage: View {
     let path: String
@@ -191,7 +217,7 @@ struct FeedPostImage: View {
 
     var body: some View {
         Group {
-            if path == UITestFixtures.localSessionImagePath,
+            if (path == UITestFixtures.localSessionImagePath || AppLaunchConfiguration.isUITestFixture),
                let image = UITestFixtures.sessionImage {
                 Image(uiImage: image).resizable().aspectRatio(contentMode: .fill)
             } else {

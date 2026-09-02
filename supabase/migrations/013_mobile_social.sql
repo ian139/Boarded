@@ -638,6 +638,17 @@ AS $$
         'outcome', ca.outcome,
         'attempt_number', ca.attempt_number,
         'occurred_at', ca.occurred_at
+      ),
+      'attempt_timeline', (
+        SELECT jsonb_agg(
+          jsonb_build_object(
+            'attempt_number', ca_timeline.attempt_number,
+            'outcome', ca_timeline.outcome
+          )
+          ORDER BY ca_timeline.attempt_number
+        )
+        FROM public.climb_attempts AS ca_timeline
+        WHERE ca_timeline.session_id = cs.id
       )
     ),
     'like_count', (SELECT count(*)::INTEGER FROM public.session_post_likes AS spl WHERE spl.post_id = sp.id),

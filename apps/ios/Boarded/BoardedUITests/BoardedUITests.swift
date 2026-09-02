@@ -56,6 +56,12 @@ final class BoardedUITests: XCTestCase {
         XCTAssertTrue(timeline.label.contains("Sent"))
         XCTAssertTrue(timeline.label.contains("Fell"))
         XCTAssertTrue(timeline.label.contains("Stopped"))
+        XCTAssertTrue(timeline.label.contains("Attempt 13"))
+        if !variant.contains("accessibility-large") {
+            let preview = app.descendants(matching: .any)["canonical-session-artwork-preview"].firstMatch
+            XCTAssertTrue(preview.exists)
+            XCTAssertLessThanOrEqual(timeline.frame.maxY, preview.frame.maxY)
+        }
         capture("\(variant)-Home")
 
         tab("Log")
@@ -198,8 +204,22 @@ final class BoardedUITests: XCTestCase {
         app.buttons["Done"].firstMatch.tap()
         tab("Home")
         XCTAssertTrue(app.otherElements["feed-list"].waitForExistence(timeout: 5))
-        XCTAssertGreaterThanOrEqual(app.descendants(matching: .any)["feed-item"].count, 2)
-        XCTAssertGreaterThanOrEqual(app.images[fixtureImageAlt].count, 2)
+        XCTAssertGreaterThanOrEqual(app.descendants(matching: .any).matching(identifier: "feed-item").count, 2)
+        XCTAssertGreaterThanOrEqual(app.images.matching(NSPredicate(format: "label == %@", fixtureImageAlt)).count, 2)
+        let publishedArtwork = app.images.matching(
+            NSPredicate(
+                format: "label == %@ AND value CONTAINS %@",
+                fixtureImageAlt,
+                "Venue Granite Works"
+            )
+        ).firstMatch
+        XCTAssertTrue(publishedArtwork.waitForExistence(timeout: 5))
+        let publishedFacts = publishedArtwork.value as? String ?? ""
+        XCTAssertTrue(publishedFacts.contains("Venue Granite Works"))
+        XCTAssertTrue(publishedFacts.contains("Duration "))
+        XCTAssertTrue(publishedFacts.contains("2 attempts"))
+        XCTAssertTrue(publishedFacts.contains("1 sends"))
+        XCTAssertTrue(publishedFacts.contains("Featured attempt V0 Green Line, Sent"))
     }
 
     func testOfflineAttemptSurvivesRelaunch() {

@@ -56,8 +56,8 @@ enum UITestFixtures {
                 startedAt: now.addingTimeInterval(-7200),
                 endedAt: now,
                 durationSeconds: 7200,
-                attemptCount: 5,
-                sendCount: 3,
+                attemptCount: 13,
+                sendCount: 5,
                 featuredAttempt: FeedFeaturedAttempt(
                     id: attemptID,
                     routeName: "Steep Circuit",
@@ -67,7 +67,22 @@ enum UITestFixtures {
                     outcome: .sent,
                     attemptNumber: 1,
                     occurredAt: now
-                )
+                ),
+                attemptTimeline: [
+                    FeedAttemptTimelineItem(attemptNumber: 1, outcome: .sent),
+                    FeedAttemptTimelineItem(attemptNumber: 2, outcome: .fell),
+                    FeedAttemptTimelineItem(attemptNumber: 3, outcome: .stopped),
+                    FeedAttemptTimelineItem(attemptNumber: 4, outcome: .sent),
+                    FeedAttemptTimelineItem(attemptNumber: 5, outcome: .fell),
+                    FeedAttemptTimelineItem(attemptNumber: 6, outcome: .sent),
+                    FeedAttemptTimelineItem(attemptNumber: 7, outcome: .stopped),
+                    FeedAttemptTimelineItem(attemptNumber: 8, outcome: .fell),
+                    FeedAttemptTimelineItem(attemptNumber: 9, outcome: .sent),
+                    FeedAttemptTimelineItem(attemptNumber: 10, outcome: .fell),
+                    FeedAttemptTimelineItem(attemptNumber: 11, outcome: .stopped),
+                    FeedAttemptTimelineItem(attemptNumber: 12, outcome: .fell),
+                    FeedAttemptTimelineItem(attemptNumber: 13, outcome: .sent)
+                ]
             ),
             likeCount: 3,
             commentCount: 1,
