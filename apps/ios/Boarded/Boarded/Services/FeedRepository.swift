@@ -202,7 +202,8 @@ final class MockFeedRepository: FeedRepository, @unchecked Sendable {
             durationSeconds: fixtureSession?.durationSeconds ?? 0,
             attemptCount: fixtureSession?.attemptCount ?? 0,
             sendCount: fixtureSession?.sendCount ?? 0,
-            featuredAttempt: featuredAttempt
+            featuredAttempt: featuredAttempt,
+            attemptTimeline: fixtureSession?.attemptTimeline
         )
         let author = FeedAuthor(
             id: currentUserID,

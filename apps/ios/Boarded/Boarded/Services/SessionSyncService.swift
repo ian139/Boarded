@@ -25,8 +25,8 @@ final class SessionSyncService: ObservableObject {
             switch self {
             case .missingImage(let draftID):
                 return "The image for pending draft \(draftID.uuidString) is missing."
-            case .missingSourceImage(let draftID):
-                return "The source image for pending draft \(draftID.uuidString) is missing."
+            case .missingSourceImage:
+                return "This photo is unavailable. Choose it again to retry."
             case .invalidSession(let sessionID):
                 return "The session \(sessionID.uuidString) is invalid or not owned by the active user."
             case .sessionNotEnded(let sessionID):
@@ -60,9 +60,9 @@ final class SessionSyncService: ObservableObject {
         var errorDescription: String? {
             switch self {
             case .sourceDataRequired:
-                return "A flattened image and source image are both required."
-            case .incompletePair(let fileName):
-                return "The draft media pair \(fileName) is incomplete."
+                return "Choose a photo before sharing this session."
+            case .incompletePair:
+                return "This photo could not be saved. Choose it again to retry."
             }
         }
     }

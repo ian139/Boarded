@@ -104,6 +104,17 @@ final class NativeContractTests: XCTestCase {
         XCTAssertEqual(item.session.featuredAttempt.id, fixture.featuredAttemptId)
     }
 
+    func testNativeMediaErrorsUsePlainRecoveryCopy() {
+        XCTAssertEqual(
+            SessionSyncService.DraftMediaError.sourceDataRequired.errorDescription,
+            "Choose a photo before sharing this session."
+        )
+        XCTAssertEqual(
+            SessionSyncService.DraftMediaError.incompletePair("private-file.jpg").errorDescription,
+            "This photo could not be saved. Choose it again to retry."
+        )
+    }
+
     func testSessionFeedItemDecodesAttemptTimelineOverlayAndFellOutcomeWithoutNotes() throws {
         let json = """
         {
