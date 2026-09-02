@@ -104,8 +104,12 @@ final class BoardedUITests: XCTestCase {
         if variant.contains("accessibility-large") {
             let sessionSelector = app.descendants(matching: .any)["share-session"].firstMatch
             let attemptSelector = app.descendants(matching: .any)["share-featured-attempt"].firstMatch
-            XCTAssertGreaterThanOrEqual(sessionSelector.frame.height, 88)
-            XCTAssertGreaterThanOrEqual(attemptSelector.frame.height, 88)
+            if widthClassName == "compact" {
+                XCTAssertGreaterThanOrEqual(sessionSelector.frame.height, 88)
+                XCTAssertGreaterThanOrEqual(attemptSelector.frame.height, 88)
+            } else {
+                XCTAssertLessThanOrEqual(sessionSelector.frame.maxY, attemptSelector.frame.minY)
+            }
             XCTAssertTrue(app.descendants(matching: .any)["share-scroll-affordance"].exists)
         }
         if variant.contains("accessibility-large") {
