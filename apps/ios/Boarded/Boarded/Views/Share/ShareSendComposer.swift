@@ -120,6 +120,9 @@ struct SessionArtworkFacts: View {
                     .font(AppTypography.labelM)
                     .foregroundStyle(model.outcome == .sent ? AppColor.accentDefault : AppColor.textPrimary)
             }
+            if !dynamicTypeSize.isAccessibilitySize {
+                featuredRoute
+            }
             if model.overlayStyle == .attemptTimeline {
                 Group {
                     if dynamicTypeSize.isAccessibilitySize {
@@ -165,9 +168,9 @@ struct SessionArtworkFacts: View {
             } else {
                 HStack(spacing: AppSpacing.space16) { facts }
             }
-            Text("\(model.featuredGrade) · \(model.featuredRoute)")
-                .font(AppTypography.labelL).fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("session-featured-route")
+            if dynamicTypeSize.isAccessibilitySize {
+                featuredRoute
+            }
         }
         .foregroundStyle(AppColor.textPrimary)
         .padding(AppSpacing.space16)
@@ -176,6 +179,13 @@ struct SessionArtworkFacts: View {
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier(opaque ? "session-facts-continuation" : "session-facts-overlay")
     }
+    private var featuredRoute: some View {
+        Text("\(model.featuredGrade) · \(model.featuredRoute)")
+            .font(AppTypography.labelL)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityIdentifier("session-featured-route")
+    }
+
     private var timelineAttempts: [SessionArtworkAttempt] {
         if !model.attemptOutcomes.isEmpty {
             return model.attemptOutcomes.sorted { $0.number < $1.number }

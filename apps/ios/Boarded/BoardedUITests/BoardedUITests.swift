@@ -72,6 +72,8 @@ final class BoardedUITests: XCTestCase {
             XCTAssertLessThanOrEqual(timeline.frame.maxY, preview.frame.maxY)
             let featuredRoute = app.descendants(matching: .any)["session-featured-route"].firstMatch
             XCTAssertTrue(featuredRoute.exists)
+            XCTAssertTrue(featuredRoute.label.contains("V6 · Steep Circuit"))
+            XCTAssertTrue(featuredRoute.isHittable)
             XCTAssertLessThanOrEqual(featuredRoute.frame.maxY, preview.frame.maxY)
             let caption = app.descendants(matching: .any)["session-post-caption"].firstMatch
             XCTAssertTrue(caption.exists)
