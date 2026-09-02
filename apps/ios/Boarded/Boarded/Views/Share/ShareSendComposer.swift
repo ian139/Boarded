@@ -48,8 +48,11 @@ struct SessionArtworkView: View {
                         startPoint: .top,
                         endPoint: .bottom
                     ).accessibilityHidden(true)
-                    SessionArtworkFacts(model: model, usesMaterial: presentation == .screen)
-                        .padding(presentation == .export ? 0 : AppSpacing.space12)
+                    SessionArtworkFacts(
+                        model: model,
+                        usesMaterial: presentation == .screen,
+                        compactLayout: presentation == .export
+                    )
                 }
                 if presentation == .export {
                     LinearGradient(
@@ -110,9 +113,10 @@ struct SessionArtworkFacts: View {
     var opaque = false
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     var usesMaterial = true
+    var compactLayout = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.space12) {
+        VStack(alignment: .leading, spacing: compactLayout ? AppSpacing.space4 : AppSpacing.space12) {
             HStack(alignment: .firstTextBaseline) {
                 Text(model.venue).font(AppTypography.titleM).fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: AppSpacing.space8)
@@ -173,7 +177,7 @@ struct SessionArtworkFacts: View {
             }
         }
         .foregroundStyle(AppColor.textPrimary)
-        .padding(AppSpacing.space16)
+        .padding(compactLayout ? AppSpacing.space8 : AppSpacing.space16)
         .background(opaque ? AppColor.surfaceCard : Color.clear)
         .modifier(SessionArtworkShelfMaterial(enabled: !opaque && usesMaterial))
         .accessibilityElement(children: .contain)
