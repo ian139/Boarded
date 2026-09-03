@@ -1,3 +1,11 @@
+@font-face {
+  font-family: 'Cormorant Garamond';
+  src: url('/fonts/CormorantGaramond-SemiBoldItalic.ttf') format('truetype');
+  font-weight: 600;
+  font-style: italic;
+  font-display: swap;
+}
+
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -160,4 +168,72 @@
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+
+/* Scoped Aura.build Landing styles */
+.landing-font-display {
+  font-family: 'Cormorant Garamond', var(--font-bodoni), Georgia, serif;
+  font-weight: 600;
+  font-style: italic;
+}
+
+.landing-frame {
+  width: min(calc(100% - 40px), 1200px);
+  margin-inline: auto;
+}
+
+@media (min-width: 600px) {
+  .landing-frame {
+    width: min(calc(100% - 48px), 1200px);
+  }
+}
+
+.landing-cta-primary {
+  min-height: 52px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 24px;
+  border-radius: 12px;
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 600;
+  background-color: var(--color-accent-default);
+  color: var(--color-accent-on-accent);
+  transition: background-color 180ms ease-out, transform 100ms ease-out;
+}
+
+.landing-cta-primary:active {
+  transform: scale(0.98);
+}
+
+.landing-cta-secondary {
+  min-height: 52px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 24px;
+  border-radius: 12px;
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 600;
+  background-color: var(--color-background-elevated);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-stroke-default);
+  transition: border-color 180ms ease-out, transform 100ms ease-out;
+}
+
+.landing-cta-secondary:active {
+  transform: scale(0.98);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .landing-cta-primary:hover {
+    background-color: var(--color-accent-pressed);
+  }
+  .landing-cta-secondary:hover {
+    border-color: var(--color-accent-default);
+  }
 }
