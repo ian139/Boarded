@@ -193,6 +193,16 @@
   display: inline-flex;
   align-items: center;
 }
+.landing-header-sign-in {
+  display: none;
+}
+
+@media (min-width: 600px) {
+  .landing-header-sign-in {
+    display: inline-flex;
+  }
+}
+
 
 
 .landing-cta-primary {

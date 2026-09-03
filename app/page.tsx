@@ -51,7 +51,7 @@ export default function MarketingLanding() {
           <div className="flex items-center gap-4 sm:gap-6">
             <Link
               href="/login"
-              className="landing-touch-link text-sm font-medium text-[rgba(244,242,235,0.64)] hover:text-[#F4F2EB] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#32D583] rounded-sm"
+              className="landing-touch-link landing-header-sign-in text-sm font-medium text-[rgba(244,242,235,0.64)] hover:text-[#F4F2EB] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#32D583] rounded-sm"
             >
               Sign in
             </Link>
