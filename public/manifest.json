@@ -2,7 +2,7 @@
   "name": "Boarded",
   "short_name": "Boarded",
   "description": "Set, save, and share climbing routes.",
-  "start_url": "/",
+  "start_url": "/app",
   "display": "standalone",
   "background_color": "#0A0B10",
   "theme_color": "#0A0B10",

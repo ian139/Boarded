@@ -315,7 +315,7 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
       if (!canEditRoute(route)) {
         setEditResolution('error');
         toast.error('You do not have permission to edit this route');
-        router.push('/');
+        router.push('/app');
         return;
       }
       setEditingRoute(route);
@@ -343,12 +343,12 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
       }
       setEditResolution('error');
       toast.error('Route not found');
-      router.push('/');
+      router.push('/app');
     }).catch(() => {
       if (!active) return;
       setEditResolution('error');
       toast.error('Unable to load this route');
-      router.push('/');
+      router.push('/app');
     });
 
     return () => {
@@ -391,7 +391,7 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
         });
         if (!updated) throw new Error('Unable to update this route. Check your permissions and try again.');
         toast.success('Route updated!');
-        router.push('/');
+        router.push('/app');
       } else {
         const route: Route = {
           id: crypto.randomUUID(),
@@ -505,7 +505,7 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
       <header className="fixed top-0 left-0 right-0 z-40 border-b border-divider bg-background px-4 pt-[max(env(safe-area-inset-top),1rem)] pb-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link
-            href="/"
+            href="/app"
             aria-label="Back to home"
             className="size-11 rounded-lg border border-border bg-card flex items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
           >

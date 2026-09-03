@@ -22,7 +22,7 @@ export default function SignupPage() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      router.push('/');
+      router.push('/app');
     }
   }, [isAuthenticated, router]);
 
@@ -49,7 +49,7 @@ export default function SignupPage() {
         router.push('/login');
       } else {
         toast.success('Account created!');
-        router.push('/');
+        router.push('/app');
       }
     } else {
       setError(result.error || 'Signup failed');

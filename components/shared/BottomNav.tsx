@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 
 const navItems = [
   {
-    href: '/',
+    href: '/app',
     label: 'Home',
     icon: (active: boolean) => (
       <svg className="w-6 h-6" fill={active ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 1.5}>
@@ -36,6 +36,10 @@ const navItems = [
 
 export function BottomNav() {
   const pathname = usePathname();
+
+  if (pathname === '/') {
+    return null;
+  }
 
   return (
     <nav aria-label="Primary navigation" className="fixed bottom-0 left-0 right-0 z-50 border-t border-divider bg-background px-2 pb-safe md:hidden">

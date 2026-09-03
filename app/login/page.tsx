@@ -20,7 +20,7 @@ export default function LoginPage() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      router.push('/');
+      router.push('/app');
     }
   }, [isAuthenticated, router]);
 
@@ -37,7 +37,7 @@ export default function LoginPage() {
 
     if (result.success) {
       toast.success('Welcome back!');
-      router.push('/');
+      router.push('/app');
     } else {
       setError(result.error || 'Login failed');
     }

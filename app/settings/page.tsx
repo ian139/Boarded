@@ -326,7 +326,7 @@ export default function SettingsPage() {
       <header className="page-header px-6 pt-5 pb-5">
         <div className="flex items-center gap-3">
           <Link
-            href="/"
+            href="/app"
             aria-label="Back to home"
             className="size-10 rounded-xl bg-muted/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >

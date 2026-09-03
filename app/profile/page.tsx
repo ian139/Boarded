@@ -147,7 +147,7 @@ export default function ProfilePage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link
-              href="/"
+              href="/app"
               aria-label="Back to home"
               className="size-11 rounded-lg border border-border bg-card flex items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
             >
@@ -381,7 +381,7 @@ export default function ProfilePage() {
             <h3 className="font-semibold text-foreground mb-1">No sends logged yet</h3>
             <p className="text-sm text-muted-foreground mb-4">Start logging your sends to build your profile</p>
             <Link
-              href="/"
+              href="/app"
               className="inline-flex items-center justify-center h-10 px-6 rounded-xl bg-primary text-primary-foreground font-semibold hover:opacity-90 transition-opacity"
             >
               Browse Routes
