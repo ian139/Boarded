@@ -27,7 +27,7 @@ export default function MarketingLanding() {
           <div className="flex items-center gap-10">
             <Link
               href="/"
-              className="landing-font-display text-2xl md:text-3xl text-[#F4F2EB] tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#32D583]"
+              className="landing-touch-link landing-font-display text-2xl md:text-3xl text-[#F4F2EB] tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#32D583]"
             >
               Boarded
             </Link>
@@ -35,13 +35,13 @@ export default function MarketingLanding() {
             <div className="hidden sm:flex items-center gap-8">
               <a
                 href="#approach"
-                className="text-sm font-medium text-[rgba(244,242,235,0.64)] hover:text-[#F4F2EB] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#32D583] rounded-sm"
+                className="landing-touch-link text-sm font-medium text-[rgba(244,242,235,0.64)] hover:text-[#F4F2EB] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#32D583] rounded-sm"
               >
                 Approach
               </a>
               <a
                 href="#practice"
-                className="text-sm font-medium text-[rgba(244,242,235,0.64)] hover:text-[#F4F2EB] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#32D583] rounded-sm"
+                className="landing-touch-link text-sm font-medium text-[rgba(244,242,235,0.64)] hover:text-[#F4F2EB] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#32D583] rounded-sm"
               >
                 Practice
               </a>
@@ -51,7 +51,7 @@ export default function MarketingLanding() {
           <div className="flex items-center gap-4 sm:gap-6">
             <Link
               href="/login"
-              className="hidden sm:inline-flex text-sm font-medium text-[rgba(244,242,235,0.64)] hover:text-[#F4F2EB] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#32D583] rounded-sm"
+              className="landing-touch-link text-sm font-medium text-[rgba(244,242,235,0.64)] hover:text-[#F4F2EB] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#32D583] rounded-sm"
             >
               Sign in
             </Link>
@@ -193,7 +193,7 @@ export default function MarketingLanding() {
           </div>
           <Link
             href="/login"
-            className="text-sm font-medium text-[rgba(244,242,235,0.64)] hover:text-[#F4F2EB] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#32D583] rounded-sm"
+            className="landing-touch-link text-sm font-medium text-[rgba(244,242,235,0.64)] hover:text-[#F4F2EB] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#32D583] rounded-sm"
           >
             Sign in
           </Link>

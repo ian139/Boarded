@@ -187,6 +187,13 @@
     width: min(calc(100% - 48px), 1200px);
   }
 }
+.landing-touch-link {
+  min-height: 52px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
 
 .landing-cta-primary {
   min-height: 52px;
