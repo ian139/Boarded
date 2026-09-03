@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 const GLB_URL = '/walls/generated/photo-wall-relief-web.glb';
 const FALLBACK_URL = '/walls/generated/photo-wall-relief-web-fallback.webp';
@@ -12,22 +12,36 @@ function clamp(value: number, min: number, max: number): number {
 function lerp(current: number, target: number, speed: number): number {
   return current + (target - current) * speed;
 }
+function subscribeReducedMotion(onChange: () => void): () => void {
+  const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+  media.addEventListener('change', onChange);
+  return () => media.removeEventListener('change', onChange);
+}
+
+function getReducedMotionSnapshot(): boolean {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function getServerReducedMotionSnapshot(): boolean {
+  return true;
+}
+
 
 export function PhotoWallHero() {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isReady, setIsReady] = useState(false);
+  const prefersReducedMotion = useSyncExternalStore(
+    subscribeReducedMotion,
+    getReducedMotionSnapshot,
+    getServerReducedMotionSnapshot
+  );
+
 
   useEffect(() => {
     const container = containerRef.current;
     const canvas = canvasRef.current;
-    if (!container || !canvas) return;
-
-    // Honor reduced-motion preferences without creating a WebGL context
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReducedMotion) {
-      return;
-    }
+    if (prefersReducedMotion || !container || !canvas) return;
 
     let disposed = false;
     let rafId: number | null = null;
@@ -292,7 +306,7 @@ export function PhotoWallHero() {
         renderer.dispose();
       }
     };
-  }, []);
+  }, [prefersReducedMotion]);
 
   return (
     <div
@@ -313,13 +327,15 @@ export function PhotoWallHero() {
         decoding="async"
       />
       {/* Canvas for Three.js WebGL, strictly non-interactive */}
-      <canvas
-        ref={canvasRef}
-        aria-hidden="true"
-        tabIndex={-1}
-        className="w-full h-full pointer-events-none block"
-        style={{ touchAction: 'none' }}
-      />
+      {!prefersReducedMotion && (
+        <canvas
+          ref={canvasRef}
+          aria-hidden="true"
+          tabIndex={-1}
+          className="w-full h-full pointer-events-none block"
+          style={{ touchAction: 'none' }}
+        />
+      )}
     </div>
   );
 }
