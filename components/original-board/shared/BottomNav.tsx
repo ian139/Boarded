@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 
 const navItems = [
   {
-    href: '/app',
+    href: '/board',
     label: 'Home',
     icon: (active: boolean) => (
       <svg className="w-6 h-6" fill={active ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 1.5}>
@@ -15,8 +15,8 @@ const navItems = [
     ),
   },
   {
-    href: '/editor',
-    label: 'Log',
+    href: '/board/editor',
+    label: 'Create',
     icon: (active: boolean) => (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -24,7 +24,7 @@ const navItems = [
     ),
   },
   {
-    href: '/profile',
+    href: '/board/profile',
     label: 'Profile',
     icon: (active: boolean) => (
       <svg className="w-6 h-6" fill={active ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 1.5}>
@@ -37,15 +37,16 @@ const navItems = [
 export function BottomNav() {
   const pathname = usePathname();
 
-  if (pathname === '/' || pathname?.startsWith('/app')) {
-    return null;
-  }
-
   return (
-    <nav aria-label="Primary navigation" className="fixed bottom-0 left-0 right-0 z-50 border-t border-divider bg-background px-2 pb-safe md:hidden">
-      <div className="flex items-center justify-evenly py-1">
+    <nav aria-label="Primary navigation" className="board-nav fixed bottom-0 left-0 right-0 z-50 px-3 pb-2 md:hidden">
+      <div className="absolute inset-x-3 inset-y-0 rounded-2xl border border-border bg-card/80 backdrop-blur-xl" />
+
+      <div className="relative flex items-center justify-evenly px-2 py-2 pb-safe">
         {navItems.map((item) => {
-          const isActive = pathname === item.href;
+          const isActive =
+            item.href === '/board'
+              ? pathname === '/board'
+              : pathname === item.href || (pathname?.startsWith(item.href + '/') ?? false);
 
           return (
             <Link
@@ -53,12 +54,12 @@ export function BottomNav() {
               href={item.href}
               aria-current={isActive ? 'page' : undefined}
               className={cn(
-                'relative flex min-h-14 min-w-20 flex-col items-center justify-center rounded-lg px-3 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                isActive ? 'text-primary' : 'text-muted-foreground'
+                'relative flex min-w-[72px] flex-col items-center justify-center rounded-xl px-5 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
               )}
             >
               {isActive && (
-                <div className="absolute inset-x-2 inset-y-1 rounded-lg border border-primary/40 bg-primary/10" />
+                <div className="absolute inset-0 rounded-xl border border-primary/10 bg-primary/10" />
               )}
               <div className="relative z-10">
                 {item.icon(isActive)}

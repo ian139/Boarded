@@ -1,0 +1,164 @@
+{
+  "batch": "batch-01",
+  "generated_at": "2026-09-02T01:49:20+00:00",
+  "pilot": true,
+  "recovered_from": "/private/tmp/hold-factory-batch01 (worktree, branch hold-factory/batch-01-pilot): public/walls/generated/batches/batch-01/manifest.json",
+  "source": {
+    "space": "tencent/Hunyuan3D-2.1",
+    "endpoint": "shape_generation",
+    "params": {
+      "steps": 30,
+      "octree_resolution": 256,
+      "check_box_rembg": true,
+      "guidance_scale": 5.0
+    },
+    "note": "rembg mapped to endpoint param check_box_rembg; gradio_client handle_file used for image input"
+  },
+  "image_policy": "nano-banana/oracle placeholder: deterministic PIL silhouettes (solid color, wavy shape, transparent background), alpha validated",
+  "holds": [
+    {
+      "name": "green-jug",
+      "color": "green",
+      "color_hex": "#009944",
+      "shape": "jug",
+      "alpha_validation": {
+        "mode": "RGBA",
+        "size": [
+          1024,
+          1024
+        ],
+        "opaque_frac": 0.3596,
+        "transparent_frac": 0.6404
+      },
+      "seed_used": null,
+      "hf_reused_probe": true,
+      "hf_mesh_bytes": 6839472,
+      "hf_mesh_ext": ".glb",
+      "decimated_faces": 2000,
+      "faces": 2000,
+      "size_bytes": 36972,
+      "watertight": true,
+      "sha256": "f14dd99e889970e4e37cf7bb666f5633c2d0b6f894d806a1d2a7b42cddf2e69b",
+      "png": "batches/batch-01/green-jug.png",
+      "glb": "batches/batch-01/green-jug.glb",
+      "status": "ok"
+    },
+    {
+      "name": "blue-sloper",
+      "color": "blue",
+      "color_hex": "#1e6bce",
+      "shape": "sloper",
+      "alpha_validation": {
+        "mode": "RGBA",
+        "size": [
+          1024,
+          1024
+        ],
+        "opaque_frac": 0.2392,
+        "transparent_frac": 0.7608
+      },
+      "hf_effective_seed": 5118454,
+      "hf_raw_faces": 207124,
+      "seed_used": 1234,
+      "hf_mesh_bytes": 3729572,
+      "hf_mesh_ext": ".glb",
+      "decimated_faces": 2000,
+      "faces": 2000,
+      "size_bytes": 37052,
+      "watertight": true,
+      "sha256": "1c4d14898efa0f3a82bfffdd39ddc5105a6dbb4c6ea64dca5e57dade6bc86290",
+      "png": "batches/batch-01/blue-sloper.png",
+      "glb": "batches/batch-01/blue-sloper.glb",
+      "status": "ok"
+    },
+    {
+      "name": "red-crimp",
+      "color": "red",
+      "color_hex": "#ce2825",
+      "shape": "crimp",
+      "alpha_validation": {
+        "mode": "RGBA",
+        "size": [
+          1024,
+          1024
+        ],
+        "opaque_frac": 0.2393,
+        "transparent_frac": 0.7607
+      },
+      "status": "hf_generation_failed",
+      "last_error": "AppError: 'You have exceeded your ZeroGPU quota (90s requested vs. 80s left). Try again in 23:06:23. Authenticate with a Hugging Face token for more quota - https://huggingface.co/settings/tokens'"
+    },
+    {
+      "name": "yellow-pinch",
+      "color": "yellow",
+      "color_hex": "#f9be25",
+      "shape": "pinch",
+      "alpha_validation": {
+        "mode": "RGBA",
+        "size": [
+          1024,
+          1024
+        ],
+        "opaque_frac": 0.2426,
+        "transparent_frac": 0.7574
+      },
+      "status": "hf_generation_failed",
+      "last_error": "AppError: 'You have exceeded your ZeroGPU quota (90s requested vs. 80s left). Try again in 23:03:01. Authenticate with a Hugging Face token for more quota - https://huggingface.co/settings/tokens'"
+    },
+    {
+      "name": "purple-foothold",
+      "color": "purple",
+      "color_hex": "#6a1b9a",
+      "shape": "foothold",
+      "alpha_validation": {
+        "mode": "RGBA",
+        "size": [
+          1024,
+          1024
+        ],
+        "opaque_frac": 0.1779,
+        "transparent_frac": 0.8221
+      },
+      "status": "hf_generation_failed",
+      "last_error": "AppError: 'You have exceeded your ZeroGPU quota (90s requested vs. 80s left). Try again in 22:59:39. Authenticate with a Hugging Face token for more quota - https://huggingface.co/settings/tokens'"
+    }
+  ],
+  "summary": [
+    {
+      "name": "green-jug",
+      "status": "ok",
+      "faces": 2000,
+      "size_bytes": 36972,
+      "watertight": true
+    },
+    {
+      "name": "blue-sloper",
+      "status": "ok",
+      "faces": 2000,
+      "size_bytes": 37052,
+      "watertight": true
+    },
+    {
+      "name": "red-crimp",
+      "status": "hf_generation_failed",
+      "faces": null,
+      "size_bytes": null,
+      "watertight": null
+    },
+    {
+      "name": "yellow-pinch",
+      "status": "hf_generation_failed",
+      "faces": null,
+      "size_bytes": null,
+      "watertight": null
+    },
+    {
+      "name": "purple-foothold",
+      "status": "hf_generation_failed",
+      "faces": null,
+      "size_bytes": null,
+      "watertight": null
+    }
+  ],
+  "completed_at": "2026-09-02T01:59:53+00:00"
+}

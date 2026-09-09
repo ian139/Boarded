@@ -1,0 +1,442 @@
+/* ==========================================================================
+   /board — restored original board UI (ClimbSet Design System, 668e334)
+   Scoped entirely to the `.board-original` wrapper and to portal roots
+   (dialog overlay/content, select content) that re-apply the class so the
+   warm palette resolves inside document.body. No global selectors beyond
+   `body:has(...)` suppressions of root chrome that the board replaces.
+   Historical tokens/fonts: Manrope + Geist Mono era, cream field, wood-brown
+   primary, forest-green secondary. Dark scope mirrors the 668e334 `.dark`
+   block and follows a system-initialized route-local toggle.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Token scope — light (historical default)
+   The current global `@theme inline` maps Tailwind palette utilities to
+   `--color-*` base vars; overriding those here recolors every utility inside
+   the scope without touching global CSS. Utilities whose current mapping
+   collides (secondary/muted/popover sharing one elevated var) are re-pointed
+   per-utility further down.
+   -------------------------------------------------------------------------- */
+.board-original {
+  color-scheme: light;
+
+  /* Base vars resolved by the current @theme inline mapping */
+  --color-background-base: oklch(0.97 0.01 85);
+  --color-text-primary: oklch(0.25 0.03 55);
+  --color-text-secondary: oklch(0.45 0.03 55);
+  --color-surface-card: oklch(0.99 0.005 85);
+  --color-background-elevated: oklch(0.94 0.015 85); /* muted slot */
+  --color-accent-default: oklch(0.5 0.1 55);         /* primary brown + ring */
+  --color-accent-on-accent: oklch(0.99 0.005 85);
+  --color-accent-soft: oklch(0.6 0.14 150);          /* accent (solid historically; /12 modifiers make it soft) */
+  --color-danger: oklch(0.55 0.2 25);
+  --color-stroke-default: oklch(0.9 0.02 85);
+  --color-stroke-subtle: oklch(0.94 0.015 85);
+
+  /* Legacy design-system vars referenced via var() inside components */
+  --radius: 1rem;
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --shadow-soft: 0 1px 2px oklch(0.25 0.03 55 / 0.04), 0 12px 36px oklch(0.25 0.03 55 / 0.08);
+  --shadow-float: 0 20px 60px oklch(0.2 0.03 55 / 0.14);
+  --surface-glass: oklch(0.99 0.005 85 / 0.78);
+  --surface-raised: oklch(0.99 0.005 85 / 0.94);
+
+  --background: oklch(0.97 0.01 85);
+  --foreground: oklch(0.25 0.03 55);
+  --card: oklch(0.99 0.005 85);
+  --card-foreground: oklch(0.25 0.03 55);
+  --popover: oklch(0.99 0.005 85);
+  --popover-foreground: oklch(0.25 0.03 55);
+  --primary: oklch(0.5 0.1 55);
+  --primary-foreground: oklch(0.99 0.005 85);
+  --secondary: oklch(0.55 0.12 155);
+  --secondary-foreground: oklch(0.99 0.005 85);
+  --muted: oklch(0.94 0.015 85);
+  --muted-foreground: oklch(0.45 0.03 55);
+  --accent: oklch(0.6 0.14 150);
+  --accent-foreground: oklch(0.99 0.005 85);
+  --destructive: oklch(0.55 0.2 25);
+  --border: oklch(0.9 0.02 85);
+  --input: oklch(0.94 0.015 85);
+  --ring: oklch(0.5 0.1 55);
+
+  /* Conflicted utility slots (current build funnels them through one var) */
+  --board-secondary: oklch(0.55 0.12 155);
+  --board-secondary-foreground: oklch(0.99 0.005 85);
+  --board-popover: oklch(0.99 0.005 85);
+  --board-accent-foreground: oklch(0.99 0.005 85);
+
+  /* Historical typography (Manrope is loaded at the root layout) */
+  font-family: var(--font-manrope), "Avenir Next", system-ui, sans-serif;
+  font-feature-settings: "rlig" 1, "calt" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Text color must resolve on the portal-capable scope itself (dialog
+     content, select popovers render into document.body outside .board-root),
+     otherwise body-portal text inherits the root dark chalk on light board. */
+  color: var(--foreground);
+}
+
+/* Surface paint (field color + ambient wash) lives on the route wrapper only
+   — portal roots must stay transparent so dialog scrims keep their alpha. */
+.board-root {
+  min-height: 100dvh;
+  background-color: var(--background);
+  background-image:
+    radial-gradient(circle at 8% -10%, oklch(0.82 0.08 78 / 0.3), transparent 34rem),
+    radial-gradient(circle at 92% 12%, oklch(0.76 0.09 150 / 0.18), transparent 30rem);
+  background-attachment: fixed;
+}
+
+/* --------------------------------------------------------------------------
+   Conflicted-utility re-points (scoped)
+   -------------------------------------------------------------------------- */
+.board-original .bg-popover,
+.board-original.bg-popover {
+  background-color: var(--board-popover);
+}
+.board-original .bg-secondary {
+  background-color: var(--board-secondary);
+}
+.board-original .bg-secondary\/10 {
+  background-color: color-mix(in oklab, var(--board-secondary) 10%, transparent);
+}
+.board-original .hover\:bg-secondary\/88:hover {
+  background-color: color-mix(in oklab, var(--board-secondary) 88%, transparent);
+}
+.board-original .text-secondary,
+.board-original .hover\:text-secondary:hover {
+  color: var(--board-secondary);
+}
+.board-original .text-secondary-foreground {
+  color: var(--board-secondary-foreground);
+}
+.board-original .text-accent-foreground,
+.board-original .focus\:text-accent-foreground:focus {
+  color: var(--board-accent-foreground);
+}
+
+/* .text-primary collision: root globals.css hand-defines
+   `.text-primary { color: var(--color-text-primary) }` inside @layer
+   utilities, which outranks Tailwind's token-generated utility. On the
+   restored board, accent text is the historical primary again (wood-brown
+   light / earthy-green dark) — re-point it and exactly the variants used by
+   the private components. */
+.board-original .text-primary {
+  color: var(--primary);
+}
+.board-original .hover\:text-primary:hover {
+  color: var(--primary);
+}
+.board-original .active\:text-primary:active {
+  color: var(--primary);
+}
+.board-original .group:hover .group-hover\:text-primary {
+  color: var(--primary);
+}
+@media (min-width: 768px) {
+  .board-original .group:hover .md\:group-hover\:text-primary {
+    color: var(--primary);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Historical radius scale (current @theme uses a different scale and omits
+   2xl/3xl; restore the 668e334 values inside the scope)
+   -------------------------------------------------------------------------- */
+.board-original :is(.rounded-sm) { border-radius: calc(var(--radius) - 4px); }
+.board-original :is(.rounded-md) { border-radius: calc(var(--radius) - 2px); }
+.board-original :is(.rounded-xl) { border-radius: calc(var(--radius) + 4px); }
+.board-original :is(.rounded-2xl) { border-radius: calc(var(--radius) + 8px); }
+.board-original :is(.rounded-3xl) { border-radius: calc(var(--radius) + 12px); }
+
+/* --------------------------------------------------------------------------
+   Scoped dark-variant replication.
+   The current Tailwind build has no `@custom-variant dark`, so `dark:`
+   utilities are media-based (prefers-color-scheme). The board's dark toggle
+   is route-local class state, so each `dark:` utility used by the restored
+   components is re-applied against `.board-original.dark` and neutralized in
+   light scope (covers dark-OS devices using the light board).
+   -------------------------------------------------------------------------- */
+.board-original.dark .dark\:bg-input\/35 {
+  background-color: color-mix(in oklab, var(--input) 35%, transparent);
+}
+.board-original:not(.dark) .dark\:bg-input\/35 {
+  background-color: color-mix(in oklab, var(--card) 65%, transparent);
+}
+.board-original.dark .dark\:bg-input\/30 {
+  background-color: color-mix(in oklab, var(--input) 30%, transparent);
+}
+.board-original:not(.dark) .dark\:bg-input\/30 {
+  background-color: transparent;
+}
+.board-original.dark .dark\:hover\:bg-input\/50:hover {
+  background-color: color-mix(in oklab, var(--input) 50%, transparent);
+}
+.board-original:not(.dark) .dark\:hover\:bg-input\/50:hover {
+  background-color: transparent;
+}
+.board-original.dark .dark\:text-amber-400 {
+  color: var(--color-amber-400);
+}
+.board-original:not(.dark) .dark\:text-amber-400 {
+  color: var(--color-amber-600);
+}
+.board-original.dark .dark\:text-amber-300 {
+  color: var(--color-amber-300);
+}
+.board-original:not(.dark) .dark\:text-amber-300 {
+  color: var(--color-amber-700);
+}
+.board-original.dark .dark\:focus-visible\:ring-destructive\/40:focus-visible {
+  --tw-ring-color: color-mix(in oklab, var(--destructive) 40%, transparent);
+}
+.board-original:not(.dark) .dark\:focus-visible\:ring-destructive\/40:focus-visible {
+  --tw-ring-color: color-mix(in oklab, var(--destructive) 20%, transparent);
+}
+.board-original.dark .dark\:aria-invalid\:ring-destructive\/20[aria-invalid='true'] {
+  --tw-ring-color: color-mix(in oklab, var(--destructive) 20%, transparent);
+}
+.board-original.dark .dark\:aria-invalid\:ring-destructive\/40[aria-invalid='true'] {
+  --tw-ring-color: color-mix(in oklab, var(--destructive) 40%, transparent);
+}
+.board-original:not(.dark) .dark\:aria-invalid\:ring-destructive\/40[aria-invalid='true'] {
+  --tw-ring-color: color-mix(in oklab, var(--destructive) 20%, transparent);
+}
+
+/* --------------------------------------------------------------------------
+   Token scope — dark (668e334 .dark block)
+   -------------------------------------------------------------------------- */
+.board-original.dark {
+  color-scheme: dark;
+
+  --color-background-base: oklch(0.14 0.01 80);
+  --color-text-primary: oklch(0.96 0.01 85);
+  --color-text-secondary: oklch(0.7 0.02 85);
+  --color-surface-card: oklch(0.18 0.01 80);
+  --color-background-elevated: oklch(0.24 0.01 80);
+  --color-accent-default: oklch(0.68 0.12 140);
+  --color-accent-on-accent: oklch(0.14 0.01 80);
+  --color-accent-soft: oklch(0.62 0.1 115);
+  --color-danger: oklch(0.6 0.19 25);
+  --color-stroke-default: oklch(0.28 0.01 80);
+  --color-stroke-subtle: oklch(0.24 0.01 80);
+
+  --shadow-soft: 0 1px 2px oklch(0 0 0 / 0.18), 0 16px 44px oklch(0 0 0 / 0.28);
+  --shadow-float: 0 24px 72px oklch(0 0 0 / 0.42);
+  --surface-glass: oklch(0.18 0.01 80 / 0.78);
+  --surface-raised: oklch(0.2 0.012 80 / 0.95);
+
+  --background: oklch(0.14 0.01 80);
+  --foreground: oklch(0.96 0.01 85);
+  --card: oklch(0.18 0.01 80);
+  --card-foreground: oklch(0.96 0.01 85);
+  --popover: oklch(0.18 0.01 80);
+  --popover-foreground: oklch(0.96 0.01 85);
+  --primary: oklch(0.68 0.12 140);
+  --primary-foreground: oklch(0.14 0.01 80);
+  --secondary: oklch(0.6 0.09 60);
+  --secondary-foreground: oklch(0.96 0.01 85);
+  --muted: oklch(0.24 0.01 80);
+  --muted-foreground: oklch(0.7 0.02 85);
+  --accent: oklch(0.62 0.1 115);
+  --accent-foreground: oklch(0.96 0.01 85);
+  --destructive: oklch(0.6 0.19 25);
+  --border: oklch(0.28 0.01 80);
+  --input: oklch(0.24 0.01 80);
+  --ring: oklch(0.68 0.12 140);
+
+  --board-secondary: oklch(0.6 0.09 60);
+  --board-secondary-foreground: oklch(0.96 0.01 85);
+  --board-popover: oklch(0.18 0.01 80);
+  --board-accent-foreground: oklch(0.96 0.01 85);
+}
+
+.board-root.dark {
+  background-image:
+    radial-gradient(circle at 8% -10%, oklch(0.34 0.05 80 / 0.35), transparent 34rem),
+    radial-gradient(circle at 92% 12%, oklch(0.32 0.05 150 / 0.22), transparent 30rem);
+}
+
+/* --------------------------------------------------------------------------
+   Historical scoped utilities (668e334 @layer utilities, re-scoped)
+   -------------------------------------------------------------------------- */
+.board-original .app-shell {
+  position: relative;
+  isolation: isolate;
+  min-height: 100dvh;
+  background: transparent;
+}
+
+.board-original .app-shell::before {
+  content: '';
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(115deg, transparent 0 45%, color-mix(in oklch, var(--secondary) 5%, transparent) 100%),
+    radial-gradient(circle at 50% 120%, color-mix(in oklch, var(--primary) 9%, transparent), transparent 42rem);
+}
+
+.board-original .page-frame {
+  width: min(100%, 88rem);
+  margin-inline: auto;
+}
+
+.board-original .page-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: var(--surface-glass);
+  border-bottom: 1px solid color-mix(in oklch, var(--border) 70%, transparent);
+  backdrop-filter: blur(18px) saturate(1.15);
+  box-shadow: 0 1px 0 oklch(1 0 0 / 0.08);
+}
+
+.board-original .surface-panel {
+  background: var(--surface-raised);
+  border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-soft);
+}
+
+.board-original .pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.board-original .pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+.board-original .pl-safe {
+  padding-left: env(safe-area-inset-left);
+}
+
+.board-original .pr-safe {
+  padding-right: env(safe-area-inset-right);
+}
+
+.board-original .auth-shell {
+  position: relative;
+  isolation: isolate;
+  min-height: 100dvh;
+  background: transparent;
+}
+
+.board-original .auth-shell::after {
+  content: '';
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 20% 25%, color-mix(in oklch, var(--primary) 18%, transparent), transparent 28rem),
+    radial-gradient(circle at 82% 78%, color-mix(in oklch, var(--secondary) 14%, transparent), transparent 32rem);
+}
+
+.board-original .auth-card {
+  padding: 2rem;
+  background: var(--surface-glass);
+  border: 1px solid color-mix(in oklch, var(--border) 72%, transparent);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-float);
+  backdrop-filter: blur(18px) saturate(1.1);
+}
+
+@media (max-width: 40rem) {
+  .board-original .auth-card {
+    padding: 1.5rem;
+    border-radius: var(--radius-xl);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Historical base layer behaviors, re-scoped
+   -------------------------------------------------------------------------- */
+.board-original ::selection {
+  background: color-mix(in oklch, var(--primary) 28%, transparent);
+}
+
+.board-original :where(h1, h2, h3, [data-slot='dialog-title'], [data-slot='card-title']) {
+  font-family: var(--font-manrope), 'Avenir Next', system-ui, sans-serif;
+  font-optical-sizing: auto;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+.board-original :where(button, a, input, textarea, select):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .board-original *,
+  .board-original *::before,
+  .board-original *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Toast theming — single consumer.
+   The root layout's Toaster (theme="dark", inline
+   --normal-bg/text/border: var(--popover/--popover-foreground/--border)) is
+   the ONLY live Sonner consumer; /board never mounts a second one (two
+   consumers share the toast store and hidden timers would dismiss hovered
+   visible toasts). While the board scope is mounted we retarget the custom
+   properties the toaster's inline styles resolve against, restoring the
+   668e334 cream/earthy toast. Variant palettes below match sonner's own
+   light values for the light board (the element still carries
+   data-sonner-theme=dark from the shared primitive). Specificity is raised
+   to beat sonner's runtime-injected styles.
+   -------------------------------------------------------------------------- */
+body:has(.board-original:not(.dark)) [data-sonner-toaster] {
+  --popover: oklch(0.99 0.005 85);
+  --popover-foreground: oklch(0.25 0.03 55);
+  --border: oklch(0.9 0.02 85);
+  --radius: 1rem;
+  /* sonner light variant palette (restores original light-toast behavior) */
+  --normal-bg-hover: hsl(0, 0%, 95%);
+  --normal-border-hover: hsl(0, 0%, 85%);
+  --success-bg: hsl(143, 85%, 96%);
+  --success-border: hsl(145, 92%, 87%);
+  --success-text: hsl(140, 100%, 27%);
+  --info-bg: hsl(208, 100%, 97%);
+  --info-border: hsl(221, 91%, 93%);
+  --info-text: hsl(210, 92%, 45%);
+  --warning-bg: hsl(49, 100%, 97%);
+  --warning-border: hsl(49, 91%, 84%);
+  --warning-text: hsl(31, 92%, 45%);
+  --error-bg: hsl(359, 100%, 97%);
+  --error-border: hsl(359, 100%, 94%);
+  --error-text: hsl(360, 100%, 45%);
+}
+
+body:has(.board-original:not(.dark)) [data-sonner-toaster][data-sonner-theme='dark'] [data-description] {
+  color: #3f3f3f;
+}
+
+body:has(.board-original:not(.dark)) [data-sonner-toaster][data-sonner-theme='dark'] [data-sonner-toast][data-styled='true'] [data-cancel] {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+body:has(.board-original.dark) [data-sonner-toaster] {
+  --popover: oklch(0.18 0.01 80);
+  --popover-foreground: oklch(0.96 0.01 85);
+  --border: oklch(0.28 0.01 80);
+  --radius: 1rem;
+}
+
+/* Shared root BottomNav (dark-styled, /app links) is replaced by the
+   route-local historical replica; suppressed only while the board scope is
+   mounted — no shared file is edited. */
+body:has(.board-original) nav[aria-label='Primary navigation']:not(.board-nav) {
+  display: none !important;
+}

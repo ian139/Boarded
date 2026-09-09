@@ -11,7 +11,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test packages/shared/utils/*.test.ts lib/utils/*.test.ts"
+    "test": "node --test packages/shared/utils/*.test.ts lib/utils/*.test.ts lib/boarded/*.test.ts"
   },
   "dependencies": {
     "@boarded/shared": "*",
