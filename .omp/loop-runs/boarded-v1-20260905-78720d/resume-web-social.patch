@@ -1,0 +1,765 @@
+diff --git a/app/activity/page.tsx b/app/activity/page.tsx
+index e487ba82500736ce75207150d2e80cb990f4b6fb..e8e6eb61eb08a0b0eb5c033f7ea0b00e201236b8 100644
+--- a/app/activity/page.tsx
++++ b/app/activity/page.tsx
+@@ -20,73 +20,155 @@ export default function ActivityPage() {
+   const [isLoadingMore, setIsLoadingMore] = useState(false);
+   const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
+ 
++  const activityGenRef = useRef(0);
++  const currentUserIdRef = useRef<string | undefined>(user?.id);
+   // Finding 17: Fetch activity with cursor continuation
+-  const fetchActivity = useCallback(async (isInitial = true) => {
++  // Finding 17 & Finding 2: Fetch activity with cursor continuation & identity/generation guards
++  const fetchActivity = useCallback(
++    async (isInitial = true) => {
++      if (!user) {
++        setIsLoading(false);
++        setEvents([]);
++        return;
++      }
++
++      const currentGen = isInitial ? ++activityGenRef.current : activityGenRef.current;
++      const reqUserId = user.id;
++
++      if (isInitial) {
++        setIsLoading(true);
++        setActivityError(null);
++      } else {
++        setIsLoadingMore(true);
++      }
++
++      try {
++        const supabase = createClient();
++        let beforeCreatedAt: string | null = null;
++        let beforeId: string | null = null;
++
++        if (!isInitial && events.length > 0) {
++          const last = events[events.length - 1];
++          beforeCreatedAt = last.created_at;
++          beforeId = last.id;
++        }
++
++        const { data, error } = await supabase.rpc('get_activity', {
++          page_size: 30,
++          before_created_at: beforeCreatedAt,
++          before_id: beforeId,
++        });
++
++        // Finding 2: Reject responses belonging to an obsolete generation or account
++        if (currentGen !== activityGenRef.current || user.id !== reqUserId) {
++          return;
++        }
++
++        if (error) {
++          if (isInitial) {
++            setActivityError(error.message || 'Unable to load activity inbox');
++            setEvents([]);
++          } else {
++            toast.error('Unable to load older notifications');
++          }
++        } else {
++          const rows = (data || []) as ActivityEvent[];
++          if (isInitial) {
++            setEvents(rows);
++          } else {
++            setEvents((prev) => {
++              const existingIds = new Set(prev.map((e) => e.id));
++              const newRows = rows.filter((e) => !existingIds.has(e.id));
++              return [...prev, ...newRows];
++            });
++          }
++          setHasMore(rows.length === 30);
++        }
++      } catch (err: unknown) {
++        if (currentGen !== activityGenRef.current || user.id !== reqUserId) {
++          return;
++        }
++        if (isInitial) {
++          setActivityError(err instanceof Error ? err.message : 'Network error');
++          setEvents([]);
++        } else {
++          toast.error('Network error loading notifications');
++        }
++      } finally {
++        if (currentGen === activityGenRef.current && user.id === reqUserId) {
++          setIsLoading(false);
++          setIsLoadingMore(false);
++        }
++      }
++    },
++    [user, events]
++  );
++
++  // Finding 2: Re-bind inbox on user switch, immediately clearing state and invalidating old responses
++  useEffect(() => {
++    activityGenRef.current += 1;
++    currentUserIdRef.current = user?.id;
++
++    // Finding: Reset mark-all pending state when changing accounts
++    setIsMarkingAllRead(false);
++
+     if (!user) {
++      setEvents([]);
+       setIsLoading(false);
+-      return;
+-    }
+-
+-    if (isInitial) {
+-      setIsLoading(true);
+       setActivityError(null);
+-    } else {
+-      setIsLoadingMore(true);
++      setHasMore(false);
++      setIsLoadingMore(false);
++      return;
+     }
+ 
+-    try {
+-      const supabase = createClient();
+-      let beforeCreatedAt: string | null = null;
+-      let beforeId: string | null = null;
++    setEvents([]);
++    setIsLoading(true);
++    setActivityError(null);
++    setHasMore(false);
++    setIsLoadingMore(false);
++    const currentGen = activityGenRef.current;
++    const reqUserId = user.id;
+ 
+-      if (!isInitial && events.length > 0) {
+-        const last = events[events.length - 1];
+-        beforeCreatedAt = last.created_at;
+-        beforeId = last.id;
+-      }
++    const loadInitialActivity = async () => {
++      try {
++        const supabase = createClient();
++        const { data, error } = await supabase.rpc('get_activity', {
++          page_size: 30,
++        });
+ 
+-      const { data, error } = await supabase.rpc('get_activity', {
+-        page_size: 30,
+-        before_created_at: beforeCreatedAt,
+-        before_id: beforeId,
+-      });
++        if (currentGen !== activityGenRef.current || user?.id !== reqUserId) {
++          return;
++        }
+ 
+-      if (error) {
+-        if (isInitial) {
++        if (error) {
+           setActivityError(error.message || 'Unable to load activity inbox');
+           setEvents([]);
+         } else {
+-          toast.error('Unable to load older notifications');
+-        }
+-      } else {
+-        const rows = (data || []) as ActivityEvent[];
+-        if (isInitial) {
++          const rows = (data || []) as ActivityEvent[];
+           setEvents(rows);
+-        } else {
+-          setEvents((prev) => [...prev, ...rows]);
++          setHasMore(rows.length === 30);
++        }
++      } catch (err: unknown) {
++        if (currentGen !== activityGenRef.current || user?.id !== reqUserId) {
++          return;
+         }
+-        setHasMore(rows.length === 30);
+-      }
+-    } catch (err: unknown) {
+-      if (isInitial) {
+         setActivityError(err instanceof Error ? err.message : 'Network error');
+         setEvents([]);
+-      } else {
+-        toast.error('Network error loading notifications');
++      } finally {
++        if (currentGen === activityGenRef.current && user?.id === reqUserId) {
++          setIsLoading(false);
++        }
+       }
+-    } finally {
+-      setIsLoading(false);
+-      setIsLoadingMore(false);
+-    }
+-  }, [user, events]);
++    };
+ 
+-  useEffect(() => {
+-    fetchActivity(true);
++    loadInitialActivity();
+   }, [user?.id]);
+ 
+   // Mark all as read
+   const handleMarkAllRead = async () => {
+     if (!user) return;
++    const actionUserId = user.id;
++    const actionGen = activityGenRef.current;
+     setIsMarkingAllRead(true);
+     try {
+       const supabase = createClient();
+@@ -94,23 +176,35 @@ export default function ActivityPage() {
+       const { error } = await supabase
+         .from('activity_events')
+         .update({ read_at: now })
+-        .eq('recipient_id', user.id)
++        .eq('recipient_id', actionUserId)
+         .is('read_at', null);
+ 
+       if (error) throw error;
+ 
++      // Finding 2: Reject mutation completion if account changed while in flight
++      if (user.id !== actionUserId || actionGen !== activityGenRef.current) {
++        return;
++      }
++
+       setEvents((prev) => prev.map((e) => ({ ...e, read_at: now })));
+       toast.success('All notifications marked as read');
+     } catch {
+-      toast.error('Unable to mark notifications read');
++      if (user.id === actionUserId && actionGen === activityGenRef.current) {
++        toast.error('Unable to mark notifications read');
++      }
+     } finally {
+-      setIsMarkingAllRead(false);
++      if (user.id === actionUserId && actionGen === activityGenRef.current) {
++        setIsMarkingAllRead(false);
++      }
+     }
+   };
+ 
+-  // Finding 32: Check mutation result before setting read_at locally
++  // Finding 32 & Finding 2: Check mutation result before setting read_at locally, and abort navigation if account switched
+   const handleEventClick = async (event: ActivityEvent) => {
+-    if (!event.read_at && user) {
++    const actionUserId = user?.id;
++    const actionGen = activityGenRef.current;
++
++    if (!event.read_at && user && actionUserId) {
+       const now = new Date().toISOString();
+       const previousReadAt = event.read_at;
+ 
+@@ -124,20 +218,34 @@ export default function ActivityPage() {
+         const { error } = await supabase
+           .from('activity_events')
+           .update({ read_at: now })
+-          .eq('id', event.id);
++          .eq('id', event.id)
++          .eq('recipient_id', actionUserId);
+ 
+         if (error) {
+-          // Revert on error (Finding 32)
++          // Finding 2: Revert on error only if still on the same account
++          if (user?.id === actionUserId && actionGen === activityGenRef.current) {
++            setEvents((prev) =>
++              prev.map((e) => (e.id === event.id ? { ...e, read_at: previousReadAt } : e))
++            );
++          }
++        }
++      } catch {
++        // Finding 2: Revert on failure only if still on the same account
++        if (user?.id === actionUserId && actionGen === activityGenRef.current) {
+           setEvents((prev) =>
+             prev.map((e) => (e.id === event.id ? { ...e, read_at: previousReadAt } : e))
+           );
+         }
+-      } catch {
+-        // Revert on failure
+-        setEvents((prev) =>
+-          prev.map((e) => (e.id === event.id ? { ...e, read_at: previousReadAt } : e))
+-        );
+       }
++
++      // Finding 2: Reject navigation if account switched during mutation await
++      if (user?.id !== actionUserId || actionGen !== activityGenRef.current) {
++        return;
++      }
++    }
++
++    if (user && actionUserId && user.id !== actionUserId) {
++      return;
+     }
+ 
+     if (event.kind === 'follow') {
+diff --git a/app/app/page.tsx b/app/app/page.tsx
+index 19dc26e72b4d401c4d0dbb0acaf296078a8dc635..220b994f75a61a8fc333fc684a3328fd23e2700f 100644
+--- a/app/app/page.tsx
++++ b/app/app/page.tsx
+@@ -2,19 +2,35 @@
+ 
+ import { useState, useEffect, useCallback, useRef } from 'react';
+ import Link from 'next/link';
++import { useRouter } from 'next/navigation';
+ import { toast } from 'sonner';
+ import { createClient } from '@/lib/supabase/client';
+ import { useUserStore } from '@/lib/stores/user-store';
+-import { useRoutesStore } from '@/lib/stores/routes-store';
+ import { FeedCard } from '@/components/feed/FeedCard';
+ import { CommentsSheet } from '@/components/feed/CommentsSheet';
+-import { RouteViewerDialog } from '@/components/home/RouteViewerDialog';
+-import type { SessionFeedItem, Route } from '@boarded/shared/types';
++import type { SessionFeedItem } from '@boarded/shared/types';
+ import { cn } from '@/lib/utils';
+ 
++function getTargetPostIdFromLocation(): string | null {
++  if (typeof window === 'undefined') return null;
++  const hash = window.location.hash;
++  if (hash.startsWith('#post-')) {
++    const id = hash.replace('#post-', '').trim();
++    if (id) return id;
++  }
++  if (hash.startsWith('#') && hash.length > 1 && !hash.includes('/')) {
++    const id = hash.slice(1).trim();
++    if (id) return id;
++  }
++  const params = new URLSearchParams(window.location.search);
++  const qId = params.get('post') || params.get('postId');
++  if (qId && qId.trim()) return qId.trim();
++  return null;
++}
++
+ export default function FeedPage() {
++  const router = useRouter();
+   const { user } = useUserStore();
+-  const { routes } = useRoutesStore(); // Finding 1
+ 
+   const [feedMode, setFeedMode] = useState<'following' | 'discovery'>('discovery');
+   const [hasExplicitlySetMode, setHasExplicitlySetMode] = useState(false);
+@@ -22,9 +38,15 @@ export default function FeedPage() {
+   const [isLoading, setIsLoading] = useState(true);
+   const [feedError, setFeedError] = useState<string | null>(null);
+   const [activeCommentsItem, setActiveCommentsItem] = useState<SessionFeedItem | null>(null);
+-  const [activeRouteToView, setActiveRouteToView] = useState<Route | null>(null);
+   const [hasMore, setHasMore] = useState(false);
+   const [isLoadingMore, setIsLoadingMore] = useState(false);
++  const [targetPostId, setTargetPostId] = useState<string | null>(null);
++
++  const feedQueryGenRef = useRef(0);
++  const targetPostRef = useRef<{ item: SessionFeedItem; viewerId?: string } | null>(null);
++  const revealedTargetIdRef = useRef<string | null>(null);
++  const feedItemsRef = useRef<SessionFeedItem[]>([]);
++  feedItemsRef.current = feedItems;
+ 
+   // Finding 19: Switch to following when user resolves, unless user explicitly selected discovery
+   useEffect(() => {
+@@ -33,164 +55,248 @@ export default function FeedPage() {
+     }
+   }, [user, hasExplicitlySetMode]);
+ 
+-  // Finding 16 & 19: Fetch feed with cursor continuation & identity tracking
+-  const fetchFeed = useCallback(async (isInitial = true) => {
+-    if (isInitial) {
+-      setIsLoading(true);
+-      setFeedError(null);
+-    } else {
+-      setIsLoadingMore(true);
++  // Finding 16 & 19: Initial load coordinated with target post resolution & query generation tracking
++  const loadInitial = useCallback(async () => {
++    const currentGen = ++feedQueryGenRef.current;
++    const currentMode = feedMode;
++    const currentUserId = user?.id;
++    const currentTargetId = getTargetPostIdFromLocation();
++    setTargetPostId(currentTargetId);
++
++    setIsLoading(true);
++    setIsLoadingMore(false); // Finding: Reset pagination loading on replacement
++    setFeedError(null);
++
++    // Finding: Invalidate cached target post projection if viewer changed
++    if (targetPostRef.current && targetPostRef.current.viewerId !== currentUserId) {
++      targetPostRef.current = null;
+     }
+ 
+     try {
+       const supabase = createClient();
+-      const followingOnly = feedMode === 'following';
+-
+-      let beforeCreatedAt: string | null = null;
+-      let beforeId: string | null = null;
+-
+-      if (!isInitial && feedItems.length > 0) {
+-        const lastItem = feedItems[feedItems.length - 1];
+-        beforeCreatedAt = lastItem.created_at;
+-        beforeId = lastItem.id;
+-      }
++      const followingOnly = currentMode === 'following';
+ 
+-      const { data, error } = await supabase.rpc('get_session_feed', {
++      const feedPromise = supabase.rpc('get_session_feed', {
+         following_only: followingOnly,
+         page_size: 20,
+-        before_created_at: beforeCreatedAt,
+-        before_id: beforeId,
+       });
+ 
+-      if (error) {
+-        if (isInitial) {
+-          setFeedError(error.message || 'Unable to load climbing feed');
+-          setFeedItems([]);
+-        } else {
+-          toast.error('Unable to load older sends');
+-        }
+-      } else {
+-        const rows = (data || []) as SessionFeedItem[];
+-        if (isInitial) {
+-          setFeedItems(rows);
+-        } else {
+-          // Finding 16: Append older posts to feedItems
+-          setFeedItems((prev) => [...prev, ...rows]);
++      // Finding 1 & 3: Wrap RPC in Promise.resolve for PromiseLike compatibility, and check viewer-scoped cache
++      const isTargetCached = Boolean(
++        currentTargetId &&
++          targetPostRef.current &&
++          targetPostRef.current.viewerId === currentUserId &&
++          targetPostRef.current.item.id === currentTargetId
++      );
++
++      const targetPromise =
++        currentTargetId && !isTargetCached
++          ? Promise.resolve(
++              supabase.rpc('get_session_feed', {
++                post_filter: currentTargetId,
++                page_size: 1,
++              })
++            )
++          : null;
++
++      const [feedRes, targetRes] = await Promise.all([feedPromise, targetPromise]);
++
++      // Finding 4: Invalidate if query or user identity changed while in flight
++      if (currentGen !== feedQueryGenRef.current) return;
++      if (feedMode !== currentMode || user?.id !== currentUserId) return;
++
++      if (feedRes.error) {
++        setFeedError(feedRes.error.message || 'Unable to load climbing feed');
++        setFeedItems([]);
++        return;
++      }
++
++      let rows = (feedRes.data || []) as SessionFeedItem[];
++
++      let resolvedTarget =
++        targetPostRef.current && targetPostRef.current.viewerId === currentUserId
++          ? targetPostRef.current.item
++          : null;
++
++      if (targetRes && !targetRes.error && targetRes.data && targetRes.data.length > 0) {
++        resolvedTarget = targetRes.data[0] as SessionFeedItem;
++        targetPostRef.current = { item: resolvedTarget, viewerId: currentUserId };
++      }
++
++      // Finding 3: Ensure targeted post is preserved and prepended if outside first-page feed
++      if (currentTargetId) {
++        const alreadyInRows = rows.some((it) => it.id === currentTargetId);
++        if (!alreadyInRows) {
++          if (resolvedTarget && resolvedTarget.id === currentTargetId) {
++            rows = [resolvedTarget, ...rows];
++          } else {
++            const { data: tData } = await supabase.rpc('get_session_feed', {
++              post_filter: currentTargetId,
++              page_size: 1,
++            });
++            // Finding: Recheck generation and user/mode immediately after fallback await before any setState
++            if (currentGen !== feedQueryGenRef.current || feedMode !== currentMode || user?.id !== currentUserId) {
++              return;
++            }
++            if (tData && tData.length > 0) {
++              resolvedTarget = tData[0] as SessionFeedItem;
++              targetPostRef.current = { item: resolvedTarget, viewerId: currentUserId };
++              rows = [resolvedTarget, ...rows];
++            }
++          }
+         }
+-        setHasMore(rows.length === 20);
+       }
++
++      setFeedItems(rows);
++      setHasMore((feedRes.data || []).length === 20);
+     } catch (err) {
+-      if (isInitial) {
+-        setFeedError(err instanceof Error ? err.message : 'Network connection error');
+-        setFeedItems([]);
+-      } else {
+-        toast.error('Network connection error while loading older sends');
+-      }
++      if (currentGen !== feedQueryGenRef.current) return;
++      if (feedMode !== currentMode || user?.id !== currentUserId) return;
++      setFeedError(err instanceof Error ? err.message : 'Network connection error');
++      setFeedItems([]);
+     } finally {
+-      setIsLoading(false);
+-      setIsLoadingMore(false);
++      if (currentGen === feedQueryGenRef.current && feedMode === currentMode && user?.id === currentUserId) {
++        setIsLoading(false);
++      }
+     }
+-  }, [feedMode, feedItems]);
++  }, [feedMode, user?.id]);
+ 
+-  // Refetch when feedMode or user identity changes (Finding 19)
+   useEffect(() => {
+-    let active = true;
+-    const loadInitial = async () => {
+-      setIsLoading(true);
+-      setFeedError(null);
++    loadInitial();
++  }, [loadInitial]);
++
++  // Finding 4: Invalidate Feed continuation requests when its query or identity changes
++  const fetchFeed = useCallback(
++    async (isInitial = true) => {
++      if (isInitial) {
++        loadInitial();
++        return;
++      }
++
++      const currentGen = feedQueryGenRef.current;
++      const currentMode = feedMode;
++      const currentUserId = user?.id;
++
++      if (feedItems.length === 0) return;
++
++      setIsLoadingMore(true);
++
+       try {
+         const supabase = createClient();
+-        const followingOnly = feedMode === 'following';
++        const followingOnly = currentMode === 'following';
++
++        const lastItem = feedItems[feedItems.length - 1];
++        const beforeCreatedAt = lastItem.created_at;
++        const beforeId = lastItem.id;
+ 
+         const { data, error } = await supabase.rpc('get_session_feed', {
+           following_only: followingOnly,
+           page_size: 20,
++          before_created_at: beforeCreatedAt,
++          before_id: beforeId,
+         });
+ 
+-        if (!active) return;
++        // Finding 4: Invalidate Feed continuation requests when query mode or user identity changes
++        if (currentGen !== feedQueryGenRef.current) return;
++        if (feedMode !== currentMode || user?.id !== currentUserId) return;
+ 
+         if (error) {
+-          setFeedError(error.message || 'Unable to load climbing feed');
+-          setFeedItems([]);
++          toast.error('Unable to load older sends');
+         } else {
+           const rows = (data || []) as SessionFeedItem[];
+-          setFeedItems(rows);
++          setFeedItems((prev) => {
++            const existingIds = new Set(prev.map((it) => it.id));
++            const newRows = rows.filter((it) => !existingIds.has(it.id));
++            return [...prev, ...newRows];
++          });
+           setHasMore(rows.length === 20);
+         }
+-      } catch (err) {
+-        if (!active) return;
+-        setFeedError(err instanceof Error ? err.message : 'Network connection error');
+-        setFeedItems([]);
++      } catch {
++        if (currentGen !== feedQueryGenRef.current) return;
++        if (feedMode !== currentMode || user?.id !== currentUserId) return;
++        toast.error('Network connection error while loading older sends');
+       } finally {
+-        if (active) setIsLoading(false);
++        if (currentGen === feedQueryGenRef.current && feedMode === currentMode && user?.id === currentUserId) {
++          setIsLoadingMore(false);
++        }
+       }
+-    };
+-
+-    loadInitial();
+-    return () => {
+-      active = false;
+-    };
+-  }, [feedMode, user?.id]);
++    },
++    [loadInitial, feedMode, user?.id, feedItems]
++  );
+ 
+-  // Finding 18: Resolve target post IDs from URL hash or query
++  // Finding 18: Dynamic hash / location change listener for in-app navigation
+   useEffect(() => {
+     if (typeof window === 'undefined') return;
++    const handleLocationChange = async () => {
++      const targetId = getTargetPostIdFromLocation();
++      setTargetPostId(targetId);
++      if (!targetId) {
++        revealedTargetIdRef.current = null;
++        return;
++      }
++      if (revealedTargetIdRef.current !== targetId) {
++        revealedTargetIdRef.current = null;
++      }
++      if (feedItemsRef.current.some((p) => p.id === targetId)) {
++        return;
++      }
+ 
+-    const resolveTargetPost = async () => {
+-      const hash = window.location.hash;
+-      const targetPostId = hash.startsWith('#post-') ? hash.replace('#post-', '') : null;
+-      if (!targetPostId) return;
++      const reqGen = feedQueryGenRef.current;
++      const reqUserId = user?.id;
+ 
+       try {
+         const supabase = createClient();
+         const { data, error } = await supabase.rpc('get_session_feed', {
+-          post_filter: targetPostId,
++          post_filter: targetId,
+           page_size: 1,
+         });
+ 
++        // Finding: Guard dynamic hash/location changes against stale generation or user changes
++        if (reqGen !== feedQueryGenRef.current || user?.id !== reqUserId) return;
++        if (getTargetPostIdFromLocation() !== targetId) return;
++
+         if (!error && data && data.length > 0) {
+           const post = data[0] as SessionFeedItem;
++          targetPostRef.current = { item: post, viewerId: reqUserId };
+           setFeedItems((prev) => {
+             if (prev.some((p) => p.id === post.id)) return prev;
+             return [post, ...prev];
+           });
+-          // Scroll to the post
+-          setTimeout(() => {
+-            document.getElementById(`post-${post.id}`)?.scrollIntoView({ behavior: 'smooth' });
+-          }, 300);
+         }
+       } catch {
+-        // Fallback
++        // Fallback silently
+       }
+     };
+ 
+-    resolveTargetPost();
+-    window.addEventListener('hashchange', resolveTargetPost);
++    window.addEventListener('hashchange', handleLocationChange);
++    window.addEventListener('popstate', handleLocationChange);
+     return () => {
+-      window.removeEventListener('hashchange', resolveTargetPost);
++      window.removeEventListener('hashchange', handleLocationChange);
++      window.removeEventListener('popstate', handleLocationChange);
+     };
+-  }, []);
+-
+-  // Open Route Beta
+-  const handleOpenRouteViewer = async (routeId: string) => {
+-    // Finding 1: Check routes store
+-    const local = routes.find((r) => r.id === routeId);
+-    if (local) {
+-      setActiveRouteToView(local);
+-      return;
+-    }
++  }, [user?.id]);
+ 
+-    try {
+-      const supabase = createClient();
+-      const { data } = await supabase.from('routes').select('*').eq('id', routeId).single();
+-      if (data) {
+-        setActiveRouteToView(data as Route);
+-      } else {
+-        toast.error('Route details not available');
++  // Finding 3 & Finding 6: Scroll to targeted post once after skeletons disappear, then consume it
++  useEffect(() => {
++    if (!isLoading && targetPostId && revealedTargetIdRef.current !== targetPostId) {
++      const el = document.getElementById(`post-${targetPostId}`);
++      if (el) {
++        const timer = setTimeout(() => {
++          const targetEl = document.getElementById(`post-${targetPostId}`);
++          if (targetEl) {
++            revealedTargetIdRef.current = targetPostId;
++            targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
++          }
++        }, 150);
++        return () => clearTimeout(timer);
+       }
+-    } catch {
+-      toast.error('Unable to load route');
+     }
++  }, [isLoading, targetPostId, feedItems]);
++
++
++  // Finding 5: Feed Beta navigates canonical Explore routeId; no outdoor-to-board coercion or demo-wall fallback
++  const handleOpenRouteViewer = (routeId: string) => {
++    router.push(`/explore?routeId=${encodeURIComponent(routeId)}`);
+   };
+ 
+   return (
+@@ -382,14 +488,6 @@ export default function FeedPage() {
+         }}
+       />
+ 
+-      {/* Route Viewer Modal */}
+-      {activeRouteToView && (
+-        <RouteViewerDialog
+-          route={activeRouteToView}
+-          onOpenChange={(open) => !open && setActiveRouteToView(null)}
+-          wallImageUrl={activeRouteToView.wall_image_url || '/walls/demo-wall.jpg'}
+-        />
+-      )}
+     </div>
+   );
+ }
+diff --git a/components/feed/FeedCard.tsx b/components/feed/FeedCard.tsx
+index 976e4a9ce3aa7f63b215905ff682695d5e757f47..0bcb3eaca812769692e0be95ba14d3ce3cc8f6bf 100644
+--- a/components/feed/FeedCard.tsx
++++ b/components/feed/FeedCard.tsx
+@@ -205,9 +205,8 @@ export function FeedCard({ item, onOpenComments, onOpenRoute }: FeedCardProps) {
+     item.route?.rock_type || null,
+     item.route?.terrain ? item.route.terrain.charAt(0).toUpperCase() + item.route.terrain.slice(1) : null,
+   ].filter(Boolean);
+-
+   const timeline = item.session.attempt_timeline || [];
+-
++  const hasComposedArtwork = Boolean(resolvedImageUrl && !imageLoadError);
+   return (
+     <article
+       id={`post-${item.id}`}
+@@ -298,21 +297,29 @@ export function FeedCard({ item, onOpenComments, onOpenRoute }: FeedCardProps) {
+           </div>
+         )}
+ 
+-        {/* Obsidian fade scrim */}
+-        <div className="absolute inset-0 bg-gradient-to-t from-[#0A0B10] via-[#0A0B10]/40 to-transparent pointer-events-none" />
++        {/* Obsidian fade scrim — suppressed on composed artwork to prevent duplicate darkening */}
++        {!hasComposedArtwork && (
++          <div className="absolute inset-0 bg-gradient-to-t from-[#0A0B10] via-[#0A0B10]/40 to-transparent pointer-events-none" />
++        )}
+ 
+-        {/* Top-right overlay badge: outcome & style */}
+-        <div className="absolute top-4 right-4 flex items-center gap-2">
+-          {item.session.send_count > 0 && (
++        {/* Top-right overlay badge: outcome & style — suppressed on composed artwork to prevent duplication */}
++        {!hasComposedArtwork && item.session.send_count > 0 && (
++          <div className="absolute top-4 right-4 flex items-center gap-2">
+             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#171A22]/90 border border-divider text-xs font-medium text-[#F4F2EB] backdrop-blur-sm">
+               <span className="h-2 w-2 rounded-full bg-[#32D583]" />
+               {item.session.send_count} {item.session.send_count === 1 ? 'send' : 'sends'}
+             </span>
+-          )}
+-        </div>
+-
++          </div>
++        )}
+         {/* Bottom factual shelf over photo */}
+-        <div className="absolute bottom-0 left-0 right-0 p-5 pt-12 flex flex-col gap-2 pointer-events-auto">
++        <div
++          className={cn(
++            hasComposedArtwork
++              ? 'sr-only'
++              : 'absolute bottom-0 left-0 right-0 p-5 pt-12 flex flex-col gap-2 pointer-events-auto'
++          )}
++          aria-label="Climb facts"
++        >
+           {/* Outcome & Route Name */}
+           <div className="flex items-baseline gap-2.5 flex-wrap">
+             <span

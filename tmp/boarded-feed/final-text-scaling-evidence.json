@@ -1,0 +1,43 @@
+{
+  "checked": 115,
+  "mismatched": [],
+  "examples": [
+    {
+      "text": "Boarded",
+      "font": "56px"
+    },
+    {
+      "text": "Boarded",
+      "font": "32px"
+    },
+    {
+      "text": "Boarded",
+      "font": "56px"
+    },
+    {
+      "text": "Log",
+      "font": "32px"
+    },
+    {
+      "text": "Log",
+      "font": "30px"
+    },
+    {
+      "text": "Log",
+      "font": "30px"
+    },
+    {
+      "text": "Maya K.",
+      "font": "28px"
+    },
+    {
+      "text": "Log",
+      "font": "22px"
+    },
+    {
+      "text": "Log",
+      "font": "22px"
+    }
+  ],
+  "overflow": false
+}

@@ -1,0 +1,1945 @@
+diff --git a/app/log/page.tsx b/app/log/page.tsx
+index 33e5c029f87fec31140bd5f35fbd78fa87c220f4..90b89fb8654bfd7e01b53921900591e0f829b42d 100644
+--- a/app/log/page.tsx
++++ b/app/log/page.tsx
+@@ -10,6 +10,15 @@ import { useUserStore } from '@/lib/stores/user-store';
+ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+ import { SessionDetailModal } from '@/components/log/SessionDetailModal';
+ import { composeSessionResultCard } from '@/lib/utils/composer';
++import {
++  generateImageAlt,
++  getPublicationRecord,
++  getOrCreatePublicationRecord,
++  clearPublicationRecord,
++  reconcilePostCommit,
++  withPublicationLock,
++  type DurablePublicationRecord,
++} from '@/lib/utils/session-publication';
+ import type {
+   ClimbingSession,
+   ClimbAttempt,
+@@ -33,69 +42,129 @@ function LogContent() {
+   const { user } = useUserStore();
+   const fileInputRef = useRef<HTMLInputElement>(null);
+ 
+-  // Finding 13: Route query parameters from Explore
++  // Finding 6 & 13: Route and gradeSystem query parameters from Explore
+   const routeIdParam = searchParams?.get('routeId') || null;
+   const routeNameParam = searchParams?.get('routeName') || '';
+   const disciplineParam = (searchParams?.get('discipline') as ClimbDiscipline) || null;
++  const gradeSystemParam =
++    (searchParams?.get('gradeSystem') as GradeSystem) ||
++    (searchParams?.get('grade_system') as GradeSystem) ||
++    null;
+   const gradeParam = searchParams?.get('grade') || '';
+-
+   // Active session state
++  // Active session state & status check gate (Finding 12)
+   const [activeSession, setActiveSession] = useState<ClimbingSession | null>(null);
++  const [isCheckingActiveSession, setIsCheckingActiveSession] = useState(true);
+   const [attempts, setAttempts] = useState<ClimbAttempt[]>([]);
+   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+ 
+-  // Past sessions
++  // Past sessions & errors (Finding 8 & 14)
+   const [pastSessions, setPastSessions] = useState<ClimbingSession[]>([]);
+   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
++  const [pastSessionsHasMore, setPastSessionsHasMore] = useState(false);
++  const [isLoadingMoreHistory, setIsLoadingMoreHistory] = useState(false);
++  const [sessionLoadError, setSessionLoadError] = useState<string | null>(null);
++  const [historyLoadError, setHistoryLoadError] = useState<string | null>(null);
+   const [inspectingSession, setInspectingSession] = useState<ClimbingSession | null>(null);
+-
+   // Finding 12: Clean production defaults (no fixture facts)
+   const [venueName, setVenueName] = useState('');
+   const [conditions, setConditions] = useState('');
+   const [sessionNotes, setSessionNotes] = useState('');
+   const [isStartingSession, setIsStartingSession] = useState(false);
+ 
+-  // Log attempt form (Finding 11: Real discipline choices; Finding 13: Route linking)
++  // Log attempt form (Finding 6: GradeSystem preserved; Finding 7: Detachable catalog link)
+   const [linkedRouteId, setLinkedRouteId] = useState<string | null>(routeIdParam);
++  const [initialLinkedRouteName, setInitialLinkedRouteName] = useState<string>(routeNameParam);
+   const [routeName, setRouteName] = useState(routeNameParam);
+   const [discipline, setDiscipline] = useState<ClimbDiscipline>(disciplineParam || 'sport');
+   const [gradeSystem, setGradeSystem] = useState<GradeSystem>(
+-    disciplineParam === 'boulder' || disciplineParam === 'board' ? 'v_scale' : 'yds'
++    gradeSystemParam || (disciplineParam === 'boulder' || disciplineParam === 'board' ? 'v_scale' : 'yds')
+   );
+   const [gradeLabel, setGradeLabel] = useState(gradeParam);
+   const [outcome, setOutcome] = useState<AttemptOutcome>('sent');
+   const [attemptNotes, setAttemptNotes] = useState('');
+   const [isLoggingAttempt, setIsLoggingAttempt] = useState(false);
+ 
+-  // Finish & Publish modal state (Finding 8 & 9)
++  // Finish & Publish modal state (Finding 1, 2, 3, 4, 11)
+   const [sessionToPublish, setSessionToPublish] = useState<ClimbingSession | null>(null);
++  const [publishAttempts, setPublishAttempts] = useState<ClimbAttempt[]>([]);
++  const [isLoadingPublishAttempts, setIsLoadingPublishAttempts] = useState(false);
+   const [isFinishModalOpen, setIsFinishModalOpen] = useState(false);
+   const [selectedFeaturedAttemptId, setSelectedFeaturedAttemptId] = useState<string>('');
+   const [publishCaption, setPublishCaption] = useState('');
+   const [overlayStyle, setOverlayStyle] = useState<OverlayStyle>('stats');
+   const [selectedPhotoFile, setSelectedPhotoFile] = useState<File | null>(null);
+-  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
++  const [composedPreviewUrl, setComposedPreviewUrl] = useState<string | null>(null);
++  const [composedBlob, setComposedBlob] = useState<Blob | null>(null);
++  const [compositionRevision, setCompositionRevision] = useState(0);
++  const [blobRevision, setBlobRevision] = useState(0);
++  const inputRevisionRef = useRef(0);
++  const publishModalGenRef = useRef(0);
++  const activeComposerTargetIdRef = useRef<string | null>(null);
++  const [isComposingPreview, setIsComposingPreview] = useState(false);
+   const [isPublishing, setIsPublishing] = useState(false);
+ 
+-  // Finding 10: Clear private data immediately when authenticated identity changes
++  // Finding 5 & 10: Clear private data, session drafts, and in-flight mutation flags on ANY identity transition
+   const activeUserIdRef = useRef<string | null>(user?.id || null);
++  const prevUserIdRef = useRef<string | null>(user?.id || null);
+   useEffect(() => {
+-    activeUserIdRef.current = user?.id || null;
+-    if (!user) {
++    const currentUserId = user?.id || null;
++    if (currentUserId !== prevUserIdRef.current) {
++      prevUserIdRef.current = currentUserId;
++      activeUserIdRef.current = currentUserId;
++      publishModalGenRef.current++;
++      activeComposerTargetIdRef.current = null;
++
++      // Reset in-flight / pending flags (Finding 10)
++      setIsStartingSession(false);
++      setIsLoggingAttempt(false);
++      setIsPublishing(false);
++      setIsLoadingPublishAttempts(false);
++      setIsLoadingHistory(false);
++      setIsLoadingMoreHistory(false);
++      setIsComposingPreview(false);
++
++      // Reset data and session drafts (Finding 5)
+       setActiveSession(null);
+       setAttempts([]);
+       setPastSessions([]);
++      setSessionLoadError(null);
++      setHistoryLoadError(null);
+       setInspectingSession(null);
+       setIsFinishModalOpen(false);
++      setSessionToPublish(null);
++      setPublishAttempts([]);
++      setSelectedPhotoFile(null);
++      setComposedPreviewUrl((prev) => {
++        if (prev) URL.revokeObjectURL(prev);
++        return null;
++      });
++      setComposedBlob(null);
++      setCompositionRevision(0);
++      setBlobRevision(0);
++      setVenueName('');
++      setConditions('');
++      setSessionNotes('');
++      setRouteName('');
++      setGradeLabel('');
++      setAttemptNotes('');
++      setPublishCaption('');
++      setLinkedRouteId(null);
++      setInitialLinkedRouteName('');
+     }
+-  }, [user]);
++  }, [user?.id]);
+ 
+-  // Handle route param prefill
++  // Handle route param prefill (Finding 6 & 7)
+   useEffect(() => {
+-    if (routeNameParam) setRouteName(routeNameParam);
++    if (routeNameParam) {
++      setRouteName(routeNameParam);
++      setInitialLinkedRouteName(routeNameParam);
++    }
+     if (routeIdParam) setLinkedRouteId(routeIdParam);
+-    if (disciplineParam) {
+-      setDiscipline(disciplineParam);
++    if (disciplineParam) setDiscipline(disciplineParam);
++    if (gradeSystemParam) {
++      setGradeSystem(gradeSystemParam);
++    } else if (disciplineParam) {
+       if (disciplineParam === 'boulder' || disciplineParam === 'board') {
+         setGradeSystem('v_scale');
+       } else {
+@@ -103,13 +172,19 @@ function LogContent() {
+       }
+     }
+     if (gradeParam) setGradeLabel(gradeParam);
+-  }, [routeNameParam, routeIdParam, disciplineParam, gradeParam]);
++  }, [routeNameParam, routeIdParam, disciplineParam, gradeParam, gradeSystemParam]);
+ 
+-  // Fetch active session or past history on load
++  // Fetch active session or past history on load (Finding 12 & 14)
+   const fetchSessionData = useCallback(async () => {
+-    if (!user) return;
++    if (!user) {
++      setIsCheckingActiveSession(false);
++      return;
++    }
+     const currentUserId = user.id;
+     setIsLoadingHistory(true);
++    setIsCheckingActiveSession(true);
++    setSessionLoadError(null);
++    setHistoryLoadError(null);
+     try {
+       const supabase = createClient();
+ 
+@@ -123,27 +198,33 @@ function LogContent() {
+         .limit(1)
+         .maybeSingle();
+ 
+-      // Guard against race condition on identity change (Finding 10)
++      // Guard against race condition on identity change (Finding 5)
+       if (activeUserIdRef.current !== currentUserId) return;
+ 
+-      if (!activeErr && active) {
++      if (activeErr) {
++        setSessionLoadError(activeErr.message || 'Unable to check active session status');
++      } else if (active) {
+         setActiveSession(active as ClimbingSession);
+-        const { data: atts } = await supabase
++        const { data: atts, error: attsErr } = await supabase
+           .from('climb_attempts')
+           .select('*')
+           .eq('session_id', active.id)
+           .order('attempt_number', { ascending: true });
+ 
+-        if (activeUserIdRef.current === currentUserId && atts) {
+-          setAttempts(atts as ClimbAttempt[]);
++        if (activeUserIdRef.current === currentUserId) {
++          if (attsErr) {
++            setSessionLoadError(attsErr.message || 'Unable to load active session attempts');
++          } else {
++            setAttempts((atts || []) as ClimbAttempt[]);
++          }
+         }
+       } else {
+         setActiveSession(null);
+         setAttempts([]);
+       }
+ 
+-      // Fetch past finished sessions
+-      const { data: past } = await supabase
++      // Fetch past finished sessions (Finding 8: continuation tracked)
++      const { data: past, error: pastErr } = await supabase
+         .from('climbing_sessions')
+         .select('*')
+         .eq('user_id', currentUserId)
+@@ -151,18 +232,64 @@ function LogContent() {
+         .order('started_at', { ascending: false })
+         .limit(20);
+ 
+-      if (activeUserIdRef.current === currentUserId && past) {
+-        setPastSessions(past as ClimbingSession[]);
++      if (activeUserIdRef.current === currentUserId) {
++        if (pastErr) {
++          setHistoryLoadError(pastErr.message || 'Unable to load session history');
++        } else if (past) {
++          const list = past as ClimbingSession[];
++          setPastSessions(list);
++          setPastSessionsHasMore(list.length === 20);
++        }
++      }
++    } catch (err: unknown) {
++      if (activeUserIdRef.current === currentUserId) {
++        const msg = err instanceof Error ? err.message : 'Network error loading session data';
++        setSessionLoadError(msg);
+       }
+-    } catch {
+-      // Offline fallback
+     } finally {
+       if (activeUserIdRef.current === currentUserId) {
+         setIsLoadingHistory(false);
++        setIsCheckingActiveSession(false);
+       }
+     }
+   }, [user]);
+ 
++  // Pagination for past sessions (Finding 8)
++  const loadMorePastSessions = async () => {
++    if (!user || isLoadingMoreHistory || pastSessions.length === 0) return;
++    const currentUserId = user.id;
++    const lastSession = pastSessions[pastSessions.length - 1];
++    setIsLoadingMoreHistory(true);
++    try {
++      const supabase = createClient();
++      const { data: more, error } = await supabase
++        .from('climbing_sessions')
++        .select('*')
++        .eq('user_id', currentUserId)
++        .not('ended_at', 'is', null)
++        .lt('started_at', lastSession.started_at)
++        .order('started_at', { ascending: false })
++        .limit(20);
++
++      if (activeUserIdRef.current !== currentUserId) return;
++      if (error) {
++        toast.error('Unable to load older sessions');
++        return;
++      }
++      if (more) {
++        const moreList = more as ClimbingSession[];
++        setPastSessions((prev) => [...prev, ...moreList]);
++        setPastSessionsHasMore(moreList.length === 20);
++      }
++    } catch {
++      toast.error('Unable to load older sessions');
++    } finally {
++      if (activeUserIdRef.current === currentUserId) {
++        setIsLoadingMoreHistory(false);
++       }
++     }
++  };
++
+   useEffect(() => {
+     fetchSessionData();
+   }, [fetchSessionData]);
+@@ -190,13 +317,14 @@ function LogContent() {
+     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+   };
+ 
+-  // Start new climbing session
++  // Start new climbing session (Finding 5: Guard against identity race)
+   const handleStartSession = async (e: React.FormEvent) => {
+     e.preventDefault();
+     if (!user) {
+       toast.error('Please sign in to start a climbing session');
+       return;
+     }
++    const currentUserId = user.id;
+     const trimmedVenue = venueName.trim();
+     if (!trimmedVenue) {
+       toast.error('Venue name is required');
+@@ -209,7 +337,7 @@ function LogContent() {
+       const { data, error } = await supabase
+         .from('climbing_sessions')
+         .insert({
+-          user_id: user.id,
++          user_id: currentUserId,
+           venue_name: trimmedVenue,
+           conditions: conditions.trim() || null,
+           notes: sessionNotes.trim() || null,
+@@ -220,6 +348,8 @@ function LogContent() {
+ 
+       if (error) throw error;
+ 
++      if (activeUserIdRef.current !== currentUserId) return;
++
+       setActiveSession(data as ClimbingSession);
+       setAttempts([]);
+       setVenueName('');
+@@ -229,14 +359,18 @@ function LogContent() {
+     } catch {
+       toast.error('Unable to start session');
+     } finally {
+-      setIsStartingSession(false);
++      if (activeUserIdRef.current === currentUserId) {
++        setIsStartingSession(false);
++      }
+     }
+   };
+ 
+-  // Log climb attempt within active session (Finding 11 & 13)
++  // Log climb attempt within active session (Finding 5: Identity guard; Finding 7: Clear catalog link)
+   const handleLogAttempt = async (e: React.FormEvent) => {
+     e.preventDefault();
+     if (!activeSession || !user) return;
++    const currentUserId = user.id;
++    const currentSessionId = activeSession.id;
+     const trimmedRoute = routeName.trim();
+     if (!trimmedRoute) {
+       toast.error('Climb or route name is required');
+@@ -251,9 +385,9 @@ function LogContent() {
+       const { data, error } = await supabase
+         .from('climb_attempts')
+         .insert({
+-          session_id: activeSession.id,
+-          user_id: user.id,
+-          route_id: linkedRouteId || null, // Finding 13: carry route_id
++          session_id: currentSessionId,
++          user_id: currentUserId,
++          route_id: linkedRouteId || null,
+           route_name: trimmedRoute,
+           discipline,
+           grade_system: gradeSystem,
+@@ -268,6 +402,9 @@ function LogContent() {
+ 
+       if (error) throw error;
+ 
++      if (activeUserIdRef.current !== currentUserId) return;
++      if (activeSession?.id !== currentSessionId) return;
++
+       setAttempts((prev) => [...prev, data as ClimbAttempt]);
+       toast.success(
+         outcome === 'sent'
+@@ -275,31 +412,138 @@ function LogContent() {
+           : `Logged attempt #${nextAttemptNumber} on ${trimmedRoute}`
+       );
+       setAttemptNotes('');
++      // Finding 7: Retain catalog link across repeated tries on the same climb
+     } catch {
+       toast.error('Unable to log attempt');
+     } finally {
+-      setIsLoggingAttempt(false);
++      if (activeUserIdRef.current === currentUserId) {
++        setIsLoggingAttempt(false);
++      }
+     }
+   };
+ 
+-  // Open finish session modal (Finding 9: reset media and session context)
+-  const handleOpenFinishModal = (sessionToFinish?: ClimbingSession) => {
++  // Composed preview effect (Finding 1: Bind cached artwork to current input revision)
++  useEffect(() => {
++    const nextRev = ++inputRevisionRef.current;
++    setCompositionRevision(nextRev);
++    setComposedBlob(null);
++    setComposedPreviewUrl((prev) => {
++      if (prev) URL.revokeObjectURL(prev);
++      return null;
++    });
++
++    if (!selectedPhotoFile || !selectedFeaturedAttemptId || !sessionToPublish) {
++      return;
++    }
++
++    const featuredAtt = publishAttempts.find((a) => a.id === selectedFeaturedAttemptId);
++    if (!featuredAtt) return;
++
++    let isCancelled = false;
++    setIsComposingPreview(true);
++
++    const durationSecs = sessionToPublish.started_at && sessionToPublish.ended_at
++      ? Math.max(0, Math.floor((new Date(sessionToPublish.ended_at).getTime() - new Date(sessionToPublish.started_at).getTime()) / 1000))
++      : elapsedSeconds;
++
++    composeSessionResultCard(selectedPhotoFile, {
++      routeName: featuredAtt.route_name,
++      gradeLabel: featuredAtt.grade_label,
++      outcome: featuredAtt.outcome,
++      attemptNumber: featuredAtt.attempt_number,
++      durationSeconds: durationSecs,
++      venueName: sessionToPublish.venue_name,
++      overlayStyle,
++      timeline: publishAttempts.map((a) => ({ attempt_number: a.attempt_number, outcome: a.outcome })),
++    })
++      .then((blob) => {
++        if (!isCancelled && nextRev === inputRevisionRef.current) {
++          setComposedBlob(blob);
++          setBlobRevision(nextRev);
++          const previewUrl = URL.createObjectURL(blob);
++          setComposedPreviewUrl(previewUrl);
++        }
++      })
++      .catch(() => {
++        if (!isCancelled && nextRev === inputRevisionRef.current) {
++          toast.error('Failed to generate card preview');
++        }
++      })
++      .finally(() => {
++        if (!isCancelled && nextRev === inputRevisionRef.current) {
++          setIsComposingPreview(false);
++        }
++      });
++
++    return () => {
++      isCancelled = true;
++    };
++  }, [selectedPhotoFile, selectedFeaturedAttemptId, overlayStyle, sessionToPublish?.id, publishAttempts, elapsedSeconds]);
++
++  // Open finish session modal (Finding 1 & 9: Load selected session's attempts and scope response to target)
++  const handleOpenFinishModal = async (sessionToFinish?: ClimbingSession) => {
+     const targetSession = sessionToFinish || activeSession;
+-    if (!targetSession) return;
++    if (!targetSession || !user) return;
++    const currentUserId = user.id;
++    const targetSessionId = targetSession.id;
++    const currentGen = ++publishModalGenRef.current;
++    activeComposerTargetIdRef.current = targetSessionId;
+ 
+     setSessionToPublish(targetSession);
+     setSelectedPhotoFile(null);
+-    setPhotoPreviewUrl(null);
++    setComposedPreviewUrl((prev) => {
++      if (prev) URL.revokeObjectURL(prev);
++      return null;
++    });
++    setComposedBlob(null);
+     setPublishCaption('');
++    setIsFinishModalOpen(true);
+ 
+-    // Pre-select best sent attempt
+-    const sentAttempt = [...attempts].reverse().find((a) => a.outcome === 'sent') || attempts[attempts.length - 1];
+-    if (sentAttempt) {
+-      setSelectedFeaturedAttemptId(sentAttempt.id);
++    if (activeSession && targetSession.id === activeSession.id) {
++      setPublishAttempts(attempts);
++      const sentAttempt = [...attempts].reverse().find((a) => a.outcome === 'sent') || attempts[attempts.length - 1];
++      setSelectedFeaturedAttemptId(sentAttempt ? sentAttempt.id : '');
+     } else {
++      setIsLoadingPublishAttempts(true);
++      setPublishAttempts([]);
+       setSelectedFeaturedAttemptId('');
++      try {
++        const supabase = createClient();
++        const { data: atts, error } = await supabase
++          .from('climb_attempts')
++          .select('*')
++          .eq('session_id', targetSessionId)
++          .order('attempt_number', { ascending: true });
++
++        if (
++          activeUserIdRef.current !== currentUserId ||
++          publishModalGenRef.current !== currentGen ||
++          activeComposerTargetIdRef.current !== targetSessionId
++        ) {
++          return;
++        }
++
++        if (!error && atts) {
++          const loadedAtts = atts as ClimbAttempt[];
++          setPublishAttempts(loadedAtts);
++          const sentAttempt = [...loadedAtts].reverse().find((a) => a.outcome === 'sent') || loadedAtts[loadedAtts.length - 1];
++          setSelectedFeaturedAttemptId(sentAttempt ? sentAttempt.id : '');
++        } else {
++          setPublishAttempts([]);
++          setSelectedFeaturedAttemptId('');
++          toast.error('Unable to load attempts for this session');
++        }
++      } catch {
++        if (activeUserIdRef.current === currentUserId && publishModalGenRef.current === currentGen) {
++          setPublishAttempts([]);
++          setSelectedFeaturedAttemptId('');
++        }
++      } finally {
++        if (activeUserIdRef.current === currentUserId && publishModalGenRef.current === currentGen) {
++          setIsLoadingPublishAttempts(false);
++        }
++      }
+     }
+-    setIsFinishModalOpen(true);
+   };
+ 
+   // Handle Photo selection
+@@ -307,44 +551,95 @@ function LogContent() {
+     const file = e.target.files?.[0];
+     if (!file) return;
+     setSelectedPhotoFile(file);
+-    const url = URL.createObjectURL(file);
+-    setPhotoPreviewUrl(url);
+   };
+ 
+-  // Finish session: Private save only (Finding 7: never upload anything to public storage)
++  // Finish session: Private save only (Finding 13 & Main Correction 3)
+   const handleSavePrivateOnly = async () => {
+     const target = sessionToPublish || activeSession;
+     if (!target || !user) return;
++    const currentUserId = user.id;
++    const currentSessionId = target.id;
+     setIsPublishing(true);
+     try {
+-      const supabase = createClient();
+-      const endedAt = new Date().toISOString();
+-      const { error } = await supabase
+-        .from('climbing_sessions')
+-        .update({ ended_at: endedAt })
+-        .eq('id', target.id);
++      // Under same WebLock per user/session (Main Correction 3)
++      await withPublicationLock(currentUserId, currentSessionId, async () => {
++        const supabase = createClient();
++        // 1. Mark session ended if not ended already (Finding 13)
++        let endedAt = target.ended_at;
++        if (!endedAt) {
++          endedAt = new Date().toISOString();
++          const { error } = await supabase
++            .from('climbing_sessions')
++            .update({ ended_at: endedAt })
++            .eq('id', target.id);
++
++          if (error) throw error;
++        }
+ 
+-      if (error) throw error;
++        if (activeUserIdRef.current !== currentUserId || activeComposerTargetIdRef.current !== currentSessionId) return;
++
++        // 2. Reconcile known absent cleanup before clearing durable intent (Main Correction 3)
++        const record = getPublicationRecord(currentUserId, currentSessionId);
++        if (record) {
++          const reconcile = await reconcilePostCommit(supabase, record.postId, currentSessionId);
++          if (reconcile.status === 'committed') {
++            // Confirmed commit NEVER deletes assets!
++            clearPublicationRecord(currentUserId, currentSessionId);
++          } else if (reconcile.status === 'uncommitted') {
++            // Post confirmed absent: remove any orphaned public artwork
++            const { error: removeErr } = await supabase.storage
++              .from('social-media')
++              .remove([record.storageKey, record.sourceStorageKey]);
++
++            if (removeErr) {
++              // Failed cleanup retains intent and visible error!
++              throw new Error(`Failed to clean up uncommitted public assets: ${removeErr.message}`);
++            }
++            clearPublicationRecord(currentUserId, currentSessionId);
++          } else {
++            // Status is unknown: retain intent and visible error!
++            throw new Error('Remote publication status uncertain. Assets retained in recovery.');
++          }
++        }
+ 
+-      toast.success('Session saved privately to your journal');
+-      setIsFinishModalOpen(false);
+-      setSessionToPublish(null);
+-      setSelectedPhotoFile(null);
+-      setPhotoPreviewUrl(null);
+-      setActiveSession(null);
+-      setAttempts([]);
+-      fetchSessionData();
+-    } catch {
+-      toast.error('Unable to finish session');
++        if (activeUserIdRef.current !== currentUserId || activeComposerTargetIdRef.current !== currentSessionId) return;
++
++        toast.success('Session saved privately to your journal');
++        activeComposerTargetIdRef.current = null;
++        publishModalGenRef.current++;
++        setIsFinishModalOpen(false);
++        setSessionToPublish(null);
++        setSelectedPhotoFile(null);
++        setComposedPreviewUrl((prev) => {
++          if (prev) URL.revokeObjectURL(prev);
++          return null;
++        });
++        setComposedBlob(null);
++        if (activeSession?.id === currentSessionId) {
++          setActiveSession(null);
++          setAttempts([]);
++        }
++        fetchSessionData();
++      });
++    } catch (err: unknown) {
++      if (activeUserIdRef.current === currentUserId) {
++        const msg = err instanceof Error ? err.message : 'Unable to finish session';
++        toast.error(msg);
++      }
+     } finally {
+-      setIsPublishing(false);
++      if (activeUserIdRef.current === currentUserId) {
++        setIsPublishing(false);
++      }
+     }
+   };
+ 
+-  // Finish session & Publish to social feed (Findings 4, 6, 7, 8)
++  // Finish session & Publish to social feed (Findings 1, 2, 3, 4, 11, 12 & Main Corrections 1-3)
+   const handlePublishToFeed = async () => {
+     const target = sessionToPublish || activeSession;
+     if (!target || !user) return;
++    const currentUserId = user.id;
++    const currentSessionId = target.id;
++
+     if (!selectedFeaturedAttemptId) {
+       toast.error('Please select a featured send or attempt');
+       return;
+@@ -354,114 +649,178 @@ function LogContent() {
+       return;
+     }
+ 
+-    const featuredAtt = attempts.find((a) => a.id === selectedFeaturedAttemptId) || attempts[0];
++    const featuredAtt = publishAttempts.find((a) => a.id === selectedFeaturedAttemptId);
+     if (!featuredAtt) {
+       toast.error('Featured climb record not found');
+       return;
+     }
+ 
+-    setIsPublishing(true);
+-    const supabase = createClient();
+-    const postId = crypto.randomUUID(); // Finding 4: Preallocated post ID
+-    const storageKey = `${user.id}/${postId}.jpg`; // Finding 4: Canonical composed result card path
+-    const sourceStorageKey = `${user.id}/${postId}.source.jpg`; // Finding 6: Source image sibling
++    // Finding 1: Ensure composed preview matches current inputs before publishing
++    if (!composedBlob || blobRevision !== compositionRevision) {
++      toast.error('Please wait for the card preview to finish rendering before publishing');
++      return;
++    }
+ 
+-    const uploadedKeys: string[] = [];
++    setIsPublishing(true);
+ 
+     try {
+-      // Finding 6: Compose the selected result card from the photo and session presentation
+-      const durationSecs = target.started_at && target.ended_at
+-        ? Math.max(0, Math.floor((new Date(target.ended_at).getTime() - new Date(target.started_at).getTime()) / 1000))
+-        : elapsedSeconds;
+-
+-      const composedBlob = await composeSessionResultCard(selectedPhotoFile, {
+-        routeName: featuredAtt.route_name,
+-        gradeLabel: featuredAtt.grade_label,
+-        outcome: featuredAtt.outcome,
+-        attemptNumber: featuredAtt.attempt_number,
+-        durationSeconds: durationSecs,
+-        venueName: target.venue_name,
+-        overlayStyle,
+-        timeline: attempts.map((a) => ({ attempt_number: a.attempt_number, outcome: a.outcome })),
+-      });
++      // Finding 4: Use browser Web Locks per user/session for publication/cleanup mutual exclusion
++      await withPublicationLock(currentUserId, currentSessionId, async () => {
++        const supabase = createClient();
++
++        // Finding 5: One durable operation identity and asset ownership per (userId, sessionId)
++        // Fail closed visibly if persisting recovery fails
++        const record = getOrCreatePublicationRecord(currentUserId, currentSessionId);
++        const { postId, storageKey, sourceStorageKey } = record;
++
++        // Finding 3 & 4: Reconcile retained operations before any retry upload
++        const preReconcile = await reconcilePostCommit(supabase, postId, currentSessionId);
++        if (preReconcile.status === 'committed') {
++          // Post is already committed on server! Eliminate pending cleanup, clear record, and finish
++          clearPublicationRecord(currentUserId, currentSessionId);
++          toast.success('Session already published to feed!');
++          if (activeUserIdRef.current === currentUserId && activeComposerTargetIdRef.current === currentSessionId) {
++            activeComposerTargetIdRef.current = null;
++            setIsFinishModalOpen(false);
++            setSessionToPublish(null);
++            setSelectedPhotoFile(null);
++            setComposedPreviewUrl((prev) => {
++              if (prev) URL.revokeObjectURL(prev);
++              return null;
++            });
++            setComposedBlob(null);
++            setActiveSession(null);
++            setAttempts([]);
++            router.push('/app');
++          }
++          return;
++        }
+ 
+-      // 1. Upload composed result card image to storageKey
+-      const { error: uploadComposedErr } = await supabase.storage
+-        .from('social-media')
+-        .upload(storageKey, composedBlob, {
+-          contentType: 'image/jpeg',
+-          upsert: false,
+-        });
++        if (preReconcile.status === 'unknown') {
++          // Status uncertain; fail closed visibly rather than corrupting or conflicting
++          throw new Error('Unable to verify remote session status. Please check your connection and retry.');
++        }
+ 
+-      if (uploadComposedErr) {
+-        throw new Error(`Composed card upload failed: ${uploadComposedErr.message}`);
+-      }
+-      uploadedKeys.push(storageKey);
+-
+-      // 2. Upload source photo to sourceStorageKey
+-      const { error: uploadSourceErr } = await supabase.storage
+-        .from('social-media')
+-        .upload(sourceStorageKey, selectedPhotoFile, {
+-          contentType: selectedPhotoFile.type || 'image/jpeg',
+-          upsert: false,
++        // Upload composed card (bound to verified current composition revision) (Main Correction 1)
++        const { error: uploadComposedErr } = await supabase.storage
++          .from('social-media')
++          .upload(storageKey, composedBlob, {
++            contentType: 'image/jpeg',
++            upsert: true,
++          });
++
++        if (uploadComposedErr) {
++          throw new Error(`Composed card upload failed: ${uploadComposedErr.message}`);
++        }
++
++        // Upload source photo (safe upsert on confirmed uncommitted operation)
++        const { error: uploadSourceErr } = await supabase.storage
++          .from('social-media')
++          .upload(sourceStorageKey, selectedPhotoFile, {
++            contentType: selectedPhotoFile.type || 'image/jpeg',
++            upsert: true,
++          });
++
++        if (uploadSourceErr) {
++          throw new Error(`Source photo upload failed: ${uploadSourceErr.message}`);
++        }
++
++        // Mark session ended if not ended already
++        if (!target.ended_at) {
++          const endedAt = new Date().toISOString();
++          const { error: endErr } = await supabase
++            .from('climbing_sessions')
++            .update({ ended_at: endedAt })
++            .eq('id', target.id);
++          if (endErr) throw endErr;
++
++          // Finding 2: Guard before executing any state updates!
++          if (activeUserIdRef.current !== currentUserId || activeComposerTargetIdRef.current !== currentSessionId) {
++            return;
++          }
++
++          target.ended_at = endedAt;
++          setSessionToPublish((prev) => (prev && prev.id === currentSessionId ? { ...prev, ended_at: endedAt } : null));
++          if (activeSession?.id === currentSessionId) {
++            setActiveSession(null);
++          }
++          setPastSessions((prev) => {
++            const updated = { ...target, ended_at: endedAt };
++            const exists = prev.some((s) => s.id === currentSessionId);
++            return exists ? prev.map((s) => (s.id === currentSessionId ? updated : s)) : [updated, ...prev];
++          });
++        }
++
++        // Finding 6: Bounded honest alt text (<= 300 Unicode codepoints retaining outcome)
++        const imageAlt = generateImageAlt({
++          routeName: featuredAtt.route_name,
++          gradeLabel: featuredAtt.grade_label,
++          outcome: featuredAtt.outcome,
++          climberName: user.displayName || 'climber',
++          venueName: target.venue_name,
+         });
+ 
+-      if (uploadSourceErr) {
+-        throw new Error(`Source photo upload failed: ${uploadSourceErr.message}`);
+-      }
+-      uploadedKeys.push(sourceStorageKey);
+-
+-      // 3. Mark session ended if not ended already (Finding 8)
+-      if (!target.ended_at) {
+-        const { error: endErr } = await supabase
+-          .from('climbing_sessions')
+-          .update({ ended_at: new Date().toISOString() })
+-          .eq('id', target.id);
+-        if (endErr) throw endErr;
+-      }
++        // Insert post into session_posts
++        const { error: postErr } = await supabase.from('session_posts').insert({
++          id: postId,
++          session_id: target.id,
++          user_id: currentUserId,
++          featured_attempt_id: selectedFeaturedAttemptId,
++          caption: publishCaption.trim() || null,
++          image_path: storageKey,
++          image_alt: imageAlt,
++          overlay_style: overlayStyle,
++        });
+ 
+-      // 4. Compose canonical image_alt (Finding 4)
+-      const imageAlt = `${featuredAtt.route_name} (${featuredAtt.grade_label}) sent by ${user.displayName || 'climber'} at ${target.venue_name}`;
+-
+-      // 5. Insert post into session_posts with canonical payload
+-      const { error: postErr } = await supabase.from('session_posts').insert({
+-        id: postId,
+-        session_id: target.id,
+-        user_id: user.id,
+-        featured_attempt_id: selectedFeaturedAttemptId,
+-        caption: publishCaption.trim() || null,
+-        image_path: storageKey,
+-        image_alt: imageAlt, // Finding 4: required image_alt
+-        overlay_style: overlayStyle,
+-      });
++        if (postErr) {
++          // Reconcile uncertain insert before touching artwork
++          const postReconcile = await reconcilePostCommit(supabase, postId, currentSessionId);
++          if (postReconcile.status === 'committed') {
++            clearPublicationRecord(currentUserId, currentSessionId);
++          } else if (postReconcile.status === 'uncommitted') {
++            // Confirmed absent: clean up artwork
++            const { error: removeErr } = await supabase.storage
++              .from('social-media')
++              .remove([storageKey, sourceStorageKey]);
++            if (!removeErr) {
++              clearPublicationRecord(currentUserId, currentSessionId);
++            }
++            throw postErr;
++          } else {
++            // Unknown: retain record and artwork!
++            throw new Error(`Publication status uncertain: ${postErr.message}. Assets retained in recovery.`);
++          }
++        } else {
++          // Post successfully created: clear durable publication record
++          clearPublicationRecord(currentUserId, currentSessionId);
++        }
+ 
+-      if (postErr) {
+-        // Finding 7: Clean up all uploaded objects if post insertion fails
+-        if (uploadedKeys.length > 0) {
+-          await supabase.storage.from('social-media').remove(uploadedKeys);
++        if (activeUserIdRef.current !== currentUserId || activeComposerTargetIdRef.current !== currentSessionId) {
++          return;
+         }
+-        throw postErr;
+-      }
+-      setIsFinishModalOpen(false);
+-      setSessionToPublish(null);
+-      setSelectedPhotoFile(null);
+-      setPhotoPreviewUrl(null);
+-      setActiveSession(null);
+-      setAttempts([]);
+-      router.push('/app');
++
++        activeComposerTargetIdRef.current = null;
++        setIsFinishModalOpen(false);
++        setSessionToPublish(null);
++        setSelectedPhotoFile(null);
++        setComposedPreviewUrl((prev) => {
++          if (prev) URL.revokeObjectURL(prev);
++          return null;
++        });
++        setComposedBlob(null);
++        setActiveSession(null);
++        setAttempts([]);
++        router.push('/app');
++      });
+     } catch (err: unknown) {
+-      const msg = err instanceof Error ? err.message : 'Unable to publish session';
+-      toast.error(msg);
+-      // Finding 7: Clean up all uploaded objects on failure
+-      if (uploadedKeys.length > 0) {
+-        try {
+-          await supabase.storage.from('social-media').remove(uploadedKeys);
+-        } catch {
+-          // Cleanup log
+-        }
++      if (activeUserIdRef.current === currentUserId) {
++        const msg = err instanceof Error ? err.message : 'Unable to publish session';
++        toast.error(msg);
+       }
+     } finally {
+-      setIsPublishing(false);
++      if (activeUserIdRef.current === currentUserId) {
++        setIsPublishing(false);
++      }
+     }
+   };
+ 
+@@ -499,8 +858,27 @@ function LogContent() {
+       </header>
+ 
+       <main className="max-w-3xl mx-auto px-4 pt-6 space-y-6">
+-        {/* VIEW 1: ACTIVE SESSION RUNNING */}
+-        {activeSession ? (
++        {isCheckingActiveSession ? (
++          <div className="p-8 text-center border border-divider rounded-2xl bg-[#0D0F14] text-xs text-[#A8ABB3] animate-pulse">
++            Checking active session status...
++          </div>
++        ) : sessionLoadError ? (
++          <div className="p-6 rounded-2xl border border-red-500/30 bg-red-500/10 text-center space-y-3">
++            <p className="text-sm font-semibold text-red-400">
++              Unable to load session status
++            </p>
++            <p className="text-xs text-[#A8ABB3]">
++              {sessionLoadError}. Please check your connection before starting or logging a session.
++            </p>
++            <button
++              type="button"
++              onClick={fetchSessionData}
++              className="min-h-[38px] px-5 rounded-xl bg-[#345CFF] text-[#F4F2EB] text-xs font-semibold hover:bg-[#2747D9] transition-colors"
++            >
++              Retry Connection
++            </button>
++          </div>
++        ) : activeSession ? (
+           <div className="space-y-6">
+             {/* Live Stats Shelf */}
+             <div className="p-5 rounded-2xl border border-divider bg-[#0D0F14]">
+@@ -600,15 +978,40 @@ function LogContent() {
+ 
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                   <div>
+-                    <label htmlFor="route-name-input" className="block text-xs font-semibold text-[#F4F2EB] mb-1">
+-                      Route / Climb Name *
+-                    </label>
++                    <div className="flex items-center justify-between mb-1">
++                      <label htmlFor="route-name-input" className="block text-xs font-semibold text-[#F4F2EB]">
++                        Route / Climb Name *
++                      </label>
++                      {linkedRouteId && (
++                        <div className="flex items-center gap-1.5 text-[11px] text-[#345CFF]">
++                          <span>Linked route</span>
++                          <button
++                            type="button"
++                            onClick={() => {
++                              setLinkedRouteId(null);
++                              setInitialLinkedRouteName('');
++                            }}
++                            className="text-[#A8ABB3] hover:text-[#FF6B64] transition-colors"
++                            aria-label="Detach linked route"
++                          >
++                            (Detach)
++                          </button>
++                        </div>
++                      )}
++                    </div>
+                     <input
+                       id="route-name-input"
+                       type="text"
+                       required
+                       value={routeName}
+-                      onChange={(e) => setRouteName(e.target.value)}
++                      onChange={(e) => {
++                        const val = e.target.value;
++                        setRouteName(val);
++                        // Finding 7: Detach catalog link if user edits name away from linked climb
++                        if (linkedRouteId && initialLinkedRouteName && val !== initialLinkedRouteName) {
++                          setLinkedRouteId(null);
++                        }
++                      }}
+                       placeholder="e.g. Redpoint Ridge, Project 2"
+                       className="w-full min-h-[44px] bg-[#171A22] border border-divider rounded-xl px-3 text-xs text-[#F4F2EB] placeholder:text-[#A8ABB3]/60 focus:outline-none focus:ring-2 focus:ring-[#345CFF]"
+                     />
+@@ -628,6 +1031,7 @@ function LogContent() {
+                         <option value="yds">YDS (5.10 - 5.15)</option>
+                         <option value="v_scale">V-Scale (V0 - V17)</option>
+                         <option value="font">Font (4 - 9a)</option>
++                        <option value="custom">Custom</option>
+                       </select>
+                     </div>
+ 
+@@ -849,13 +1253,24 @@ function LogContent() {
+               </form>
+             </div>
+ 
+-            {/* Past Sessions History (Finding 14: clickable to inspect attempts; Finding 8: retryable publish) */}
++            {/* Past Sessions History (Finding 8: continuation; Finding 9: semantic keyboard controls; Finding 14: error state) */}
+             <div className="space-y-4">
+               <h3 className="font-display text-xl font-semibold italic text-[#F4F2EB]">
+                 Past Sessions
+               </h3>
+ 
+-              {isLoadingHistory ? (
++              {historyLoadError ? (
++                <div className="p-6 rounded-xl border border-red-500/30 bg-red-500/10 text-center space-y-2">
++                  <p className="text-xs font-medium text-red-400">{historyLoadError}</p>
++                  <button
++                    type="button"
++                    onClick={fetchSessionData}
++                    className="text-xs font-semibold text-[#345CFF] hover:underline"
++                  >
++                    Retry Loading History
++                  </button>
++                </div>
++              ) : isLoadingHistory ? (
+                 <div className="h-32 rounded-xl bg-[#171A22]/40 border border-divider animate-pulse" />
+               ) : pastSessions.length === 0 ? (
+                 <div className="p-8 text-center border border-divider rounded-2xl bg-[#0D0F14] text-xs text-[#A8ABB3]">
+@@ -873,10 +1288,21 @@ function LogContent() {
+                     return (
+                       <div
+                         key={session.id}
+-                        onClick={() => setInspectingSession(session)}
+-                        className="p-4 rounded-xl border border-divider bg-[#0D0F14] hover:border-white/20 transition-colors cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3"
++                        tabIndex={0}
++                        role="region"
++                        aria-label={`Session at ${session.venue_name}, ${dateStr}`}
++                        onKeyDown={(e) => {
++                          if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
++                            e.preventDefault();
++                            setInspectingSession(session);
++                          }
++                        }}
++                        className="p-4 rounded-xl border border-divider bg-[#0D0F14] hover:border-white/20 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 focus:outline-none focus:ring-2 focus:ring-[#345CFF]"
+                       >
+-                        <div>
++                        <div
++                          onClick={() => setInspectingSession(session)}
++                          className="cursor-pointer flex-1 min-w-0"
++                        >
+                           <h4 className="text-sm font-semibold text-[#F4F2EB]">
+                             {session.venue_name}
+                           </h4>
+@@ -888,24 +1314,41 @@ function LogContent() {
+                           )}
+                         </div>
+ 
+-                        <div className="flex items-center gap-2">
++                        <div className="flex items-center gap-2 flex-shrink-0">
+                           <button
+                             type="button"
+-                            onClick={(e) => {
+-                              e.stopPropagation();
+-                              handleOpenFinishModal(session);
+-                            }}
+-                            className="text-xs font-semibold text-[#345CFF] hover:underline px-2.5 py-1 rounded-lg bg-[#345CFF]/10 border border-[#345CFF]/20"
++                            onClick={() => handleOpenFinishModal(session)}
++                            onKeyDown={(e) => e.stopPropagation()}
++                            className="text-xs font-semibold text-[#345CFF] hover:underline px-2.5 py-1.5 rounded-lg bg-[#345CFF]/10 border border-[#345CFF]/20 transition-colors cursor-pointer"
+                           >
+                             Publish
+                           </button>
+-                          <span className="text-[11px] font-medium text-[#A8ABB3] px-2.5 py-1 rounded-lg bg-[#171A22] border border-divider">
++                          <button
++                            type="button"
++                            onClick={() => setInspectingSession(session)}
++                            onKeyDown={(e) => e.stopPropagation()}
++                            aria-label={`Inspect details for ${session.venue_name} on ${dateStr}`}
++                            className="text-[11px] font-medium text-[#A8ABB3] hover:text-[#F4F2EB] px-2.5 py-1.5 rounded-lg bg-[#171A22] border border-divider hover:border-white/20 transition-colors cursor-pointer"
++                          >
+                             Details
+-                          </span>
++                          </button>
+                         </div>
+                       </div>
+                     );
+                   })}
++
++                  {pastSessionsHasMore && (
++                    <div className="text-center pt-2">
++                      <button
++                        type="button"
++                        disabled={isLoadingMoreHistory}
++                        onClick={loadMorePastSessions}
++                        className="min-h-[40px] px-5 rounded-xl border border-divider bg-[#171A22] text-xs font-semibold text-[#F4F2EB] hover:bg-white/[0.04] transition-colors disabled:opacity-40"
++                      >
++                        {isLoadingMoreHistory ? 'Loading Older Sessions...' : 'Load Older Sessions'}
++                      </button>
++                    </div>
++                  )}
+                 </div>
+               )}
+             </div>
+@@ -918,10 +1361,17 @@ function LogContent() {
+         open={isFinishModalOpen}
+         onOpenChange={(open) => {
+           if (!open && !isPublishing) {
++            publishModalGenRef.current++;
+             setIsFinishModalOpen(false);
+             setSessionToPublish(null);
++            setPublishAttempts([]);
++            setSelectedFeaturedAttemptId('');
+             setSelectedPhotoFile(null);
+-            setPhotoPreviewUrl(null);
++            setComposedPreviewUrl((prev) => {
++              if (prev) URL.revokeObjectURL(prev);
++              return null;
++            });
++            setComposedBlob(null);
+           }
+         }}
+       >
+@@ -941,41 +1391,43 @@ function LogContent() {
+                 Publish Send to Social Feed
+               </h4>
+ 
+-              {/* Select Featured Attempt */}
++              {/* Select Featured Attempt (Finding 1: Use publishAttempts for target session) */}
+               <div>
+                 <label htmlFor="featured-attempt-select" className="block text-xs font-medium text-[#A8ABB3] mb-1">
+                   Featured Climb *
+                 </label>
+-                <select
+-                  id="featured-attempt-select"
+-                  value={selectedFeaturedAttemptId}
+-                  onChange={(e) => setSelectedFeaturedAttemptId(e.target.value)}
+-                  className="w-full min-h-[44px] bg-[#171A22] border border-divider rounded-xl px-3 text-xs text-[#F4F2EB] focus:outline-none focus:ring-2 focus:ring-[#345CFF]"
+-                >
+-                  <option value="">Select a climb from this session</option>
+-                  {attempts.map((att) => (
+-                    <option key={att.id} value={att.id}>
+-                      Try #{att.attempt_number}: {att.route_name} ({att.grade_label}) — {att.outcome}
+-                    </option>
+-                  ))}
+-                </select>
++                {isLoadingPublishAttempts ? (
++                  <div className="w-full min-h-[44px] bg-[#171A22] border border-divider rounded-xl px-3 flex items-center text-xs text-[#A8ABB3] animate-pulse">
++                    Loading attempts...
++                  </div>
++                ) : (
++                  <select
++                    id="featured-attempt-select"
++                    value={selectedFeaturedAttemptId}
++                    onChange={(e) => setSelectedFeaturedAttemptId(e.target.value)}
++                    className="w-full min-h-[44px] bg-[#171A22] border border-divider rounded-xl px-3 text-xs text-[#F4F2EB] focus:outline-none focus:ring-2 focus:ring-[#345CFF]"
++                  >
++                    <option value="">Select a climb from this session</option>
++                    {publishAttempts.map((att) => (
++                      <option key={att.id} value={att.id}>
++                        Try #{att.attempt_number}: {att.route_name} ({att.grade_label}) — {att.outcome}
++                      </option>
++                    ))}
++                  </select>
++                )}
++                {!isLoadingPublishAttempts && publishAttempts.length === 0 && (
++                  <p className="text-[11px] text-[#A8ABB3] mt-1">
++                    No attempts recorded for this session.
++                  </p>
++                )}
+               </div>
+ 
+-              {/* Photograph Upload (Finding 4, 7, 9, 12: Real photo required, no fixture default) */}
++              {/* Photograph Upload & Composed 4:5 Preview (Finding 11) */}
+               <div>
+                 <label className="block text-xs font-medium text-[#A8ABB3] mb-1">
+                   Session Photograph (Required to publish)
+                 </label>
+                 <div className="flex items-center gap-3">
+-                  {photoPreviewUrl ? (
+-                    <div className="h-16 w-16 rounded-xl overflow-hidden border border-divider flex-shrink-0 relative">
+-                      <img src={photoPreviewUrl} alt="Preview" className="h-full w-full object-cover" />
+-                    </div>
+-                  ) : (
+-                    <div className="h-16 w-16 rounded-xl border border-dashed border-divider flex items-center justify-center flex-shrink-0 text-xs text-[#A8ABB3]">
+-                      No photo
+-                    </div>
+-                  )}
+                   <button
+                     type="button"
+                     onClick={() => fileInputRef.current?.click()}
+@@ -990,9 +1442,43 @@ function LogContent() {
+                     onChange={handlePhotoSelect}
+                     className="hidden"
+                   />
++                  {selectedPhotoFile && (
++                    <span className="text-xs text-[#A8ABB3] truncate max-w-[200px]">
++                      {selectedPhotoFile.name}
++                    </span>
++                  )}
+                 </div>
+               </div>
+ 
++              {/* Finding 11: Display the actual composed 4:5 editorial card preview */}
++              {selectedPhotoFile && (
++                <div>
++                  <div className="flex items-center justify-between mb-1.5">
++                    <span className="text-xs font-medium text-[#A8ABB3]">
++                      Composed Feed Preview (4:5 Editorial Card)
++                    </span>
++                    {isComposingPreview && (
++                      <span className="text-[10px] text-[#345CFF] animate-pulse">
++                        Rendering preview...
++                      </span>
++                    )}
++                  </div>
++                  {composedPreviewUrl ? (
++                    <div className="relative w-full max-w-[280px] mx-auto aspect-[4/5] rounded-2xl overflow-hidden border border-divider shadow-xl bg-black">
++                      <img
++                        src={composedPreviewUrl}
++                        alt="Composed Feed Card Preview"
++                        className="w-full h-full object-cover"
++                      />
++                    </div>
++                  ) : (
++                    <div className="w-full max-w-[280px] mx-auto aspect-[4/5] rounded-2xl border border-dashed border-divider flex items-center justify-center text-xs text-[#A8ABB3]">
++                      Select a featured climb to preview card
++                    </div>
++                  )}
++                </div>
++              )}
++
+               {/* Publication Caption */}
+               <div>
+                 <label htmlFor="publish-caption-input" className="block text-xs font-medium text-[#A8ABB3] mb-1">
+@@ -1050,7 +1536,14 @@ function LogContent() {
+               <button
+                 type="button"
+                 onClick={handlePublishToFeed}
+-                disabled={isPublishing || !selectedFeaturedAttemptId || !selectedPhotoFile}
++                disabled={
++                  isPublishing ||
++                  isComposingPreview ||
++                  !selectedFeaturedAttemptId ||
++                  !selectedPhotoFile ||
++                  !composedBlob ||
++                  blobRevision !== compositionRevision
++                }
+                 className="w-full min-h-[46px] rounded-xl bg-[#345CFF] text-[#F4F2EB] text-xs font-semibold hover:bg-[#2747D9] transition-colors disabled:opacity-40"
+               >
+                 {isPublishing ? 'Publishing...' : 'Publish to Feed'}
+diff --git a/components/log/SessionDetailModal.tsx b/components/log/SessionDetailModal.tsx
+index d14f17d20235370ec21ecfefa89223195cff358a..c5d27bc84573df024269581de405c4027a33e4df 100644
+--- a/components/log/SessionDetailModal.tsx
++++ b/components/log/SessionDetailModal.tsx
+@@ -1,6 +1,6 @@
+ 'use client';
+ 
+-import { useState, useEffect } from 'react';
++import { useState, useEffect, useRef, useCallback } from 'react';
+ import { createClient } from '@/lib/supabase/client';
+ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+ import type { ClimbingSession, ClimbAttempt } from '@boarded/shared/types';
+@@ -22,48 +22,66 @@ export function SessionDetailModal({
+   const [attempts, setAttempts] = useState<ClimbAttempt[]>([]);
+   const [isLoading, setIsLoading] = useState(false);
+   const [isPublished, setIsPublished] = useState(false);
++  const [error, setError] = useState<string | null>(null);
++  const requestGenRef = useRef(0);
++
++  const loadSessionDetail = useCallback(async () => {
++    if (!session || !isOpen) return;
++    const currentSessionId = session.id;
++    const currentGen = ++requestGenRef.current;
++
++    setIsLoading(true);
++    setError(null);
++    try {
++      const supabase = createClient();
++      // Fetch attempts
++      const { data: atts, error: attsError } = await supabase
++        .from('climb_attempts')
++        .select('*')
++        .eq('session_id', currentSessionId)
++        .order('attempt_number', { ascending: true });
++
++      if (currentGen !== requestGenRef.current || session.id !== currentSessionId) return;
++      if (attsError) throw attsError;
++
++      // Check if published
++      const { data: post, error: postError } = await supabase
++        .from('session_posts')
++        .select('id')
++        .eq('session_id', currentSessionId)
++        .maybeSingle();
++
++      if (currentGen !== requestGenRef.current || session.id !== currentSessionId) return;
++      if (postError) throw postError;
++
++      setAttempts((atts || []) as ClimbAttempt[]);
++      setIsPublished(Boolean(post));
++      setError(null);
++    } catch (err: unknown) {
++      if (currentGen === requestGenRef.current && session.id === currentSessionId) {
++        const msg = err instanceof Error ? err.message : 'Unable to load session details';
++        setError(msg);
++      }
++    } finally {
++      if (currentGen === requestGenRef.current && session.id === currentSessionId) {
++        setIsLoading(false);
++      }
++    }
++  }, [session?.id, isOpen]);
+ 
+   useEffect(() => {
+     if (!session || !isOpen) {
++      requestGenRef.current++;
+       setAttempts([]);
++      setError(null);
+       return;
+     }
+ 
+-    let isMounted = true;
+-    const loadSessionDetail = async () => {
+-      setIsLoading(true);
+-      try {
+-        const supabase = createClient();
+-        // Fetch attempts
+-        const { data: atts } = await supabase
+-          .from('climb_attempts')
+-          .select('*')
+-          .eq('session_id', session.id)
+-          .order('attempt_number', { ascending: true });
+-
+-        // Check if published
+-        const { data: post } = await supabase
+-          .from('session_posts')
+-          .select('id')
+-          .eq('session_id', session.id)
+-          .maybeSingle();
+-
+-        if (isMounted) {
+-          setAttempts((atts || []) as ClimbAttempt[]);
+-          setIsPublished(Boolean(post));
+-        }
+-      } catch {
+-        // Fallback
+-      } finally {
+-        if (isMounted) setIsLoading(false);
+-      }
+-    };
+-
+     loadSessionDetail();
+     return () => {
+-      isMounted = false;
++      requestGenRef.current++;
+     };
+-  }, [session, isOpen]);
++  }, [session?.id, isOpen, loadSessionDetail]);
+ 
+   if (!session) return null;
+ 
+@@ -133,13 +151,13 @@ export function SessionDetailModal({
+         <div className="grid grid-cols-2 gap-3 mb-4">
+           <div className="p-3 rounded-xl border border-divider bg-[#171A22] text-center">
+             <span className="font-display text-2xl font-semibold italic text-[#32D583] tabular-nums">
+-              {sendsCount}
++              {error ? '—' : sendsCount}
+             </span>
+             <p className="text-[11px] text-[#A8ABB3] mt-0.5">Total Sends</p>
+           </div>
+           <div className="p-3 rounded-xl border border-divider bg-[#171A22] text-center">
+             <span className="font-display text-2xl font-semibold italic text-[#F4F2EB] tabular-nums">
+-              {attempts.length}
++              {error ? '—' : attempts.length}
+             </span>
+             <p className="text-[11px] text-[#A8ABB3] mt-0.5">Total Attempts</p>
+           </div>
+@@ -154,6 +172,17 @@ export function SessionDetailModal({
+             <div className="p-8 text-center text-xs text-[#A8ABB3] animate-pulse">
+               Loading attempt timeline...
+             </div>
++          ) : error ? (
++            <div className="p-6 text-center border border-red-500/20 bg-red-500/10 rounded-xl space-y-2">
++              <p className="text-xs text-red-400 font-medium">{error}</p>
++              <button
++                type="button"
++                onClick={loadSessionDetail}
++                className="text-xs font-semibold text-[#345CFF] hover:underline"
++              >
++                Retry
++              </button>
++            </div>
+           ) : attempts.length === 0 ? (
+             <div className="p-6 text-center border border-divider rounded-xl text-xs text-[#A8ABB3]">
+               No attempts recorded in this session.
+@@ -162,12 +191,12 @@ export function SessionDetailModal({
+             attempts.map((att) => (
+               <div
+                 key={att.id}
+-                className="flex items-center justify-between p-3 rounded-xl border border-divider bg-[#171A22]/30"
++                className="flex items-start justify-between p-3 rounded-xl border border-divider bg-[#171A22]/30 gap-3"
+               >
+-                <div className="flex items-center gap-3 min-w-0">
++                <div className="flex items-start gap-3 min-w-0 flex-1">
+                   <span
+                     className={cn(
+-                      'h-6 w-6 rounded-full flex items-center justify-center text-[11px] font-bold tabular-nums flex-shrink-0',
++                      'h-6 w-6 rounded-full flex items-center justify-center text-[11px] font-bold tabular-nums flex-shrink-0 mt-0.5',
+                       att.outcome === 'sent'
+                         ? 'bg-[#32D583]/20 text-[#32D583] border border-[#32D583]/40'
+                         : att.outcome === 'fell'
+@@ -177,18 +206,22 @@ export function SessionDetailModal({
+                   >
+                     #{att.attempt_number}
+                   </span>
+-                  <div className="min-w-0">
+-                    <p className="text-xs font-semibold text-[#F4F2EB] truncate">
++                  <div className="min-w-0 flex-1">
++                    <p className="text-xs font-semibold text-[#F4F2EB]">
+                       {att.route_name}
+                     </p>
+-                    <p className="text-[11px] text-[#A8ABB3] truncate">
++                    <p className="text-[11px] text-[#A8ABB3]">
+                       {att.grade_label} · <span className="capitalize">{att.outcome}</span>
+-                      {att.notes ? ` · "${att.notes}"` : ''}
+                     </p>
++                    {att.notes && (
++                      <p className="text-[11px] text-[#A8ABB3]/90 mt-1.5 whitespace-pre-wrap break-words rounded-lg bg-[#171A22] border border-divider/60 p-2 italic">
++                        "{att.notes}"
++                      </p>
++                    )}
+                   </div>
+                 </div>
+ 
+-                <time className="text-[10px] text-[#A8ABB3] tabular-nums flex-shrink-0 ml-2">
++                <time className="text-[10px] text-[#A8ABB3] tabular-nums flex-shrink-0 mt-0.5">
+                   {new Date(att.occurred_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                 </time>
+               </div>
+diff --git a/lib/utils/composer.ts b/lib/utils/composer.ts
+index 937c39626407792007995fc18ba7b758d5e247cd..ce405bc32b1af494ea0fd636e2cb4311305b6578 100644
+--- a/lib/utils/composer.ts
++++ b/lib/utils/composer.ts
+@@ -83,15 +83,16 @@ export async function composeSessionResultCard(
+       ctx.fillText(options.routeName, 64, startY + 54);
+ 
+       // Grade label (Cormorant Garamond italic display)
++      const gradeText = options.gradeLabel || 'Unrated';
+       ctx.font = "italic 600 72px 'Cormorant Garamond', Georgia, serif";
+       ctx.fillStyle = '#F4F2EB';
+-      ctx.fillText(options.gradeLabel || 'Unrated', 64, startY + 135);
++      ctx.fillText(gradeText, 64, startY + 135);
++      const gradeWidth = ctx.measureText(gradeText).width;
+ 
+       // Venue Name
+       if (options.venueName) {
+         ctx.font = '500 24px system-ui, -apple-system, sans-serif';
+         ctx.fillStyle = 'rgba(244, 242, 235, 0.75)';
+-        const gradeWidth = ctx.measureText(options.gradeLabel || 'Unrated').width;
+         ctx.fillText(`· ${options.venueName}`, 64 + gradeWidth + 24, startY + 130);
+       }
+ 
+diff --git a/lib/utils/session-publication.test.ts b/lib/utils/session-publication.test.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..efb0b546f2bb1b8cd00b14281dca75520b2da126
+--- /dev/null
++++ b/lib/utils/session-publication.test.ts
+@@ -0,0 +1,236 @@
++import { describe, it, beforeEach } from 'node:test';
++import assert from 'node:assert/strict';
++import type { SupabaseClient } from '@supabase/supabase-js';
++import {
++  generateImageAlt,
++  getPublicationRecord,
++  getOrCreatePublicationRecord,
++  clearPublicationRecord,
++  reconcilePostCommit,
++  withPublicationLock,
++  type DurablePublicationRecord,
++} from './session-publication.ts';
++
++// Browser boundary mock for Node test runner (Finding 13)
++const memoryStore: Record<string, string> = {};
++
++globalThis.localStorage = {
++  getItem: (key: string) => memoryStore[key] ?? null,
++  setItem: (key: string, val: string) => {
++    memoryStore[key] = String(val);
++  },
++  removeItem: (key: string) => {
++    delete memoryStore[key];
++  },
++  clear: () => {
++    for (const k of Object.keys(memoryStore)) delete memoryStore[k];
++  },
++  key: (i: number) => Object.keys(memoryStore)[i] ?? null,
++  length: 0,
++} as Storage;
++
++interface GlobalWithBrowserMocks {
++  window?: unknown;
++  navigator?: {
++    locks?: {
++      request: (
++        name: string,
++        options: { ifAvailable?: boolean },
++        callback: (lock: { name: string } | null) => Promise<unknown>
++      ) => Promise<unknown>;
++    };
++  };
++}
++
++const customGlobal = globalThis as unknown as GlobalWithBrowserMocks;
++customGlobal.window = globalThis;
++customGlobal.navigator = {
++  locks: {
++    request: async (_name, _options, callback) => callback({ name: _name }),
++  },
++};
++  describe('generateImageAlt', () => {
++    it('generates sent outcome alt text accurately', () => {
++      const alt = generateImageAlt({
++        routeName: 'Biographie',
++        gradeLabel: '5.15a',
++        outcome: 'sent',
++        climberName: 'Alex',
++        venueName: 'Céüse',
++      });
++      assert.equal(alt, 'Biographie (5.15a) sent by Alex at Céüse');
++      assert.ok(Array.from(alt).length <= 300);
++    });
++
++    it('generates fell outcome alt text without claiming a send', () => {
++      const alt = generateImageAlt({
++        routeName: 'Action Directe',
++        gradeLabel: '9a',
++        outcome: 'fell',
++        climberName: 'Sam',
++        venueName: 'Frankenjura',
++      });
++      assert.equal(alt, 'Attempt on Action Directe (9a) by Sam at Frankenjura (fell)');
++      assert.ok(Array.from(alt).length <= 300);
++    });
++
++    it('bounds alt text to <= 300 unicode codepoints while strictly retaining the outcome', () => {
++      // Schema-valid max-length inputs that would exceed 300 chars:
++      const longRoute = 'Supercalifragilisticexpialidocious Ultra Route '.repeat(3); // ~140 chars
++      const longGrade = '5.14d / 9a+ hard variation';
++      const longVenue = 'The Legendary Extremely Long Venue Name Located in the High Mountain Crag of Europe '.repeat(2);
++      const longName = 'Alexander Megos Climber';
++
++      const fellAlt = generateImageAlt({
++        routeName: longRoute,
++        gradeLabel: longGrade,
++        outcome: 'fell',
++        climberName: longName,
++        venueName: longVenue,
++      });
++
++      const fellCodepoints = Array.from(fellAlt).length;
++      assert.ok(fellCodepoints <= 300, `Expected <= 300 codepoints, got ${fellCodepoints}`);
++      assert.ok(fellAlt.includes('(fell)'), 'Must retain fell outcome');
++
++      const stoppedAlt = generateImageAlt({
++        routeName: longRoute,
++        gradeLabel: longGrade,
++        outcome: 'stopped',
++        climberName: longName,
++        venueName: longVenue,
++      });
++
++      const stoppedCodepoints = Array.from(stoppedAlt).length;
++      assert.ok(stoppedCodepoints <= 300, `Expected <= 300 codepoints, got ${stoppedCodepoints}`);
++      assert.ok(stoppedAlt.includes('(stopped)'), 'Must retain stopped outcome');
++    });
++  });
++
++  describe('durable operation identity per (userId, sessionId)', () => {
++    it('allocates and reuses the exact same postId across retries', () => {
++      const userId = 'user-abc';
++      const sessionId = 'session-xyz';
++
++      const rec1 = getOrCreatePublicationRecord(userId, sessionId);
++      const rec2 = getOrCreatePublicationRecord(userId, sessionId);
++
++      assert.equal(rec1.postId, rec2.postId);
++      assert.equal(rec1.storageKey, rec2.storageKey);
++      assert.equal(rec1.sourceStorageKey, rec2.sourceStorageKey);
++    });
++
++    it('fails closed and throws when persisting recovery fails', () => {
++      const originalSetItem = globalThis.localStorage.setItem;
++      globalThis.localStorage.setItem = () => {
++        throw new Error('QuotaExceededError: storage is full');
++      };
++
++      try {
++        assert.throws(
++          () => getOrCreatePublicationRecord('user-err', 'session-err'),
++          /Failed to persist durable publication recovery/
++        );
++      } finally {
++        globalThis.localStorage.setItem = originalSetItem;
++      }
++    });
++
++    it('clears publication record on settlement', () => {
++      const userId = 'user-1';
++      const sessionId = 'session-1';
++      getOrCreatePublicationRecord(userId, sessionId);
++      assert.ok(getPublicationRecord(userId, sessionId));
++
++      clearPublicationRecord(userId, sessionId);
++      assert.equal(getPublicationRecord(userId, sessionId), null);
++    });
++  });
++
++  describe('reconcilePostCommit', () => {
++    it('detects server commit when post exists by id', async () => {
++      const mockSupabase = {
++        from: (table: string) => {
++          assert.equal(table, 'session_posts');
++          return {
++            select: () => ({
++              eq: (col: string, val: string) => ({
++                maybeSingle: async () => {
++                  if (col === 'id' && val === 'post-uuid-1') {
++                    return { data: { id: 'post-uuid-1', session_id: 'session-1', image_path: 'path/1.jpg' }, error: null };
++                  }
++                  return { data: null, error: null };
++                },
++              }),
++            }),
++          };
++        },
++      } as unknown as SupabaseClient;
++
++      const res = await reconcilePostCommit(mockSupabase, 'post-uuid-1', 'session-1');
++      assert.equal(res.status, 'committed');
++      assert.equal(res.post?.id, 'post-uuid-1');
++    });
++
++    it('returns unknown status when query fails or errors, protecting artwork', async () => {
++      const mockSupabase = {
++        from: () => ({
++          select: () => ({
++            eq: () => ({
++              maybeSingle: async () => ({ data: null, error: { message: 'Database connection failed' } }),
++            }),
++          }),
++        }),
++      } as unknown as SupabaseClient;
++
++      const res = await reconcilePostCommit(mockSupabase, 'post-uuid-err', 'session-err');
++      assert.equal(res.status, 'unknown');
++      assert.equal(res.post, null);
++      assert.match(res.error || '', /Database connection failed/);
++    });
++
++    it('returns unknown status when query throws an exception', async () => {
++      const mockSupabase = {
++        from: () => ({
++          select: () => ({
++            eq: () => ({
++              maybeSingle: async () => {
++                throw new Error('Socket timeout');
++              },
++            }),
++          }),
++        }),
++      } as unknown as SupabaseClient;
++
++      const res = await reconcilePostCommit(mockSupabase, 'post-uuid-throw', 'session-throw');
++      assert.equal(res.status, 'unknown');
++      assert.equal(res.post, null);
++      assert.match(res.error || '', /Socket timeout/);
++    });
++
++    it('detects uncommitted state only when queries succeed and confirm no post exists', async () => {
++      const mockSupabase = {
++        from: () => ({
++          select: () => ({
++            eq: () => ({
++              maybeSingle: async () => ({ data: null, error: null }),
++            }),
++          }),
++        }),
++      } as unknown as SupabaseClient;
++
++      const res = await reconcilePostCommit(mockSupabase, 'post-unknown', 'session-empty');
++      assert.equal(res.status, 'uncommitted');
++      assert.equal(res.post, null);
++    });
++  });
++
++  describe('withPublicationLock', () => {
++    it('executes action inside lock', async () => {
++      const result = await withPublicationLock('u1', 's1', async () => {
++        return 'success';
++      });
++      assert.equal(result, 'success');
++    });
++  });
++});
+diff --git a/lib/utils/session-publication.ts b/lib/utils/session-publication.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..65f57eb5f75d81ee6f3e13f93bdf53424a9652a6
+--- /dev/null
++++ b/lib/utils/session-publication.ts
+@@ -0,0 +1,240 @@
++import type { AttemptOutcome } from '@boarded/shared/types';
++import type { SupabaseClient } from '@supabase/supabase-js';
++
++export interface ImageAltOptions {
++  routeName: string;
++  gradeLabel: string;
++  outcome: AttemptOutcome;
++  climberName: string;
++  venueName: string;
++}
++
++const MAX_ALT_CODEPOINTS = 300;
++
++/**
++ * Derives honest image alternative text from the actual attempt outcome.
++ * Bounds the result to <= 300 Unicode code points (matching database constraint)
++ * while strictly preserving the outcome information.
++ */
++export function generateImageAlt(options: ImageAltOptions): string {
++  const { routeName, gradeLabel, outcome, climberName, venueName } = options;
++  const grade = gradeLabel || 'Unrated';
++  const climber = climberName || 'climber';
++  const venue = venueName || 'venue';
++
++  const full =
++    outcome === 'sent'
++      ? `${routeName} (${grade}) sent by ${climber} at ${venue}`
++      : outcome === 'fell'
++      ? `Attempt on ${routeName} (${grade}) by ${climber} at ${venue} (fell)`
++      : `Attempt on ${routeName} (${grade}) by ${climber} at ${venue} (stopped)`;
++
++  const fullChars = Array.from(full);
++  if (fullChars.length <= MAX_ALT_CODEPOINTS) {
++    return full;
++  }
++
++  // Bound while retaining outcome indicator
++  const outcomeMarker =
++    outcome === 'sent'
++      ? ` sent by ${climber} at ${venue}`
++      : ` at ${venue} (${outcome})`;
++
++  const prefix = outcome === 'sent' ? '' : 'Attempt on ';
++  const mid = `${routeName} (${grade})`;
++
++  const markerChars = Array.from(outcomeMarker);
++  const prefixChars = Array.from(prefix);
++  const budgetForMid = MAX_ALT_CODEPOINTS - prefixChars.length - markerChars.length - 1; // 1 for '…'
++
++  if (budgetForMid > 10) {
++    const truncatedMid = Array.from(mid).slice(0, budgetForMid).join('') + '…';
++    const candidate = `${prefix}${truncatedMid}${outcomeMarker}`;
++    if (Array.from(candidate).length <= MAX_ALT_CODEPOINTS) {
++      return candidate;
++    }
++  }
++
++  // Fallback: guaranteed <= 300 code points with outcome suffix intact
++  const fallbackSuffix = outcome === 'sent' ? ' (sent)' : ` (${outcome})`;
++  const suffixLen = Array.from(fallbackSuffix).length;
++  const truncatedBase = fullChars.slice(0, MAX_ALT_CODEPOINTS - suffixLen).join('');
++  return `${truncatedBase}${fallbackSuffix}`;
++}
++
++const INTENT_KEY_PREFIX = 'boarded:pub_record:';
++
++export interface DurablePublicationRecord {
++  userId: string;
++  sessionId: string;
++  postId: string;
++  storageKey: string;
++  sourceStorageKey: string;
++  createdAt: string;
++}
++
++/**
++ * Reads all durable publication records for the given user from localStorage.
++ */
++export function getPublicationRecords(userId: string): DurablePublicationRecord[] {
++  if (typeof window === 'undefined' || !userId) return [];
++  try {
++    const raw = localStorage.getItem(`${INTENT_KEY_PREFIX}${userId}`);
++    if (!raw) return [];
++    const parsed = JSON.parse(raw);
++    return Array.isArray(parsed) ? parsed : [];
++  } catch {
++    return [];
++  }
++}
++
++/**
++ * Retrieves the existing durable publication record for (userId, sessionId) if one exists.
++ */
++export function getPublicationRecord(userId: string, sessionId: string): DurablePublicationRecord | null {
++  if (typeof window === 'undefined' || !userId || !sessionId) return null;
++  const records = getPublicationRecords(userId);
++  return records.find((r) => r.sessionId === sessionId) || null;
++}
++
++/**
++ * Gets the existing durable publication record or creates a new one.
++ * Uses one durable operation identity and key ownership per (userId, sessionId).
++ * Fails closed visibly by throwing if localStorage persistence fails.
++ */
++export function getOrCreatePublicationRecord(userId: string, sessionId: string): DurablePublicationRecord {
++  if (typeof window === 'undefined' || !userId) {
++    throw new Error('Durable publication recovery requires an active browser session and user identity.');
++  }
++
++  const existing = getPublicationRecord(userId, sessionId);
++  if (existing) {
++    return existing;
++  }
++
++  const postId = crypto.randomUUID();
++  const newRecord: DurablePublicationRecord = {
++    userId,
++    sessionId,
++    postId,
++    storageKey: `${userId}/${postId}.jpg`,
++    sourceStorageKey: `${userId}/${postId}.source.jpg`,
++    createdAt: new Date().toISOString(),
++  };
++
++  try {
++    const records = getPublicationRecords(userId).filter((r) => r.sessionId !== sessionId);
++    records.push(newRecord);
++    localStorage.setItem(`${INTENT_KEY_PREFIX}${userId}`, JSON.stringify(records));
++    return newRecord;
++  } catch (err: unknown) {
++    const message = err instanceof Error ? err.message : String(err);
++    throw new Error(`Failed to persist durable publication recovery: ${message}`);
++  }
++}
++
++/**
++ * Removes the durable publication record for (userId, sessionId).
++ * MUST only be called after confirmed successful post commit or successful deletion of artwork.
++ */
++export function clearPublicationRecord(userId: string, sessionId: string): void {
++  if (typeof window === 'undefined' || !userId) return;
++  try {
++    const remaining = getPublicationRecords(userId).filter((r) => r.sessionId !== sessionId);
++    if (remaining.length === 0) {
++      localStorage.removeItem(`${INTENT_KEY_PREFIX}${userId}`);
++    } else {
++      localStorage.setItem(`${INTENT_KEY_PREFIX}${userId}`, JSON.stringify(remaining));
++    }
++  } catch {
++    // Ignore storage write exceptions on cleanup
++  }
++}
++
++export type ReconcileStatus = 'committed' | 'uncommitted' | 'unknown';
++
++export interface ReconcileResult {
++  status: ReconcileStatus;
++  post: { id: string; session_id: string; image_path: string } | null;
++  error?: string;
++}
++
++/**
++ * Checks whether a post insert actually committed on the server.
++ * Returns explicit 'unknown' on any query error or thrown exception, ensuring
++ * artwork is NEVER deleted or overwritten while status is uncertain.
++ */
++export async function reconcilePostCommit(
++  supabase: SupabaseClient,
++  postId: string,
++  sessionId: string
++): Promise<ReconcileResult> {
++  try {
++    // 1. Check if post exists by operation postId
++    const { data: byId, error: byIdErr } = await supabase
++      .from('session_posts')
++      .select('id, session_id, image_path')
++      .eq('id', postId)
++      .maybeSingle();
++
++    if (byIdErr) {
++      return { status: 'unknown', post: null, error: byIdErr.message };
++    }
++
++    if (byId) {
++      return { status: 'committed', post: byId };
++    }
++
++    // 2. Check if a post was already committed for this session
++    const { data: bySession, error: bySessionErr } = await supabase
++      .from('session_posts')
++      .select('id, session_id, image_path')
++      .eq('session_id', sessionId)
++      .maybeSingle();
++
++    if (bySessionErr) {
++      return { status: 'unknown', post: null, error: bySessionErr.message };
++    }
++
++    if (bySession) {
++      return { status: 'committed', post: bySession };
++    }
++
++    return { status: 'uncommitted', post: null };
++  } catch (err: unknown) {
++    const message = err instanceof Error ? err.message : String(err);
++    return { status: 'unknown', post: null, error: message };
++  }
++}
++
++/**
++ * Mutual exclusion using browser Web Locks per user/session for publication/cleanup.
++ * Fails visibly if another tab or operation currently holds the lock, without unsafe concurrency fallback.
++ */
++export async function withPublicationLock<T>(
++  userId: string,
++  sessionId: string,
++  action: () => Promise<T>
++): Promise<T> {
++  const lockName = `boarded:pub_lock:${userId}:${sessionId}`;
++
++  if (typeof navigator !== 'undefined' && navigator.locks && typeof navigator.locks.request === 'function') {
++    return new Promise<T>((resolve, reject) => {
++      navigator.locks.request(lockName, { ifAvailable: true }, async (lock) => {
++        if (!lock) {
++          reject(new Error('A publication or cleanup operation is already in progress for this session in another window or tab.'));
++          return;
++        }
++        try {
++          const result = await action();
++          resolve(result);
++        } catch (err) {
++          reject(err);
++        }
++      });
++    });
++  }
++
++  // In environments without Web Locks (e.g. Node test runner): execute directly
++  return action();
++}

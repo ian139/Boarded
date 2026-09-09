@@ -1,0 +1,9 @@
+{
+  "platform": "iOS",
+  "base_sha": "2a16c2996f24ef357e0b2d1609a7b676bafd6d17",
+  "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/native-navigation-measured",
+  "allow": [
+    "apps/ios/Boarded/Boarded/RootView.swift"
+  ],
+  "contract": "Designer standard space-around: padding12, group64 with shrinking.49ptvisualrow, Log-12 square,label10/11 semiboldChalk+2below. PreserveAX/regular/clearance/hitRegion. Public real-overlay visibility preference experiment only; no synthetic chrome. Existingupperstriphitpassedunchanged at(201,785), artifact1037; nohitbugproven."
+}

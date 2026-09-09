@@ -1,0 +1,71 @@
+{
+  "reviewed_identity": {
+    "preview": "096ed2a",
+    "app_source_identity": "05cbadf + native journal871 (Main-supplied frozen identity)",
+    "evidence_root": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/native-096ed2a-attachments",
+    "manifest": "manifest.json",
+    "devices": "Compact: Boarded V1 Feed78720d,9DF7A937-1CA0-48B4-9B07-5C8D92D3D1A9,1206x2622. Regular: Boarded V1 Regular78720d,B43EE1FA-4126-4136-AF46-4A2B3F61E479,2048x2732."
+  },
+  "owned_scope": "Read-only rendered failure classification and independent inspection of all26 current PNG captures (10 regular standard,10 regular Accessibility Large,3 compact standard,3 compact Accessibility Large), plus both compact failure videos. No builds/tests/services/edits. No overall approval or parity claim.",
+  "current_failure": {
+    "scenario": "Both compact matrix cases, BoardedUITests.swift138 reveal(app.buttons[outcome]), first outcome Stopped",
+    "classification": "Test-driver gesture/keyboard interception; not a grade-picker selection failure. Product reachability after a correctly bounded gesture remains unexercised by these recordings.",
+    "visible_evidence": [
+      {
+        "file": "9F2799D3-9CD2-41A5-A3BF-2E7656E74A7A.mp4",
+        "start": "16:42:19.928 manifest time",
+        "frames": "23s: Stopped and Save Attempt visibly present before keyboard.40s: Green Line remains focused, V0 visibly selected, picker menu gone; keyboard covers outcome row, keyboard keys show interaction highlighting. Later preview-grid frames repeat unchanged form with keyboard interaction rather than successful scrolling."
+      },
+      {
+        "file": "D9527A41-46B2-4E7A-B741-3EC6A5397F2D.mp4",
+        "start": "16:41:16.121 manifest time",
+        "frames": "50s: Accessible Line remains focused, V0 selected, menu dismissed; keyboard starts immediately below grade area and covers Notes/outcomes. Repeated later frames remain in same form; preview grid includes keyboard key popup."
+      }
+    ],
+    "attribution": "Exact current reveal helper computes visibleFrame for tabs/navigation but uses .35/.65 coordinates of full scroll.frame for dragging and does not exclude keyboard. Current122–145 sequence types Route, selects V0, then immediately reveals Stopped without releasing Route focus. This agrees with visible keyboard interception.",
+    "suggested_correction_owner": "Main -> boarded-native-verification-author, BoardedUITests.swift: use a gesture wholly inside the actual unobscured form viewport, excluding keyboard, or dismiss text focus through a real available interaction before revealing Stopped. Keep Stopped/save behavior assertions. Do not alter app layout or picker merely to satisfy this driver failure."
+  },
+  "V1_V5_rendered_review": [
+    {
+      "id": "V1",
+      "status": "Observed correction present",
+      "evidence": "7FB27035-9471-47A1-BBC8-0CDF749A457E.png at16:41:33.285 compact AX;860EAFDA-72F6-483C-87E4-9427A481AAA0.png at16:41:40.286 regular AX.",
+      "observation": "Sport,27m,Limestone,Overhang occupy distinct rows without horizontal truncation; caption wraps. Standard compact retains one-line facts."
+    },
+    {
+      "id": "V2",
+      "status": "Observed correction present",
+      "evidence": "F608D481-E188-4366-955B-CA2BBD62B03C.png at16:44:22.272 and FF5052CF-9D2A-412F-831D-03734ADAA942.png at16:44:26.534; regular AX562BDB49-9044-4FBA-9980-D65F5D541658.png and860EAFDA-72F6-483C-87E4-9427A481AAA0.png.",
+      "observation": "Regular Feed and journal use a coherent bounded column: media shares card width, identity/facts/actions inset within it. Photography is no longer a narrower isolated strip."
+    },
+    {
+      "id": "V3",
+      "status": "Blank capsule absent in inspected current captures",
+      "evidence": "All20 regular PNGs, including standard/AX Home, journal, logger, result, share, route, Activity and Profile.",
+      "observation": "No empty native top capsule; one visible custom bottom navigation strip with five labeled tabs. Pixels do not certify AX uniqueness or the implementation API."
+    },
+    {
+      "id": "V4",
+      "status": "Observed correction present",
+      "evidence": "Compact04C73E56-2551-41FF-8C8B-30F211D59888.png at16:42:41.504 and75F0FCA1-4164-4752-B6CE-EAAE37A2E863.png at16:41:45.910; regular4757C9F3-DADF-42FC-B155-1C6A2B4807EF.png andAA820064-6102-476E-B4FD-4708996CB347.png.",
+      "observation": "ACTIVE SESSION is neutral gray before any attempts; confirmed Sent remains green in subsequent regular attempt timelines."
+    },
+    {
+      "id": "V5",
+      "status": "Observed correction present",
+      "evidence": "Compact standard video9F2799D3-9CD2-41A5-A3BF-2E7656E74A7A.mp4 preview journal frame; compact AX D9527A41-46B2-4E7A-B741-3EC6A5397F2D.mp4 at20s.",
+      "observation": "Comments heading, bodies and composer have consistent horizontal inset. AX comment wraps and composer is exposed above bottom strip at20s; the raised central Log control approaches/overlaps the input's bottom border but does not hide its text or submit control. Earlier463d5a5 wholesale composer occlusion is not reproduced in this revealed current frame."
+    }
+  ],
+  "other_current_visual_facts": [
+    "Regular standard final preview69B9EC7D-7397-4DB7-9F8C-59264014F11D.png at16:45:57.062 shows complete photograph, venue, featured route, three outcome labels, duration,attempt/send counts and Publish session control.",
+    "Regular AX share previews0F513FBD-DB6D-4E3B-A267-409C6EB118C3.png and6925327B-4EEF-42D6-82F7-E00EA85824BF.png show vertically reflowed complete facts and timeline within the visible lower composition.",
+    "Some named captures are intermediate scroll positions: regular standard Share-timeline clips lower preview, AX Route-detail clips lower specifications, and Profile/journal show more content continuing beneath the viewport. Their single frames do not establish permanent unreachability; do not mistake these capture offsets for new product defects.",
+    "No additional material layout defect established in the26 PNGs beyond the compact keyboard-covered form state described above. This does not certify unexercised compact result/share/route/Activity/Profile states."
+  ],
+  "remaining_owners_and_gates": [
+    "Main -> boarded-native-verification-author: correct compact keyboard gesture targeting and obtain remaining compact matrix evidence; no source change justified by these failures.",
+    "Main -> boarded-native-feed-fix: no further V1–V5 visual correction identified from current evidence; retain frozen app source unless subsequent actual interaction proves a product defect.",
+    "Reference gate remains unmet: Main reports126075 differing pixels,3.99% at0.1 threshold versus0.5% gate. That result was not rerun and is not waived. No parity or overall approval."
+  ]
+}

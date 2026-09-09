@@ -1,0 +1,99 @@
+{
+  "landing": {
+    "repo": "/Users/ian/Projects/ClimbingApp",
+    "branch": "loop/boarded-v1-20260905-78720d/landing",
+    "base_sha": "9a68ff18ffd612b21bfb5173a50b82ee7c35297e",
+    "head_sha": "32eb4262a13c60647077cef09897305535229704",
+    "diff_sha256": "0a911f0eb1d0096c8c9fd1827132f722c5d71edcd4c3b8b75bd3c6dbc950365e",
+    "packet_spec_sha256": "0f4cc03129ccfc030f7d0d33531ea801bacec285bcfaddd7c28d4ba21d8c261e",
+    "dependency_heads": {},
+    "target_snapshot_sha256": "b2764cce7de2a971eb7e20429aa43e8283fd88cef62dfa89c4d089764945ffba",
+    "confinement_sha256": "5e9dd81ed62697dfbee0e44e169d238127b4c0ae65fcc9a79b96dffdc75b6e01"
+  },
+  "blender": {
+    "repo": "/Users/ian/Projects/ClimbingApp",
+    "branch": "loop/boarded-v1-20260905-78720d/blender",
+    "base_sha": "9a68ff18ffd612b21bfb5173a50b82ee7c35297e",
+    "head_sha": "3d05383837d686f04a1873e412e764be3a35fcb4",
+    "diff_sha256": "2f398e849e9f5bd0b6a87209fc99097ce88ddd159d0b86216fed0e754498e7a2",
+    "packet_spec_sha256": "71cacae05778d6ae5586ab8c90c39b551eba42ed9221bcf76379eb21ef98f092",
+    "dependency_heads": {},
+    "target_snapshot_sha256": "89f877cb7339ee2b84bcb4be754e8eafb9f5a44f548f77869642a0812d497b73",
+    "confinement_sha256": "03b58b505555c7b1ccfa6b4d37ba3ded5a12f4884390b78509599689e95dce30"
+  },
+  "capture": {
+    "video": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/resume-landing-32eb-forward-reverse.webm",
+    "samples": [
+      {
+        "label": "start",
+        "path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/resume-landing-32eb-desktop-start.png",
+        "state": {
+          "state": "ready",
+          "hasAscent": "true",
+          "progress": "0.00000",
+          "targetProgress": "0.00000",
+          "yaw": "0.52135",
+          "scale": "1.0000",
+          "opacity": "1.0000",
+          "ascent": "0.00000",
+          "clipTime": "0.0000",
+          "phase": "showcase"
+        }
+      },
+      {
+        "label": "ascent",
+        "path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/resume-landing-32eb-desktop-ascent.png",
+        "state": {
+          "state": "ready",
+          "hasAscent": "true",
+          "progress": "0.70549",
+          "targetProgress": "0.70549",
+          "yaw": "0.77254",
+          "scale": "1.0000",
+          "opacity": "1.0000",
+          "ascent": "1.00000",
+          "clipTime": "12.0000",
+          "phase": "summit"
+        }
+      },
+      {
+        "label": "reverse-zero",
+        "path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/resume-landing-32eb-desktop-reverse-zero.png",
+        "state": {
+          "state": "ready",
+          "hasAscent": "true",
+          "progress": "0.00000",
+          "targetProgress": "0.00000",
+          "yaw": "0.69413",
+          "scale": "1.0000",
+          "opacity": "1.0000",
+          "ascent": "0.00000",
+          "clipTime": "0.0000",
+          "phase": "showcase"
+        }
+      },
+      {
+        "label": "footer",
+        "path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/resume-landing-32eb-desktop-footer.png",
+        "state": {
+          "state": "ready",
+          "hasAscent": "true",
+          "progress": "1.00000",
+          "targetProgress": "1.00000",
+          "yaw": "0.45173",
+          "scale": "40.0000",
+          "opacity": "0.0000",
+          "ascent": "1.00000",
+          "clipTime": "12.0000",
+          "phase": "gone"
+        }
+      }
+    ],
+    "reduced": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/resume-landing-32eb-reduced-poster.png",
+    "reducedState": {
+      "state": "static",
+      "canvases": 0
+    },
+    "fixture": "Only unrelated wall inventory GET returns empty[] to isolate landing from invalid remote auth; exact GLB/poster intercepted. App source unmodified."
+  }
+}

@@ -1,0 +1,304 @@
+{
+  "overall_correctness": "incorrect",
+  "explanation": "Reviewed head caf256ba3528f21821d15bcf3a64b40b926828bf and verified full-index binary diff SHA-256 2e3b0f7df3b126af7fccb8a6affe83486642682667a1c7410b49f1454b62d016. Source review found merge-blocking rendering/type errors, invalid publication/storage integration, privacy-state leaks, and incomplete destination/action flows. No builds, tests, or browser validation were run; pending shared dependencies were assessed against the frozen contract, and visual/runtime approval remains with Main.",
+  "confidence": 0.99,
+  "findings": [
+    {
+      "title": "Restore the Feed page's missing hook and store bindings",
+      "body": "The replacement page calls useState, useCallback, and useEffect without importing them from React, so /app throws on its first render. Its Beta handler also references routes without declaring it despite importing useRoutesStore, so opening any linked route would still fail after fixing the hooks. Restore both bindings; these failures are independent of the pending shared package.",
+      "priority": 1,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/app/page.tsx",
+      "line_start": 14,
+      "line_end": 19
+    },
+    {
+      "title": "Align Explore with the existing component and type interfaces",
+      "body": "Explore supplies wallImageUrl/wallImageWidth/wallImageHeight to RouteList, whose existing props contain only routes and callbacks, and supplies walls/selectedWall/onSelectWall/onNewRoute to WallPickerDialog, which accepts only open/onOpenChange. It also references ClimbDiscipline and GradeSystem without importing them. These patch-local type errors prevent compilation even after the planned shared types arrive; the extra WallPicker callbacks are also ignored at runtime.",
+      "priority": 1,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/explore/page.tsx",
+      "line_start": 694,
+      "line_end": 702
+    },
+    {
+      "title": "Place the search-parameter profile reader beneath Suspense",
+      "body": "Profile now calls useSearchParams directly, but neither this page nor its root layout/Providers supplies a Suspense boundary or opts the route into dynamic rendering. With the repository's Next 16 production prerendering, /profile therefore triggers the missing-Suspense-with-CSR-bailout failure. Wrap the parameter-reading client component in a server-page Suspense boundary or deliberately use a dynamic server route.",
+      "priority": 1,
+      "confidence": 0.98,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/profile/page.tsx",
+      "line_start": 31,
+      "line_end": 33
+    },
+    {
+      "title": "Create posts with the canonical image path and required alt text",
+      "body": "Every Publish to Feed insertion violates the retained session_posts schema: image_alt is required without a default, and image_path must equal <user-id>/<post-id>.jpg. This code omits image_alt and the preallocated post ID, uploads under a session/timestamp filename, and inserts either an absolute public URL or a bundled asset path. Allocate the post ID first, upload its canonical object, and send the complete post payload; otherwise no web session can be published.",
+      "priority": 1,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/log/page.tsx",
+      "line_start": 309,
+      "line_end": 316
+    },
+    {
+      "title": "Resolve feed storage keys before passing them to Next Image",
+      "body": "The existing feed RPC returns session_posts.image_path unchanged, and valid native posts store a relative object key such as <user-id>/<post-id>.jpg, not a URL. Passing that key directly to next/image produces an invalid-src error because it is neither an absolute URL nor a slash-prefixed local path. Resolve it through the social-media bucket before rendering, including posts shown on Profile.",
+      "priority": 1,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/components/feed/FeedCard.tsx",
+      "line_start": 195,
+      "line_end": 195
+    },
+    {
+      "title": "Compose the selected result card instead of uploading the raw photograph",
+      "body": "The only image upload sends selectedPhotoFile verbatim; no result-card rendering occurs. Selecting Timeline merely writes overlay_style, and FeedCard never reads overlay_style or attempt_timeline, so the selection has no consumer-visible effect. Native posts already use a flattened result image and a source-image sibling, whereas this renderer overlays another fact shelf indiscriminately. Implement the agreed composed image/source contract and actually dispatch the selected presentation style.",
+      "priority": 1,
+      "confidence": 0.99,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/log/page.tsx",
+      "line_start": 293,
+      "line_end": 298
+    },
+    {
+      "title": "Clean up public uploads when publication fails or is abandoned",
+      "body": "After a successful upload, a post-insert failure leaves the photograph permanently in the publicly readable social-media bucket: no removal or retry object tracking exists. This happens on the current invalid post payload, and choosing Save Privately Only afterward still leaves the uploaded photo public. Upload errors are also silently replaced with the stock-image path. Abort on upload failure and retain or remove uploaded objects according to the actual publication/private-save outcome.",
+      "priority": 1,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/log/page.tsx",
+      "line_start": 300,
+      "line_end": 305
+    },
+    {
+      "title": "Preserve a recoverable session after partial publication failure",
+      "body": "Publishing first persists ended_at, ignores that update's error, and only then uploads/inserts the post. If the later step fails, the UI still presents an active session and Continue Climbing, but reloading excludes it from the active query. Past-session rows have no publish/reopen action, so the user's failed publication cannot be retried after navigation, and additional attempts can be logged after its recorded end time. Reconcile the finished state and provide a retryable ended-session flow.",
+      "priority": 1,
+      "confidence": 0.99,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/log/page.tsx",
+      "line_start": 285,
+      "line_end": 289
+    },
+    {
+      "title": "Reset publication media when changing sessions or reopening the composer",
+      "body": "Opening Finish always replaces the preview with stonegate-hero.png but leaves selectedPhotoFile untouched. Selecting a private photo, cancelling or saving privately, then finishing another session therefore shows the stock preview while Publish uploads the previous session's photo; caption and featured-attempt state are retained too. Reset session-scoped publication state and keep the preview tied to the actual file so users cannot upload a different private image than the one being shown.",
+      "priority": 1,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/log/page.tsx",
+      "line_start": 226,
+      "line_end": 234
+    },
+    {
+      "title": "Clear private page state when the authenticated identity changes",
+      "body": "On sign-out, fetchSessionData returns without clearing activeSession, attempts, or pastSessions, and the Log JSX renders them without an authenticated-user guard. The auth store broadcasts sign-out from other tabs, so an already-open Log continues displaying private notes and attempts after logout. Profile's session/bookmark fetchers likewise return without clearing their state and its private panels only check isOtherClimber. Clear user-scoped data immediately and reject outstanding responses from the previous identity.",
+      "priority": 1,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/log/page.tsx",
+      "line_start": 59,
+      "line_end": 61
+    },
+    {
+      "title": "Let the logger select the actual climbing discipline",
+      "body": "discipline is initialized to sport and its setter is never used anywhere in the page, yet every climb_attempts insertion persists that state. A user logging a boulder, board, trad, or top-rope climb can change the grade system but cannot change the discipline, so those real attempts are silently saved as sport. Expose the canonical discipline choices and their compatible grading controls before insertion.",
+      "priority": 1,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/log/page.tsx",
+      "line_start": 40,
+      "line_end": 44
+    },
+    {
+      "title": "Remove fixture facts from production session defaults",
+      "body": "A fresh Log form already contains Stonegate and 5.12a as real editable values, rather than placeholders, and Begin Session writes the venue without requiring the user to supply a location. Finish also presents the fixture hero as the user's session photograph without an upload. These are publicly reachable production flows, contrary to the frozen no-production-fixtures contract; keep example facts in placeholders and require actual session/media input.",
+      "priority": 2,
+      "confidence": 0.99,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/log/page.tsx",
+      "line_start": 34,
+      "line_end": 44
+    },
+    {
+      "title": "Carry selected community routes into private attempt logging",
+      "body": "Every private attempt explicitly inserts route_id: null and Log has no route picker or route-parameter consumer. Explore's board Log callback discards its route argument, while community route inspection only exposes the old public tick logger. Consequently a user cannot log a private attempt linked to an existing route, and web-originated session posts can never acquire the route metadata, Beta link, or bookmark action promised by the shared contract. Add a real route-selection handoff without creating public ticks automatically.",
+      "priority": 2,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/log/page.tsx",
+      "line_start": 191,
+      "line_end": 198
+    },
+    {
+      "title": "Make finished sessions open their saved attempt history",
+      "body": "Finishing a session clears attempts, and the only climb_attempts read in the web app fetches the currently active session. Both Past Sessions here and Private Sessions on Profile render inert summary rows, so after saving privately users cannot inspect their recorded climbs, outcomes, grades, or attempt notes again on web. Make a history row load the selected session's owner-scoped attempts and full private context.",
+      "priority": 2,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/log/page.tsx",
+      "line_start": 685,
+      "line_end": 690
+    },
+    {
+      "title": "Include private logged attempts in the owner's progress statistics",
+      "body": "The new Profile still derives Best Send, Total Sends, and its entire grade distribution exclusively from routes[].ascents. Log writes climb_attempts and deliberately does not create public ascents, so a climber can record many successful private sessions and still see zero sends and no best grade. Compute owner-only session progress from private attempts using the canonical discipline/grade semantics, while keeping public tick statistics and other climbers' private data separate.",
+      "priority": 2,
+      "confidence": 0.99,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/profile/page.tsx",
+      "line_start": 303,
+      "line_end": 306
+    },
+    {
+      "title": "Advance the Feed cursor and append older posts",
+      "body": "Load older sends calls fetchFeed(false), but both branches issue the same first-page RPC without before_created_at/before_id and replace feedItems with its response. Once at least 20 posts exist, the button repeatedly reloads the same 20 posts and remains visible forever; older sends are unreachable. Use the last item's complete cursor for continuation and append only successful continuation results without clearing the existing feed on failure.",
+      "priority": 2,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/app/page.tsx",
+      "line_start": 39,
+      "line_end": 49
+    },
+    {
+      "title": "Expose continuation for bounded inbox and discovery lists",
+      "body": "Activity requests only 30 events and has no cursor or load-more control, so older notifications are permanently inaccessible even when unread. The same first-page-only pattern caps Explore routes and saved routes at 30 and Profile posts at 20. These APIs explicitly provide stable cursors; consume them rather than presenting a bounded first page as the complete journal/inbox.",
+      "priority": 2,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/activity/page.tsx",
+      "line_start": 29,
+      "line_end": 31
+    },
+    {
+      "title": "Resolve shared and activity post IDs at the receiving Feed route",
+      "body": "Share links and like/comment/crew-send notifications produce /app#post-<id>, but /app never reads the fragment or calls get_session_feed with post_filter. It only loads the latest 20 posts in the selected feed mode. A notification for the user's own older post or a shared post outside the recipient's followed feed therefore opens an unrelated feed, not that post. Add a post-ID dispatch path that fetches the actual accessible target independently of the feed cursor/filter.",
+      "priority": 1,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/components/feed/FeedCard.tsx",
+      "line_start": 146,
+      "line_end": 151
+    },
+    {
+      "title": "Initialize and refresh personalized Feed state after auth resolves",
+      "body": "The user store starts with user: null and only resolves authentication in AuthProvider's effect, so a hard load initializes feedMode to discovery even for signed-in users. That initializer never reruns, and fetchFeed has no user dependency, so auth resolution does not reload followed posts or viewer-specific like/save/follow flags. Wait for auth initialization and refresh identity-dependent feed state when the user changes rather than freezing the anonymous first render.",
+      "priority": 2,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/app/page.tsx",
+      "line_start": 15,
+      "line_end": 18
+    },
+    {
+      "title": "Render outdoor route details without coercing them into board routes",
+      "body": "handleViewRoute copies every grade_label into grade_v, discards discipline, venue, terrain, rock type, and height, and passes the result to the unchanged board RouteViewerDialog. That consumer runs V-scale-only calculateDisplayGrade and displays a wall canvas, so a valid YDS/Font outdoor grade disappears and a route with no photograph shows the selected/demo board. Preserve CommunityRoute metadata and dispatch outdoor inspection separately from the retained board viewer.",
+      "priority": 2,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/explore/page.tsx",
+      "line_start": 303,
+      "line_end": 312
+    },
+    {
+      "title": "Normalize newly created routes before emitting CommunityRoute",
+      "body": "The direct routes insert returns a database row with user_id, not the RPC's author_id/is_saved shape, but the cast sends it straight into Explore's CommunityRoute list. handleViewRoute then receives an undefined author_id and substitutes an empty owner; the newly created route is not inserted into the board store either, so its Share action treats its actual creator as a non-owner and refuses to enable sharing. Reload the created route through the canonical RPC or explicitly normalize the row before emitting it.",
+      "priority": 2,
+      "confidence": 0.99,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/components/explore/NewRouteModal.tsx",
+      "line_start": 112,
+      "line_end": 113
+    },
+    {
+      "title": "Filter Board Studio routes by the selected wall and board domain",
+      "body": "Changing walls only changes the heading: RouteList always receives the entire routes store, and that store fetches all accessible routes without a wall/discipline filter. The old /app applied the selected wall filter before rendering. With two walls, Studio lists routes from both under one wall's name, and newly introduced outdoor routes also appear in the board-only editing list. Restore the selected-wall/all-walls filtering and exclude non-board routes from this editor entry point.",
+      "priority": 2,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/explore/page.tsx",
+      "line_start": 691,
+      "line_end": 699
+    },
+    {
+      "title": "Keep the existing board-list Log action connected to public ticks",
+      "body": "RouteList's Log climb action still passes the selected route and displays hasUserClimbed based on public ascents, but this new callback ignores the route and navigates to the unrelated private session form. The previously working action therefore no longer records a tick or even preselects the climb. Preserve its LogClimbDialog/public-ascent behavior and expose private-session logging as a distinct action, as required by the two-domain contract.",
+      "priority": 2,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/explore/page.tsx",
+      "line_start": 699,
+      "line_end": 702
+    },
+    {
+      "title": "Make the saved-route View action open its actual route",
+      "body": "Every Saved Routes row links to the same bare /explore URL, losing r.id, and Explore has no receiving route-ID handler. Clicking View therefore opens the general first page rather than the saved climb; routes outside that page are not accessible from this action at all. Pass and resolve the route identity or open the appropriate route-detail component directly.",
+      "priority": 2,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/profile/page.tsx",
+      "line_start": 634,
+      "line_end": 639
+    },
+    {
+      "title": "Wire venue selection to venue details and its routes",
+      "body": "Venue results are inert divs containing a two-line-clamped description; there is no selection handler, detail view, or route action. get_explore_routes is always called with venue_filter: null. Users can create and discover a venue but cannot inspect its full access/description information or browse its associated climbs, leaving the requested venue-inspection journey incomplete. Add a venue detail/filter handoff using the selected ID.",
+      "priority": 2,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/explore/page.tsx",
+      "line_start": 551,
+      "line_end": 554
+    },
+    {
+      "title": "Use keyboard-operable controls for route and activity navigation",
+      "body": "Activity event rows use a bare div with onClick and no tabIndex, role, or keyboard handler, so keyboard and switch users cannot focus or activate any notification. Explore's new route cards use the same pattern, leaving only their bookmark buttons reachable. Use semantic links/buttons for these navigation targets, keeping nested bookmark controls separate, so the primary inspection/inbox journeys work without a pointer.",
+      "priority": 2,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/activity/page.tsx",
+      "line_start": 277,
+      "line_end": 282
+    },
+    {
+      "title": "Associate the new form labels with their controls",
+      "body": "The new forms render label elements as siblings of inputs/selects without htmlFor/id pairs or wrapping, and the controls have no aria-label fallback. In particular the prefilled grade input and grade-system selector in Log have no reliable accessible names, and the same defect affects session, route, venue, and publication forms. Associate every visible field label with its control and expose selection state for the button-based choice groups.",
+      "priority": 2,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/log/page.tsx",
+      "line_start": 448,
+      "line_end": 454
+    },
+    {
+      "title": "Preserve filter semantics and surface errors instead of fabricated fallbacks",
+      "body": "Any get_explore_routes error falls back to a direct query that ignores savedOnly, then manufactures V0/overhang and is_saved:false while dropping returned venue metadata. A failed bookmark query can therefore display arbitrary unsaved routes as the user's saved list with invented facts; other Explore and Activity fetch failures silently render empty or stale results without retry. Retain the last explicitly identified data state and show a recoverable error rather than changing query semantics or inventing metadata.",
+      "priority": 2,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/explore/page.tsx",
+      "line_start": 62,
+      "line_end": 69
+    },
+    {
+      "title": "Discard obsolete search responses before replacing Explore results",
+      "body": "Each keystroke and saved-filter change launches a new request, but successful route/venue/climber responses are committed without cancellation or a generation check. If a broad search or savedOnly=false request resolves after the newer narrow/saved query, it overwrites the results beneath the newer search/filter label. Guard every result and loading-state commit with the current query and identity so older responses cannot replace the user's selected view.",
+      "priority": 2,
+      "confidence": 0.99,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/explore/page.tsx",
+      "line_start": 106,
+      "line_end": 108
+    },
+    {
+      "title": "Serialize Explore follow and bookmark mutations per target",
+      "body": "Unlike FeedCard, Explore optimistically flips followed/bookmarked state without a pending guard or disabling the target button. Two quick activations can send INSERT then DELETE concurrently; if DELETE completes before INSERT, the UI says unfollowed/unsaved while the database retains the relationship. Serialize or reconcile per-target mutations, including rollback, so the final persisted state matches the user's last action.",
+      "priority": 2,
+      "confidence": 0.99,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/explore/page.tsx",
+      "line_start": 262,
+      "line_end": 270
+    },
+    {
+      "title": "Scope loaded profile identity to the current profile URL",
+      "body": "Navigating between /profile?id=A and /profile?id=B reuses this page, but fetchTargetProfile never clears otherProfile and has no stale-response guard; isOtherLoading is not used by the rendering. A missing/failed B lookup leaves A's identity and follow button indefinitely visible at B's URL, and a slow A response can overwrite a successful B response. Reset and key the target profile state to queryUserId and ignore results for obsolete targets.",
+      "priority": 2,
+      "confidence": 0.99,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/profile/page.tsx",
+      "line_start": 84,
+      "line_end": 93
+    },
+    {
+      "title": "Check the activity update result before marking an event read locally",
+      "body": "Supabase mutation errors are returned in the result rather than thrown, but handleEventClick ignores that result and always sets read_at locally. An offline, expired-auth, or rejected update therefore removes the unread state even though the server still considers the notification unread; the catch block cannot handle that normal failure mode. Check error and leave/restore unread state on failure while allowing navigation independently.",
+      "priority": 2,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/activity/page.tsx",
+      "line_start": 114,
+      "line_end": 120
+    },
+    {
+      "title": "Keep pending comment submissions scoped to their original thread",
+      "body": "CommentsSheet stays mounted as item changes. If a user submits on post A, closes the sheet, and opens post B before the insertion resolves, A's completion unconditionally appends its comment to the current comments array and clears the current draft. The UI can consequently show A's comment inside B's conversation. Capture the submitted post identity and only mutate the matching thread/draft after completion, or prevent switching while a submission is pending.",
+      "priority": 2,
+      "confidence": 0.99,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/components/feed/CommentsSheet.tsx",
+      "line_start": 131,
+      "line_end": 134
+    }
+  ]
+}

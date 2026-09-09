@@ -1,0 +1,28 @@
+{
+  "boarded-measured-region-review#3": {
+    "scope": "Read-only pixel review restricted to system chrome 0–62pt and navigation/safe area 791–874pt; no middle-feed review.",
+    "evidence": {
+      "reference": "/tmp/boarded-paper-designer-20260905-e7a6c3/10-feed-final-v3-3x.png",
+      "actual": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/native-87b6f49-measured-attachments/3D4E2F2C-92E5-4E2C-B471-BFB0C350AD9D.png",
+      "diff": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/native-measured-second-feed-diff.png",
+      "provenance": "Runtime JSON identifies preview87b6f49, home2150a323, navigation2a16c299; standard capture test passed once, zero failures. Inspected all three actual image files directly.",
+      "counts": "Unmasked full comparison: 74,473 pixels, 2.36%; gate remains 0.5%. System chrome: 9,978 pixels, 0.3155% of whole. Navigation/safe area: 22,341 pixels, 0.7065% of whole. These are region totals, not counts attributable solely to mandated differences."
+    },
+    "mandated_reference_conflicts": [
+      "Real native status chrome differs visibly: current time is farther left and lower; current cellular bars/Wi-Fi/battery placement and battery appearance differ from the frozen reference's dotted cellular indicator and green charging battery. Retain real OS chrome; do not reproduce the painted reference status bar.",
+      "Current has a white bottom home indicator absent from the frozen reference. Retain real OS safe-area chrome."
+    ],
+    "mandates_not_currently_satisfied_visually": [
+      "Current Log button is visibly circular, whereas the frozen reference is a rounded square. The mandated 44pt square/radius12 specification is therefore a required correction, not a permissible reference conflict; those values come from the assignment, not pixel estimation.",
+      "The frozen reference shows an unread blue dot beside Activity; current Activity has no visible unread dot. Restore the mandated unread state.",
+      "A thin navigation divider is visible in both. Whether it consumes layout space cannot be established from pixels; the mandated non-layout implementation must be checked by Main, not inferred here."
+    ],
+    "remaining_nonmandated_correctable_differences": [
+      "Navigation grouping is horizontally more compressed toward the center in current: Feed and Explore sit farther right than reference, Activity and Profile farther left; Log remains centered.",
+      "Current Log plus/button grouping sits lower than reference and its Log label sits below the neighboring label row. Reference Log label aligns with the other navigation labels.",
+      "Noncentral icon silhouettes differ: current Explore compass, Activity waveform, and Profile outline do not match the frozen reference's visible geometry. Feed also leaves visible unmatched outline edges in the diff. Use recovered SVG/DOM geometry rather than pixel-derived corrective constants.",
+      "Current navigation label rendering differs in glyph contours/spacing, with especially visible doubled text in the diff. Horizontal slot displacement accounts for part of this; do not infer a font replacement from the image, and retain mandated canonical TTF."
+    ],
+    "acceptance": "Not a visual pass. No threshold waiver, masking recommendation, fake chrome, guessed implementation cause, or pixel-derived corrective value. Correctable navigation deviations must be separated from unavoidable native-chrome differences before any further parity decision."
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "review_kind": "packet",
+  "identity": {
+    "repo": "/Users/ian/Projects/ClimbingApp",
+    "branch": "loop/boarded-v1-20260905-78720d/blender",
+    "base_sha": "9a68ff18ffd612b21bfb5173a50b82ee7c35297e",
+    "head_sha": "3d05383837d686f04a1873e412e764be3a35fcb4",
+    "diff_sha256": "2f398e849e9f5bd0b6a87209fc99097ce88ddd159d0b86216fed0e754498e7a2",
+    "packet_spec_sha256": "71cacae05778d6ae5586ab8c90c39b551eba42ed9221bcf76379eb21ef98f092",
+    "dependency_heads": {},
+    "target_snapshot_sha256": "72da730783f81c16c51cc9168fb48e97293338fe89464695ce6e349a65026522",
+    "confinement_sha256": "03b58b505555c7b1ccfa6b4d37ba3ded5a12f4884390b78509599689e95dce30"
+  },
+  "changed_paths": [
+    "design/blender/asset-stats.json",
+    "design/blender/boarded-wall.blend",
+    "design/blender/climber-contact-report.json",
+    "design/blender/climber_ascent.py",
+    "design/blender/generate_boarded_wall.py",
+    "design/blender/render_climber_review.py",
+    "public/walls/generated/boarded-wall-poster.webp",
+    "public/walls/generated/boarded-wall.glb"
+  ],
+  "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/blender",
+  "packet_spec": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/blender-packet.json",
+  "diff_path": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/blender-current.patch",
+  "target_manifest": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/blender-current-target.json",
+  "execution_evidence": [],
+  "review_status": "pending",
+  "designer_verdict": null
+}

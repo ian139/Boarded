@@ -1,0 +1,25 @@
+{
+  "overall_correctness": "incorrect",
+  "explanation": "Reviewed frozen head 4517f2f893d5f782c40b655f0d4f268a80e68b28; canonical binary diff SHA-256 b16cbf3686166c976ff87bf5e2ed9c4cef636ef4e3cc4785b8af24896060bddb. Two patch-introduced issues require correction: inexact scrub endpoints and undersized header CTA targets. No validation or rendering was run; final Blender integration and rendered desktop/mobile, lifecycle, fallback, reduced-motion and keyboard scenarios remain pending Main\u2019s gate.",
+  "confidence": 0.97,
+  "findings": [
+    {
+      "title": "Always sample exact scrub endpoints",
+      "body": "The new tolerance can permanently skip the endpoint seek: if the last sampled ascent is 0.99991, reaching 1 differs by less than 0.0001, so the mixer remains at 11.99892 seconds indefinitely. The same issue occurs when reversing to 0, making settled poses depend on the preceding frame sequence rather than solely on normalized progress. Meanwhile, dataset.clipTime reports the requested endpoint, masking the discrepancy. Preserve exact endpoint and settled-target sampling to satisfy the fixed deterministic 0\u219212\u21920 contract.",
+      "priority": 2,
+      "confidence": 0.99,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-landing/components/landing/ClimbingWallExperience.tsx",
+      "line_start": 173,
+      "line_end": 177
+    },
+    {
+      "title": "Restore 44px minimum hit targets for header CTAs",
+      "body": "Below 760px, Sign up and Open Boarded have only 38px-high hit areas; the desktop rules also reduce them to 40px. These controls are ordinary Link anchors without role=\"button\", so the global coarse-pointer minimum does not enlarge them, and the centered navigation container contributes no additional clickable area. This regresses Open Boarded from its previous 44px mobile target and violates the frozen 44\u00d744 CSS-pixel accessibility requirement. Keep both CTA hit areas at least 44px high at every breakpoint.",
+      "priority": 2,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-landing/app/landing.css",
+      "line_start": 698,
+      "line_end": 704
+    }
+  ]
+}

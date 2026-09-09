@@ -1,0 +1,393 @@
+diff --git a/app/app/[...screen]/page.tsx b/app/app/[...screen]/page.tsx
+index d3c9759feec40f6aa12e986cbe4e1129498f62f6..5b891880c8519a51a0d6617b4405a2e5554209b4 100644
+--- a/app/app/[...screen]/page.tsx
++++ b/app/app/[...screen]/page.tsx
+@@ -54,18 +54,22 @@ export default async function ScreenPage({
+ }) {
+   const resolvedParams = await params;
+   const resolvedSearchParams = await searchParams;
++  const screen = resolvedParams?.screen || [];
++  const canonicalPath = screen.length > 0 ? `/app/${screen.join('/')}` : '/app';
+ 
+   return (
+-    <Suspense
+-      fallback={
+-        <div className="b-page" aria-busy="true">
+-          <div className="b-panel text-center py-12">
+-            <p className="b-muted text-sm">Loading climbing journal...</p>
++    <div data-boarded-path={canonicalPath} style={{ display: 'contents' }}>
++      <Suspense
++        fallback={
++          <div className="b-page" aria-busy="true">
++            <div className="b-panel text-center py-12">
++              <p className="b-muted text-sm">Loading climbing journal...</p>
++            </div>
+           </div>
+-        </div>
+-      }
+-    >
+-      <Flow screen={resolvedParams.screen} searchParams={resolvedSearchParams} />
+-    </Suspense>
++        }
++      >
++        <Flow screen={resolvedParams.screen} searchParams={resolvedSearchParams} />
++      </Suspense>
++    </div>
+   );
+ }
+diff --git a/app/app/page.tsx b/app/app/page.tsx
+index 463c7b6f2dcee187c6d5351295d0052c87270ff5..ebc22bce30ca7442665e8e5660c0451d3eccc080 100644
+--- a/app/app/page.tsx
++++ b/app/app/page.tsx
+@@ -7,5 +7,9 @@ export const metadata: Metadata = {
+ };
+ 
+ export default function AppPage() {
+-  return <Feed />;
++  return (
++    <div data-boarded-path="/app" style={{ display: 'contents' }}>
++      <Feed />
++    </div>
++  );
+ }
+diff --git a/components/boarded/Shell.tsx b/components/boarded/Shell.tsx
+index f4df2b3ee1e768f23efc00ff128b77c5bbd98006..b4daa730e446686c9fdae33b5c1d088068f2c94e 100644
+--- a/components/boarded/Shell.tsx
++++ b/components/boarded/Shell.tsx
+@@ -73,22 +73,100 @@ function getRouteTitle(pathname: string): string {
+   return 'Boarded — Climbing Journal';
+ }
+ 
++interface FocusDescriptor {
++  id?: string;
++  href?: string;
++  hrefIndex?: number;
++  selector?: string;
++  selectorIndex?: number;
++}
++
+ function getElementByHash(hash: string): HTMLElement | null {
+   if (!hash || hash.length <= 1) return null;
+   const rawId = hash.startsWith('#') ? hash.slice(1) : hash;
+   try {
+     const decodedId = decodeURIComponent(rawId);
+-    return document.getElementById(decodedId);
++    return document.getElementById(decodedId) || document.getElementById(rawId);
+   } catch {
+-    return null;
++    try {
++      return document.getElementById(rawId);
++    } catch {
++      return null;
++    }
++  }
++}
++
++function getDestinationMarker(container: HTMLElement, pathname: string): HTMLElement | null {
++  const normalized = pathname.endsWith('/') && pathname.length > 1 ? pathname.slice(0, -1) : pathname;
++  return (
++    container.querySelector<HTMLElement>(`[data-boarded-path="${normalized}"]`) ||
++    container.querySelector<HTMLElement>(`[data-boarded-path="${pathname}"]`) ||
++    null
++  );
++}
++
++function captureControlDescriptor(el: Element, container: HTMLElement): FocusDescriptor | null {
++  if (!el || el === document.body || el === container) return null;
++  if (el.id) {
++    return { id: el.id };
++  }
++  const href = el.getAttribute('href');
++  if (href) {
++    const anchors = Array.from(container.querySelectorAll('a'));
++    const matching = anchors.filter((a) => a.getAttribute('href') === href);
++    const hrefIndex = matching.indexOf(el as HTMLAnchorElement);
++    return { href, hrefIndex: hrefIndex >= 0 ? hrefIndex : 0 };
++  }
++  const tagName = el.tagName.toLowerCase();
++  const ariaLabel = el.getAttribute('aria-label');
++  if (ariaLabel) {
++    try {
++      const escaped = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(ariaLabel) : ariaLabel;
++      const selector = `${tagName}[aria-label="${escaped}"]`;
++      const matching = Array.from(container.querySelectorAll(selector));
++      const selectorIndex = matching.indexOf(el);
++      return { selector, selectorIndex: selectorIndex >= 0 ? selectorIndex : 0 };
++    } catch {
++      // ignore selector syntax errors
++    }
++  }
++  return null;
++}
++
++function resolveControlDescriptor(desc: FocusDescriptor, scope: HTMLElement): HTMLElement | null {
++  if (desc.id) {
++    const el = document.getElementById(desc.id);
++    if (el && scope.contains(el)) return el;
++  }
++  if (desc.href) {
++    const anchors = Array.from(scope.querySelectorAll<HTMLElement>('a'));
++    const matching = anchors.filter((a) => a.getAttribute('href') === desc.href);
++    const index = desc.hrefIndex ?? 0;
++    if (matching[index]) return matching[index];
++    if (matching.length > 0) return matching[0];
++  }
++  if (desc.selector) {
++    try {
++      const matching = Array.from(scope.querySelectorAll<HTMLElement>(desc.selector));
++      const index = desc.selectorIndex ?? 0;
++      if (matching[index]) return matching[index];
++      if (matching.length > 0) return matching[0];
++    } catch {
++      // ignore selector syntax errors
++    }
+   }
++  return null;
+ }
+ 
+ export function Shell({ children }: { children: React.ReactNode }) {
+   const pathname = usePathname();
+   const mainRef = useRef<HTMLElement>(null);
+   const isPopstateRef = useRef<boolean>(false);
++  const userInteractedRef = useRef<boolean>(false);
++  const locationFocusMapRef = useRef<Map<string, FocusDescriptor>>(new Map());
++  const lastPathnameRef = useRef<string>(pathname);
+   const { initialize, error, retryStorage } = useJournal();
++
+   useEffect(() => {
+     initialize();
+   }, [initialize]);
+@@ -100,10 +178,48 @@ export function Shell({ children }: { children: React.ReactNode }) {
+     }
+   }, [pathname]);
+ 
+-  // Track popstate (browser back/forward) to prevent clobbering browser focus restoration
++  // Track user focus and interaction to capture control descriptors
++  useEffect(() => {
++    const captureInteractiveTarget = (target: Element | null) => {
++      if (!target || !mainRef.current || !mainRef.current.contains(target)) return;
++      const control = target.closest('a, button, input, textarea, select, [tabindex]:not([tabindex="-1"])');
++      if (control && mainRef.current.contains(control)) {
++        const desc = captureControlDescriptor(control, mainRef.current);
++        if (desc) {
++          locationFocusMapRef.current.set(pathname, desc);
++        }
++      }
++    };
++
++    const handleFocusIn = (event: FocusEvent) => {
++      captureInteractiveTarget(event.target as Element | null);
++    };
++
++    const handlePointerDown = (event: PointerEvent) => {
++      userInteractedRef.current = true;
++      captureInteractiveTarget(event.target as Element | null);
++    };
++
++    const handleKeyDown = () => {
++      userInteractedRef.current = true;
++    };
++
++    window.addEventListener('focusin', handleFocusIn, true);
++    window.addEventListener('pointerdown', handlePointerDown, true);
++    window.addEventListener('keydown', handleKeyDown, true);
++
++    return () => {
++      window.removeEventListener('focusin', handleFocusIn, true);
++      window.removeEventListener('pointerdown', handlePointerDown, true);
++      window.removeEventListener('keydown', handleKeyDown, true);
++    };
++  }, [pathname]);
++
++  // Track popstate (browser back/forward)
+   useEffect(() => {
+     const handlePopstate = () => {
+       isPopstateRef.current = true;
++      userInteractedRef.current = false;
+     };
+     window.addEventListener('popstate', handlePopstate);
+     return () => window.removeEventListener('popstate', handlePopstate);
+@@ -111,13 +227,22 @@ export function Shell({ children }: { children: React.ReactNode }) {
+ 
+   // Route focus announcement and management
+   useEffect(() => {
+-    // If navigating via browser Back/Forward (popstate), do not clobber browser's focus/scroll restoration
+-    if (isPopstateRef.current) {
+-      isPopstateRef.current = false;
+-      return;
+-    }
++    const isPop = isPopstateRef.current;
++    isPopstateRef.current = false;
++    userInteractedRef.current = false;
+ 
+-    const focusHashTarget = () => {
++    // If navigating away, save current focused control if any
++    if (lastPathnameRef.current !== pathname && typeof document !== 'undefined') {
++      const active = document.activeElement;
++      if (active && mainRef.current && mainRef.current.contains(active)) {
++        const desc = captureControlDescriptor(active, mainRef.current);
++        if (desc) {
++          locationFocusMapRef.current.set(lastPathnameRef.current, desc);
++        }
++      }
++      lastPathnameRef.current = pathname;
++    }
++    const tryFocusHashTarget = (): boolean => {
+       if (typeof window === 'undefined' || !window.location.hash) return false;
+       const hashEl = getElementByHash(window.location.hash);
+       if (!hashEl) return false;
+@@ -127,37 +252,69 @@ export function Shell({ children }: { children: React.ReactNode }) {
+       return true;
+     };
+ 
+-    // If a hash target is already present, focus and scroll it without overriding it with the page heading.
+-    if (focusHashTarget()) return;
+-
+-    if (!mainRef.current) return;
+-
+-    // An explicit hash may point to content that is still loading. Keep observing until
+-    // that destination mounts instead of disconnecting when the loading heading appears.
+-    const hasExplicitHash = () => typeof window !== 'undefined' && Boolean(window.location.hash);
+-    const focusHeading = () => {
+-      if (!mainRef.current) return;
+-      const heading = mainRef.current.querySelector<HTMLElement>('h1');
+-      if (heading) {
+-        heading.setAttribute('tabIndex', '-1');
+-        heading.focus({ preventScroll: true });
+-      } else {
+-        mainRef.current.focus({ preventScroll: true });
++    const tryApplyFocus = (): boolean => {
++      if (!mainRef.current) return false;
++      if (userInteractedRef.current) return true; // User interacted, don't steal focus
++
++      // If explicit fragment is present, prioritize it
++      if (typeof window !== 'undefined' && window.location.hash) {
++        if (tryFocusHashTarget()) return true;
+       }
+-    };
++      const marker = getDestinationMarker(mainRef.current, pathname);
++      if (!marker) {
++        // Destination marker for current path not mounted yet; wait
++        return false;
++      }
++
++      if (isPop) {
++        // Browser back/forward restoration
++        const active = typeof document !== 'undefined' ? document.activeElement : null;
++        const hasLiveFocus = active && active !== document.body && active !== document.documentElement && marker.contains(active);
++        if (hasLiveFocus) {
++          return true; // Browser genuinely restored live focus
++        }
+ 
+-    // Check if destination h1 already exists when no fragment is active.
+-    if (!hasExplicitHash()) {
+-      const existingHeading = mainRef.current.querySelector<HTMLElement>('h1');
+-      if (existingHeading) {
+-        existingHeading.setAttribute('tabIndex', '-1');
+-        existingHeading.focus({ preventScroll: true });
+-        return;
++        // Try restoring stored control for this location
++        const storedDesc = locationFocusMapRef.current.get(pathname);
++        if (storedDesc) {
++          const matchingControl =
++            resolveControlDescriptor(storedDesc, marker) ||
++            (mainRef.current ? resolveControlDescriptor(storedDesc, mainRef.current) : null);
++          if (matchingControl) {
++            matchingControl.focus({ preventScroll: true });
++            return true;
++          }
++        }
++        // If no stored control or control not mounted, use destination h1
++        const heading = marker.querySelector<HTMLElement>('h1');
++        if (heading) {
++          heading.setAttribute('tabIndex', '-1');
++          heading.focus({ preventScroll: true });
++          return true;
++        }
++        return false; // Still waiting for heading in marker
++      }
++
++      // Forward / standard navigation
++      if (typeof window === 'undefined' || !window.location.hash) {
++        const heading = marker.querySelector<HTMLElement>('h1');
++        if (heading) {
++          heading.setAttribute('tabIndex', '-1');
++          heading.focus({ preventScroll: true });
++          return true;
++        }
++        return false; // Still waiting for heading in marker
+       }
++
++      return false;
++    };
++
++    // Immediate attempt
++    if (tryApplyFocus()) {
++      return;
+     }
+ 
+-    // If child is suspended or mounting asynchronously, wait for the destination
+-    // (or, without a fragment, the destination h1) via bounded MutationObserver.
++    // If child is suspended or mounting asynchronously, wait via bounded MutationObserver
+     let observer: MutationObserver | null = null;
+     let timeoutId: number | null = null;
+ 
+@@ -172,36 +329,34 @@ export function Shell({ children }: { children: React.ReactNode }) {
+       }
+     };
+ 
+-    observer = new MutationObserver(() => {
+-      if (!mainRef.current) return;
+-      // Always prioritize the current fragment target, including after hydration.
+-      if (focusHashTarget()) {
+-        cleanup();
+-        return;
+-      }
+-      if (!hasExplicitHash()) {
+-        const heading = mainRef.current.querySelector<HTMLElement>('h1');
+-        if (heading) {
++    if (mainRef.current) {
++      observer = new MutationObserver(() => {
++        if (tryApplyFocus()) {
+           cleanup();
+-          heading.setAttribute('tabIndex', '-1');
+-          heading.focus({ preventScroll: true });
+         }
+-      }
+-    });
++      });
+ 
+-    observer.observe(mainRef.current, {
+-      childList: true,
+-      subtree: true,
+-    });
++      observer.observe(mainRef.current, {
++        childList: true,
++        subtree: true,
++      });
++    }
+ 
+-    // Fallback: disconnect after 1500ms and focus the hash target, h1, or main.
++    // Fallback: disconnect after 1500ms and apply final focus attempt
+     timeoutId = window.setTimeout(() => {
+-      if (focusHashTarget()) {
+-        cleanup();
+-        return;
+-      }
+       cleanup();
+-      focusHeading();
++      if (!userInteractedRef.current && mainRef.current) {
++        if (typeof window !== 'undefined' && window.location.hash && tryFocusHashTarget()) return;
++        const marker = getDestinationMarker(mainRef.current, pathname);
++        const scope = marker || mainRef.current;
++        const heading = scope.querySelector<HTMLElement>('h1');
++        if (heading) {
++          heading.setAttribute('tabIndex', '-1');
++          heading.focus({ preventScroll: true });
++        } else {
++          mainRef.current.focus({ preventScroll: true });
++        }
++      }
+     }, 1500);
+ 
+     return cleanup;

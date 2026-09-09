@@ -1,0 +1,464 @@
+{
+  "landing": {
+    "repo": "/Users/ian/Projects/ClimbingApp",
+    "branch": "loop/boarded-v1-20260905-78720d/landing",
+    "base_sha": "9a68ff18ffd612b21bfb5173a50b82ee7c35297e",
+    "head_sha": "4c38560cd943f1a93cf020d4be7b73335e05279f",
+    "diff_sha256": "58e5d62c224dd35d5fa9484e7a68606a036211d98070b725802b84ab4e7726eb",
+    "packet_spec_sha256": "0f4cc03129ccfc030f7d0d33531ea801bacec285bcfaddd7c28d4ba21d8c261e",
+    "dependency_heads": {},
+    "target_snapshot_sha256": "b2764cce7de2a971eb7e20429aa43e8283fd88cef62dfa89c4d089764945ffba",
+    "confinement_sha256": "5e9dd81ed62697dfbee0e44e169d238127b4c0ae65fcc9a79b96dffdc75b6e01"
+  },
+  "blender": {
+    "repo": "/Users/ian/Projects/ClimbingApp",
+    "branch": "loop/boarded-v1-20260905-78720d/blender",
+    "base_sha": "9a68ff18ffd612b21bfb5173a50b82ee7c35297e",
+    "head_sha": "3d05383837d686f04a1873e412e764be3a35fcb4",
+    "diff_sha256": "2f398e849e9f5bd0b6a87209fc99097ce88ddd159d0b86216fed0e754498e7a2",
+    "packet_spec_sha256": "71cacae05778d6ae5586ab8c90c39b551eba42ed9221bcf76379eb21ef98f092",
+    "dependency_heads": {},
+    "target_snapshot_sha256": "89f877cb7339ee2b84bcb4be754e8eafb9f5a44f548f77869642a0812d497b73",
+    "confinement_sha256": "03b58b505555c7b1ccfa6b4d37ba3ded5a12f4884390b78509599689e95dce30"
+  },
+  "asset_delivery": "request interception exact frozen blender files; unchanged landing server4181",
+  "desktop": [
+    {
+      "label": "start",
+      "path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/resume-landing-desktop-start.png",
+      "state": {
+        "viewport": [
+          1440,
+          1024
+        ],
+        "scrollY": 0,
+        "overflow": false,
+        "anchor": {
+          "state": "ready",
+          "hasAscent": "true",
+          "progress": "0.00000",
+          "targetProgress": "0.00000",
+          "yaw": "0.16514",
+          "scale": "1.0000",
+          "opacity": "1.0000",
+          "ascent": "0.00000",
+          "clipTime": "0.0000",
+          "phase": "showcase"
+        },
+        "canvas": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 1024,
+          "top": 0,
+          "right": 1440,
+          "bottom": 1024,
+          "left": 0
+        }
+      }
+    },
+    {
+      "label": "mid",
+      "path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/resume-landing-desktop-mid.png",
+      "state": {
+        "viewport": [
+          1440,
+          1024
+        ],
+        "scrollY": 1402,
+        "overflow": false,
+        "anchor": {
+          "state": "ready",
+          "hasAscent": "true",
+          "progress": "0.35287",
+          "targetProgress": "0.35287",
+          "yaw": "0.29185",
+          "scale": "1.0000",
+          "opacity": "1.0000",
+          "ascent": "0.47872",
+          "clipTime": "5.7447",
+          "phase": "climb"
+        },
+        "canvas": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 1024,
+          "top": 0,
+          "right": 1440,
+          "bottom": 1024,
+          "left": 0
+        }
+      }
+    },
+    {
+      "label": "top",
+      "path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/resume-landing-desktop-top.png",
+      "state": {
+        "viewport": [
+          1440,
+          1024
+        ],
+        "scrollY": 2803,
+        "overflow": false,
+        "anchor": {
+          "state": "ready",
+          "hasAscent": "true",
+          "progress": "0.70549",
+          "targetProgress": "0.70549",
+          "yaw": "0.41026",
+          "scale": "1.0000",
+          "opacity": "1.0000",
+          "ascent": "1.00000",
+          "clipTime": "12.0000",
+          "phase": "summit"
+        },
+        "canvas": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 1024,
+          "top": 0,
+          "right": 1440,
+          "bottom": 1024,
+          "left": 0
+        }
+      }
+    },
+    {
+      "label": "reverse",
+      "path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/resume-landing-desktop-reverse.png",
+      "state": {
+        "viewport": [
+          1440,
+          1024
+        ],
+        "scrollY": 1402,
+        "overflow": false,
+        "anchor": {
+          "state": "ready",
+          "hasAscent": "true",
+          "progress": "0.35287",
+          "targetProgress": "0.35287",
+          "yaw": "0.51699",
+          "scale": "1.0000",
+          "opacity": "1.0000",
+          "ascent": "0.47872",
+          "clipTime": "5.7447",
+          "phase": "climb"
+        },
+        "canvas": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 1024,
+          "top": 0,
+          "right": 1440,
+          "bottom": 1024,
+          "left": 0
+        }
+      }
+    },
+    {
+      "label": "footer",
+      "path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/resume-landing-desktop-footer.png",
+      "state": {
+        "viewport": [
+          1440,
+          1024
+        ],
+        "scrollY": 4247,
+        "overflow": false,
+        "anchor": {
+          "state": "ready",
+          "hasAscent": "true",
+          "progress": "1.00000",
+          "targetProgress": "1.00000",
+          "yaw": "0.52741",
+          "scale": "40.0000",
+          "opacity": "0.0000",
+          "ascent": "1.00000",
+          "clipTime": "12.0000",
+          "phase": "gone"
+        },
+        "canvas": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 1024,
+          "top": 0,
+          "right": 1440,
+          "bottom": 1024,
+          "left": 0
+        }
+      }
+    }
+  ],
+  "mobile": [
+    {
+      "label": "start",
+      "path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/resume-landing-mobile-start.png",
+      "state": {
+        "viewport": [
+          390,
+          844
+        ],
+        "overflow": false,
+        "anchor": {
+          "state": "ready",
+          "hasAscent": "true",
+          "progress": "0.00000",
+          "targetProgress": "0.00000",
+          "yaw": "0.12971",
+          "scale": "1.0000",
+          "opacity": "1.0000",
+          "ascent": "0.00000",
+          "clipTime": "0.0000",
+          "phase": "showcase"
+        },
+        "links": [
+          {
+            "text": "Boarded",
+            "width": 73.171875,
+            "height": 44
+          },
+          {
+            "text": "Sign up",
+            "width": 77.515625,
+            "height": 44
+          },
+          {
+            "text": "Open Boarded",
+            "width": 144.4375,
+            "height": 44
+          },
+          {
+            "text": "Boarded",
+            "width": 189.546875,
+            "height": 44
+          },
+          {
+            "text": "Feed",
+            "width": 44,
+            "height": 44
+          },
+          {
+            "text": "Explore",
+            "width": 45.125,
+            "height": 44
+          },
+          {
+            "text": "Editor",
+            "width": 44,
+            "height": 44
+          },
+          {
+            "text": "Log",
+            "width": 44,
+            "height": 44
+          },
+          {
+            "text": "Profile",
+            "width": 44,
+            "height": 44
+          },
+          {
+            "text": "Sign up",
+            "width": 45.65625,
+            "height": 44
+          },
+          {
+            "text": "Sign in",
+            "width": 44,
+            "height": 44
+          },
+          {
+            "text": "Back to top",
+            "width": 99.078125,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "label": "mid",
+      "path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/resume-landing-mobile-mid.png",
+      "state": {
+        "viewport": [
+          390,
+          844
+        ],
+        "overflow": false,
+        "anchor": {
+          "state": "ready",
+          "hasAscent": "true",
+          "progress": "0.47554",
+          "targetProgress": "0.47554",
+          "yaw": "0.25587",
+          "scale": "1.0000",
+          "opacity": "1.0000",
+          "ascent": "0.69393",
+          "clipTime": "8.3272",
+          "phase": "climb"
+        },
+        "links": [
+          {
+            "text": "Boarded",
+            "width": 73.171875,
+            "height": 44
+          },
+          {
+            "text": "Sign up",
+            "width": 77.515625,
+            "height": 44
+          },
+          {
+            "text": "Open Boarded",
+            "width": 144.4375,
+            "height": 44
+          },
+          {
+            "text": "Boarded",
+            "width": 189.546875,
+            "height": 44
+          },
+          {
+            "text": "Feed",
+            "width": 44,
+            "height": 44
+          },
+          {
+            "text": "Explore",
+            "width": 45.125,
+            "height": 44
+          },
+          {
+            "text": "Editor",
+            "width": 44,
+            "height": 44
+          },
+          {
+            "text": "Log",
+            "width": 44,
+            "height": 44
+          },
+          {
+            "text": "Profile",
+            "width": 44,
+            "height": 44
+          },
+          {
+            "text": "Sign up",
+            "width": 45.65625,
+            "height": 44
+          },
+          {
+            "text": "Sign in",
+            "width": 44,
+            "height": 44
+          },
+          {
+            "text": "Back to top",
+            "width": 99.078125,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "label": "footer",
+      "path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/resume-landing-mobile-footer.png",
+      "state": {
+        "viewport": [
+          390,
+          844
+        ],
+        "overflow": false,
+        "anchor": {
+          "state": "ready",
+          "hasAscent": "true",
+          "progress": "1.00000",
+          "targetProgress": "1.00000",
+          "yaw": "0.26684",
+          "scale": "40.0000",
+          "opacity": "0.0000",
+          "ascent": "1.00000",
+          "clipTime": "12.0000",
+          "phase": "gone"
+        },
+        "links": [
+          {
+            "text": "Boarded",
+            "width": 73.171875,
+            "height": 44
+          },
+          {
+            "text": "Sign up",
+            "width": 77.515625,
+            "height": 44
+          },
+          {
+            "text": "Open Boarded",
+            "width": 144.4375,
+            "height": 44
+          },
+          {
+            "text": "Boarded",
+            "width": 189.546875,
+            "height": 44
+          },
+          {
+            "text": "Feed",
+            "width": 44,
+            "height": 44
+          },
+          {
+            "text": "Explore",
+            "width": 45.125,
+            "height": 44
+          },
+          {
+            "text": "Editor",
+            "width": 44,
+            "height": 44
+          },
+          {
+            "text": "Log",
+            "width": 44,
+            "height": 44
+          },
+          {
+            "text": "Profile",
+            "width": 44,
+            "height": 44
+          },
+          {
+            "text": "Sign up",
+            "width": 45.65625,
+            "height": 44
+          },
+          {
+            "text": "Sign in",
+            "width": 44,
+            "height": 44
+          },
+          {
+            "text": "Back to top",
+            "width": 99.078125,
+            "height": 44
+          }
+        ]
+      }
+    },
+    {
+      "label": "reduced",
+      "path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/resume-landing-mobile-reduced.png",
+      "state": {
+        "anchor": {
+          "state": "static"
+        },
+        "canvases": 0
+      }
+    }
+  ]
+}

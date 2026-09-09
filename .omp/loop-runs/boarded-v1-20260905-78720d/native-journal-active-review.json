@@ -1,0 +1,56 @@
+{
+  "packet": "native-journal",
+  "review_kind": "packet",
+  "identity": {
+    "repo": "/Users/ian/Projects/ClimbingApp",
+    "branch": "loop/boarded-v1-20260905-78720d/native-journal",
+    "base_sha": "a178c2c406f8d5b7d35a309471ba24d3775b49fd",
+    "head_sha": "432091811ca886f5bb15e0f1e96c79ce8846cf03",
+    "diff_sha256": "0c01cdc6bf2584fa6a034b1715e2e3f6d51001ceedac19bae06dd884d69694e6",
+    "packet_spec_sha256": "fe915f1e21de30d4c5b5b912f5b210491a0e18c55578f04eed280bdae6201971",
+    "dependency_heads": {
+      "native": "a178c2c406f8d5b7d35a309471ba24d3775b49fd"
+    },
+    "target_snapshot_sha256": "30f15f1829da3149b3784933e4f5170f6f5de58deefa9d475e49e82871cd6501",
+    "confinement_sha256": "79e72eb51d521ba271e08cbed834b8b287f1bf0c63a64da46d71e4f075339e90"
+  },
+  "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/native-journal",
+  "packet_spec": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/native-journal-active-packet.json",
+  "changed_paths": [
+    "apps/ios/Boarded/Boarded/Services/ProfileRepository.swift",
+    "apps/ios/Boarded/Boarded/Services/SessionSyncService.swift",
+    "apps/ios/Boarded/Boarded/Views/Log/LogViews.swift",
+    "apps/ios/Boarded/Boarded/Views/Profile/ProfileViews.swift",
+    "apps/ios/Boarded/Boarded/Views/Share/ShareSessionComposer.swift",
+    "apps/ios/Boarded/ViewModels/SessionLoggerViewModel.swift"
+  ],
+  "target_snapshot": [
+    {
+      "path": "apps/ios/Boarded/Boarded/Services/ProfileRepository.swift",
+      "sha256": "fad62da036589486845336cc3f6196daef0b3c40d5b91e4a77b46d5eb2c1f3a9"
+    },
+    {
+      "path": "apps/ios/Boarded/Boarded/Services/SessionSyncService.swift",
+      "sha256": "3d6208fba4bc9450269f6ec412e12372b1504bc9a98d3ec3a992be726605a2de"
+    },
+    {
+      "path": "apps/ios/Boarded/Boarded/Views/Log/LogViews.swift",
+      "sha256": "89845cfe060f0bddfb76768259710b06185f2656cff31bbc7d73068a875bfbb9"
+    },
+    {
+      "path": "apps/ios/Boarded/Boarded/Views/Profile/ProfileViews.swift",
+      "sha256": "9b9712fc59ba15fa5d87a3ad1c7f12cd2fd7952f991320e3eaf91a790a4d4c05"
+    },
+    {
+      "path": "apps/ios/Boarded/Boarded/Views/Share/ShareSessionComposer.swift",
+      "sha256": "26fb83bcd8268e2436f92778cf668f92d2b087832fbf2d8cb92cdc1600454358"
+    },
+    {
+      "path": "apps/ios/Boarded/ViewModels/SessionLoggerViewModel.swift",
+      "sha256": "e56a9033756ad3192351f47e5bcefa5c6fca0281c9243e47ddf4b14e17b4e436"
+    }
+  ],
+  "owned_paths_clean": true,
+  "execution_evidence": [],
+  "designer_verdict": null
+}

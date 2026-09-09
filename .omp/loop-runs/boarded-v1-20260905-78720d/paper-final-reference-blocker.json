@@ -1,0 +1,14 @@
+{
+  "status": "blocked",
+  "file_id": "01M1NCB4B1K8XKBSPKDRYF8XZM",
+  "page": "2-0",
+  "node": "E6-0",
+  "attempt": "Direct read-only get_computed_styles, not page open or mutation",
+  "response": "Weekly MCP limit reached. It resets in 5 days.",
+  "missing": "Final-v3-bound computed styles, node geometry and SVG paths or contemporaneous verified measurements",
+  "cache_status": "Designer demonstrated E6-0.jsx and feed-handoff-spec.json predate final-v3; unsafe as exact measurements",
+  "user_decision": "Keep strict parity gate",
+  "gate_percent": 0.5,
+  "last_measured_percent": 3.99,
+  "primary_integration_allowed": false
+}

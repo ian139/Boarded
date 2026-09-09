@@ -1,0 +1,687 @@
+diff --git a/apps/ios/Boarded/Boarded/Services/AppServices.swift b/apps/ios/Boarded/Boarded/Services/AppServices.swift
+index e223f5c2eb1363284ce92849b95bf8b32f303eae..fa04e7e5ce0911e0998ada49a32f66e7d64d7256 100644
+--- a/apps/ios/Boarded/Boarded/Services/AppServices.swift
++++ b/apps/ios/Boarded/Boarded/Services/AppServices.swift
+@@ -5,6 +5,13 @@ import SwiftData
+ /// repositories; deterministic fixtures are used only for UI-test/preview
+ /// launch arguments and never as a silent production fallback.
+ enum AppServices {
++    #if DEBUG
++    private static let fixtureStore = SharedFixtureStore(
++        savedRouteIDs: UITestFixtures.savedRouteIDs,
++        followedClimberIDs: UITestFixtures.followedClimberIDs
++    )
++    #endif
++
+     static let sessionRepository: any SessionRepository = {
+         #if DEBUG
+         if AppLaunchConfiguration.isUITestFixture || AppLaunchConfiguration.isOfflineFixture {
+@@ -21,7 +28,15 @@ enum AppServices {
+     static let feedRepository: any FeedRepository = {
+         #if DEBUG
+         if AppLaunchConfiguration.isUITestFixture || AppLaunchConfiguration.isOfflineFixture {
+-            return MockFeedRepository(items: UITestFixtures.feed, comments: UITestFixtures.comments, currentUserID: UITestFixtures.userID, now: UITestFixtures.now)
++            return MockFeedRepository(
++                items: UITestFixtures.feed,
++                comments: UITestFixtures.comments,
++                savedRouteIDs: UITestFixtures.savedRouteIDs,
++                followedClimberIDs: UITestFixtures.followedClimberIDs,
++                currentUserID: UITestFixtures.userID,
++                now: UITestFixtures.now,
++                fixtureStore: fixtureStore
++            )
+         }
+         #endif
+         #if canImport(Supabase)
+@@ -42,7 +57,8 @@ enum AppServices {
+                 savedRouteIDs: UITestFixtures.savedRouteIDs,
+                 followedClimberIDs: UITestFixtures.followedClimberIDs,
+                 currentUserID: UITestFixtures.userID,
+-                now: UITestFixtures.now
++                now: UITestFixtures.now,
++                fixtureStore: fixtureStore
+             )
+         }
+         #endif
+@@ -59,10 +75,12 @@ enum AppServices {
+             return MockProfileRepository(
+                 profile: UITestFixtures.profile,
+                 statistics: UITestFixtures.statistics,
++                routes: UITestFixtures.exploreRoutes,
+                 savedRoutes: UITestFixtures.savedRoutes,
+                 climbers: UITestFixtures.climbersMap,
+                 climberSessions: UITestFixtures.climberSessionsMap,
+-                followedClimberIDs: UITestFixtures.followedClimberIDs
++                followedClimberIDs: UITestFixtures.followedClimberIDs,
++                fixtureStore: fixtureStore
+             )
+         }
+         #endif
+diff --git a/apps/ios/Boarded/Boarded/Services/CommunityRepository.swift b/apps/ios/Boarded/Boarded/Services/CommunityRepository.swift
+index 55b1cab54624bb03bb623ff92a88273ee028a2a0..24c789532f06ef1dbddb9556aae6365c7d5ed7c8 100644
+--- a/apps/ios/Boarded/Boarded/Services/CommunityRepository.swift
++++ b/apps/ios/Boarded/Boarded/Services/CommunityRepository.swift
+@@ -68,8 +68,7 @@ final class MockCommunityRepository: CommunityRepository, @unchecked Sendable {
+     private var venues: [CommunityVenue]
+     private var climbers: [CommunityClimber]
+     private var activityEvents: [ActivityEvent]
+-    private var savedRouteIDs: Set<UUID>
+-    private var followedClimberIDs: Set<UUID>
++    private let fixtureStore: SharedFixtureStore
+     let currentUserID: UUID
+     let now: Date
+ 
+@@ -81,14 +80,17 @@ final class MockCommunityRepository: CommunityRepository, @unchecked Sendable {
+         savedRouteIDs: Set<UUID> = [],
+         followedClimberIDs: Set<UUID> = [],
+         currentUserID: UUID = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!,
+-        now: Date = Date(timeIntervalSince1970: 1_800_000_000)
++        now: Date = Date(timeIntervalSince1970: 1_788_601_260),
++        fixtureStore: SharedFixtureStore? = nil
+     ) {
+         self.routes = routes
+         self.venues = venues
+         self.climbers = climbers
+         self.activityEvents = activityEvents
+-        self.savedRouteIDs = savedRouteIDs
+-        self.followedClimberIDs = followedClimberIDs
++        self.fixtureStore = fixtureStore ?? SharedFixtureStore(
++            savedRouteIDs: savedRouteIDs,
++            followedClimberIDs: followedClimberIDs
++        )
+         self.currentUserID = currentUserID
+         self.now = now
+     }
+@@ -103,8 +105,9 @@ final class MockCommunityRepository: CommunityRepository, @unchecked Sendable {
+     ) async throws -> [CommunityRoute] {
+         lock.lock(); defer { lock.unlock() }
+         var result = routes
++        let savedIDs = fixtureStore.currentSavedRouteIDs()
+         if savedOnly {
+-            result = result.filter { SharedFixtureStore.shared.isRouteSaved($0.id) }
++            result = result.filter { savedIDs.contains($0.id) }
+         }
+         if let venueFilter {
+             result = result.filter { $0.venue?.id == venueFilter }
+@@ -118,8 +121,21 @@ final class MockCommunityRepository: CommunityRepository, @unchecked Sendable {
+                 (route.rockType?.lowercased().contains(query) ?? false)
+             }
+         }
++        result.sort { lhs, rhs in
++            if lhs.createdAt != rhs.createdAt { return lhs.createdAt > rhs.createdAt }
++            return lhs.id.uuidString > rhs.id.uuidString
++        }
++        if let beforeCreatedAt {
++            result = result.filter { route in
++                if route.createdAt < beforeCreatedAt { return true }
++                if route.createdAt == beforeCreatedAt, let beforeID {
++                    return route.id.uuidString < beforeID.uuidString
++                }
++                return false
++            }
++        }
+         for index in result.indices {
+-            result[index].isSaved = SharedFixtureStore.shared.isRouteSaved(result[index].id)
++            result[index].isSaved = savedIDs.contains(result[index].id)
+         }
+         return Array(result.prefix(pageSize))
+     }
+@@ -137,20 +153,24 @@ final class MockCommunityRepository: CommunityRepository, @unchecked Sendable {
+     func searchClimbers(query: String, pageSize: Int) async throws -> [CommunityClimber] {
+         lock.lock(); defer { lock.unlock() }
+         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+-        guard !trimmed.isEmpty else {
+-            return Array(climbers.prefix(pageSize))
++        var result = climbers
++        if !trimmed.isEmpty {
++            result = result.filter { climber in
++                (climber.username?.lowercased().contains(trimmed) ?? false) ||
++                (climber.fullName?.lowercased().contains(trimmed) ?? false) ||
++                (climber.homeArea?.lowercased().contains(trimmed) ?? false)
++            }
+         }
+-        return Array(climbers.filter { climber in
+-            (climber.username?.lowercased().contains(trimmed) ?? false) ||
+-            (climber.fullName?.lowercased().contains(trimmed) ?? false) ||
+-            (climber.homeArea?.lowercased().contains(trimmed) ?? false)
+-        }.prefix(pageSize))
++        let followedIDs = fixtureStore.currentFollowedClimberIDs()
++        for index in result.indices {
++            result[index].isFollowed = followedIDs.contains(result[index].id)
++        }
++        return Array(result.prefix(pageSize))
+     }
+ 
+     func toggleBookmark(routeID: UUID) async throws -> Bool {
+         lock.lock(); defer { lock.unlock() }
+-        let nowSaved = SharedFixtureStore.shared.toggleBookmark(routeID)
+-        savedRouteIDs = SharedFixtureStore.shared.savedRouteIDs
++        let nowSaved = fixtureStore.toggleSavedRoute(routeID)
+         for index in routes.indices {
+             if routes[index].id == routeID {
+                 routes[index].isSaved = nowSaved
+@@ -161,8 +181,7 @@ final class MockCommunityRepository: CommunityRepository, @unchecked Sendable {
+ 
+     func toggleFollow(climberID: UUID) async throws -> Bool {
+         lock.lock(); defer { lock.unlock() }
+-        let isFollowing = SharedFixtureStore.shared.toggleFollow(climberID)
+-        followedClimberIDs = SharedFixtureStore.shared.followedClimberIDs
++        let isFollowing = fixtureStore.toggleFollow(climberID)
+         for index in climbers.indices {
+             if climbers[index].id == climberID {
+                 climbers[index].isFollowed = isFollowing
+diff --git a/apps/ios/Boarded/Boarded/Services/FeedRepository.swift b/apps/ios/Boarded/Boarded/Services/FeedRepository.swift
+index ca552d118f3465c3a0dc5912a034ca2749ee7b83..0f047d6d1558b7aeb9291e1258b257c995525b63 100644
+--- a/apps/ios/Boarded/Boarded/Services/FeedRepository.swift
++++ b/apps/ios/Boarded/Boarded/Services/FeedRepository.swift
+@@ -80,7 +80,7 @@ final class MockFeedRepository: FeedRepository, @unchecked Sendable {
+     private var items: [SessionFeedItem]
+     private var comments: [SessionPostComment]
+     private var likedPostIDs: Set<UUID>
+-    private var savedRouteIDs: Set<UUID>
++    private let fixtureStore: SharedFixtureStore
+     private var posts: [SessionPost] = []
+     private var uploadedImages: [String: Data] = [:]
+ 
+@@ -93,13 +93,18 @@ final class MockFeedRepository: FeedRepository, @unchecked Sendable {
+         comments: [SessionPostComment] = [],
+         likedPostIDs: Set<UUID> = [],
+         savedRouteIDs: Set<UUID> = [],
++        followedClimberIDs: Set<UUID> = [],
+         currentUserID: UUID = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!,
+-        now: Date = Date(timeIntervalSince1970: 1_700_000_000)
++        now: Date = Date(timeIntervalSince1970: 1_788_601_260),
++        fixtureStore: SharedFixtureStore? = nil
+     ) {
+         self.items = items
+         self.comments = comments
+         self.likedPostIDs = likedPostIDs
+-        self.savedRouteIDs = savedRouteIDs
++        self.fixtureStore = fixtureStore ?? SharedFixtureStore(
++            savedRouteIDs: savedRouteIDs,
++            followedClimberIDs: followedClimberIDs
++        )
+         self.currentUserID = currentUserID
+         self.now = now
+     }
+@@ -113,8 +118,9 @@ final class MockFeedRepository: FeedRepository, @unchecked Sendable {
+     ) async throws -> FeedPage {
+         lock.lock(); defer { lock.unlock() }
+         var filtered = items
++        let followedIDs = fixtureStore.currentFollowedClimberIDs()
+         if followingOnly {
+-            filtered = filtered.filter { $0.author.isFollowed || $0.userId == currentUserID }
++            filtered = filtered.filter { followedIDs.contains($0.author.id) || $0.userId == currentUserID }
+         }
+         if let authorFilter {
+             filtered = filtered.filter { $0.userId == authorFilter }
+@@ -131,7 +137,36 @@ final class MockFeedRepository: FeedRepository, @unchecked Sendable {
+                 (item.createdAt, item.id.uuidString) < (cursor.createdAt, cursor.id.uuidString)
+             }
+         }
+-        let page = Array(filtered.prefix(pageSize))
++        var page = Array(filtered.prefix(pageSize))
++        let savedIDs = fixtureStore.currentSavedRouteIDs()
++        for index in page.indices {
++            let routeID = page[index].route?.id ?? page[index].session.featuredAttempt.routeId
++            if let routeID {
++                page[index].isSaved = savedIDs.contains(routeID)
++            }
++            let item = page[index]
++            var author = item.author
++            author.isFollowed = followedIDs.contains(author.id)
++            page[index] = SessionFeedItem(
++                id: item.id,
++                userId: item.userId,
++                sessionId: item.sessionId,
++                featuredAttemptId: item.featuredAttemptId,
++                caption: item.caption,
++                imagePath: item.imagePath,
++                imageAlt: item.imageAlt,
++                overlayStyle: item.overlayStyle,
++                createdAt: item.createdAt,
++                updatedAt: item.updatedAt,
++                author: author,
++                session: item.session,
++                route: item.route,
++                likeCount: item.likeCount,
++                commentCount: item.commentCount,
++                isLiked: item.isLiked,
++                isSaved: item.isSaved
++            )
++        }
+         let hasMore = filtered.count > pageSize
+         let nextCursor = page.last.map { FeedCursor(createdAt: $0.createdAt, id: $0.id) }
+         return FeedPage(items: page, nextCursor: hasMore ? nextCursor : nil, hasMore: hasMore)
+@@ -139,7 +174,32 @@ final class MockFeedRepository: FeedRepository, @unchecked Sendable {
+ 
+     func fetchPost(id: UUID) async throws -> SessionFeedItem? {
+         lock.lock(); defer { lock.unlock() }
+-        return items.first(where: { $0.id == id })
++        guard var item = items.first(where: { $0.id == id }) else { return nil }
++        let routeID = item.route?.id ?? item.session.featuredAttempt.routeId
++        if let routeID {
++            item.isSaved = fixtureStore.isSaved(routeID)
++        }
++        var author = item.author
++        author.isFollowed = fixtureStore.isFollowing(author.id)
++        return SessionFeedItem(
++            id: item.id,
++            userId: item.userId,
++            sessionId: item.sessionId,
++            featuredAttemptId: item.featuredAttemptId,
++            caption: item.caption,
++            imagePath: item.imagePath,
++            imageAlt: item.imageAlt,
++            overlayStyle: item.overlayStyle,
++            createdAt: item.createdAt,
++            updatedAt: item.updatedAt,
++            author: author,
++            session: item.session,
++            route: item.route,
++            likeCount: item.likeCount,
++            commentCount: item.commentCount,
++            isLiked: item.isLiked,
++            isSaved: item.isSaved
++        )
+     }
+ 
+     func fetchComments(postID: UUID) async throws -> [SessionPostComment] {
+@@ -183,16 +243,9 @@ final class MockFeedRepository: FeedRepository, @unchecked Sendable {
+ 
+     func toggleBookmark(routeID: UUID) async throws -> Bool {
+         lock.lock(); defer { lock.unlock() }
+-        let nowSaved: Bool
+-        if savedRouteIDs.contains(routeID) {
+-            savedRouteIDs.remove(routeID)
+-            nowSaved = false
+-        } else {
+-            savedRouteIDs.insert(routeID)
+-            nowSaved = true
+-        }
++        let nowSaved = fixtureStore.toggleSavedRoute(routeID)
+         for index in items.indices {
+-            if items[index].route?.id == routeID {
++            if items[index].route?.id == routeID || items[index].session.featuredAttempt.routeId == routeID {
+                 items[index].isSaved = nowSaved
+             }
+         }
+diff --git a/apps/ios/Boarded/Boarded/Services/UITestFixtures.swift b/apps/ios/Boarded/Boarded/Services/UITestFixtures.swift
+index 9cec15fd458e2b077e3ff120fbcd4cc8a0b32af4..20e83260e126597feb822c12e9b53f335856a202 100644
+--- a/apps/ios/Boarded/Boarded/Services/UITestFixtures.swift
++++ b/apps/ios/Boarded/Boarded/Services/UITestFixtures.swift
+@@ -6,7 +6,7 @@ enum UITestFixtures {
+     static let userID = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
+     static let otherID = UUID(uuidString: "22222222-2222-4222-8222-222222222222")! // Maya K.
+     static let jordanID = UUID(uuidString: "33333333-3333-4333-8333-333333333333")! // Jordan T.
+-    static let now = Date(timeIntervalSince1970: 1_800_000_000)
++    static let now = Date(timeIntervalSince1970: 1_788_601_260) // 2026-09-05T09:41:00Z
+ 
+     static let sessionID = UUID(uuidString: "22222222-3333-4444-8888-222222222222")!
+     static let attemptID = UUID(uuidString: "33333333-3333-4333-8333-333333333333")!
+@@ -420,17 +420,11 @@ enum UITestFixtures {
+         )
+     ]
+ 
+-    static var savedRouteIDs: Set<UUID> {
+-        get { SharedFixtureStore.shared.savedRouteIDs }
+-        set { SharedFixtureStore.shared.savedRouteIDs = newValue }
+-    }
+-    static var followedClimberIDs: Set<UUID> {
+-        get { SharedFixtureStore.shared.followedClimberIDs }
+-        set { SharedFixtureStore.shared.followedClimberIDs = newValue }
+-    }
++    static let savedRouteIDs: Set<UUID> = [redpointRidgeID]
++    static let followedClimberIDs: Set<UUID> = [otherID, jordanID]
+ 
+     static var savedRoutes: [CommunityRoute] {
+-        exploreRoutes.filter { SharedFixtureStore.shared.isRouteSaved($0.id) }
++        exploreRoutes.filter { savedRouteIDs.contains($0.id) }
+     }
+ 
+     static let climberSessionsMap: [UUID: [SessionFeedItem]] = [
+@@ -460,17 +454,29 @@ enum UITestFixtures {
+ }
+ 
+ final class SharedFixtureStore: @unchecked Sendable {
+-    static let shared = SharedFixtureStore()
+     private let lock = NSLock()
+-    var savedRouteIDs: Set<UUID> = [UITestFixtures.redpointRidgeID]
+-    var followedClimberIDs: Set<UUID> = [UITestFixtures.otherID, UITestFixtures.jordanID]
++    private var savedRouteIDs: Set<UUID>
++    private var followedClimberIDs: Set<UUID>
++
++    init(
++        savedRouteIDs: Set<UUID> = [],
++        followedClimberIDs: Set<UUID> = []
++    ) {
++        self.savedRouteIDs = savedRouteIDs
++        self.followedClimberIDs = followedClimberIDs
++    }
+ 
+-    func isRouteSaved(_ id: UUID) -> Bool {
++    func isSaved(_ id: UUID) -> Bool {
+         lock.lock(); defer { lock.unlock() }
+         return savedRouteIDs.contains(id)
+     }
+ 
+-    func toggleBookmark(_ id: UUID) -> Bool {
++    func isFollowing(_ id: UUID) -> Bool {
++        lock.lock(); defer { lock.unlock() }
++        return followedClimberIDs.contains(id)
++    }
++
++    func toggleSavedRoute(_ id: UUID) -> Bool {
+         lock.lock(); defer { lock.unlock() }
+         if savedRouteIDs.contains(id) {
+             savedRouteIDs.remove(id)
+@@ -481,11 +487,6 @@ final class SharedFixtureStore: @unchecked Sendable {
+         }
+     }
+ 
+-    func isClimberFollowed(_ id: UUID) -> Bool {
+-        lock.lock(); defer { lock.unlock() }
+-        return followedClimberIDs.contains(id)
+-    }
+-
+     func toggleFollow(_ id: UUID) -> Bool {
+         lock.lock(); defer { lock.unlock() }
+         if followedClimberIDs.contains(id) {
+@@ -496,4 +497,14 @@ final class SharedFixtureStore: @unchecked Sendable {
+             return true
+         }
+     }
++
++    func currentSavedRouteIDs() -> Set<UUID> {
++        lock.lock(); defer { lock.unlock() }
++        return savedRouteIDs
++    }
++
++    func currentFollowedClimberIDs() -> Set<UUID> {
++        lock.lock(); defer { lock.unlock() }
++        return followedClimberIDs
++    }
+ }
+diff --git a/apps/ios/Boarded/BoardedTests/NativeContractTests.swift b/apps/ios/Boarded/BoardedTests/NativeContractTests.swift
+index 38471a0f99c588332b2c9119947baed75ff4b1a9..4a69f68e5edb534e2576dfc072da7bd4b22a4443 100644
+--- a/apps/ios/Boarded/BoardedTests/NativeContractTests.swift
++++ b/apps/ios/Boarded/BoardedTests/NativeContractTests.swift
+@@ -1256,6 +1256,149 @@ final class NativeContractTests: XCTestCase {
+         XCTAssertEqual(model.climbers.first?.followerCount, 10)
+     }
+ 
++    func testFixtureStateScopedPerInstanceHonoringExplicitSeeds() async throws {
++        let routeID = UITestFixtures.redpointRidgeID
++        let climberID = UITestFixtures.otherID
++        let route = CommunityRoute(
++            id: routeID,
++            name: "Redpoint Ridge",
++            discipline: .sport,
++            gradeSystem: .yds,
++            gradeLabel: "5.12a",
++            venue: nil,
++            isSaved: false
++        )
++        let climber = CommunityClimber(
++            id: climberID,
++            username: "mayak",
++            fullName: "Maya K.",
++            isFollowed: false,
++            followerCount: 10,
++            followingCount: 5
++        )
++
++        // Seeded empty: must NOT be contaminated by any global defaults
++        let isolatedRepo = MockCommunityRepository(
++            routes: [route],
++            climbers: [climber],
++            savedRouteIDs: [],
++            followedClimberIDs: []
++        )
++        let routes = try await isolatedRepo.fetchExploreRoutes(
++            searchText: "",
++            venueFilter: nil,
++            savedOnly: false,
++            beforeCreatedAt: nil,
++            beforeID: nil,
++            pageSize: 10
++        )
++        let climbers = try await isolatedRepo.searchClimbers(query: "", pageSize: 10)
++
++        XCTAssertEqual(routes.first?.isSaved, false)
++        XCTAssertEqual(climbers.first?.isFollowed, false)
++
++        // Toggling in isolatedRepo changes only its isolated store
++        let saved = try await isolatedRepo.toggleBookmark(routeID: routeID)
++        XCTAssertTrue(saved)
++
++        // A second repository with separate seed remains independent
++        let otherRepo = MockCommunityRepository(
++            routes: [route],
++            climbers: [climber],
++            savedRouteIDs: [],
++            followedClimberIDs: []
++        )
++        let otherRoutes = try await otherRepo.fetchExploreRoutes(
++            searchText: "",
++            venueFilter: nil,
++            savedOnly: false,
++            beforeCreatedAt: nil,
++            beforeID: nil,
++            pageSize: 10
++        )
++        XCTAssertEqual(otherRoutes.first?.isSaved, false)
++    }
++
++    func testConsistentProjectionsAcrossSharedFixtureRepositories() async throws {
++        let routeID = UITestFixtures.redpointRidgeID
++        let climberID = UITestFixtures.otherID
++        let store = SharedFixtureStore(savedRouteIDs: [], followedClimberIDs: [])
++
++        let feedItem = UITestFixtures.feed[0]
++        let route = UITestFixtures.exploreRoutes.first(where: { $0.id == routeID }) ?? UITestFixtures.redpointRidgeRoute
++        let climber = UITestFixtures.climbers.first(where: { $0.id == climberID }) ?? CommunityClimber(
++            id: climberID,
++            username: "mayak",
++            fullName: "Maya K.",
++            isFollowed: false,
++            followerCount: 10,
++            followingCount: 5
++        )
++
++        let communityRepo = MockCommunityRepository(
++            routes: [route],
++            climbers: [climber],
++            fixtureStore: store
++        )
++        let feedRepo = MockFeedRepository(
++            items: [feedItem],
++            currentUserID: UUID(),
++            fixtureStore: store
++        )
++
++        // Initial projection: neither saved nor followed
++        let initialFeed = try await feedRepo.fetchFeed(cursor: nil, authorFilter: nil, pageSize: 10, followingOnly: false)
++        XCTAssertEqual(initialFeed.items.first?.isSaved, false)
++        XCTAssertEqual(initialFeed.items.first?.author.isFollowed, false)
++
++        // Save route in Feed -> Community reflects it as saved
++        let isSaved = try await feedRepo.toggleBookmark(routeID: routeID)
++        XCTAssertTrue(isSaved)
++
++        let communityRoutes = try await communityRepo.fetchExploreRoutes(
++            searchText: "",
++            venueFilter: nil,
++            savedOnly: false,
++            beforeCreatedAt: nil,
++            beforeID: nil,
++            pageSize: 10
++        )
++        XCTAssertEqual(communityRoutes.first?.isSaved, true)
++
++        // Follow climber in Community -> Feed reflects it and includes in followingOnly
++        let isFollowing = try await communityRepo.toggleFollow(climberID: climberID)
++        XCTAssertTrue(isFollowing)
++
++        let followingFeed = try await feedRepo.fetchFeed(cursor: nil, authorFilter: nil, pageSize: 10, followingOnly: true)
++        XCTAssertEqual(followingFeed.items.count, 1)
++        XCTAssertEqual(followingFeed.items.first?.author.isFollowed, true)
++    }
++
++    func testMockCommunityRepositoryFetchExploreRoutesSortsDescendingAndPaginates() async throws {
++        let t1 = Date(timeIntervalSince1970: 1000)
++        let t2 = Date(timeIntervalSince1970: 2000)
++        let t3 = Date(timeIntervalSince1970: 3000)
++        let idTieLow = UUID(uuidString: "11111111-0000-0000-0000-000000000001")!
++        let idTieHigh = UUID(uuidString: "11111111-0000-0000-0000-000000000002")!
++
++        let rOld = CommunityRoute(id: UUID(), name: "Old", discipline: .boulder, gradeSystem: .vScale, gradeLabel: "V1", venue: nil, isSaved: false, createdAt: t1)
++        let rMid1 = CommunityRoute(id: idTieLow, name: "Mid Low", discipline: .boulder, gradeSystem: .vScale, gradeLabel: "V2", venue: nil, isSaved: false, createdAt: t2)
++        let rMid2 = CommunityRoute(id: idTieHigh, name: "Mid High", discipline: .boulder, gradeSystem: .vScale, gradeLabel: "V2", venue: nil, isSaved: false, createdAt: t2)
++        let rNew = CommunityRoute(id: UUID(), name: "New", discipline: .boulder, gradeSystem: .vScale, gradeLabel: "V3", venue: nil, isSaved: false, createdAt: t3)
++
++        // Intentionally unsorted input
++        let repo = MockCommunityRepository(routes: [rOld, rNew, rMid1, rMid2])
++
++        // Page 1 with pageSize 2: must sort descending (newest first, then higher UUID on date tie)
++        let page1 = try await repo.fetchExploreRoutes(searchText: "", venueFilter: nil, savedOnly: false, beforeCreatedAt: nil, beforeID: nil, pageSize: 2)
++        XCTAssertEqual(page1.map(\.name), ["New", "Mid High"])
++
++        // Page 2 using cursor from page 1's last item
++        let last = page1.last!
++        let page2 = try await repo.fetchExploreRoutes(searchText: "", venueFilter: nil, savedOnly: false, beforeCreatedAt: last.createdAt, beforeID: last.id, pageSize: 2)
++        XCTAssertEqual(page2.map(\.name), ["Mid Low", "Old"])
++    }
++
+     func testActivityUnreadStateAndMarkAsRead() async throws {
+         let otherID = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
+         let postID = UUID(uuidString: "44444444-4444-4444-8444-444444444444")!
+@@ -4245,7 +4388,7 @@ private final class MissingProfileFailingCreateRepository: ProfileRepository, @u
+         throw ProfileRepositoryError.unavailable
+     }
+ 
+-    func fetchSavedRoutes(userID: UUID) async throws -> [CommunityRoute] { [] }
++    func fetchSavedRoutes(userID: UUID, beforeCreatedAt: Date?, beforeID: UUID?, pageSize: Int) async throws -> [CommunityRoute] { [] }
+     func fetchClimber(userID: UUID) async throws -> CommunityClimber? { nil }
+     func fetchClimberSessions(userID: UUID) async throws -> [SessionFeedItem] { [] }
+     func toggleFollow(climberID: UUID) async throws -> Bool { false }
+diff --git a/apps/ios/Boarded/ViewModels/ExploreViewModel.swift b/apps/ios/Boarded/ViewModels/ExploreViewModel.swift
+index c478ebadcfdc89f5d60e885b6c71af4ab465b2f6..35d72f2cd2c5570aa8d85be9e5b30d68604ef2a5 100644
+--- a/apps/ios/Boarded/ViewModels/ExploreViewModel.swift
++++ b/apps/ios/Boarded/ViewModels/ExploreViewModel.swift
+@@ -25,7 +25,8 @@ final class ExploreViewModel: ObservableObject {
+     private let pageSize = 40
+     private let repository: any CommunityRepository
+     private var generation = 0
+-
++    private var loadedQuery: String = ""
++    private var loadedCategory: ExploreCategory = .all
+     init(repository: any CommunityRepository = AppServices.communityRepository) {
+         self.repository = repository
+     }
+@@ -33,29 +34,38 @@ final class ExploreViewModel: ObservableObject {
+     func load() async {
+         generation += 1
+         let req = generation
++        let currentQuery = query
++        let currentCategory = selectedCategory
+         isLoading = true
++        isLoadingMore = false
+         errorMessage = nil
+-        canLoadMore = true
++        canLoadMore = false
++        routes = []
++        venues = []
++        climbers = []
+         defer {
+             if req == generation { isLoading = false }
+         }
+         do {
+             async let fetchedRoutes = repository.fetchExploreRoutes(
+-                searchText: query,
++                searchText: currentQuery,
+                 venueFilter: nil,
+-                savedOnly: selectedCategory == .saved,
++                savedOnly: currentCategory == .saved,
+                 beforeCreatedAt: nil,
+                 beforeID: nil,
+                 pageSize: pageSize
+             )
+-            async let fetchedVenues = repository.fetchVenues(query: query.isEmpty ? nil : query)
+-            async let fetchedClimbers = repository.searchClimbers(query: query, pageSize: 30)
++            async let fetchedVenues = repository.fetchVenues(query: currentQuery.isEmpty ? nil : currentQuery)
++            async let fetchedClimbers = repository.searchClimbers(query: currentQuery, pageSize: 30)
+ 
+             let (r, v, c) = try await (fetchedRoutes, fetchedVenues, fetchedClimbers)
++            try Task.checkCancellation()
+             guard req == generation else { return }
+             routes = r
+             venues = v
+             climbers = c
++            loadedQuery = currentQuery
++            loadedCategory = currentCategory
+             canLoadMore = r.count >= pageSize
+         } catch is CancellationError {
+             return
+@@ -66,18 +76,27 @@ final class ExploreViewModel: ObservableObject {
+     }
+ 
+     func loadMore() async {
+-        guard canLoadMore, !isLoadingMore, let last = routes.last else { return }
++        guard !isLoading, canLoadMore, !isLoadingMore, query == loadedQuery, selectedCategory == loadedCategory, let last = routes.last else { return }
++        let req = generation
++        let currentQuery = loadedQuery
++        let currentCategory = loadedCategory
++        let lastCreatedAt = last.createdAt
++        let lastID = last.id
+         isLoadingMore = true
+-        defer { isLoadingMore = false }
++        defer {
++            if req == generation { isLoadingMore = false }
++        }
+         do {
+             let older = try await repository.fetchExploreRoutes(
+-                searchText: query,
++                searchText: currentQuery,
+                 venueFilter: nil,
+-                savedOnly: selectedCategory == .saved,
+-                beforeCreatedAt: last.createdAt,
+-                beforeID: last.id,
++                savedOnly: currentCategory == .saved,
++                beforeCreatedAt: lastCreatedAt,
++                beforeID: lastID,
+                 pageSize: pageSize
+             )
++            try Task.checkCancellation()
++            guard req == generation, query == currentQuery, selectedCategory == currentCategory, loadedQuery == currentQuery, loadedCategory == currentCategory else { return }
+             let existing = Set(routes.map(\.id))
+             let additions = older.filter { !existing.contains($0.id) }
+             routes.append(contentsOf: additions)
+@@ -85,6 +104,7 @@ final class ExploreViewModel: ObservableObject {
+         } catch is CancellationError {
+             return
+         } catch {
++            guard req == generation, query == currentQuery, selectedCategory == currentCategory else { return }
+             errorMessage = error.localizedDescription
+         }
+     }
+@@ -92,9 +112,6 @@ final class ExploreViewModel: ObservableObject {
+     func toggleBookmark(routeID: UUID) async {
+         do {
+             let isSaved = try await repository.toggleBookmark(routeID: routeID)
+-            if AppLaunchConfiguration.isUITestFixture {
+-                _ = SharedFixtureStore.shared.toggleBookmark(routeID)
+-            }
+             if let idx = routes.firstIndex(where: { $0.id == routeID }) {
+                 routes[idx].isSaved = isSaved
+             }
+@@ -106,9 +123,6 @@ final class ExploreViewModel: ObservableObject {
+     func toggleFollow(climberID: UUID) async {
+         do {
+             let isFollowed = try await repository.toggleFollow(climberID: climberID)
+-            if AppLaunchConfiguration.isUITestFixture {
+-                _ = SharedFixtureStore.shared.toggleFollow(climberID)
+-            }
+             if let idx = climbers.firstIndex(where: { $0.id == climberID }) {
+                 climbers[idx].isFollowed = isFollowed
+                 climbers[idx].followerCount += isFollowed ? 1 : -1

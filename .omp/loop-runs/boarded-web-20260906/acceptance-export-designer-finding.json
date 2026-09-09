@@ -1,0 +1,16 @@
+{
+  "schema": "omp.design_finding.v1",
+  "reviewer": "WebAcceptanceDesignOwner",
+  "head": "e70cc2b5f074aaa512b0d356fe9d69cad11ad2c8",
+  "diff": "aea52567c88226c0012f9daea003cd1ff89ea172e070d3e87864f547e3ef06da",
+  "verdict": "changes requested",
+  "finding": "Downloaded self-contained SVG embeds unchanged canonical Cormorant Garamond600Italic font, uses Chalk grade/title and opaque approved dark backing, no decorative gradient. Preserve verified blankcaption and Unicode/XML/conditions and labeled44px fallback.",
+  "approved_existing_corrections": [
+    "emptycaption",
+    "clipboard44pxlabel"
+  ],
+  "evidence": [
+    "acceptance-captures/empty-export.png",
+    "acceptance-captures/empty-result.svg"
+  ]
+}

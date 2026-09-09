@@ -1,0 +1,15 @@
+{
+  "platform": "iOS",
+  "designer": "ApprovedModelDesigner",
+  "reviewed_preview": "ea0ce79",
+  "evidence_root": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/native-ea0ce79-attachments",
+  "findings": [
+    {"id":"V1","owner":"native-feed-visual","finding":"Accessibility Large metadata truncates on compact and remains one line on regular.","change":"Render each essential route fact on its own wrapping row at accessibility sizes. Retain the opaque continuation and standard compact layout."},
+    {"id":"V2","owner":"native-feed-visual","finding":"Regular cards have narrower photography than identity/facts/actions.","change":"Use one coherent bounded card/content width for media, identity, facts and actions in Feed and Session detail. Preserve compact composition."},
+    {"id":"V3","owner":"native-feed-visual","finding":"Empty native top navigation capsule remains visible on regular width alongside custom bottom navigation.","change":"Resolve native/custom tab presentation using the correct platform visibility API, without masking or fabricating system chrome. Keep content/navigation accessible and exactly one labeled control per custom tab."},
+    {"id":"V4","owner":"native-journal","finding":"ACTIVE SESSION is success Green before any send.","change":"Use existing neutral status text color; reserve success Green for confirmed sends. No shared token value changes."},
+    {"id":"V5","owner":"native-feed-visual","finding":"Compact journal comments, heading and input touch the screen edge.","change":"Restore consistent readable horizontal inset and preserve Dynamic Type wrapping."}
+  ],
+  "constraints":"One bounded coherent correction then freeze. Existing owned source paths only, except RouteDetailView in ExploreViews.swift already explicitly authorized for double-dismissal fix. No fixture hacks, reference masks, fake chrome, threshold relaxation, or new design. Skip validation in workers. Main captures standard/accessibility compact/regular and performs exact source/designer/vision gates.",
+  "reference_gate":"Current canonical diff 3.98% exceeds 0.5%. Known Paper reference conflict is separate from these five actionable findings. Do not claim parity or change the gate."
+}

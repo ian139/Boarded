@@ -1,0 +1,133 @@
+{
+  "canonical_tuple_record": {
+    "path": ".omp/loop-runs/boarded-v1-20260905-78720d/resume-current-identities.json",
+    "design_head": "f97559561e08852e2f3a0a96291899efc62d004e",
+    "primary_policy": "Preserve newer separate web redesign in primary; zero integration until conflict resolution. Reconcile full V1 backend per resume-web-reconciliation-contract.json."
+  },
+  "standing_status": "Pre-integration designer lane active. Landing (32eb426) and Blender (3d0538) approved. Data and Design approved (no visual impact). Web reconciliation underway. Native feed final head c11d0da registered; awaiting rendered capture. No unrendered UI approved.",
+  "designer_verdicts": {
+    "native_feed": {
+      "status": "awaiting_render",
+      "head": "c11d0da09093d0d6cf7ef4d8714048caf2721f37",
+      "notes": "Final immutable head for native-feed-visual registered at c11d0da09093d0d6cf7ef4d8714048caf2721f37. All visual alignments and findings 4-10 implemented: 479pt media height, 673pt scroll breakdown, rounded-pill Send kudos · 34 container, 83pt tab bar at y=791pt, waveform Activity icon with unread dot, and balanced tab centers while retaining canonical 44pt rounded-12 Log button and real iOS chrome. Awaiting rendered fixture capture and odiff verification against 10-feed-final-v3-3x.png.",
+      "verdict": "pending: final head c11d0da frozen; awaiting rendered simulator fixture capture and odiff report against 10-feed-final-v3-3x.png."
+    },
+    "blender": {
+      "status": "approved",
+      "verdict": "approved",
+      "evidence_evaluated": [
+        "evidence/resume-landing-32eb-forward-reverse.webm",
+        "public/walls/generated/boarded-wall.glb",
+        ".omp/loop-runs/boarded-v1-20260905-78720d/resume-landing-final-runtime.json"
+      ],
+      "notes": "30s real Chromium screencast and Three.js runtime scrub verified. Forward and reverse scrub across freestanding wall demonstrates smooth continuous motion without limb snapping or panel clipping. Stylized miniature athlete character and summit straddle are cohesive within the FIG. 01 exhibition-plate landing presentation. Major limb placements remain visually registered throughout cycle.",
+      "head": "3d05383837d686f04a1873e412e764be3a35fcb4"
+    },
+    "design": {
+      "verdict": "no visual impact: docs/design-language.md is a design language specification and documentation artifact establishing cross-platform tokens, brand principles, privacy boundaries, and screenshot gates, with no direct visual impact on compiled application bundle assets or runtime styling.",
+      "head": "eb5ddeb23068d08d2804801cc3542763565b1c08",
+      "status": "approved_no_visual_impact",
+      "notes": "Design language specification and documentation artifact in docs/design-language.md."
+    },
+    "landing": {
+      "evidence_evaluated": [
+        "evidence/resume-landing-32eb-forward-reverse.webm",
+        "evidence/resume-landing-32eb-reduced-poster.png",
+        "evidence/resume-landing-mobile-reduced-poster.png",
+        "evidence/resume-landing-32eb-desktop-reverse-zero.png",
+        "evidence/resume-landing-32eb-desktop-footer.png",
+        ".omp/loop-runs/boarded-v1-20260905-78720d/resume-landing-final-runtime.json"
+      ],
+      "verdict": "approved",
+      "notes": "Deterministic scrubbing 0s -> 12s -> 0s verified via 30s screencast and reverse-zero sample. Footer opacity reaches 0.0000 at progress 1.0. Static poster fallback verified visible and centered on desktop and mobile under prefers-reduced-motion (WebGL/canvases count 0). All touch targets >=44px. Dev badge isolated to dev server empty[] walls GET fixture.",
+      "status": "approved",
+      "head": "32eb4262a13c60647077cef09897305535229704"
+    },
+    "data": {
+      "head": "869233640a83246f5677587acdb9d4d0b124d632",
+      "verdict": "no visual impact: packages/shared/* and supabase/* contain schema migrations, domain TypeScript types, RLS test harness, and grade utilities with no rendered UI components or client styling.",
+      "status": "approved_no_visual_impact",
+      "notes": "SQL migrations, shared domain TypeScript models, RLS security harness, and grade calculation utilities contain no client UI components or styling. User-reported SQL/HTTP passing."
+    }
+  },
+  "destination_acceptance_matrix": {
+    "profile": {
+      "standard": "Public view: avatar, bio, published milestone in Cormorant Garamond, published session/send counts, follower/following counts. Owner view: full lifetime stats (total vertical gain across private/public sessions, send rate, PRs), private logbook timeline, saved bookmarks tab (route_bookmarks, owner-only). Grouped settings list.",
+      "accessibility_large": "Metric tiles stack full width; milestone and bio wrap cleanly; settings rows maintain >= 44 pt touch heights.",
+      "destinations": [
+        "/profile",
+        "iOS Tab 5 (Person)"
+      ]
+    },
+    "landing_3d": {
+      "accessibility_large": "prefers-reduced-motion bypasses WebGL/RAF; displays static public/walls/generated/boarded-wall-poster.webp with descriptive alt text.",
+      "destinations": [
+        "/"
+      ],
+      "standard": "Cormorant Garamond editorial hero copy; header CTAs (Sign up, Open Boarded) strictly >= 44px at all breakpoints. WebGL canvas rendering boarded-wall.glb with ClimberAscent animation (12s normalized scrub [0, 1])."
+    },
+    "activity": {
+      "accessibility_large": "Activity rows expand vertically; avatar and text stack without truncation; icon+color distinction.",
+      "destinations": [
+        "/activity",
+        "iOS Tab 4 (Waveform)"
+      ],
+      "standard": "Community inbox for likes, comments, follows, crew sends; unread Indigo indicator dots; actor avatars with clear action descriptions; tap opens actor profile or post."
+    },
+    "explore": {
+      "accessibility_large": "Route cards stack attributes vertically; horizontal filter scroll preserves accessible focus.",
+      "standard": "Search bar with 2 pt Indigo focus ring; route cards with Cormorant grade, attributes, save bookmark toggle (>= 44 pt); crag/gym/board discovery; climber search; web exposes /editor.",
+      "destinations": [
+        "/explore",
+        "iOS Tab 2 (Compass)"
+      ]
+    },
+    "log": {
+      "accessibility_large": "Attempt buttons expand to full-width rows (48-52 pt); tabular counters scale cleanly.",
+      "standard": "Center action tab (44x44 pt Indigo rounded-12 square raised ~12 pt); live logger with glove-friendly Sent (#32D583), Fell (#FF6B64), Stopped (#FF6B64) buttons (48-52 pt); private conditions (1..500) and notes (1..1000) inputs; offline sync indicator; session complete milestone (+42 m) in Cormorant Garamond & share composer preview.",
+      "destinations": [
+        "/log",
+        "iOS Tab 3 (Center Action)"
+      ]
+    },
+    "feed": {
+      "standard": "Full-bleed photo with Obsidian bottom fade; 58 pt author row with follow status and green check for sends; climb overlay (5.12a, Redpoint Ridge, metadata); neutral heart kudos pill (Send kudos · 34); active Feed tab with Indigo icon and dot.",
+      "destinations": [
+        "/app",
+        "iOS Tab 1 (House)"
+      ],
+      "accessibility_large": "Attribute facts reflow 1 per row; climb overlay moves below photo to opaque card if background is busy; >= 44 pt touch targets."
+    }
+  },
+  "e6_0_feed_canonical_gate": {
+    "paper_file": "01M1NCB4B1K8XKBSPKDRYF8XZM",
+    "freeze_requirements": "Feed tab selected; scroll offset 0; unliked/unsaved; unread activity dot present; no active-session banner/modal/keyboard. Disable UIKit AND SwiftUI transactions, asynchronous updates, networking, and live system clocks in fixture capture; await settled fonts and images.",
+    "fixture_state": "Viewer Alex R.; Maya K. Following; Stonegate; 2h; Sent Redpoint Ridge; 5.12a; Sport · 27 m · Limestone · Overhang; caption: 'Six tries. Quiet feet through the crux, then daylight.'; actions: Send kudos · 34 (neutral outlined heart), 12 comments, bookmark, share; next hint: Jordan T., new session, Bishop, just now.",
+    "diff_threshold": "odiff per-pixel 0.1; at most 0.5% unmasked difference; zero material typography or layout mismatch; disclose known Paper 1pt divider artifact rather than hiding/masking.",
+    "logical_dimensions": [
+      402,
+      874
+    ],
+    "appearance": "dark",
+    "clock": "2026-09-05T09:41:00Z",
+    "baseline_path": "/tmp/boarded-paper-designer-20260905-e7a6c3/10-feed-final-v3-3x.png",
+    "preview_path": "/tmp/boarded-paper-designer-20260905-e7a6c3/10-feed-final-v3-1x.png",
+    "dynamic_type": "Large",
+    "pixel_dimensions": [
+      1206,
+      2622
+    ],
+    "geometry": "62 pt status + safe area, 56 pt header (Boarded wordmark in Cormorant Garamond, 44 pt notification bell with unread blue dot), 673 pt scroll feed (58 pt author + 479 pt media with selective Obsidian bottom fade + 40 pt caption + 52 pt actions + 44 pt next hint), 49 pt tab bar + 34 pt bottom safe area. Non-layout tab divider; no vertical or horizontal overflow.",
+    "caption": "Six tries. Quiet feet through the crux, then daylight.",
+    "scale": 3,
+    "locale": "en-US",
+    "node": "E6-0",
+    "crop_source": "public/brandkit.png",
+    "crop_rectangle": [
+      590,
+      80,
+      1085,
+      680
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "preview_head": "70034a3",
+  "reference": "/tmp/boarded-paper-designer-20260905-e7a6c3/10-feed-final-v3-3x.png",
+  "capture": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/native-70034a3-attachments/932DF5A4-074C-4C93-B67D-168B2CAE01AF.png",
+  "diff": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/native-70034a3-feed-diff.png",
+  "threshold": 0.1,
+  "gate_percent": 0.5,
+  "exit": 22,
+  "output": "Found 126075 different pixels (3.99%)\n",
+  "masked": false
+}

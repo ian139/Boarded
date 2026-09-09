@@ -1,0 +1,30 @@
+{
+  "review_kind": "packet",
+  "packet": "native-fixtures",
+  "identity": {
+    "repo": "/Users/ian/Projects/ClimbingApp",
+    "branch": "loop/boarded-v1-20260905-78720d/native-fixtures",
+    "base_sha": "a178c2c406f8d5b7d35a309471ba24d3775b49fd",
+    "head_sha": "fd6dbc743ebc1e6c51bd3f4cdd019276f6260ee5",
+    "diff_sha256": "af3e1b02fb76f79ec62ed58ae834352d272b3450691c4325a0642f5bece2a11f",
+    "packet_spec_sha256": "d8d41ba9e6028ff6cefa2f649076c860b15eb1f01b2a54d18304d1223945dbad",
+    "dependency_heads": {
+      "native": "a178c2c406f8d5b7d35a309471ba24d3775b49fd"
+    },
+    "target_snapshot_sha256": "fa942d2bd087f46abdff4618574c0c00081c398af8a742b43c3d968d01387350",
+    "confinement_sha256": "6bdb2b6c3f17c4b7bb09105101895d48600c84a2fa02a8720db3c0285cc3b37b"
+  },
+  "changed_paths": [
+    "apps/ios/Boarded/Boarded/Services/AppServices.swift",
+    "apps/ios/Boarded/Boarded/Services/CommunityRepository.swift",
+    "apps/ios/Boarded/Boarded/Services/FeedRepository.swift",
+    "apps/ios/Boarded/Boarded/Services/UITestFixtures.swift",
+    "apps/ios/Boarded/BoardedTests/NativeContractTests.swift",
+    "apps/ios/Boarded/ViewModels/ExploreViewModel.swift"
+  ],
+  "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/native-fixtures",
+  "packet_spec": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/native-fixtures-packet.json",
+  "execution_evidence": [],
+  "review_status": "pending",
+  "designer_verdict": null
+}

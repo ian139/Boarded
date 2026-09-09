@@ -1,0 +1,6 @@
+{
+  "head": "6487578",
+  "blender_head": "3d05383837d686f04a1873e412e764be3a35fcb4",
+  "all_response_bytes_match_approved_blobs": true,
+  "browser_recovery": "Old9224targetremainedhidden; fresh9226GPU-disabledlaunchcorrectlyfellbackwithWebGL2false. Removed--disable-gpu in owned verificationlaunch; WebGL2true andbothrealGLBrendersready. No productsourcechanges."
+}

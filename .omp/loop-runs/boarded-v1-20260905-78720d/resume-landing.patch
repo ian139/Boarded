@@ -1,0 +1,1740 @@
+diff --git a/app/landing.css b/app/landing.css
+index 9d628c80b8d2bc1564e5cd78b549cc5203efc8f1..f61dfb5dc14a2a184fc08491aa007ca905a26e85 100644
+--- a/app/landing.css
++++ b/app/landing.css
+@@ -1,154 +1,887 @@
+-/* Campaign presentation is scoped to the browser landing page. */
++/* Scoped editorial marketing campaign presentation for Boarded */
+ .landing {
+-  color: var(--color-text-primary);
++  --color-background-base: #0A0B10;
++  --color-background-elevated: #171A22;
++  --color-surface-card: #0D0F14;
++  --color-surface-selected: rgba(52, 92, 255, 0.12);
++  --color-text-primary: #F4F2EB;
++  --color-text-secondary: rgba(244, 242, 235, 0.64);
++  --color-text-tertiary: rgba(244, 242, 235, 0.48);
++  --color-text-disabled: rgba(244, 242, 235, 0.30);
++  --color-stroke-default: rgba(244, 242, 235, 0.18);
++  --color-stroke-subtle: rgba(244, 242, 235, 0.10);
++  --color-divider: rgba(244, 242, 235, 0.08);
++  --color-action-default: #345CFF;
++  --color-action-pressed: #2747D9;
++  --color-action-soft: rgba(52, 92, 255, 0.14);
++  --color-action-on-action: #F4F2EB;
++  --color-success-default: #32D583;
++  --color-danger-default: #FF6B64;
++  --color-secondary-accent: #A8ABB3;
++
++  --color-accent-default: var(--color-action-default);
++  --color-accent-pressed: var(--color-action-pressed);
++  --color-accent-on-accent: var(--color-action-on-action);
++
+   background: var(--color-background-base);
++  color: var(--color-text-primary);
+   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+   position: relative;
+   isolation: isolate;
+   overflow: clip;
++  min-height: 100vh;
++}
++
++.landing a {
++  text-decoration: none;
++  color: inherit;
++}
++
++/* Accessibility skip link */
++.landing-skip {
++  position: fixed;
++  left: 24px;
++  top: -100px;
++  z-index: 100;
++  padding: 16px 24px;
++  background: var(--color-background-elevated);
++  color: var(--color-text-primary);
++  border: 1px solid var(--color-stroke-default);
++  border-radius: 8px;
++  font-size: 14px;
++  font-weight: 600;
++  transition: top 180ms ease;
++}
++.landing-skip:focus {
++  top: 20px;
++}
++
++/* Header & Navigation */
++.landing-header {
++  position: absolute;
++  z-index: 10;
++  top: 24px;
++  left: 0;
++  width: 100%;
++  padding: 0 4.4%;
++}
++.landing-nav {
++  max-width: 1440px;
++  min-height: 68px;
++  margin: 0 auto;
++  padding: 8px 20px 8px 24px;
++  display: flex;
++  align-items: center;
++  justify-content: space-between;
++  gap: 24px;
++  border-radius: 12px;
++  background: rgba(10, 11, 16, 0.94);
++  border: 1px solid var(--color-stroke-subtle);
++}
++
++.landing-wordmark {
++  font-family: 'Cormorant Garamond', Georgia, serif;
++  font-weight: 600;
++  font-style: italic;
++  font-size: 34px;
++  letter-spacing: -0.05em;
++  display: inline-flex;
++  align-items: baseline;
++  min-height: 44px;
++  color: var(--color-text-primary);
++}
++
++.landing-nav-middle {
++  display: flex;
++  align-items: center;
++  gap: 32px;
++  margin-left: 36px;
++}
++.landing-nav-middle a {
++  font-size: 13px;
++  font-weight: 500;
++  color: var(--color-text-secondary);
++  min-height: 44px;
++  display: inline-flex;
++  align-items: center;
++  transition: color 180ms ease;
++}
++.landing-nav-middle a:hover {
++  color: var(--color-text-primary);
++}
++
++.landing-nav-actions {
++  display: flex;
++  align-items: center;
++  gap: 16px;
++}
++.landing-sign-in {
++  font-size: 13px;
++  font-weight: 500;
++  color: var(--color-text-secondary);
++  min-height: 44px;
++  padding: 0 12px;
++  display: inline-flex;
++  align-items: center;
++  transition: color 180ms ease;
++}
++.landing-sign-in:hover {
++  color: var(--color-text-primary);
++}
++
++.landing-nav-signup {
++  min-height: 44px;
++  padding: 0 20px;
++  border-radius: 8px;
++  display: inline-flex;
++  align-items: center;
++  font-size: 13px;
++  font-weight: 600;
++  background: transparent;
++  color: var(--color-text-primary);
++  border: 1px solid var(--color-stroke-default);
++  transition: background 180ms ease, border-color 180ms ease;
++}
++.landing-nav-signup:hover {
++  background: rgba(244, 242, 235, 0.06);
++  border-color: var(--color-text-primary);
++}
++
++.landing-nav-cta {
++  min-height: 44px;
++  padding: 0 20px;
++  border-radius: 8px;
++  display: inline-flex;
++  align-items: center;
++  gap: 12px;
++  font-size: 13px;
++  font-weight: 600;
++  background: var(--color-action-default);
++  color: var(--color-action-on-action);
++  transition: background 180ms ease;
++}
++.landing-nav-cta:hover {
++  background: var(--color-action-pressed);
++}
++
++.landing-arrow {
++  width: 18px;
++  height: 18px;
++  flex: none;
++}
++.landing-arrow-down {
++  transform: rotate(90deg);
++}
++
++/* Editorial Story Grid */
++.landing-story {
++  width: min(100%, 1520px);
++  margin: 0 auto;
++  display: grid;
++  grid-template-columns: 46% 54%;
++  position: relative;
++}
++
++/* Chapter Column */
++.landing-chapter {
++  grid-column: 1;
++  min-height: 100svh;
++  padding: 140px 0 100px 11.8%;
++  display: flex;
++  flex-direction: column;
++  justify-content: center;
++  align-items: flex-start;
++  position: relative;
++  z-index: 2;
++  scroll-margin-top: 0;
++}
++
++/* Hero Section */
++.landing-hero {
++  min-height: 100svh;
++  padding-top: 176px;
++  padding-bottom: 96px;
++}
++.landing-eyebrow {
++  margin: 0 0 28px;
++  text-transform: uppercase;
++  letter-spacing: 0.08em;
++  font-size: 12px;
++  line-height: 1.6;
++  font-weight: 500;
++  color: var(--color-text-secondary);
++  display: flex;
++  gap: 10px;
++  align-items: center;
++}
++.landing-eyebrow > span {
++  width: 6px;
++  height: 6px;
++  background: var(--color-action-default);
++  border-radius: 50%;
++}
++
++.landing h1,
++.landing h2 {
++  font-family: 'Cormorant Garamond', Georgia, serif;
++  font-weight: 600;
++  font-style: italic;
++  letter-spacing: -0.045em;
++}
++.landing h1 {
++  font-size: clamp(62px, 7.2vw, 112px);
++  line-height: 0.95;
++  margin: 0 0 28px;
++}
++.landing h1 span,
++.landing h2 span {
++  color: var(--color-text-tertiary);
++}
++
++.landing-intro {
++  font-size: clamp(16px, 1.25vw, 19px);
++  line-height: 1.65;
++  color: var(--color-text-secondary);
++  margin: 0 0 32px;
++  max-width: 44ch;
++}
++
++/* Actions */
++.landing-actions {
++  display: flex;
++  flex-wrap: wrap;
++  align-items: center;
++  gap: 18px;
++}
++.landing-primary {
++  display: inline-flex;
++  gap: 24px;
++  align-items: center;
++  justify-content: space-between;
++  padding: 0 24px;
++  min-height: 52px;
++  background: var(--color-action-default);
++  color: var(--color-action-on-action);
++  border-radius: 8px;
++  font-size: 14px;
++  font-weight: 600;
++  transition: background 180ms ease, transform 180ms ease;
++}
++.landing-primary:hover {
++  background: var(--color-action-pressed);
++  transform: translateY(-1px);
++}
++
++.landing-secondary-btn {
++  display: inline-flex;
++  align-items: center;
++  padding: 0 22px;
++  min-height: 52px;
++  background: transparent;
++  color: var(--color-text-primary);
++  border: 1px solid var(--color-stroke-default);
++  border-radius: 8px;
++  font-size: 14px;
++  font-weight: 500;
++  transition: background 180ms ease, border-color 180ms ease;
++}
++.landing-secondary-btn:hover {
++  background: rgba(244, 242, 235, 0.05);
++  border-color: var(--color-text-primary);
++}
++
++.landing-text-link {
++  display: inline-flex;
++  align-items: center;
++  min-height: 44px;
++  color: var(--color-text-secondary);
++  font-size: 13px;
++  transition: color 180ms ease;
++}
++.landing-text-link:hover {
++  color: var(--color-text-primary);
++}
++
++/* Spec strip (Tabular metadata) */
++.landing-spec-strip {
++  display: flex;
++  align-items: center;
++  gap: 20px;
++  margin-top: 36px;
++  padding: 14px 20px;
++  background: var(--color-background-elevated);
++  border: 1px solid var(--color-stroke-subtle);
++  border-radius: 10px;
++  max-width: 540px;
++}
++.landing-spec-item {
++  display: flex;
++  flex-direction: column;
++  gap: 2px;
++}
++.landing-spec-val {
++  font-family: 'Cormorant Garamond', Georgia, serif;
++  font-weight: 600;
++  font-style: italic;
++  font-size: 19px;
++  color: var(--color-text-primary);
++  font-variant-numeric: tabular-nums;
++  line-height: 1.1;
++}
++.landing-spec-lbl {
++  font-size: 11px;
++  text-transform: uppercase;
++  letter-spacing: 0.06em;
++  color: var(--color-text-tertiary);
++}
++.landing-spec-divider {
++  width: 1px;
++  height: 26px;
++  background: var(--color-divider);
++}
++
++.landing-scroll-link {
++  position: absolute;
++  left: 11.8%;
++  bottom: 36px;
++  display: flex;
++  gap: 12px;
++  align-items: center;
++  color: var(--color-text-tertiary);
++  font-size: 12px;
++  letter-spacing: 0.02em;
++  min-height: 44px;
++  transition: color 180ms ease;
++}
++.landing-scroll-link:hover {
++  color: var(--color-text-primary);
++}
++.landing-scroll-icon {
++  display: grid;
++  place-items: center;
++  width: 28px;
++  height: 36px;
++  border-radius: 6px;
++  background: rgba(244, 242, 235, 0.05);
++  border: 1px solid var(--color-divider);
++}
++
++/* Art Rail (3D Climbing Scene Sticky Track) */
++.landing-art-rail {
++  grid-column: 2;
++  grid-row: 1 / 6;
++  min-width: 0;
++  padding: 116px 5.5% 40px 0;
++}
++.landing-art-sticky {
++  position: sticky;
++  top: 116px;
++  height: calc(100svh - 156px);
++  min-height: 460px;
++  display: flex;
++  flex-direction: column;
++}
++
++.landing-art-index {
++  display: flex;
++  justify-content: space-between;
++  gap: 20px;
++  padding: 10px 5%;
++  color: var(--color-text-tertiary);
++  font-size: 12px;
++  line-height: 1.5;
++  letter-spacing: 0.08em;
++  opacity: var(--wall-chrome-opacity, 1);
++}
++
++#landing-scene-host {
++  position: fixed;
++  inset: 0;
++  z-index: 0;
++  pointer-events: none;
++  overflow: hidden;
++}
++.landing main,
++.landing-footer {
++  position: relative;
++  z-index: 1;
++}
++
++.landing-scene {
++  position: absolute;
++  inset: 0;
++  opacity: 0;
++  pointer-events: none;
++}
++.landing-scene canvas {
++  display: block;
++  width: 100%;
++  height: 100%;
++}
++.landing-scene-scrim {
++  position: absolute;
++  inset: 0;
++  opacity: 0;
++  background: linear-gradient(90deg, rgba(10, 11, 16, 0.94), rgba(10, 11, 16, 0.86) 35%, rgba(10, 11, 16, 0.45) 68%, rgba(10, 11, 16, 0.25));
++}
++
++.landing-wall {
++  position: relative;
++  width: 100%;
++  min-height: 0;
++  flex: 1;
++}
++.landing-wall-poster {
++  position: absolute;
++  inset: 0;
++  width: 100%;
++  height: 100%;
++  object-fit: contain;
++  pointer-events: none;
++  transition: opacity 280ms ease;
++}
++.landing-wall[data-state="ready"] .landing-wall-poster {
++  opacity: 0;
++}
++
++.landing-ascent-hint {
++  position: absolute;
++  left: 6%;
++  right: 6%;
++  bottom: 2%;
++  display: flex;
++  align-items: center;
++  gap: 10px;
++  font-size: 12px;
++  line-height: 1.5;
++  color: var(--color-text-tertiary);
++  pointer-events: none;
++  opacity: var(--wall-chrome-opacity, 1);
++}
++.landing-ascent-hint > span:first-child {
++  font-size: 18px;
++}
++.landing-wall:not([data-state="ready"]) .landing-ascent-hint {
++  visibility: hidden;
++}
++
++.landing-art-caption {
++  padding: 20px 5% 0;
++  display: flex;
++  justify-content: space-between;
++  align-items: flex-end;
++  gap: 24px;
++  opacity: var(--wall-chrome-opacity, 1);
++}
++.landing-caption-label {
++  font-size: 12px;
++  line-height: 1.6;
++  display: block;
++  color: var(--color-text-primary);
++  font-weight: 500;
++}
++.landing-caption-detail {
++  font-size: 12px;
++  display: block;
++  line-height: 1.8;
++  color: var(--color-text-tertiary);
++}
++.landing-material-note {
++  max-width: 180px;
++  text-align: right;
++  line-height: 1.6;
++  font-size: 11px;
++  color: var(--color-text-tertiary);
++}
++
++/* Chapter Detail Sections */
++.landing-step {
++  display: flex;
++  align-items: baseline;
++  gap: 16px;
++  font-size: 12px;
++  color: var(--color-text-secondary);
++  margin-bottom: 32px;
+ }
+-.landing::before {
+-  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+-  background: radial-gradient(ellipse 45% 19% at 81% 11%, rgba(159, 149, 181, .10), transparent 85%), radial-gradient(ellipse 45% 26% at 80% 45%, rgba(92, 118, 104, .07), transparent 85%);
+-}
+-.landing a { text-decoration: none; }
+-.landing-skip { position: fixed; left: 24px; top: -100px; z-index: 100; padding: 16px 24px; background: var(--color-background-base); color: var(--color-accent-default); border-radius: 12px; }
+-.landing-skip:focus { top: 20px; }
+-.landing-header { position: absolute; z-index: 10; top: 24px; left: 0; width: 100%; padding: 0 4.4%; }
+-.landing-nav { max-width: 1500px; min-height: 76px; margin: auto; padding: 10px 20px 10px 28px; display: flex; align-items: center; justify-content: space-between; gap: 24px; border-radius: 100px; background: linear-gradient(115deg, rgba(244,242,235,.075), rgba(244,242,235,.025)); box-shadow: inset 0 1px rgba(244,242,235,.09), 0 8px 48px rgba(0,0,0,.08); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
+-.landing-wordmark { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-style: italic; font-size: 35px; letter-spacing: -.055em; display: inline-flex; align-items: baseline; min-height: 44px; }
+-.landing-nav-middle, .landing-nav-actions { display: flex; align-items: center; gap: 34px; }
+-.landing-nav-middle { margin-left: 50px; }
+-.landing-nav-middle a, .landing-sign-in { font-size: 13px; color: rgba(244,242,235,.73); min-height: 44px; display: inline-flex; align-items: center; transition: color 180ms; }
+-.landing-nav-actions { gap: 26px; }
+-.landing-nav-cta { min-height: 48px; padding: 0 20px; border-radius: 99px; display: inline-flex; align-items: center; gap: 16px; font-size: 13px; font-weight: 600; background: rgba(244,242,235,.09); color: var(--color-text-primary); transition: background 180ms; }
+-.landing-arrow { width: 20px; height: 20px; flex: none; }
+-.landing-arrow-down { transform: rotate(90deg); }
+-.landing-story { width: min(100%, 1600px); margin: 0 auto; display: grid; grid-template-columns: 46% 54%; position: relative; }
+-.landing-chapter { grid-column: 1; min-height: 100svh; padding: 150px 0 100px 11.8%; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; position: relative; z-index: 2; scroll-margin-top: 0; }
+-.landing-hero { min-height: 100svh; padding-top: 188px; padding-bottom: 110px; }
+-.landing-eyebrow { margin: 0 0 32px; text-transform: uppercase; letter-spacing: .09em; font-size: 12px; line-height: 1.6; font-weight: 500; color: rgba(244,242,235,.72); display: flex; gap: 10px; align-items: center; }
+-.landing-eyebrow > span { width: 5px; height: 5px; background: var(--color-accent-default); border-radius: 50%; }
+-.landing h1, .landing h2 { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-style: italic; letter-spacing: -.055em; }
+-.landing h1 { font-size: clamp(64px, 7.55vw, 119px); line-height: .94; margin: 0 0 30px; }
+-.landing h1 span, .landing h2 span { color: rgba(244,242,235,.62); }
+-.landing-intro { font-size: clamp(16px, 1.3vw, 20px); line-height: 1.65; color: rgba(244,242,235,.72); margin: 0 0 32px; }
+-.landing-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 24px; }
+-.landing-primary { display: inline-flex; gap: 30px; align-items: center; justify-content: space-between; padding: 0 24px; min-height: 56px; background: var(--color-accent-default); color: var(--color-accent-on-accent); border-radius: 99px; font-size: 14px; font-weight: 600; transition: background 180ms ease-out, transform 180ms ease-out; }
+-.landing-text-link { display: inline-flex; align-items: center; min-height: 44px; color: rgba(244,242,235,.78); font-size: 13px; }
+-.landing-hero-note { display: flex; align-items: center; gap: 12px; margin-top: 28px; font-size: 12px; color: rgba(244,242,235,.62); }
+-.landing-mini-line { width: 22px; height: 15px; border-left: 1px solid currentColor; border-bottom: 1px solid currentColor; border-radius: 0 0 0 9px; transform: skewX(-18deg); }
+-.landing-scroll-link { position: absolute; left: 11.8%; bottom: 36px; display: flex; gap: 12px; align-items: center; color: rgba(244,242,235,.6); font-size: 12px; letter-spacing: .02em; min-height: 44px; }
+-.landing-scroll-icon { display: grid; place-items: center; width: 30px; height: 40px; border-radius: 99px; background: rgba(244,242,235,.05); }
+-.landing-art-rail { grid-column: 2; grid-row: 1 / 5; min-width: 0; padding: 116px 5.5% 40px 0; }
+-.landing-art-sticky { position: sticky; top: 116px; height: calc(100svh - 156px); min-height: 460px; display: flex; flex-direction: column; }
+-.landing-art-index { display: flex; justify-content: space-between; gap: 20px; padding: 10px 5%; color: rgba(244,242,235,.62); font-size: 12px; line-height: 1.5; letter-spacing: .08em; }
+-#landing-scene-host { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+-.landing main, .landing-footer { position: relative; z-index: 1; }
+-.landing-scene { position: absolute; inset: 0; opacity: 0; pointer-events: none; }
+-.landing-scene canvas { display: block; width: 100%; height: 100%; }
+-.landing-scene-scrim { position: absolute; inset: 0; opacity: 0; background: linear-gradient(90deg, rgba(10,11,16,.94), rgba(10,11,16,.86) 35%, rgba(10,11,16,.45) 68%, rgba(10,11,16,.25)); }
+-.landing-wall { position: relative; width: 100%; min-height: 0; flex: 1; }
+-.landing-wall-poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; transition: opacity 280ms ease; }
+-.landing-wall[data-state="ready"] .landing-wall-poster { opacity: 0; }
+-.landing-ascent-hint { position: absolute; left: 6%; right: 6%; bottom: 1%; display: flex; align-items: center; gap: 10px; font-size: 12px; line-height: 1.5; color: rgba(244,242,235,.65); pointer-events: none; opacity: var(--wall-chrome-opacity, 1); }
+-.landing-ascent-hint > span:first-child { font-size: 20px; }
+-.landing-wall:not([data-state="ready"]) .landing-ascent-hint { visibility: hidden; }
+-.landing-art-index, .landing-art-caption { opacity: var(--wall-chrome-opacity, 1); }
+-.landing-art-caption { padding: 22px 6% 0; display: flex; justify-content: space-between; align-items: end; gap: 24px; }
+-.landing-caption-label { font-size: 12px; line-height: 1.6; display: block; color: rgba(244,242,235,.85); }
+-.landing-caption-detail { font-size: 12px; display: block; line-height: 1.8; color: rgba(244,242,235,.62); }
+-.landing-material-note { max-width: 165px; text-align: right; line-height: 1.8; font-size: 12px; color: rgba(244,242,235,.62); }
+-.landing-step { display: flex; align-items: baseline; gap: 18px; font-size: 12px; color: rgba(244,242,235,.7); margin-bottom: 36px; }
+-.landing-step > span { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: rgba(244,242,235,.62); }
+-.landing h2 { font-size: clamp(60px, 5.55vw, 88px); line-height: 1; margin-bottom: 32px; }
+-.landing-body { font-size: 16px; line-height: 1.8; max-width: 34ch; color: rgba(244,242,235,.66); margin-bottom: 40px; }
+-.landing-feature { display: flex; align-items: center; gap: 18px; }
+-.landing-feature-mark { font-size: 32px; width: 32px; font-weight: 300; color: rgba(244,242,235,.68); }
+-.landing-feature svg { width: 32px; height: 40px; color: rgba(244,242,235,.7); }
+-.landing-feature h3 { font-size: 12px; line-height: 1.8; font-weight: 500; }
+-.landing-feature p { font-size: 12px; line-height: 1.6; color: rgba(244,242,235,.62); }
+-.landing-closing-note { margin-top: 24px; font-size: 12px; color: rgba(244,242,235,.62); }
+-.landing-footer { max-width: 1500px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 28px 5.5% 36px; }
+-.landing-footer .landing-wordmark { font-size: 28px; }
+-.landing-footer p { font-size: 12px; color: rgba(244,242,235,.62); }
+-.landing-footer > a:last-child { display: inline-flex; align-items: center; gap: 18px; font-size: 12px; min-height: 44px; color: rgba(244,242,235,.7); }
+-.landing-footer > a:last-child svg { transform: rotate(-90deg); }
+-@media (hover: hover) {
+-  .landing-primary:hover { background: var(--color-accent-pressed); transform: translateY(-2px); }
+-  .landing-nav-cta:hover { background: rgba(244,242,235,.15); }
+-  .landing-text-link:hover, .landing-nav-middle a:hover, .landing-sign-in:hover { color: var(--color-text-primary); }
+-}
+-@media (min-width: 760px) and (max-height: 740px) {
+-  .landing-hero { padding-top: 150px; }
+-  .landing h1 { font-size: clamp(64px, 7vw, 96px); }
+-  .landing-art-sticky { min-height: 370px; }
+-  .landing-hero-note { margin-top: 20px; }
+-  .landing-scroll-link { bottom: 20px; }
++.landing-step > span {
++  font-size: 12px;
++  letter-spacing: 0.08em;
++  text-transform: uppercase;
++  color: var(--color-text-tertiary);
+ }
++
++.landing h2 {
++  font-size: clamp(56px, 5.2vw, 84px);
++  line-height: 1.02;
++  margin-bottom: 28px;
++}
++.landing-body {
++  font-size: 16px;
++  line-height: 1.8;
++  max-width: 36ch;
++  color: var(--color-text-secondary);
++  margin-bottom: 36px;
++}
++
++/* Restrained Feature Cards */
++.landing-feature {
++  display: flex;
++  align-items: flex-start;
++  gap: 18px;
++  padding: 24px;
++  background: var(--color-background-elevated);
++  border: 1px solid var(--color-stroke-subtle);
++  border-radius: 10px;
++  max-width: 480px;
++}
++.landing-feature-mark {
++  font-size: 28px;
++  line-height: 1;
++  font-weight: 300;
++  color: var(--color-action-default);
++  flex: none;
++}
++.landing-feature svg {
++  width: 28px;
++  height: 36px;
++  color: var(--color-action-default);
++  flex: none;
++}
++.landing-feature h3 {
++  font-size: 14px;
++  line-height: 1.5;
++  font-weight: 600;
++  margin: 0 0 6px;
++  color: var(--color-text-primary);
++}
++.landing-feature p {
++  font-size: 13px;
++  line-height: 1.6;
++  color: var(--color-text-secondary);
++  margin: 0;
++}
++.landing-feature-link {
++  display: inline-flex;
++  align-items: center;
++  gap: 8px;
++  font-size: 13px;
++  font-weight: 600;
++  color: var(--color-text-primary);
++  margin-top: 14px;
++  min-height: 44px;
++  transition: color 180ms ease;
++}
++.landing-feature-link .landing-arrow {
++  color: var(--color-action-default);
++  transition: transform 180ms ease, color 180ms ease;
++}
++.landing-feature-link:hover {
++  color: var(--color-text-primary);
++}
++.landing-feature-link:hover .landing-arrow {
++  color: #6183FF;
++  transform: translateX(3px);
++}
++
++/* Closing Section */
++.landing-closing-note {
++  margin-top: 24px;
++  font-size: 12px;
++  color: var(--color-text-tertiary);
++}
++
++/* Footer */
++.landing-footer {
++  max-width: 1440px;
++  margin: 0 auto;
++  display: flex;
++  align-items: center;
++  justify-content: space-between;
++  gap: 32px;
++  padding: 36px 4.4% 48px;
++  border-top: 1px solid var(--color-divider);
++}
++.landing-footer-brand {
++  display: flex;
++  flex-direction: column;
++  gap: 4px;
++}
++.landing-footer-brand .landing-wordmark {
++  font-size: 28px;
++}
++.landing-footer-brand p {
++  font-size: 12px;
++  color: var(--color-text-tertiary);
++  margin: 0;
++}
++
++.landing-footer-nav {
++  display: flex;
++  align-items: center;
++  gap: 24px;
++  flex-wrap: wrap;
++}
++.landing-footer-nav a {
++  font-size: 13px;
++  color: var(--color-text-secondary);
++  min-height: 44px;
++  min-width: 44px;
++  display: inline-flex;
++  align-items: center;
++  justify-content: center;
++  transition: color 180ms ease;
++}
++.landing-footer-nav a:hover {
++  color: var(--color-text-primary);
++}
++
++.landing-back-to-top {
++  display: inline-flex;
++  align-items: center;
++  gap: 12px;
++  font-size: 13px;
++  min-height: 44px;
++  color: var(--color-text-secondary);
++  transition: color 180ms ease;
++}
++.landing-back-to-top:hover {
++  color: var(--color-text-primary);
++}
++.landing-back-to-top svg {
++  transform: rotate(-90deg);
++}
++
++/* Tablet Responsive */
+ @media (min-width: 760px) and (max-width: 1080px) {
+-  .landing-nav-middle { gap: 22px; margin-left: 0; }
+-  .landing-chapter { padding-left: 10%; }
+-  .landing-primary { gap: 16px; padding: 0 20px; }
+-  .landing-actions { gap: 12px; }
+-  .landing h1 { font-size: 7.5vw; }
+-  .landing-body { font-size: 15px; }
+-  .landing-material-note { display: none; }
++  .landing-nav-middle {
++    gap: 20px;
++    margin-left: 16px;
++  }
++  .landing-chapter {
++    padding-left: 8%;
++  }
++  .landing-primary {
++    gap: 16px;
++    padding: 0 20px;
++  }
++  .landing-actions {
++    gap: 14px;
++  }
++  .landing h1 {
++    font-size: 7.2vw;
++  }
++  .landing-body {
++    font-size: 15px;
++  }
++  .landing-material-note {
++    display: none;
++  }
+ }
++
++/* Mobile Responsive */
+ @media (max-width: 759px) {
+-  .landing-header { top: 16px; padding: 0 20px; }
+-  .landing-nav { min-height: 62px; padding: 8px 10px 8px 20px; gap: 16px; }
+-  .landing-wordmark { font-size: 30px; min-height: 40px; }
+-  .landing-nav-middle, .landing-sign-in { display: none; }
+-  .landing-nav-cta { min-height: 44px; padding: 0 16px; font-size: 13px; gap: 10px; }
+-  .landing-nav-cta svg { width: 16px; }
+-  .landing-story { display: flex; flex-direction: column; }
+-  .landing-chapter { min-height: auto; padding: 100px 28px; }
+-  .landing-hero { padding: 145px 28px 35px; }
+-  .landing-eyebrow { font-size: 12px; margin-bottom: 28px; letter-spacing: .025em; }
+-  .landing h1 { font-size: clamp(59px, 13.6vw, 96px); line-height: .95; margin-bottom: 24px; }
+-  .landing-intro { font-size: 16px; margin-bottom: 26px; }
+-  .landing-actions { gap: 18px; }
+-  .landing-primary { min-height: 52px; padding: 0 20px; gap: 22px; font-size: 14px; }
+-  .landing-text-link { font-size: 12px; }
+-  .landing-hero-note { margin-top: 20px; font-size: 12px; }
+-  .landing-scroll-link { display: none; }
+-  .landing-art-rail { height: 230svh; padding: 0 12px 36px; }
+-  .landing-art-sticky { top: 88px; height: calc(84svh - 88px); min-height: 380px; max-height: 720px; }
+-  .landing-art-rail:has(.landing-wall:is([data-state="static"], [data-state="fallback"])) { height: auto; padding-bottom: 0; }
+-  .landing-art-rail:has(.landing-wall:is([data-state="static"], [data-state="fallback"])) .landing-art-sticky { position: relative; top: auto; height: 520px; min-height: 0; }
+-  .landing-art-index { padding: 15px 16px; font-size: 12px; }
+-  .landing-art-index > span:last-child { font-size: 12px; letter-spacing: .04em; }
+-  .landing-art-caption { padding: 20px 20px 0; }
+-  .landing-ascent-hint { left: 20px; right: 20px; bottom: 0; gap: 8px; font-size: 12px; }
+-  .landing-scene-scrim { background: linear-gradient(90deg, rgba(10,11,16,.83), rgba(10,11,16,.75) 65%, rgba(10,11,16,.78)); }
+-  .landing-caption-label { font-size: 12px; }
+-  .landing-caption-detail, .landing-material-note { font-size: 12px; }
+-  .landing h2 { font-size: clamp(56px, 11.7vw, 82px); }
+-  .landing-body { max-width: 38ch; font-size: 15px; }
+-  .landing-step { margin-bottom: 30px; }
+-  .landing-feature p { max-width: 29ch; }
+-  .landing-closing { padding-bottom: 115px; }
+-  .landing-footer { margin: 0 28px; padding: 0 0 30px; flex-wrap: wrap; gap: 12px 24px; }
+-  .landing-footer p { order: 3; width: 100%; }
+-  .landing-footer > a:last-child { margin-left: auto; }
++  .landing-header {
++    top: 16px;
++    padding: 0 16px;
++  }
++  .landing-nav {
++    min-height: 64px;
++    padding: 8px 12px 8px 16px;
++    gap: 12px;
++  }
++  .landing-wordmark {
++    font-size: 28px;
++    min-height: 44px;
++  }
++  .landing-nav-middle,
++  .landing-sign-in {
++    display: none;
++  }
++  .landing-nav-signup {
++    min-height: 44px;
++    padding: 0 14px;
++    font-size: 13px;
++  }
++  .landing-nav-cta {
++    min-height: 44px;
++    padding: 0 16px;
++    font-size: 13px;
++    gap: 8px;
++  }
++  .landing-nav-cta svg {
++    width: 14px;
++  }
++
++  .landing-story {
++    display: flex;
++    flex-direction: column;
++  }
++  .landing-chapter {
++    min-height: auto;
++    padding: 80px 24px;
++  }
++  .landing-hero {
++    padding: 130px 24px 32px;
++  }
++  .landing-eyebrow {
++    font-size: 11px;
++    margin-bottom: 22px;
++  }
++  .landing h1 {
++    font-size: clamp(54px, 13vw, 88px);
++    line-height: 0.96;
++    margin-bottom: 22px;
++  }
++  .landing-intro {
++    font-size: 16px;
++    margin-bottom: 24px;
++  }
++  .landing-actions {
++    gap: 14px;
++  }
++  .landing-primary {
++    min-height: 48px;
++    padding: 0 20px;
++    gap: 18px;
++    font-size: 13px;
++  }
++  .landing-secondary-btn {
++    min-height: 48px;
++    padding: 0 18px;
++    font-size: 13px;
++  }
++  .landing-text-link {
++    font-size: 13px;
++  }
++
++  .landing-spec-strip {
++    margin-top: 28px;
++    padding: 12px 16px;
++    gap: 14px;
++    overflow-x: auto;
++  }
++  .landing-spec-val {
++    font-size: 17px;
++  }
++  .landing-spec-lbl {
++    font-size: 10px;
++  }
++
++  .landing-scroll-link {
++    display: none;
++  }
++
++  /* Mobile Art Rail Track */
++  .landing-art-rail {
++    height: 230svh;
++    padding: 0 12px 32px;
++  }
++  .landing-art-sticky {
++    top: 84px;
++    height: calc(84svh - 84px);
++    min-height: 360px;
++    max-height: 700px;
++  }
++  .landing-art-rail:has(.landing-wall:is([data-state="static"], [data-state="fallback"])) {
++    height: auto;
++    padding-bottom: 0;
++  }
++  .landing-art-rail:has(.landing-wall:is([data-state="static"], [data-state="fallback"])) .landing-art-sticky {
++    position: relative;
++    top: auto;
++    height: 500px;
++    min-height: 0;
++  }
++
++  .landing-art-index {
++    padding: 12px 14px;
++    font-size: 11px;
++  }
++  .landing-art-caption {
++    padding: 16px 14px 0;
++  }
++  .landing-ascent-hint {
++    left: 14px;
++    right: 14px;
++    bottom: 0;
++    font-size: 11px;
++  }
++  .landing-scene-scrim {
++    background: linear-gradient(90deg, rgba(10, 11, 16, 0.85), rgba(10, 11, 16, 0.78) 65%, rgba(10, 11, 16, 0.80));
++  }
++
++  .landing h2 {
++    font-size: clamp(48px, 11vw, 76px);
++  }
++  .landing-body {
++    max-width: 38ch;
++    font-size: 15px;
++  }
++  .landing-feature {
++    padding: 20px;
++    max-width: 100%;
++  }
++
++  .landing-closing {
++    padding-bottom: 96px;
++  }
++  .landing-footer {
++    padding: 28px 24px 40px;
++    flex-direction: column;
++    align-items: flex-start;
++    gap: 24px;
++  }
++  .landing-footer-nav {
++    gap: 14px 20px;
++  }
+ }
++
++/* Small Mobile Responsive */
+ @media (max-width: 360px) {
+-  .landing-header { padding: 0 14px; }
+-  .landing-chapter { padding-left: 22px; padding-right: 22px; }
+-  .landing h1 { font-size: 55px; }
+-  .landing-actions { gap: 6px 18px; }
+-  .landing-eyebrow { font-size: 12px; }
++  .landing-header {
++    padding: 0 12px;
++  }
++  .landing-chapter {
++    padding-left: 18px;
++    padding-right: 18px;
++  }
++  .landing h1 {
++    font-size: 50px;
++  }
++  .landing-actions {
++    gap: 8px 14px;
++  }
+ }
++
++/* Reduced Transparency & High Contrast */
+ @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+-  .landing-nav { background: var(--color-background-elevated); backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: none; }
+-  .landing-nav-cta { background: var(--color-background-base); }
++  .landing-nav {
++    background: var(--color-background-elevated);
++    border: 1px solid var(--color-stroke-default);
++  }
++  .landing-nav-cta {
++    background: var(--color-action-default);
++  }
+ }
++
++/* Reduced Motion Mode */
+ @media (prefers-reduced-motion: reduce) {
+-  .landing-primary:hover { transform: none; }
+-  .landing-ascent-hint { display: none; }
++  .landing-primary:hover {
++    transform: none;
++  }
++  .landing-ascent-hint {
++    display: none;
++  }
+   @media (max-width: 759px) {
+-    .landing-art-rail { height: auto; padding-bottom: 0; }
+-    .landing-art-sticky { position: relative; top: auto; height: 520px; min-height: 0; }
++    .landing-art-rail {
++      height: auto;
++      padding-bottom: 0;
++    }
++    .landing-art-sticky {
++      position: relative;
++      top: auto;
++      height: 500px;
++      min-height: 0;
++    }
+   }
+ }
+diff --git a/app/page.tsx b/app/page.tsx
+index 97deb0eb0cb2e66e38dd5e76b611a2a8662b1a09..0856255f75819a9e804471671a476ce9d9c53be8 100644
+--- a/app/page.tsx
++++ b/app/page.tsx
+@@ -5,11 +5,15 @@ import './landing.css';
+ 
+ export const metadata: Metadata = {
+   title: 'Boarded — A little more within reach.',
+-  description: 'Your wall. Your next idea. Create, document, and share climbing routes with Boarded, a home for your climbing practice.',
++  description: 'Your wall. Your next project. Set routes on your board, document honest session attempts, and follow the line from gym to crag.',
+ };
+ 
+ function Arrow({ down = false }: { down?: boolean }) {
+-  return <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className={down ? 'landing-arrow landing-arrow-down' : 'landing-arrow'}><path d="M4 12h15m-6-6 6 6-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>;
++  return (
++    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className={down ? 'landing-arrow landing-arrow-down' : 'landing-arrow'}>
++      <path d="M4 12h15m-6-6 6 6-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
++    </svg>
++  );
+ }
+ 
+ export default function MarketingLanding() {
+@@ -20,54 +24,154 @@ export default function MarketingLanding() {
+       <header className="landing-header">
+         <nav aria-label="Primary navigation" className="landing-nav">
+           <Link href="/" className="landing-wordmark" aria-label="Boarded home">Boarded</Link>
+-          <div className="landing-nav-middle"><a href="#approach">The idea</a><a href="#practice">The practice</a></div>
+-          <div className="landing-nav-actions"><Link href="/login" className="landing-sign-in">Sign in</Link><Link href="/app" className="landing-nav-cta">Open Boarded <Arrow /></Link></div>
++          <div className="landing-nav-middle">
++            <a href="#approach">The Setter</a>
++            <a href="#practice">The Session</a>
++            <a href="#explore">The Crag</a>
++          </div>
++          <div className="landing-nav-actions">
++            <Link href="/login" className="landing-sign-in">Sign in</Link>
++            <Link href="/signup" className="landing-nav-signup">Sign up</Link>
++            <Link href="/app" className="landing-nav-cta">Open Boarded <Arrow /></Link>
++          </div>
+         </nav>
+       </header>
+ 
+       <main id="main-content">
+         <div className="landing-story" id="wall-story">
+           <section className="landing-chapter landing-hero" aria-labelledby="hero-title">
+-            <p className="landing-eyebrow"><span /> A home for your climbing practice</p>
++            <p className="landing-eyebrow"><span /> Editorial climbing journal &amp; field instrument</p>
+             <h1 id="hero-title">A little more<br /><span>within reach.</span></h1>
+-            <p className="landing-intro">A wall full of possibilities.<br />A place to make them yours.</p>
+-            <div className="landing-actions"><Link href="/app" className="landing-primary">Find your next line <Arrow /></Link><a href="#approach" className="landing-text-link">Explore the idea</a></div>
+-            <div className="landing-hero-note"><span className="landing-mini-line" /><p>Set a route. Try a move. Come back for more.</p></div>
+-            <a href="#approach" className="landing-scroll-link"><span className="landing-scroll-icon"><Arrow down /></span> Scroll to follow the climb</a>
++            <p className="landing-intro">Your board. Your session log. The community line.<br />Set routes with precision, track honest attempts, and keep the climb from gym to crag.</p>
++            <div className="landing-actions">
++              <Link href="/signup" className="landing-primary">Get started free <Arrow /></Link>
++              <Link href="/app" className="landing-secondary-btn">Enter app</Link>
++              <a href="#approach" className="landing-text-link">Explore the line</a>
++            </div>
++
++            <div className="landing-spec-strip" aria-label="Wall specifications">
++              <div className="landing-spec-item">
++                <span className="landing-spec-val">12 × 8 ft</span>
++                <span className="landing-spec-lbl">Practice wall</span>
++              </div>
++              <div className="landing-spec-divider" aria-hidden="true" />
++              <div className="landing-spec-item">
++                <span className="landing-spec-val">14°</span>
++                <span className="landing-spec-lbl">Overhang</span>
++              </div>
++              <div className="landing-spec-divider" aria-hidden="true" />
++              <div className="landing-spec-item">
++                <span className="landing-spec-val">Birch ply</span>
++                <span className="landing-spec-lbl">Timber frame</span>
++              </div>
++              <div className="landing-spec-divider" aria-hidden="true" />
++              <div className="landing-spec-item">
++                <span className="landing-spec-val">Private</span>
++                <span className="landing-spec-lbl">Session log</span>
++              </div>
++            </div>
++
++            <a href="#approach" className="landing-scroll-link">
++              <span className="landing-scroll-icon"><Arrow down /></span> Scroll to follow the climb
++            </a>
+           </section>
+ 
+           <div className="landing-art-rail" id="wall-stage-track">
+             <div className="landing-art-sticky">
+-              <div className="landing-art-index" aria-hidden="true"><span>FIG. 01</span><span>A PLAYGROUND FOR POSSIBILITY</span></div>
++              <div className="landing-art-index" aria-hidden="true">
++                <span>FIG. 01</span>
++                <span>A PLAYGROUND FOR POSSIBILITY</span>
++              </div>
+               <ClimbingWallExperience />
+-              <div className="landing-art-caption"><div><span className="landing-caption-label">The practice wall</span><span className="landing-caption-detail">12 × 8 ft · 14° overhang</span></div><span className="landing-material-note">A little color. A lot of potential.</span></div>
++              <div className="landing-art-caption">
++                <div>
++                  <span className="landing-caption-label">The practice wall</span>
++                  <span className="landing-caption-detail">12 × 8 ft · 14° overhang · Birch plywood</span>
++                </div>
++                <span className="landing-material-note">A little color. A lot of potential.</span>
++              </div>
+             </div>
+           </div>
+ 
+           <section id="approach" className="landing-chapter" aria-labelledby="approach-title">
+-            <p className="landing-step">01 <span>Make it your own</span></p>
+-            <h2 id="approach-title">Every wall.<br /><span>A blank canvas.</span></h2>
+-            <p className="landing-body">Big ideas start with a few holds. Bring your wall into Boarded, find a sequence, and give your next project a place to begin.</p>
+-            <div className="landing-feature"><span className="landing-feature-mark" aria-hidden="true">＋</span><div><h3>From wall to possibility</h3><p>Create routes on the board you know best.</p></div></div>
++            <p className="landing-step">01 <span>The Route Setter</span></p>
++            <h2 id="approach-title">Every board.<br /><span>A blank canvas.</span></h2>
++            <p className="landing-body">Bring your home or gym board into Boarded. Place start, hand, and finish holds, assign grades, and turn an empty wall into your next personal project.</p>
++            <div className="landing-feature">
++              <span className="landing-feature-mark" aria-hidden="true">＋</span>
++              <div>
++                <h3>Interactive hold mapping</h3>
++                <p>Map your sequence on the board you know best, from start holds to the summit.</p>
++                <Link href="/editor" className="landing-feature-link">Open route editor <Arrow /></Link>
++              </div>
++            </div>
+           </section>
+ 
+           <section id="practice" className="landing-chapter" aria-labelledby="practice-title">
+-            <p className="landing-step">02 <span>Stay with the process</span></p>
++            <p className="landing-step">02 <span>The Session Log</span></p>
+             <h2 id="practice-title">The move.<br />The moment.<br /><span>The next try.</span></h2>
+-            <p className="landing-body">Keep your routes, your ideas, and the details that matter in one place. Less time trying to remember. More time finding your flow.</p>
+-            <div className="landing-feature"><svg viewBox="0 0 32 40" aria-hidden="true" fill="none"><path d="M7 33c0-13 18-8 18-20V5" stroke="currentColor" strokeWidth="1.5" /><circle cx="7" cy="33" r="3" fill="currentColor" /><circle cx="25" cy="5" r="3" fill="currentColor" /></svg><div><h3>Keep the line</h3><p>Document a route. Return with a fresh perspective.</p></div></div>
++            <p className="landing-body">Keep your attempts, flashes, and project notes beside the wall. Less time remembering details. More time finding your flow.</p>
++            <div className="landing-feature">
++              <svg viewBox="0 0 32 40" aria-hidden="true" fill="none">
++                <path d="M7 33c0-13 18-8 18-20V5" stroke="currentColor" strokeWidth="1.5" />
++                <circle cx="7" cy="33" r="3" fill="currentColor" />
++                <circle cx="25" cy="5" r="3" fill="currentColor" />
++              </svg>
++              <div>
++                <h3>Honest attempt tracking</h3>
++                <p>Document attempts, sends, and personal notes for your eyes only, without distraction.</p>
++                <Link href="/log" className="landing-feature-link">View climbing log <Arrow /></Link>
++              </div>
++            </div>
++          </section>
++
++          <section id="explore" className="landing-chapter" aria-labelledby="explore-title">
++            <p className="landing-step">03 <span>The Crag &amp; Community</span></p>
++            <h2 id="explore-title">One more try.<br /><span>One new line.</span></h2>
++            <p className="landing-body">Explore public routes across shared boards and venues. Follow climbers, send kudos, and keep the line connecting gym to crag.</p>
++            <div className="landing-feature">
++              <svg viewBox="0 0 32 32" aria-hidden="true" fill="none">
++                <path d="M16 4l12 24H4L16 4z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
++                <path d="M12 20l4-6 4 6" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
++              </svg>
++              <div>
++                <h3>Public venues &amp; routes</h3>
++                <p>Discover community lines, real venues, and followed climbers without social clutter.</p>
++                <Link href="/explore" className="landing-feature-link">Explore community routes <Arrow /></Link>
++              </div>
++            </div>
+           </section>
+ 
+           <section className="landing-chapter landing-closing" aria-labelledby="closing-title">
+-            <p className="landing-step">03 <span>See what comes next</span></p>
+-            <h2 id="closing-title">One more try.<br /><span>One new line.</span></h2>
++            <p className="landing-step">04 <span>Ascend</span></p>
++            <h2 id="closing-title">A home for your<br /><span>climbing practice.</span></h2>
+             <p className="landing-body">For the projects you can’t leave alone.<br />And the ones you haven’t imagined yet.</p>
+-            <div className="landing-actions"><Link href="/app" className="landing-primary">Open Boarded <Arrow /></Link><Link href="/login" className="landing-text-link">Sign in</Link></div>
+-            <p className="landing-closing-note">Your wall. Your pace. Your practice.</p>
++            <div className="landing-actions">
++              <Link href="/signup" className="landing-primary">Create free account <Arrow /></Link>
++              <Link href="/login" className="landing-secondary-btn">Sign in</Link>
++              <Link href="/app" className="landing-text-link">Open Boarded <Arrow /></Link>
++            </div>
++            <p className="landing-closing-note">Your wall. Your pace. Your climbing practice.</p>
+           </section>
+         </div>
+       </main>
+-      <footer className="landing-footer"><Link href="/" className="landing-wordmark">Boarded</Link><p>Made for the joy of figuring it out.</p><a href="#main-content">Back to the start <Arrow /></a></footer>
++
++      <footer className="landing-footer">
++        <div className="landing-footer-brand">
++          <Link href="/" className="landing-wordmark">Boarded</Link>
++          <p>Made for the joy of figuring it out.</p>
++        </div>
++        <div className="landing-footer-nav" aria-label="Footer navigation">
++          <Link href="/app">Feed</Link>
++          <Link href="/explore">Explore</Link>
++          <Link href="/editor">Editor</Link>
++          <Link href="/log">Log</Link>
++          <Link href="/profile">Profile</Link>
++          <Link href="/signup">Sign up</Link>
++          <Link href="/login">Sign in</Link>
++        </div>
++        <a href="#main-content" className="landing-back-to-top">Back to top <Arrow /></a>
++      </footer>
+     </div>
+   );
+ }
+diff --git a/components/landing/ClimbingWallExperience.tsx b/components/landing/ClimbingWallExperience.tsx
+index fdc4c519e0287b9cba346554c8833273ec59e184..52ef2546e0fe7cc8932a08d18e0aa43582034173 100644
+--- a/components/landing/ClimbingWallExperience.tsx
++++ b/components/landing/ClimbingWallExperience.tsx
+@@ -9,46 +9,66 @@ const POSTER_URL = '/walls/generated/boarded-wall-poster.webp';
+ const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
+ const YAW_LIMIT = Math.PI / 4;
+ const YAW_PHASE_SPEED = (Math.PI * 2 / 90) / YAW_LIMIT;
++const CLIP_DURATION = 12;
++
+ const clamp = (value: number) => Math.max(0, Math.min(1, value));
+ const smooth = (start: number, end: number, value: number) => {
+   const t = clamp((value - start) / (end - start));
+   return t * t * (3 - 2 * t);
+ };
+-const mix = (a: number, b: number, t: number) => a + (b - a) * t;
++
+ function subscribeMotion(onChange: () => void) {
+   const query = window.matchMedia(REDUCED_MOTION);
+   query.addEventListener('change', onChange);
+   return () => query.removeEventListener('change', onChange);
+ }
+-const getMotion = () => window.matchMedia(REDUCED_MOTION).matches;
+-const getServerMotion = () => true;
+-const subscribeHost = () => () => {};
+-const getHost = () => document.getElementById('landing-scene-host');
+-const getServerHost = () => null;
++function getMotion(): boolean {
++  return window.matchMedia(REDUCED_MOTION).matches;
++}
++function getServerMotion(): boolean {
++  return true;
++}
++function subscribeHost(): () => void {
++  return () => {};
++}
++function getHost(): HTMLElement | null {
++  return document.getElementById('landing-scene-host');
++}
++function getServerHost(): null {
++  return null;
++}
+ 
+ function disposeModel(root: Three.Object3D) {
+   const geometries = new Set<Three.BufferGeometry>();
+   const materials = new Set<Three.Material>();
+   const textures = new Set<Three.Texture>();
+   const skeletons = new Set<Three.Skeleton>();
++
+   root.traverse((object) => {
+     const mesh = object as Three.Mesh;
+     if (mesh.geometry) geometries.add(mesh.geometry);
+-    if ((mesh as Three.SkinnedMesh).isSkinnedMesh) skeletons.add((mesh as Three.SkinnedMesh).skeleton);
+-    for (const material of mesh.material ? Array.isArray(mesh.material) ? mesh.material : [mesh.material] : []) {
+-      materials.add(material);
+-      for (const value of Object.values(material)) {
+-        if (value && typeof value === 'object' && 'isTexture' in value) textures.add(value as Three.Texture);
++    if (mesh.material) {
++      if (Array.isArray(mesh.material)) {
++        mesh.material.forEach((m) => materials.add(m));
++      } else {
++        materials.add(mesh.material);
+       }
+     }
++    const skinned = object as Three.SkinnedMesh;
++    if (skinned.skeleton) skeletons.add(skinned.skeleton);
+   });
++
+   skeletons.forEach((skeleton) => skeleton.dispose());
+   geometries.forEach((geometry) => geometry.dispose());
+-  materials.forEach((material) => material.dispose());
+-  textures.forEach((texture) => {
+-    texture.dispose();
+-    if (typeof ImageBitmap !== 'undefined' && texture.source.data instanceof ImageBitmap) texture.source.data.close();
++  materials.forEach((material) => {
++    material.dispose();
++    Object.values(material).forEach((val) => {
++      if (val && typeof val === 'object' && 'isTexture' in val && val.isTexture) {
++        textures.add(val as Three.Texture);
++      }
++    });
+   });
++  textures.forEach((texture) => texture.dispose());
+ }
+ 
+ /** Time turns the sculpture; scroll scrubs the authored climb and summit exit. */
+@@ -74,6 +94,7 @@ export function ClimbingWallExperience() {
+     let disposed = false;
+     let initializing = false;
+     let active = true;
++    let isIntersecting = true;
+     let failed = false;
+     let firstFrame = true;
+     let frame = 0;
+@@ -95,90 +116,146 @@ export function ClimbingWallExperience() {
+     let shadowLight: Three.DirectionalLight | null = null;
+     let mixer: Three.AnimationMixer | null = null;
+     let ascentAction: Three.AnimationAction | null = null;
+-    let ascentDuration = 0;
++    let ascentDuration = CLIP_DURATION;
+     let sampledAscent = -1;
+     const abort = new AbortController();
++
+     function readLayout() {
+       width = window.innerWidth;
+       height = window.innerHeight;
+       anchorBox = anchor!.getBoundingClientRect();
+       const mobile = width < 760;
+-      const start = mobile ? rail!.getBoundingClientRect().top + window.scrollY - 88 : story!.getBoundingClientRect().top + window.scrollY;
++      const start = mobile
++        ? rail!.getBoundingClientRect().top + window.scrollY - 88
++        : story!.getBoundingClientRect().top + window.scrollY;
+       const end = mobile
+         ? approach!.getBoundingClientRect().top + window.scrollY - height * 0.10
+         : closing!.getBoundingClientRect().top + window.scrollY - height * 0.12;
+       targetProgress = clamp((window.scrollY - start) / Math.max(1, end - start));
+       const storyBox = story!.getBoundingClientRect();
+       const sculptureVisible = targetProgress >= 0.73 || (anchorBox.bottom > 0 && anchorBox.top < height);
+-      active = storyBox.bottom > 0 && storyBox.top < height && sculptureVisible;
++      active = isIntersecting && storyBox.bottom > 0 && storyBox.top < height && sculptureVisible;
+       if (!active) {
+         progress = targetProgress;
+         previousTime = 0;
+         stage!.style.visibility = 'hidden';
+         anchor!.dataset.progress = progress.toFixed(5);
++        anchor!.dataset.targetProgress = targetProgress.toFixed(5);
+         anchor!.dataset.opacity = '0';
+         anchor!.dataset.phase = 'gone';
+       }
+     }
+ 
+     function requestRender() {
+-      if (!frame && !disposed && !failed && active && !document.hidden) frame = requestAnimationFrame(render);
++      if (!frame && !disposed && !failed && active && !document.hidden) {
++        frame = requestAnimationFrame(render);
++      }
+     }
+ 
+     function render(time: number) {
+       frame = 0;
+       if (disposed || failed || !active || document.hidden || !renderer || !scene || !camera || !composition || !rotation || !right || !up) return;
+-      const dt = previousTime ? Math.max(0, (time - previousTime) / 1000) : 0;
++
++      const dt = previousTime ? Math.min(0.1, Math.max(0, (time - previousTime) / 1000)) : 0;
+       previousTime = time;
+-      progress += (targetProgress - progress) * (1 - Math.exp(-dt * 11));
+-      if (Math.abs(targetProgress - progress) < 0.00008) progress = targetProgress;
++
++      progress += (targetProgress - progress) * (1 - Math.exp(-dt * 12));
++      if (Math.abs(targetProgress - progress) < 0.00005) {
++        progress = targetProgress;
++      }
++
++      // Normalized [0, 1] climb ascent mapping
+       const ascent = clamp((progress - 0.08) / 0.57);
++
++      // Deterministic forward/reverse scrub parity
+       // An exact summit sample can pause LoopOnce. Re-enable before every seek
+-      // so scrolling backward from the final frame always restores the climb.
++      // so scrolling backward from the final frame always smoothly restores the climb.
+       if (mixer && ascentAction && ascent !== sampledAscent) {
+         ascentAction.enabled = true;
+         ascentAction.paused = false;
+         mixer.setTime(ascent * ascentDuration);
+         sampledAscent = ascent;
+       }
++
+       const grow = smooth(0.73, 0.93, progress);
+       const close = smooth(0.80, 0.90, progress);
+       const exit = smooth(0.88, 0.93, progress);
+       const center = smooth(0.73, 0.83, progress);
+       const zoom = Math.exp(Math.log(40) * grow);
+       const opacity = 1 - smooth(0.88, 0.93, progress);
++
+       if (opacity > 0) {
+         yawPhase = (yawPhase + dt * YAW_PHASE_SPEED) % (Math.PI * 2);
+       }
+       const yaw = Math.sin(yawPhase) * YAW_LIMIT;
++
+       const viewHeight = Math.max(4.7, 4.7 * 1200 / 1440 / (anchorBox.width / anchorBox.height));
+       const initialY = (width < 760 ? Math.max(anchorBox.top, 136) : anchorBox.top) + anchorBox.height / 2;
+-      const x = mix(anchorBox.left + anchorBox.width / 2, width * 0.53, center) + width * (0.36 * close + 1.2 * exit);
+-      const y = mix(initialY, height * 0.51, center) - height * (0.10 * close + 0.50 * exit);
++      const anchorCenterX = anchorBox.left + anchorBox.width / 2;
++      const targetCenterX = width * 0.53;
++      const x = (anchorCenterX + (targetCenterX - anchorCenterX) * center) + width * (0.36 * close + 1.2 * exit);
++      const targetCenterY = height * 0.51;
++      const y = (initialY + (targetCenterY - initialY) * center) - height * (0.10 * close + 0.50 * exit);
+       const worldScale = anchorBox.height / viewHeight * zoom;
++
+       composition.scale.setScalar(worldScale);
+       if (shadowLight) {
+-        Object.assign(shadowLight.shadow.camera, { left: -3.5 * worldScale, right: 3.5 * worldScale, top: 3.5 * worldScale, bottom: -3.5 * worldScale, near: 0.5 * worldScale, far: 18 * worldScale });
++        Object.assign(shadowLight.shadow.camera, {
++          left: -3.5 * worldScale,
++          right: 3.5 * worldScale,
++          top: 3.5 * worldScale,
++          bottom: -3.5 * worldScale,
++          near: 0.5 * worldScale,
++          far: 18 * worldScale,
++        });
+         shadowLight.shadow.normalBias = 0.012 * worldScale;
+         shadowLight.shadow.camera.updateProjectionMatrix();
+       }
+       composition.position.copy(right).multiplyScalar(x - width / 2).addScaledVector(up, height / 2 - y);
+       rotation.rotation.y = yaw;
++
+       stage!.style.opacity = String(opacity);
+       stage!.style.visibility = opacity === 0 ? 'hidden' : 'visible';
+-      if (scrimRef.current) scrimRef.current.style.opacity = String(smooth(0.74, 0.82, progress));
++      if (scrimRef.current) {
++        scrimRef.current.style.opacity = String(smooth(0.74, 0.82, progress));
++      }
+       rail!.style.setProperty('--wall-chrome-opacity', String(1 - smooth(0.03, 0.08, progress)));
++
+       anchor!.dataset.progress = progress.toFixed(5);
++      anchor!.dataset.targetProgress = targetProgress.toFixed(5);
+       anchor!.dataset.yaw = yaw.toFixed(5);
+       anchor!.dataset.scale = zoom.toFixed(4);
+       anchor!.dataset.opacity = opacity.toFixed(4);
+       anchor!.dataset.ascent = ascent.toFixed(5);
+       anchor!.dataset.clipTime = (ascent * ascentDuration).toFixed(4);
+-      anchor!.dataset.phase = progress < 0.08 ? 'showcase' : progress < 0.65 ? 'climb' : progress < 0.73 ? 'summit' : progress < 0.88 ? 'expand' : opacity > 0 ? 'exit' : 'gone';
+-      if (opacity > 0) renderer.render(scene, camera);
+-      if (firstFrame) { firstFrame = false; setStatus('ready'); readLayout(); }
+-      if (opacity > 0 || progress !== targetProgress) requestRender();
+-      else previousTime = 0;
++      anchor!.dataset.phase =
++        progress < 0.08
++          ? 'showcase'
++          : progress < 0.65
++            ? 'climb'
++            : progress < 0.73
++              ? 'summit'
++              : progress < 0.88
++                ? 'expand'
++                : opacity > 0
++                  ? 'exit'
++                  : 'gone';
++
++      if (opacity > 0) {
++        renderer.render(scene, camera);
++      }
++
++      if (firstFrame) {
++        firstFrame = false;
++        setStatus('ready');
++        readLayout();
++      }
++
++      if (opacity > 0 || progress !== targetProgress) {
++        requestRender();
++      } else {
++        previousTime = 0;
++      }
+     }
+ 
+     function resize() {
+@@ -202,75 +279,102 @@ export function ClimbingWallExperience() {
+       initializing = true;
+       setStatus('loading');
+       try {
+-        const [THREE, { GLTFLoader }] = await Promise.all([import('three'), import('three/addons/loaders/GLTFLoader.js')]);
++        const [THREE, { GLTFLoader }] = await Promise.all([
++          import('three'),
++          import('three/addons/loaders/GLTFLoader.js'),
++        ]);
+         if (disposed) return;
+-        renderer = new THREE.WebGLRenderer({ canvas: canvas!, alpha: true, antialias: true, powerPreference: 'low-power' });
++
++        renderer = new THREE.WebGLRenderer({
++          canvas: canvas!,
++          alpha: true,
++          antialias: true,
++          powerPreference: 'low-power',
++        });
+         renderer.outputColorSpace = THREE.SRGBColorSpace;
+         renderer.toneMapping = THREE.AgXToneMapping;
+         renderer.toneMappingExposure = 1.05;
+         renderer.setClearColor(0x000000, 0);
+         renderer.shadowMap.enabled = true;
+         renderer.shadowMap.type = THREE.PCFShadowMap;
++
+         scene = new THREE.Scene();
+-        // Pixel-scaled orthographic framing keeps the backing canvas viewport-sized
+-        // while the sculpture grows far beyond it, without a giant render target.
+         camera = new THREE.OrthographicCamera(-width / 2, width / 2, height / 2, -height / 2, 0.1, 200000);
+         camera.position.set(5.9, 5.13, 10).normalize().multiplyScalar(100000);
+         camera.lookAt(0, 0, 0);
+         camera.updateMatrixWorld();
++
+         right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
+         up = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
++
+         composition = new THREE.Group();
+         rotation = new THREE.Group();
+         composition.add(rotation);
+         scene.add(composition);
+-        // Lights share the composition transform so enlarging the wall preserves
+-        // the approved studio shading and its one modest contact-shadow map.
++
+         const lights = new THREE.Group();
+         lights.add(new THREE.HemisphereLight(0xf2f1ff, 0x353641, 1.8));
++
+         const key = new THREE.DirectionalLight(0xffeed7, 3.6);
+         key.position.set(-3.5, 6, 4.5);
+         key.castShadow = true;
+         shadowLight = key;
+         key.shadow.mapSize.set(1024, 1024);
+-        Object.assign(key.shadow.camera, { left: -3.5, right: 3.5, top: 3.5, bottom: -3.5, near: 0.5, far: 18 });
++        Object.assign(key.shadow.camera, {
++          left: -3.5,
++          right: 3.5,
++          top: 3.5,
++          bottom: -3.5,
++          near: 0.5,
++          far: 18,
++        });
+         key.shadow.radius = 3;
+         key.shadow.intensity = 0.35;
+         key.shadow.normalBias = 0.012;
+         key.shadow.bias = -0.00015;
+         lights.add(key, key.target);
++
+         const fill = new THREE.DirectionalLight(0xceccff, 1.8);
+         fill.position.set(4, 2, 1);
+         lights.add(fill, fill.target);
++
+         const rim = new THREE.DirectionalLight(0xf4f2eb, 2.7);
+         rim.position.set(-1, 3, -5);
+         lights.add(rim, rim.target);
++
+         composition.add(lights);
+ 
+         const response = await fetch(MODEL_URL, { signal: abort.signal });
+         if (!response.ok) throw new Error('Wall asset unavailable');
++
+         const gltf = await new GLTFLoader().parseAsync(await response.arrayBuffer(), '/walls/generated/');
+-        if (disposed) { disposeModel(gltf.scene); return; }
++        if (disposed) {
++          disposeModel(gltf.scene);
++          return;
++        }
++
+         model = gltf.scene;
+         model.traverse((object) => {
+           if ((object as Three.Mesh).isMesh) {
+             object.castShadow = true;
+             object.receiveShadow = true;
+           }
+-          // The climber moves beyond its bind-pose bounds during the ascent.
+-          // Keep this small animated mesh visible; static wall meshes still cull.
+-          if ((object as Three.SkinnedMesh).isSkinnedMesh) object.frustumCulled = false;
++          if ((object as Three.SkinnedMesh).isSkinnedMesh) {
++            object.frustumCulled = false;
++          }
+         });
+         rotation.add(model);
++
+         const ascentClip = gltf.animations.find((clip) => clip.name === 'ClimberAscent');
+         if (ascentClip) {
+           mixer = new THREE.AnimationMixer(model);
+-          ascentDuration = ascentClip.duration;
++          ascentDuration = ascentClip.duration || CLIP_DURATION;
+           ascentAction = mixer.clipAction(ascentClip);
+           ascentAction.setLoop(THREE.LoopOnce, 1);
+           ascentAction.clampWhenFinished = true;
+           ascentAction.play();
+         }
++
+         anchor!.dataset.hasAscent = String(Boolean(ascentClip));
+         readLayout();
+         progress = targetProgress;
+@@ -280,7 +384,10 @@ export function ClimbingWallExperience() {
+           failed = true;
+           setStatus('failed');
+           stage!.style.visibility = 'hidden';
+-          if (model) { disposeModel(model); model = null; }
++          if (model) {
++            disposeModel(model);
++            model = null;
++          }
+           renderer?.dispose();
+           renderer?.forceContextLoss();
+           renderer = null;
+@@ -288,11 +395,23 @@ export function ClimbingWallExperience() {
+       }
+     }
+ 
+-    function onScroll() { readLayout(); void initialize(); requestRender(); }
++    function onScroll() {
++      readLayout();
++      void initialize();
++      requestRender();
++    }
++
+     function onVisibility() {
+-      if (document.hidden) { cancelAnimationFrame(frame); frame = 0; previousTime = 0; }
+-      else { readLayout(); requestRender(); }
++      if (document.hidden) {
++        cancelAnimationFrame(frame);
++        frame = 0;
++        previousTime = 0;
++      } else {
++        readLayout();
++        requestRender();
++      }
+     }
++
+     function onContextLost(event: Event) {
+       event.preventDefault();
+       failed = true;
+@@ -305,9 +424,29 @@ export function ClimbingWallExperience() {
+ 
+     readLayout();
+     void initialize();
+-    const observer = new ResizeObserver(resize);
+-    observer.observe(anchor);
+-    observer.observe(story);
++
++    const resizeObserver = new ResizeObserver(resize);
++    resizeObserver.observe(anchor);
++    resizeObserver.observe(story);
++
++    const intersectionObserver = new IntersectionObserver(
++      (entries) => {
++        const entry = entries[0];
++        isIntersecting = Boolean(entry?.isIntersecting);
++        readLayout();
++        if (isIntersecting) {
++          void initialize();
++          requestRender();
++        } else {
++          cancelAnimationFrame(frame);
++          frame = 0;
++          previousTime = 0;
++        }
++      },
++      { threshold: [0, 0.05, 0.2] }
++    );
++    intersectionObserver.observe(story);
++
+     window.addEventListener('scroll', onScroll, { passive: true });
+     window.addEventListener('resize', resize, { passive: true });
+     document.addEventListener('visibilitychange', onVisibility);
+@@ -318,25 +457,60 @@ export function ClimbingWallExperience() {
+       setStatus('loading');
+       abort.abort();
+       cancelAnimationFrame(frame);
+-      observer.disconnect();
++      resizeObserver.disconnect();
++      intersectionObserver.disconnect();
+       window.removeEventListener('scroll', onScroll);
+       window.removeEventListener('resize', resize);
+       document.removeEventListener('visibilitychange', onVisibility);
+       canvas.removeEventListener('webglcontextlost', onContextLost);
+       rail.style.removeProperty('--wall-chrome-opacity');
+       mixer?.stopAllAction();
+-      if (model) { mixer?.uncacheRoot(model); disposeModel(model); }
++      if (model) {
++        mixer?.uncacheRoot(model);
++        disposeModel(model);
++      }
+       renderer?.dispose();
+       renderer?.forceContextLoss();
+     };
+   }, [reducedMotion, portalHost]);
+ 
+-  return <>
+-    <div className="landing-wall" ref={anchorRef} data-state={reducedMotion ? 'static' : status === 'ready' ? 'ready' : status === 'failed' ? 'fallback' : 'poster'}>
+-      {/* eslint-disable-next-line @next/next/no-img-element */}
+-      <img className="landing-wall-poster" src={POSTER_URL} alt="A playful climber reaching up a chalk climbing wall with colorful holds and an open timber frame." width="1200" height="1440" loading="eager" fetchPriority="high" />
+-      <div className="landing-ascent-hint" aria-hidden="true"><span>↓</span> Scroll to follow the climb</div>
+-    </div>
+-    {portalHost && !reducedMotion && createPortal(<div className="landing-scene" ref={stageRef}><canvas ref={canvasRef} aria-hidden="true" /><div className="landing-scene-scrim" ref={scrimRef} /></div>, portalHost)}
+-  </>;
++  return (
++    <>
++      <div
++        className="landing-wall"
++        ref={anchorRef}
++        data-state={
++          reducedMotion
++            ? 'static'
++            : status === 'ready'
++              ? 'ready'
++              : status === 'failed'
++                ? 'fallback'
++                : 'poster'
++        }
++      >
++        {/* eslint-disable-next-line @next/next/no-img-element */}
++        <img
++          className="landing-wall-poster"
++          src={POSTER_URL}
++          alt="A climber reaching up a chalk climbing wall with colorful holds and an open timber frame."
++          width="1200"
++          height="1440"
++          loading="eager"
++          fetchPriority="high"
++        />
++        <div className="landing-ascent-hint" aria-hidden="true">
++          <span>↓</span> Scroll to follow the climb
++        </div>
++      </div>
++      {portalHost && !reducedMotion &&
++        createPortal(
++          <div className="landing-scene" ref={stageRef}>
++            <canvas ref={canvasRef} aria-hidden="true" />
++            <div className="landing-scene-scrim" ref={scrimRef} />
++          </div>,
++          portalHost
++        )}
++    </>
++  );
+ }

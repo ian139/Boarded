@@ -1,0 +1,48 @@
+{
+  "reviewed_identity": "iOS preview463d5a5; /Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/native-463d5a5-attachments/manifest.json and its actual images/videos. Current native-preview BoardedUITests.swift read only for exact failure attribution.",
+  "owned_scope": "Rendered iOS failure classification only, compact and regular. No source approval, parity claim, Android/web conclusion, edits, builds, or tests.",
+  "evidence_base": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/native-463d5a5-attachments/",
+  "devices": {
+    "compact": "Boarded V1 Feed 78720d / 9DF7A937-1CA0-48B4-9B07-5C8D92D3D1A9; recording 1206×2622",
+    "regular": "Boarded V1 Regular 78720d / B43EE1FA-4126-4136-AF46-4A2B3F61E479; recording 2048×2732"
+  },
+  "findings": [
+    {
+      "scenario": "Compact post-route Close",
+      "classification": "Close retains Session journal; subsequent visible product defect is comment-entry occlusion, not parent dismissal.",
+      "evidence": "946D363D-7DC7-4B71-9C2F-651AE4DF5020.mp4 (manifest start 03:45:49 PM), route at 11s, retained Session journal at 15s and 40s. At 40s the two comments reach the fixed custom bar; entry is below/behind it. Recording preview also shows the route's Close control before return.",
+      "line_attribution": "250 is log-this-route existence BEFORE Close; 252 taps Close; 253 asserts Session journal; 256 reveals comment-field. Compact evidence supports failure at the later comment step, not Close.",
+      "owner": "Main → boarded-native-feed-fix: reserve usable bottom space for custom navigation so the comment entry and submit control can scroll fully above it. No additional dismissal correction justified by this compact recording."
+    },
+    {
+      "scenario": "Compact standard and accessibility; regular accessibility comment-field line112",
+      "classification": "Visible product layout/occlusion defect. Repeated reveal scrolling reaches the same bottom boundary while the comment field remains covered by custom navigation. Not merely an absent comment selector or missing comments.",
+      "evidence": [
+        "101A78CE-9667-43E3-B999-5284A30F369F.mp4, compact standard, start 03:47:26 PM, 35s: Add a comment and submit-arrow upper portions emerge directly behind fixed bar; blue Log control crosses the field.",
+        "BE1FC4F4-8A8A-43C9-AFA4-E28A6E962C1E.mp4, compact accessibility, start 03:46:39 PM, 40s: field border appears immediately behind bar after final comment; no keyboard.",
+        "7291A632-3214-4DAC-B1D7-713525D9EDC9.mp4, regular accessibility, start 03:46:08 PM, 40s: field top border is visible beneath last comment but custom bar covers the entry area. Earlier/later preview frames remain at that boundary."
+      ],
+      "cause_limit": "Missing bottom reservation is strongly consistent with the rendered overlap and exhausted scrolling. The specific implementation/history claim that hiding the native tab bar removed reservation remains INFERENCE, not established from frames.",
+      "owner": "Main → boarded-native-feed-fix, RootView/custom-bar + journal-detail layout. Correct content viewport/inset for actual custom-bar footprint, including protruding Log button; do not substitute more test swipes or a different comment selector."
+    },
+    {
+      "scenario": "Regular post-route test line250",
+      "classification": "Pre-Close route-opening failure; regular Close retention was not exercised. Product route activation versus driver tap delivery cannot be conclusively separated by these frames.",
+      "evidence": "1D64E251-83EF-4C1F-92D7-15D2B57725FC.mp4, start 03:45:49 PM, 10s: Session journal remains visible, with unobscured Sent Redpoint Ridge header action and a fully visible comment field far above the bottom bar. No route detail is shown in the recording preview. Failure-time hierarchy 6FB32A7A-2662-4E2A-B1CF-A93817F6A654.txt at 03:46:06.290 PM confirms Session journal, post-route Button at {{306,117},{140,16}}, and no log-this-route.",
+      "correction": "Do not label this a Close dismissal defect or tab-bar occlusion. The driver already targets distinct post-route, not the feed card. Its exposed 16-point-high route target is small, but evidence does not prove its activation is intercepted. Resolve the route tap/activation boundary rather than changing the expected parent.",
+      "owner": "Main → boarded-native-feed-fix for route hit testing/activation; boarded-native-verification-author for tap/selector attribution. No product correction can be prescribed as proven beyond this boundary."
+    },
+    {
+      "scenario": "Regular standard line205",
+      "classification": "Accessibility/test-contract lookup failure, not evidence of absent rendered final composition.",
+      "evidence": "5B351631-DB6F-4FDE-B088-32AEE4534677.mp4, start 03:46:57 PM: 90s shows Share session sheet scrolled through photo/caption toward Final preview; 96s visibly shows Final preview artwork, Home Board, V0 · Green Line, Sent, and timeline 1 Stopped / 2 Fell / 3 Sent. Lower preview continues below sheet viewport. Native-preview test line205 is XCTAssertTrue(artwork.exists), where artwork is canonical-session-artwork-preview; it is not an assertion that a bottom control is hittable.",
+      "correction": "Do not attribute this failure to custom tabs covering the composer or remove rendered artwork. Verification owner should bind the assertion to the distinct existing intended preview surface, scoped to Share session, rather than confuse editable session-preview, Final preview, and background result artwork. Exact existing AX identifier is not inferable from pixels, so no replacement identifier is invented here. Subsequent geometry assertions have not been visually approved.",
+      "owner": "Main → boarded-native-verification-author first; coordinate with product owner only if intended preview genuinely lacks an accessible identity."
+    }
+  ],
+  "requested_visual_checks": {
+    "regular_blank_tab_capsule": "No extra blank native tab capsule is visible in current regular journal frames (Close recording 10s; accessibility recording 40s) or standard composer 90/96s. Only the populated custom bottom bar is visible. Current absence established; no broader parity/history claim.",
+    "accessibility_route_facts": "Yes: route facts reflow into separate readable Sport / 27 m / Limestone / Overhang lines, not a clipped single-line row. Compact screenshot CBB0AA21-986A-4671-AC6F-4CC913AE92B6.png at 03:46:56.346 PM shows all four; regular accessibility video at 40s shows all four. Caption also wraps; compact second comment wraps across lines."
+  },
+  "limitations": "Read-only inspection complete. Source implementation cause, successful comment typing, regular route Close behavior, and final artwork parity are not established. Black end frames in recordings were not treated as product blank-screen failures."
+}

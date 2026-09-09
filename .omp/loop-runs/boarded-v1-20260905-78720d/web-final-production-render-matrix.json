@@ -1,0 +1,4270 @@
+{
+  "preview_head": "ff7b06d",
+  "social_head": "16b6ab9c2fe820d7be4309813d1aa15212f9ed3d",
+  "journal_head": "8cda47f3390a654ca8f58af58519b0ce6bde0912",
+  "runtime": "Next production webpack build; synthetic canonical API responses",
+  "result": {
+    "captures": [
+      {
+        "name": "Feed",
+        "path": "/app",
+        "viewport": {
+          "label": "desktop",
+          "width": 1440,
+          "height": 1024,
+          "deviceScaleFactor": 1
+        },
+        "appearance": "dark",
+        "screenshot": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/web-final-production-captures/desktop-Feed.png",
+        "state": {
+          "text": "Feed\n\nDispatches from Stonegate & the crag\n\nFollowing\nDiscovery\nAUTUMN SEASON 2026\nMK\nMaya K.\n5h ago \u00b7 Stonegate\nSENT\n5.12a\nRedpoint Ridge\nSPORT \u00b7 27M \u00b7 GRANITE \u00b7 VERTICAL\n\u00b7\n6\nattempts\n\u00b7\n1\nsend in session\n\u201cSix tries. Quiet feet through the crux, then daylight.\u201d\nCheer (34)\nComment (12)\nSave\nShare\nFEATURED CLIMBING VENUE\nStonegate\n\nIndoor facility located in Bishop.\n\nVenue Type\nBoard\nArea\nBishop\nExplore Directory\nNEXT ROUTE PROJECT\nV7\nPrivate Sidebar Project\nPRIVATE TRAINING VENUE \u00b7 BOULDER \u00b7 6M\n\nAccount A private route description\n\nInspect Route & Beta\nRecord Crag Session",
+          "width": 1440,
+          "height": 1024,
+          "dpr": 1,
+          "scrollWidth": 1440,
+          "images": [
+            {
+              "src": "https://boarded-fixture.invalid/storage/v1/object/public/social-media/11111111-1111-4111-8111-111111111111/77777777-7777-4777-8777-777777777777.jpg",
+              "complete": true,
+              "naturalWidth": 495,
+              "naturalHeight": 600
+            }
+          ]
+        }
+      },
+      {
+        "name": "Explore",
+        "path": "/app/explore",
+        "viewport": {
+          "label": "desktop",
+          "width": 1440,
+          "height": 1024,
+          "deviceScaleFactor": 1
+        },
+        "appearance": "dark",
+        "screenshot": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/web-final-production-captures/desktop-Explore.png",
+        "state": {
+          "text": "DISCOVERY & CRAG CATALOG\n+ Add Route\n+ Add Venue\nBoard Studio\nROUTES & COMMUNITY DIRECTORY\nExplore Beta & Lines\n\nSearch documented crags, training board benchmarks, and climber profiles.\n\nAll Directory (5)\nRoutes (2)\nVenues (2)\nClimbers (1)\nSaved Only\nCLIMBING ROUTES & PROBLEMS (2)\n5.12a\nRedpoint Ridge\n\nStonegate \u00b7 Sport \u00b7 27m \u00b7 Granite \u00b7 vertical\n\nSave\nLog Attempt\n\nQuiet feet through the crux.\n\nV7\nPrivate Sidebar Project\n\nPrivate Training Venue \u00b7 Boulder \u00b7 6m \u00b7 Granite \u00b7 vertical\n\nSaved\nLog Attempt\n\nAccount A private route description\n\nCLIMBING VENUES & CRAGS (2)\nBOARD\nBishop\nPrivate Training Venue\n\nAccount A private venue\n\nView Routes at Private Training Venue \u2192\nBOARD\nBishop\nStonegate\nView Routes at Stonegate \u2192\nCOMMUNITY CLIMBERS (1)\nNW\nNoah W.\n\nBishop \u00b7 12 followers\n\nWorking the next sequence.\n\n+ Follow",
+          "width": 1440,
+          "height": 1024,
+          "dpr": 1,
+          "scrollWidth": 1440,
+          "images": []
+        }
+      },
+      {
+        "name": "Log",
+        "path": "/app/log",
+        "viewport": {
+          "label": "desktop",
+          "width": 1440,
+          "height": 1024,
+          "deviceScaleFactor": 1
+        },
+        "appearance": "dark",
+        "screenshot": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/web-final-production-captures/desktop-Log.png",
+        "state": {
+          "text": "Back to Feed\nSESSION LOGGER\nFIELD INSTRUMENT\nRecord a Climbing Attempt\n\nLog your session tries, beta notes, and conditions. All entries are recorded locally and synced when online. Verified sends can be published to the feed.\n\nSession venue\nAttempt time (local)\nClimb or Target Route *\nDiscipline\nSport\nBoulder\nTrad\nTop Rope\nBoard\nOther\nGrade System\nYDS (5.x)\nV-Scale (V0-V17)\nFont Scale\nCustom\nGrade\n5.0\n5.1\n5.2\n5.3\n5.4\n5.5\n5.6\n5.7\n5.8\n5.9\n5.10a\n5.10b\n5.10c\n5.10d\n5.11a\n5.11b\n5.11c\n5.11d\n5.12a\n5.12b\n5.12c\n5.12d\n5.13a\n5.13b\n5.13c\n5.13d\n5.14a\n5.14b\n5.14c\n5.14d\n5.15a\n5.15b\n5.15c\n5.15d\nDate (YYYY-MM-DD) *\nAttempts Count *\nAttempt Outcome\nSent (Clean Tick)\nFell (Progress Attempt)\nStopped / Session Highpoint\nWeather & Crag Conditions\n0 / 500 characters\nSession Beta & Progression Notes\n0 / 1000 characters (private to your personal journal)\nCancel\nSave Attempt to Journal",
+          "width": 1440,
+          "height": 1024,
+          "dpr": 1,
+          "scrollWidth": 1440,
+          "images": []
+        }
+      },
+      {
+        "name": "Activity",
+        "path": "/app/activity",
+        "viewport": {
+          "label": "desktop",
+          "width": 1440,
+          "height": 1024,
+          "deviceScaleFactor": 1
+        },
+        "appearance": "dark",
+        "screenshot": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/web-final-production-captures/desktop-Activity.png",
+        "state": {
+          "text": "FEED & NOTIFICATIONS\nBack to Feed\nCLIMBING COMMUNITY\nCommunity Activity\n\nAscents, comments, partner cheers, and notifications from your crew.\n\nMark all read (1)\nUnread\n\nNoah W. commented on your send report.\n\n5h ago \u00b7 Bishop\nView Send Report \u2192",
+          "width": 1440,
+          "height": 1024,
+          "dpr": 1,
+          "scrollWidth": 1440,
+          "images": []
+        }
+      },
+      {
+        "name": "Profile",
+        "path": "/app/profile",
+        "viewport": {
+          "label": "desktop",
+          "width": 1440,
+          "height": 1024,
+          "deviceScaleFactor": 1
+        },
+        "appearance": "dark",
+        "screenshot": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/web-final-production-captures/desktop-Profile.png",
+        "state": {
+          "text": "CLIMBER PROFILE\nBack to Feed\nMK\nMaya K.\n\nAuthenticated Journal \u00b7 Home Crag: Bishop\n\n+ Log Session\n2\nSESSIONS\n9\nTOTAL ATTEMPTS\n2\nVERIFIED SENDS\n5.12a\nBEST SEND\nMy Journal Entries (9)\nSaved Routes (1)\n2026-09-06\n5.12aRedpoint Ridge\nSENT\nPUBLISHED\nAttempts:\n6\n\u2022\nDiscipline:\nSport\n\u2022\nConditions:\nCool and dry\n\n\u201cQuiet feet through the crux.\u201d\n\nView Attempt Details\nShare Card\nDelete\n2026-09-06\n5.12aRedpoint Ridge\nATTEMPTED\nPRIVATE\nAttempts:\n5\n\u2022\nDiscipline:\nSport\n\u2022\nConditions:\nCool and dry\n\n\u201cQuiet feet through the crux.\u201d\n\nView Attempt Details\nEnd session\nDelete\n2026-09-06\n5.12aRedpoint Ridge\nATTEMPTED\nPRIVATE\nAttempts:\n4\n\u2022\nDiscipline:\nSport\n\u2022\nConditions:\nCool and dry\n\n\u201cQuiet feet through the crux.\u201d\n\nView Attempt Details\nEnd session\nDelete\n2026-09-06\n5.12aRedpoint Ridge\nATTEMPTED\nPRIVATE\nAttempts:\n3\n\u2022\nDiscipline:\nSport\n\u2022\nConditions:\nCool and dry\n\n\u201cQuiet feet through the crux.\u201d\n\nView Attempt Details\nEnd session\nDelete\n2026-09-06\n5.12aRedpoint Ridge\nATTEMPTED\nPRIVATE\nAttempts:\n2\n\u2022\nDiscipline:\nSport\n\u2022\nConditions:\nCool and dry\n\n\u201cQuiet feet through the crux.\u201d\n\nView Attempt Details\nEnd session\nDelete\n2026-09-06\n5.12aRedpoint Ridge\nATTEMPTED\nPRIVATE\nAttempts:\n1\n\u2022\nDiscipline:\nSport\n\u2022\nConditions:\nCool and dry\n\n\u201cQuiet feet through the crux.\u201d\n\nView Attempt Details\nEnd session\nDelete\n2026-09-05\nV7Private Sidebar Project\nSENT\nPRIVATE\nAttempts:\n3\n\u2022\nDiscipline:\nBoulder\n\u2022\nConditions:\nCool and dry\n\n\u201cQuiet feet through the crux.\u201d\n\nView Attempt Details\nPublish Result Card\nDelete\n2026-09-05\nV7Private Sidebar Project\nATTEMPTED\nPRIVATE\nAttempts:\n2\n\u2022\nDiscipline:\nBoulder\n\u2022\nConditions:\nCool and dry\n\n\u201cQuiet feet through the crux.\u201d\n\nView Attempt Details\nEnd session\nDelete\n2026-09-05\nV7Private Sidebar Project\nATTEMPTED\nPRIVATE\nAttempts:\n1\n\u2022\nDiscipline:\nBoulder\n\u2022\nConditions:\nCool and dry\n\n\u201cQuiet feet through the crux.\u201d\n\nView Attempt Details\nEnd session\nDelete",
+          "width": 1440,
+          "height": 1024,
+          "dpr": 1,
+          "scrollWidth": 1440,
+          "images": []
+        }
+      },
+      {
+        "name": "Feed",
+        "path": "/app",
+        "viewport": {
+          "label": "mobile",
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 1
+        },
+        "appearance": "dark",
+        "screenshot": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/web-final-production-captures/mobile-Feed.png",
+        "state": {
+          "text": "Feed\n\nDispatches from Stonegate & the crag\n\nFollowing\nDiscovery\nMK\nMaya K.\n5h ago \u00b7 Stonegate\nSENT\n5.12a\nRedpoint Ridge\nSPORT \u00b7 27M \u00b7 GRANITE \u00b7 VERTICAL\n\u00b7\n6\nattempts\n\u00b7\n1\nsend in session\n\u201cSix tries. Quiet feet through the crux, then daylight.\u201d\nCheer (34)\nComment (12)\nSave\nShare",
+          "width": 390,
+          "height": 844,
+          "dpr": 1,
+          "scrollWidth": 390,
+          "images": [
+            {
+              "src": "https://boarded-fixture.invalid/storage/v1/object/public/social-media/11111111-1111-4111-8111-111111111111/77777777-7777-4777-8777-777777777777.jpg",
+              "complete": true,
+              "naturalWidth": 495,
+              "naturalHeight": 600
+            }
+          ]
+        }
+      },
+      {
+        "name": "Explore",
+        "path": "/app/explore",
+        "viewport": {
+          "label": "mobile",
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 1
+        },
+        "appearance": "dark",
+        "screenshot": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/web-final-production-captures/mobile-Explore.png",
+        "state": {
+          "text": "DISCOVERY & CRAG CATALOG\n+ Add Route\n+ Add Venue\nBoard Studio\nROUTES & COMMUNITY DIRECTORY\nExplore Beta & Lines\n\nSearch documented crags, training board benchmarks, and climber profiles.\n\nAll Directory (5)\nRoutes (2)\nVenues (2)\nClimbers (1)\nSaved Only\nCLIMBING ROUTES & PROBLEMS (2)\n5.12a\nRedpoint Ridge\n\nStonegate \u00b7 Sport \u00b7 27m \u00b7 Granite \u00b7 vertical\n\nSave\nLog Attempt\n\nQuiet feet through the crux.\n\nV7\nPrivate Sidebar Project\n\nPrivate Training Venue \u00b7 Boulder \u00b7 6m \u00b7 Granite \u00b7 vertical\n\nSaved\nLog Attempt\n\nAccount A private route description\n\nCLIMBING VENUES & CRAGS (2)\nBOARD\nBishop\nPrivate Training Venue\n\nAccount A private venue\n\nView Routes at Private Training Venue \u2192\nBOARD\nBishop\nStonegate\nView Routes at Stonegate \u2192\nCOMMUNITY CLIMBERS (1)\nNW\nNoah W.\n\nBishop \u00b7 12 followers\n\nWorking the next sequence.\n\n+ Follow",
+          "width": 390,
+          "height": 844,
+          "dpr": 1,
+          "scrollWidth": 390,
+          "images": []
+        }
+      },
+      {
+        "name": "Log",
+        "path": "/app/log",
+        "viewport": {
+          "label": "mobile",
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 1
+        },
+        "appearance": "dark",
+        "screenshot": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/web-final-production-captures/mobile-Log.png",
+        "state": {
+          "text": "Back to Feed\nSESSION LOGGER\nFIELD INSTRUMENT\nRecord a Climbing Attempt\n\nLog your session tries, beta notes, and conditions. All entries are recorded locally and synced when online. Verified sends can be published to the feed.\n\nSession venue\nAttempt time (local)\nClimb or Target Route *\nDiscipline\nSport\nBoulder\nTrad\nTop Rope\nBoard\nOther\nGrade System\nYDS (5.x)\nV-Scale (V0-V17)\nFont Scale\nCustom\nGrade\n5.0\n5.1\n5.2\n5.3\n5.4\n5.5\n5.6\n5.7\n5.8\n5.9\n5.10a\n5.10b\n5.10c\n5.10d\n5.11a\n5.11b\n5.11c\n5.11d\n5.12a\n5.12b\n5.12c\n5.12d\n5.13a\n5.13b\n5.13c\n5.13d\n5.14a\n5.14b\n5.14c\n5.14d\n5.15a\n5.15b\n5.15c\n5.15d\nDate (YYYY-MM-DD) *\nAttempts Count *\nAttempt Outcome\nSent (Clean Tick)\nFell (Progress Attempt)\nStopped / Session Highpoint\nWeather & Crag Conditions\n0 / 500 characters\nSession Beta & Progression Notes\n0 / 1000 characters (private to your personal journal)\nCancel\nSave Attempt to Journal",
+          "width": 390,
+          "height": 844,
+          "dpr": 1,
+          "scrollWidth": 390,
+          "images": []
+        }
+      },
+      {
+        "name": "Activity",
+        "path": "/app/activity",
+        "viewport": {
+          "label": "mobile",
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 1
+        },
+        "appearance": "dark",
+        "screenshot": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/web-final-production-captures/mobile-Activity.png",
+        "state": {
+          "text": "FEED & NOTIFICATIONS\nBack to Feed\nCLIMBING COMMUNITY\nCommunity Activity\n\nAscents, comments, partner cheers, and notifications from your crew.\n\nMark all read (1)\nUnread\n\nNoah W. commented on your send report.\n\n5h ago \u00b7 Bishop\nView Send Report \u2192",
+          "width": 390,
+          "height": 844,
+          "dpr": 1,
+          "scrollWidth": 390,
+          "images": []
+        }
+      },
+      {
+        "name": "Profile",
+        "path": "/app/profile",
+        "viewport": {
+          "label": "mobile",
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 1
+        },
+        "appearance": "dark",
+        "screenshot": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/web-final-production-captures/mobile-Profile.png",
+        "state": {
+          "text": "CLIMBER PROFILE\nBack to Feed\nMK\nMaya K.\n\nAuthenticated Journal \u00b7 Home Crag: Bishop\n\n+ Log Session\n2\nSESSIONS\n9\nTOTAL ATTEMPTS\n2\nVERIFIED SENDS\n5.12a\nBEST SEND\nMy Journal Entries (9)\nSaved Routes (1)\n2026-09-06\n5.12aRedpoint Ridge\nSENT\nPUBLISHED\nAttempts:\n6\n\u2022\nDiscipline:\nSport\n\u2022\nConditions:\nCool and dry\n\n\u201cQuiet feet through the crux.\u201d\n\nView Attempt Details\nShare Card\nDelete\n2026-09-06\n5.12aRedpoint Ridge\nATTEMPTED\nPRIVATE\nAttempts:\n5\n\u2022\nDiscipline:\nSport\n\u2022\nConditions:\nCool and dry\n\n\u201cQuiet feet through the crux.\u201d\n\nView Attempt Details\nEnd session\nDelete\n2026-09-06\n5.12aRedpoint Ridge\nATTEMPTED\nPRIVATE\nAttempts:\n4\n\u2022\nDiscipline:\nSport\n\u2022\nConditions:\nCool and dry\n\n\u201cQuiet feet through the crux.\u201d\n\nView Attempt Details\nEnd session\nDelete\n2026-09-06\n5.12aRedpoint Ridge\nATTEMPTED\nPRIVATE\nAttempts:\n3\n\u2022\nDiscipline:\nSport\n\u2022\nConditions:\nCool and dry\n\n\u201cQuiet feet through the crux.\u201d\n\nView Attempt Details\nEnd session\nDelete\n2026-09-06\n5.12aRedpoint Ridge\nATTEMPTED\nPRIVATE\nAttempts:\n2\n\u2022\nDiscipline:\nSport\n\u2022\nConditions:\nCool and dry\n\n\u201cQuiet feet through the crux.\u201d\n\nView Attempt Details\nEnd session\nDelete\n2026-09-06\n5.12aRedpoint Ridge\nATTEMPTED\nPRIVATE\nAttempts:\n1\n\u2022\nDiscipline:\nSport\n\u2022\nConditions:\nCool and dry\n\n\u201cQuiet feet through the crux.\u201d\n\nView Attempt Details\nEnd session\nDelete\n2026-09-05\nV7Private Sidebar Project\nSENT\nPRIVATE\nAttempts:\n3\n\u2022\nDiscipline:\nBoulder\n\u2022\nConditions:\nCool and dry\n\n\u201cQuiet feet through the crux.\u201d\n\nView Attempt Details\nPublish Result Card\nDelete\n2026-09-05\nV7Private Sidebar Project\nATTEMPTED\nPRIVATE\nAttempts:\n2\n\u2022\nDiscipline:\nBoulder\n\u2022\nConditions:\nCool and dry\n\n\u201cQuiet feet through the crux.\u201d\n\nView Attempt Details\nEnd session\nDelete\n2026-09-05\nV7Private Sidebar Project\nATTEMPTED\nPRIVATE\nAttempts:\n1\n\u2022\nDiscipline:\nBoulder\n\u2022\nConditions:\nCool and dry\n\n\u201cQuiet feet through the crux.\u201d\n\nView Attempt Details\nEnd session\nDelete",
+          "width": 390,
+          "height": 844,
+          "dpr": 1,
+          "scrollWidth": 390,
+          "images": []
+        }
+      },
+      {
+        "name": "Feed",
+        "path": "/app",
+        "viewport": {
+          "label": "zoom-200-equivalent",
+          "width": 720,
+          "height": 512,
+          "deviceScaleFactor": 2
+        },
+        "appearance": "dark",
+        "screenshot": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/web-final-production-captures/zoom-200-equivalent-Feed.png",
+        "state": {
+          "text": "Feed\n\nDispatches from Stonegate & the crag\n\nFollowing\nDiscovery\nAUTUMN SEASON 2026\nMK\nMaya K.\n5h ago \u00b7 Stonegate\nSENT\n5.12a\nRedpoint Ridge\nSPORT \u00b7 27M \u00b7 GRANITE \u00b7 VERTICAL\n\u00b7\n6\nattempts\n\u00b7\n1\nsend in session\n\u201cSix tries. Quiet feet through the crux, then daylight.\u201d\nCheer (34)\nComment (12)\nSave\nShare",
+          "width": 720,
+          "height": 512,
+          "dpr": 2,
+          "scrollWidth": 720,
+          "images": [
+            {
+              "src": "https://boarded-fixture.invalid/storage/v1/object/public/social-media/11111111-1111-4111-8111-111111111111/77777777-7777-4777-8777-777777777777.jpg",
+              "complete": true,
+              "naturalWidth": 495,
+              "naturalHeight": 600
+            }
+          ]
+        }
+      },
+      {
+        "name": "Explore",
+        "path": "/app/explore",
+        "viewport": {
+          "label": "zoom-200-equivalent",
+          "width": 720,
+          "height": 512,
+          "deviceScaleFactor": 2
+        },
+        "appearance": "dark",
+        "screenshot": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/web-final-production-captures/zoom-200-equivalent-Explore.png",
+        "state": {
+          "text": "DISCOVERY & CRAG CATALOG\n+ Add Route\n+ Add Venue\nBoard Studio\nROUTES & COMMUNITY DIRECTORY\nExplore Beta & Lines\n\nSearch documented crags, training board benchmarks, and climber profiles.\n\nAll Directory (5)\nRoutes (2)\nVenues (2)\nClimbers (1)\nSaved Only\nCLIMBING ROUTES & PROBLEMS (2)\n5.12a\nRedpoint Ridge\n\nStonegate \u00b7 Sport \u00b7 27m \u00b7 Granite \u00b7 vertical\n\nSave\nLog Attempt\n\nQuiet feet through the crux.\n\nV7\nPrivate Sidebar Project\n\nPrivate Training Venue \u00b7 Boulder \u00b7 6m \u00b7 Granite \u00b7 vertical\n\nSaved\nLog Attempt\n\nAccount A private route description\n\nCLIMBING VENUES & CRAGS (2)\nBOARD\nBishop\nPrivate Training Venue\n\nAccount A private venue\n\nView Routes at Private Training Venue \u2192\nBOARD\nBishop\nStonegate\nView Routes at Stonegate \u2192\nCOMMUNITY CLIMBERS (1)\nNW\nNoah W.\n\nBishop \u00b7 12 followers\n\nWorking the next sequence.\n\n+ Follow",
+          "width": 720,
+          "height": 512,
+          "dpr": 2,
+          "scrollWidth": 720,
+          "images": []
+        }
+      },
+      {
+        "name": "Log",
+        "path": "/app/log",
+        "viewport": {
+          "label": "zoom-200-equivalent",
+          "width": 720,
+          "height": 512,
+          "deviceScaleFactor": 2
+        },
+        "appearance": "dark",
+        "screenshot": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/web-final-production-captures/zoom-200-equivalent-Log.png",
+        "state": {
+          "text": "Back to Feed\nSESSION LOGGER\nFIELD INSTRUMENT\nRecord a Climbing Attempt\n\nLog your session tries, beta notes, and conditions. All entries are recorded locally and synced when online. Verified sends can be published to the feed.\n\nSession venue\nAttempt time (local)\nClimb or Target Route *\nDiscipline\nSport\nBoulder\nTrad\nTop Rope\nBoard\nOther\nGrade System\nYDS (5.x)\nV-Scale (V0-V17)\nFont Scale\nCustom\nGrade\n5.0\n5.1\n5.2\n5.3\n5.4\n5.5\n5.6\n5.7\n5.8\n5.9\n5.10a\n5.10b\n5.10c\n5.10d\n5.11a\n5.11b\n5.11c\n5.11d\n5.12a\n5.12b\n5.12c\n5.12d\n5.13a\n5.13b\n5.13c\n5.13d\n5.14a\n5.14b\n5.14c\n5.14d\n5.15a\n5.15b\n5.15c\n5.15d\nDate (YYYY-MM-DD) *\nAttempts Count *\nAttempt Outcome\nSent (Clean Tick)\nFell (Progress Attempt)\nStopped / Session Highpoint\nWeather & Crag Conditions\n0 / 500 characters\nSession Beta & Progression Notes\n0 / 1000 characters (private to your personal journal)\nCancel\nSave Attempt to Journal",
+          "width": 720,
+          "height": 512,
+          "dpr": 2,
+          "scrollWidth": 720,
+          "images": []
+        }
+      },
+      {
+        "name": "Activity",
+        "path": "/app/activity",
+        "viewport": {
+          "label": "zoom-200-equivalent",
+          "width": 720,
+          "height": 512,
+          "deviceScaleFactor": 2
+        },
+        "appearance": "dark",
+        "screenshot": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/web-final-production-captures/zoom-200-equivalent-Activity.png",
+        "state": {
+          "text": "FEED & NOTIFICATIONS\nBack to Feed\nCLIMBING COMMUNITY\nCommunity Activity\n\nAscents, comments, partner cheers, and notifications from your crew.\n\nMark all read (1)\nUnread\n\nNoah W. commented on your send report.\n\n5h ago \u00b7 Bishop\nView Send Report \u2192",
+          "width": 720,
+          "height": 512,
+          "dpr": 2,
+          "scrollWidth": 720,
+          "images": []
+        }
+      },
+      {
+        "name": "Profile",
+        "path": "/app/profile",
+        "viewport": {
+          "label": "zoom-200-equivalent",
+          "width": 720,
+          "height": 512,
+          "deviceScaleFactor": 2
+        },
+        "appearance": "dark",
+        "screenshot": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/web-final-production-captures/zoom-200-equivalent-Profile.png",
+        "state": {
+          "text": "CLIMBER PROFILE\nBack to Feed\nMK\nMaya K.\n\nAuthenticated Journal \u00b7 Home Crag: Bishop\n\n+ Log Session\n2\nSESSIONS\n9\nTOTAL ATTEMPTS\n2\nVERIFIED SENDS\n5.12a\nBEST SEND\nMy Journal Entries (9)\nSaved Routes (1)\n2026-09-06\n5.12aRedpoint Ridge\nSENT\nPUBLISHED\nAttempts:\n6\n\u2022\nDiscipline:\nSport\n\u2022\nConditions:\nCool and dry\n\n\u201cQuiet feet through the crux.\u201d\n\nView Attempt Details\nShare Card\nDelete\n2026-09-06\n5.12aRedpoint Ridge\nATTEMPTED\nPRIVATE\nAttempts:\n5\n\u2022\nDiscipline:\nSport\n\u2022\nConditions:\nCool and dry\n\n\u201cQuiet feet through the crux.\u201d\n\nView Attempt Details\nEnd session\nDelete\n2026-09-06\n5.12aRedpoint Ridge\nATTEMPTED\nPRIVATE\nAttempts:\n4\n\u2022\nDiscipline:\nSport\n\u2022\nConditions:\nCool and dry\n\n\u201cQuiet feet through the crux.\u201d\n\nView Attempt Details\nEnd session\nDelete\n2026-09-06\n5.12aRedpoint Ridge\nATTEMPTED\nPRIVATE\nAttempts:\n3\n\u2022\nDiscipline:\nSport\n\u2022\nConditions:\nCool and dry\n\n\u201cQuiet feet through the crux.\u201d\n\nView Attempt Details\nEnd session\nDelete\n2026-09-06\n5.12aRedpoint Ridge\nATTEMPTED\nPRIVATE\nAttempts:\n2\n\u2022\nDiscipline:\nSport\n\u2022\nConditions:\nCool and dry\n\n\u201cQuiet feet through the crux.\u201d\n\nView Attempt Details\nEnd session\nDelete\n2026-09-06\n5.12aRedpoint Ridge\nATTEMPTED\nPRIVATE\nAttempts:\n1\n\u2022\nDiscipline:\nSport\n\u2022\nConditions:\nCool and dry\n\n\u201cQuiet feet through the crux.\u201d\n\nView Attempt Details\nEnd session\nDelete\n2026-09-05\nV7Private Sidebar Project\nSENT\nPRIVATE\nAttempts:\n3\n\u2022\nDiscipline:\nBoulder\n\u2022\nConditions:\nCool and dry\n\n\u201cQuiet feet through the crux.\u201d\n\nView Attempt Details\nPublish Result Card\nDelete\n2026-09-05\nV7Private Sidebar Project\nATTEMPTED\nPRIVATE\nAttempts:\n2\n\u2022\nDiscipline:\nBoulder\n\u2022\nConditions:\nCool and dry\n\n\u201cQuiet feet through the crux.\u201d\n\nView Attempt Details\nEnd session\nDelete\n2026-09-05\nV7Private Sidebar Project\nATTEMPTED\nPRIVATE\nAttempts:\n1\n\u2022\nDiscipline:\nBoulder\n\u2022\nConditions:\nCool and dry\n\n\u201cQuiet feet through the crux.\u201d\n\nView Attempt Details\nEnd session\nDelete",
+          "width": 720,
+          "height": 512,
+          "dpr": 2,
+          "scrollWidth": 720,
+          "images": []
+        }
+      }
+    ],
+    "unknown": [],
+    "errors": [],
+    "requests": [
+      {
+        "path": "/rest/v1/rpc/get_session_feed",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/venues",
+        "query": "?select=id%2Cname%2Ckind%2Carea%2Cdescription%2Cimage_url&order=created_at.asc&limit=1",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/rpc/get_session_feed",
+        "query": "",
+        "method": "POST"
+      },
+      {
+        "path": "/rest/v1/venues",
+        "query": "?select=id%2Cname%2Ckind%2Carea%2Cdescription%2Cimage_url&order=created_at.asc&limit=1",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/rpc/get_session_feed",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/venues",
+        "query": "?select=id%2Cname%2Ckind%2Carea%2Cdescription%2Cimage_url&order=created_at.asc&limit=1",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/rpc/get_session_feed",
+        "query": "",
+        "method": "POST"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/venues",
+        "query": "?select=id%2Cname%2Ckind%2Carea%2Cdescription%2Cimage_url&order=created_at.asc&limit=1",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111&limit=1",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111&limit=1",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/rpc/get_session_feed",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/rpc/get_session_feed",
+        "query": "",
+        "method": "POST"
+      },
+      {
+        "path": "/rest/v1/climbing_sessions",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=started_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/climbing_sessions",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=started_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/climb_attempts",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=occurred_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/climb_attempts",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=occurred_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/session_posts",
+        "query": "?select=id%2Csession_id%2Ccaption&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/session_posts",
+        "query": "?select=id%2Csession_id%2Ccaption&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/storage/v1/object/public/social-media/11111111-1111-4111-8111-111111111111/77777777-7777-4777-8777-777777777777.jpg",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cvenue%3Avenue_id%28*%29&id=eq.33333333-3333-4333-8333-333333333333",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cvenue%3Avenue_id%28*%29&id=eq.33333333-3333-4333-8333-333333333333",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/climbing_sessions",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=started_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/climbing_sessions",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=started_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/climb_attempts",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=occurred_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/climb_attempts",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=occurred_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/session_posts",
+        "query": "?select=id%2Csession_id%2Ccaption&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/session_posts",
+        "query": "?select=id%2Csession_id%2Ccaption&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/rpc/get_explore_routes",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/rpc/get_explore_routes",
+        "query": "",
+        "method": "POST"
+      },
+      {
+        "path": "/rest/v1/venues",
+        "query": "?select=*&order=name.asc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/rpc/search_climbers",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/venues",
+        "query": "?select=*&order=name.asc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/rpc/search_climbers",
+        "query": "",
+        "method": "POST"
+      },
+      {
+        "path": "/rest/v1/rpc/get_explore_routes",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/venues",
+        "query": "?select=*&order=name.asc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/rpc/get_explore_routes",
+        "query": "",
+        "method": "POST"
+      },
+      {
+        "path": "/rest/v1/rpc/search_climbers",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/venues",
+        "query": "?select=*&order=name.asc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/rpc/search_climbers",
+        "query": "",
+        "method": "POST"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/climbing_sessions",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=started_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/climbing_sessions",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=started_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/climb_attempts",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=occurred_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/session_posts",
+        "query": "?select=id%2Csession_id%2Ccaption&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/climb_attempts",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=occurred_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/session_posts",
+        "query": "?select=id%2Csession_id%2Ccaption&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/rpc/get_activity",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/rpc/get_activity",
+        "query": "",
+        "method": "POST"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/climbing_sessions",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=started_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/climbing_sessions",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=started_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/climb_attempts",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=occurred_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/session_posts",
+        "query": "?select=id%2Csession_id%2Ccaption&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/climb_attempts",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=occurred_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/session_posts",
+        "query": "?select=id%2Csession_id%2Ccaption&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/climbing_sessions",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=started_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/climbing_sessions",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=started_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/climb_attempts",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=occurred_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/climb_attempts",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=occurred_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/session_posts",
+        "query": "?select=id%2Csession_id%2Ccaption&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/session_posts",
+        "query": "?select=id%2Csession_id%2Ccaption&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/rpc/get_session_feed",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/venues",
+        "query": "?select=id%2Cname%2Ckind%2Carea%2Cdescription%2Cimage_url&order=created_at.asc&limit=1",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/rpc/get_session_feed",
+        "query": "",
+        "method": "POST"
+      },
+      {
+        "path": "/rest/v1/venues",
+        "query": "?select=id%2Cname%2Ckind%2Carea%2Cdescription%2Cimage_url&order=created_at.asc&limit=1",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/rpc/get_session_feed",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/venues",
+        "query": "?select=id%2Cname%2Ckind%2Carea%2Cdescription%2Cimage_url&order=created_at.asc&limit=1",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/rpc/get_session_feed",
+        "query": "",
+        "method": "POST"
+      },
+      {
+        "path": "/rest/v1/venues",
+        "query": "?select=id%2Cname%2Ckind%2Carea%2Cdescription%2Cimage_url&order=created_at.asc&limit=1",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111&limit=1",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111&limit=1",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/rpc/get_session_feed",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/rpc/get_session_feed",
+        "query": "",
+        "method": "POST"
+      },
+      {
+        "path": "/rest/v1/climbing_sessions",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=started_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/climb_attempts",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=occurred_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/climbing_sessions",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=started_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/climb_attempts",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=occurred_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/session_posts",
+        "query": "?select=id%2Csession_id%2Ccaption&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/session_posts",
+        "query": "?select=id%2Csession_id%2Ccaption&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/storage/v1/object/public/social-media/11111111-1111-4111-8111-111111111111/77777777-7777-4777-8777-777777777777.jpg",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cvenue%3Avenue_id%28*%29&id=eq.33333333-3333-4333-8333-333333333333",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cvenue%3Avenue_id%28*%29&id=eq.33333333-3333-4333-8333-333333333333",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/climbing_sessions",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=started_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/climbing_sessions",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=started_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/climb_attempts",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=occurred_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/session_posts",
+        "query": "?select=id%2Csession_id%2Ccaption&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/climb_attempts",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=occurred_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/session_posts",
+        "query": "?select=id%2Csession_id%2Ccaption&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/rpc/get_explore_routes",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/venues",
+        "query": "?select=*&order=name.asc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/rpc/get_explore_routes",
+        "query": "",
+        "method": "POST"
+      },
+      {
+        "path": "/rest/v1/venues",
+        "query": "?select=*&order=name.asc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/rpc/search_climbers",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/rpc/search_climbers",
+        "query": "",
+        "method": "POST"
+      },
+      {
+        "path": "/rest/v1/rpc/get_explore_routes",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/rpc/get_explore_routes",
+        "query": "",
+        "method": "POST"
+      },
+      {
+        "path": "/rest/v1/venues",
+        "query": "?select=*&order=name.asc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/venues",
+        "query": "?select=*&order=name.asc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/rpc/search_climbers",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/rpc/search_climbers",
+        "query": "",
+        "method": "POST"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/climbing_sessions",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=started_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/climbing_sessions",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=started_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/climb_attempts",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=occurred_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/session_posts",
+        "query": "?select=id%2Csession_id%2Ccaption&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/climb_attempts",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=occurred_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/session_posts",
+        "query": "?select=id%2Csession_id%2Ccaption&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/rpc/get_activity",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/rpc/get_activity",
+        "query": "",
+        "method": "POST"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/climbing_sessions",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=started_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/climbing_sessions",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=started_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/climb_attempts",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=occurred_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/session_posts",
+        "query": "?select=id%2Csession_id%2Ccaption&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/climb_attempts",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=occurred_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/session_posts",
+        "query": "?select=id%2Csession_id%2Ccaption&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/climbing_sessions",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=started_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/climbing_sessions",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=started_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/climb_attempts",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=occurred_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/climb_attempts",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=occurred_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/session_posts",
+        "query": "?select=id%2Csession_id%2Ccaption&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/session_posts",
+        "query": "?select=id%2Csession_id%2Ccaption&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/rpc/get_session_feed",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/rpc/get_session_feed",
+        "query": "",
+        "method": "POST"
+      },
+      {
+        "path": "/rest/v1/venues",
+        "query": "?select=id%2Cname%2Ckind%2Carea%2Cdescription%2Cimage_url&order=created_at.asc&limit=1",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/venues",
+        "query": "?select=id%2Cname%2Ckind%2Carea%2Cdescription%2Cimage_url&order=created_at.asc&limit=1",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/rpc/get_session_feed",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/rpc/get_session_feed",
+        "query": "",
+        "method": "POST"
+      },
+      {
+        "path": "/rest/v1/venues",
+        "query": "?select=id%2Cname%2Ckind%2Carea%2Cdescription%2Cimage_url&order=created_at.asc&limit=1",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/venues",
+        "query": "?select=id%2Cname%2Ckind%2Carea%2Cdescription%2Cimage_url&order=created_at.asc&limit=1",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111&limit=1",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111&limit=1",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/rpc/get_session_feed",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/rpc/get_session_feed",
+        "query": "",
+        "method": "POST"
+      },
+      {
+        "path": "/rest/v1/climbing_sessions",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=started_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/climbing_sessions",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=started_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/climb_attempts",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=occurred_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/climb_attempts",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=occurred_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/session_posts",
+        "query": "?select=id%2Csession_id%2Ccaption&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/session_posts",
+        "query": "?select=id%2Csession_id%2Ccaption&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/storage/v1/object/public/social-media/11111111-1111-4111-8111-111111111111/77777777-7777-4777-8777-777777777777.jpg",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cvenue%3Avenue_id%28*%29&id=eq.33333333-3333-4333-8333-333333333333",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cvenue%3Avenue_id%28*%29&id=eq.33333333-3333-4333-8333-333333333333",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/rpc/get_explore_routes",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/rpc/get_explore_routes",
+        "query": "",
+        "method": "POST"
+      },
+      {
+        "path": "/rest/v1/venues",
+        "query": "?select=*&order=name.asc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/venues",
+        "query": "?select=*&order=name.asc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/rpc/search_climbers",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/rpc/search_climbers",
+        "query": "",
+        "method": "POST"
+      },
+      {
+        "path": "/rest/v1/rpc/get_explore_routes",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/rpc/get_explore_routes",
+        "query": "",
+        "method": "POST"
+      },
+      {
+        "path": "/rest/v1/venues",
+        "query": "?select=*&order=name.asc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/venues",
+        "query": "?select=*&order=name.asc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/rpc/search_climbers",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/rpc/search_climbers",
+        "query": "",
+        "method": "POST"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/climbing_sessions",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=started_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/climbing_sessions",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=started_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/climb_attempts",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=occurred_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/session_posts",
+        "query": "?select=id%2Csession_id%2Ccaption&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/climb_attempts",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=occurred_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/session_posts",
+        "query": "?select=id%2Csession_id%2Ccaption&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/climbing_sessions",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=started_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/climb_attempts",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=occurred_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/climbing_sessions",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=started_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/session_posts",
+        "query": "?select=id%2Csession_id%2Ccaption&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/climb_attempts",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=occurred_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/session_posts",
+        "query": "?select=id%2Csession_id%2Ccaption&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/climbing_sessions",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=started_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/climbing_sessions",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=started_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/climb_attempts",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=occurred_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/climb_attempts",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=occurred_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/session_posts",
+        "query": "?select=id%2Csession_id%2Ccaption&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/session_posts",
+        "query": "?select=id%2Csession_id%2Ccaption&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/rpc/get_activity",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/rpc/get_activity",
+        "query": "",
+        "method": "POST"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/climbing_sessions",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=started_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/climbing_sessions",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=started_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/climb_attempts",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=occurred_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/session_posts",
+        "query": "?select=id%2Csession_id%2Ccaption&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/climb_attempts",
+        "query": "?select=*&user_id=eq.11111111-1111-4111-8111-111111111111&order=occurred_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/session_posts",
+        "query": "?select=id%2Csession_id%2Ccaption&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_bookmarks",
+        "query": "?select=route_id&user_id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/profiles",
+        "query": "?select=*&id=eq.11111111-1111-4111-8111-111111111111",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/routes",
+        "query": "?select=*%2Cascents%28*%29%2Ccomments%28*%29&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/walls",
+        "query": "?select=*&order=created_at.desc",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/rest/v1/route_likes",
+        "query": "?select=route_id%2Cuser_id",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "OPTIONS"
+      },
+      {
+        "path": "/auth/v1/user",
+        "query": "",
+        "method": "GET"
+      }
+    ]
+  }
+}

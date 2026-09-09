@@ -1,0 +1,4343 @@
+diff --git a/app/board/board-original.css b/app/board/board-original.css
+new file mode 100644
+index 0000000..828b89a
+--- /dev/null
++++ b/app/board/board-original.css
+@@ -0,0 +1,396 @@
++/* ==========================================================================
++   /board — restored original board UI (ClimbSet Design System, 668e334)
++   Scoped entirely to the `.board-original` wrapper and to portal roots
++   (dialog overlay/content, select content) that re-apply the class so the
++   warm palette resolves inside document.body. No global selectors beyond
++   `body:has(...)` suppressions of root chrome that the board replaces.
++   Historical tokens/fonts: Manrope + Geist Mono era, cream field, wood-brown
++   primary, forest-green secondary. Dark scope mirrors the 668e334 `.dark`
++   block and follows a system-initialized route-local toggle.
++   ========================================================================== */
++
++/* --------------------------------------------------------------------------
++   Token scope — light (historical default)
++   The current global `@theme inline` maps Tailwind palette utilities to
++   `--color-*` base vars; overriding those here recolors every utility inside
++   the scope without touching global CSS. Utilities whose current mapping
++   collides (secondary/muted/popover sharing one elevated var) are re-pointed
++   per-utility further down.
++   -------------------------------------------------------------------------- */
++.board-original {
++  color-scheme: light;
++
++  /* Base vars resolved by the current @theme inline mapping */
++  --color-background-base: oklch(0.97 0.01 85);
++  --color-text-primary: oklch(0.25 0.03 55);
++  --color-text-secondary: oklch(0.45 0.03 55);
++  --color-surface-card: oklch(0.99 0.005 85);
++  --color-background-elevated: oklch(0.94 0.015 85); /* muted slot */
++  --color-accent-default: oklch(0.5 0.1 55);         /* primary brown + ring */
++  --color-accent-on-accent: oklch(0.99 0.005 85);
++  --color-accent-soft: oklch(0.6 0.14 150);          /* accent (solid historically; /12 modifiers make it soft) */
++  --color-danger: oklch(0.55 0.2 25);
++  --color-stroke-default: oklch(0.9 0.02 85);
++  --color-stroke-subtle: oklch(0.94 0.015 85);
++
++  /* Legacy design-system vars referenced via var() inside components */
++  --radius: 1rem;
++  --radius-xl: calc(var(--radius) + 4px);
++  --radius-2xl: calc(var(--radius) + 8px);
++  --radius-3xl: calc(var(--radius) + 12px);
++  --shadow-soft: 0 1px 2px oklch(0.25 0.03 55 / 0.04), 0 12px 36px oklch(0.25 0.03 55 / 0.08);
++  --shadow-float: 0 20px 60px oklch(0.2 0.03 55 / 0.14);
++  --surface-glass: oklch(0.99 0.005 85 / 0.78);
++  --surface-raised: oklch(0.99 0.005 85 / 0.94);
++
++  --background: oklch(0.97 0.01 85);
++  --foreground: oklch(0.25 0.03 55);
++  --card: oklch(0.99 0.005 85);
++  --card-foreground: oklch(0.25 0.03 55);
++  --popover: oklch(0.99 0.005 85);
++  --popover-foreground: oklch(0.25 0.03 55);
++  --primary: oklch(0.5 0.1 55);
++  --primary-foreground: oklch(0.99 0.005 85);
++  --secondary: oklch(0.55 0.12 155);
++  --secondary-foreground: oklch(0.99 0.005 85);
++  --muted: oklch(0.94 0.015 85);
++  --muted-foreground: oklch(0.45 0.03 55);
++  --accent: oklch(0.6 0.14 150);
++  --accent-foreground: oklch(0.99 0.005 85);
++  --destructive: oklch(0.55 0.2 25);
++  --border: oklch(0.9 0.02 85);
++  --input: oklch(0.94 0.015 85);
++  --ring: oklch(0.5 0.1 55);
++
++  /* Conflicted utility slots (current build funnels them through one var) */
++  --board-secondary: oklch(0.55 0.12 155);
++  --board-secondary-foreground: oklch(0.99 0.005 85);
++  --board-popover: oklch(0.99 0.005 85);
++  --board-accent-foreground: oklch(0.99 0.005 85);
++
++  /* Historical typography (Manrope is loaded at the root layout) */
++  font-family: var(--font-manrope), "Avenir Next", system-ui, sans-serif;
++  font-feature-settings: "rlig" 1, "calt" 1;
++  -webkit-font-smoothing: antialiased;
++  -moz-osx-font-smoothing: grayscale;
++
++  /* Text color must resolve on the portal-capable scope itself (dialog
++     content, select popovers render into document.body outside .board-root),
++     otherwise body-portal text inherits the root dark chalk on light board. */
++  color: var(--foreground);
++}
++
++/* Surface paint (field color + ambient wash) lives on the route wrapper only
++   — portal roots must stay transparent so dialog scrims keep their alpha. */
++.board-root {
++  min-height: 100dvh;
++  background-color: var(--background);
++  background-image:
++    radial-gradient(circle at 8% -10%, oklch(0.82 0.08 78 / 0.3), transparent 34rem),
++    radial-gradient(circle at 92% 12%, oklch(0.76 0.09 150 / 0.18), transparent 30rem);
++  background-attachment: fixed;
++}
++
++/* --------------------------------------------------------------------------
++   Conflicted-utility re-points (scoped)
++   -------------------------------------------------------------------------- */
++.board-original .bg-popover,
++.board-original.bg-popover {
++  background-color: var(--board-popover);
++}
++.board-original .bg-secondary {
++  background-color: var(--board-secondary);
++}
++.board-original .bg-secondary\/10 {
++  background-color: color-mix(in oklab, var(--board-secondary) 10%, transparent);
++}
++.board-original .hover\:bg-secondary\/88:hover {
++  background-color: color-mix(in oklab, var(--board-secondary) 88%, transparent);
++}
++.board-original .text-secondary,
++.board-original .hover\:text-secondary:hover {
++  color: var(--board-secondary);
++}
++.board-original .text-secondary-foreground {
++  color: var(--board-secondary-foreground);
++}
++.board-original .text-accent-foreground,
++.board-original .focus\:text-accent-foreground:focus {
++  color: var(--board-accent-foreground);
++}
++
++/* .text-primary collision: root globals.css hand-defines
++   `.text-primary { color: var(--color-text-primary) }` inside @layer
++   utilities, which outranks Tailwind's token-generated utility. On the
++   restored board, accent text is the historical primary again (wood-brown
++   light / earthy-green dark) — re-point it and exactly the variants used by
++   the private components. */
++.board-original .text-primary {
++  color: var(--primary);
++}
++.board-original .hover\:text-primary:hover {
++  color: var(--primary);
++}
++.board-original .active\:text-primary:active {
++  color: var(--primary);
++}
++.board-original .group:hover .group-hover\:text-primary {
++  color: var(--primary);
++}
++@media (min-width: 768px) {
++  .board-original .group:hover .md\:group-hover\:text-primary {
++    color: var(--primary);
++  }
++}
++
++/* --------------------------------------------------------------------------
++   Historical radius scale (current @theme uses a different scale and omits
++   2xl/3xl; restore the 668e334 values inside the scope)
++   -------------------------------------------------------------------------- */
++.board-original :is(.rounded-sm) { border-radius: calc(var(--radius) - 4px); }
++.board-original :is(.rounded-md) { border-radius: calc(var(--radius) - 2px); }
++.board-original :is(.rounded-xl) { border-radius: calc(var(--radius) + 4px); }
++.board-original :is(.rounded-2xl) { border-radius: calc(var(--radius) + 8px); }
++.board-original :is(.rounded-3xl) { border-radius: calc(var(--radius) + 12px); }
++
++/* --------------------------------------------------------------------------
++   Scoped dark-variant replication.
++   The current Tailwind build has no `@custom-variant dark`, so `dark:`
++   utilities are media-based (prefers-color-scheme). The board's dark toggle
++   is route-local class state, so each `dark:` utility used by the restored
++   components is re-applied against `.board-original.dark` and neutralized in
++   light scope (covers dark-OS devices using the light board).
++   -------------------------------------------------------------------------- */
++.board-original.dark .dark\:bg-input\/35 {
++  background-color: color-mix(in oklab, var(--input) 35%, transparent);
++}
++.board-original:not(.dark) .dark\:bg-input\/35 {
++  background-color: color-mix(in oklab, var(--card) 65%, transparent);
++}
++.board-original.dark .dark\:bg-input\/30 {
++  background-color: color-mix(in oklab, var(--input) 30%, transparent);
++}
++.board-original:not(.dark) .dark\:bg-input\/30 {
++  background-color: transparent;
++}
++.board-original.dark .dark\:hover\:bg-input\/50:hover {
++  background-color: color-mix(in oklab, var(--input) 50%, transparent);
++}
++.board-original:not(.dark) .dark\:hover\:bg-input\/50:hover {
++  background-color: transparent;
++}
++.board-original.dark .dark\:text-amber-400 {
++  color: var(--color-amber-400);
++}
++.board-original:not(.dark) .dark\:text-amber-400 {
++  color: var(--color-amber-600);
++}
++.board-original.dark .dark\:text-amber-300 {
++  color: var(--color-amber-300);
++}
++.board-original:not(.dark) .dark\:text-amber-300 {
++  color: var(--color-amber-700);
++}
++.board-original.dark .dark\:focus-visible\:ring-destructive\/40:focus-visible {
++  --tw-ring-color: color-mix(in oklab, var(--destructive) 40%, transparent);
++}
++.board-original:not(.dark) .dark\:focus-visible\:ring-destructive\/40:focus-visible {
++  --tw-ring-color: color-mix(in oklab, var(--destructive) 20%, transparent);
++}
++.board-original.dark .dark\:aria-invalid\:ring-destructive\/20[aria-invalid='true'] {
++  --tw-ring-color: color-mix(in oklab, var(--destructive) 20%, transparent);
++}
++.board-original.dark .dark\:aria-invalid\:ring-destructive\/40[aria-invalid='true'] {
++  --tw-ring-color: color-mix(in oklab, var(--destructive) 40%, transparent);
++}
++.board-original:not(.dark) .dark\:aria-invalid\:ring-destructive\/40[aria-invalid='true'] {
++  --tw-ring-color: color-mix(in oklab, var(--destructive) 20%, transparent);
++}
++
++/* --------------------------------------------------------------------------
++   Token scope — dark (668e334 .dark block)
++   -------------------------------------------------------------------------- */
++.board-original.dark {
++  color-scheme: dark;
++
++  --color-background-base: oklch(0.14 0.01 80);
++  --color-text-primary: oklch(0.96 0.01 85);
++  --color-text-secondary: oklch(0.7 0.02 85);
++  --color-surface-card: oklch(0.18 0.01 80);
++  --color-background-elevated: oklch(0.24 0.01 80);
++  --color-accent-default: oklch(0.68 0.12 140);
++  --color-accent-on-accent: oklch(0.14 0.01 80);
++  --color-accent-soft: oklch(0.62 0.1 115);
++  --color-danger: oklch(0.6 0.19 25);
++  --color-stroke-default: oklch(0.28 0.01 80);
++  --color-stroke-subtle: oklch(0.24 0.01 80);
++
++  --shadow-soft: 0 1px 2px oklch(0 0 0 / 0.18), 0 16px 44px oklch(0 0 0 / 0.28);
++  --shadow-float: 0 24px 72px oklch(0 0 0 / 0.42);
++  --surface-glass: oklch(0.18 0.01 80 / 0.78);
++  --surface-raised: oklch(0.2 0.012 80 / 0.95);
++
++  --background: oklch(0.14 0.01 80);
++  --foreground: oklch(0.96 0.01 85);
++  --card: oklch(0.18 0.01 80);
++  --card-foreground: oklch(0.96 0.01 85);
++  --popover: oklch(0.18 0.01 80);
++  --popover-foreground: oklch(0.96 0.01 85);
++  --primary: oklch(0.68 0.12 140);
++  --primary-foreground: oklch(0.14 0.01 80);
++  --secondary: oklch(0.6 0.09 60);
++  --secondary-foreground: oklch(0.96 0.01 85);
++  --muted: oklch(0.24 0.01 80);
++  --muted-foreground: oklch(0.7 0.02 85);
++  --accent: oklch(0.62 0.1 115);
++  --accent-foreground: oklch(0.96 0.01 85);
++  --destructive: oklch(0.6 0.19 25);
++  --border: oklch(0.28 0.01 80);
++  --input: oklch(0.24 0.01 80);
++  --ring: oklch(0.68 0.12 140);
++
++  --board-secondary: oklch(0.6 0.09 60);
++  --board-secondary-foreground: oklch(0.96 0.01 85);
++  --board-popover: oklch(0.18 0.01 80);
++  --board-accent-foreground: oklch(0.96 0.01 85);
++}
++
++.board-root.dark {
++  background-image:
++    radial-gradient(circle at 8% -10%, oklch(0.34 0.05 80 / 0.35), transparent 34rem),
++    radial-gradient(circle at 92% 12%, oklch(0.32 0.05 150 / 0.22), transparent 30rem);
++}
++
++/* --------------------------------------------------------------------------
++   Historical scoped utilities (668e334 @layer utilities, re-scoped)
++   -------------------------------------------------------------------------- */
++.board-original .app-shell {
++  position: relative;
++  isolation: isolate;
++  min-height: 100dvh;
++  background: transparent;
++}
++
++.board-original .app-shell::before {
++  content: '';
++  position: fixed;
++  z-index: -1;
++  inset: 0;
++  pointer-events: none;
++  background:
++    linear-gradient(115deg, transparent 0 45%, color-mix(in oklch, var(--secondary) 5%, transparent) 100%),
++    radial-gradient(circle at 50% 120%, color-mix(in oklch, var(--primary) 9%, transparent), transparent 42rem);
++}
++
++.board-original .page-frame {
++  width: min(100%, 88rem);
++  margin-inline: auto;
++}
++
++.board-original .page-header {
++  position: sticky;
++  top: 0;
++  z-index: 40;
++  background: var(--surface-glass);
++  border-bottom: 1px solid color-mix(in oklch, var(--border) 70%, transparent);
++  backdrop-filter: blur(18px) saturate(1.15);
++  box-shadow: 0 1px 0 oklch(1 0 0 / 0.08);
++}
++
++.board-original .surface-panel {
++  background: var(--surface-raised);
++  border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
++  border-radius: var(--radius-xl);
++  box-shadow: var(--shadow-soft);
++}
++
++.board-original .pb-safe {
++  padding-bottom: env(safe-area-inset-bottom);
++}
++
++/* --------------------------------------------------------------------------
++   Historical base layer behaviors, re-scoped
++   -------------------------------------------------------------------------- */
++.board-original ::selection {
++  background: color-mix(in oklch, var(--primary) 28%, transparent);
++}
++
++.board-original :where(h1, h2, h3, [data-slot='dialog-title'], [data-slot='card-title']) {
++  font-family: var(--font-manrope), 'Avenir Next', system-ui, sans-serif;
++  font-optical-sizing: auto;
++  letter-spacing: -0.015em;
++  text-wrap: balance;
++}
++
++.board-original :where(button, a, input, textarea, select):focus-visible {
++  outline: 2px solid var(--ring);
++  outline-offset: 3px;
++}
++
++@media (prefers-reduced-motion: reduce) {
++  .board-original *,
++  .board-original *::before,
++  .board-original *::after {
++    scroll-behavior: auto !important;
++    animation-duration: 0.01ms !important;
++    animation-iteration-count: 1 !important;
++    transition-duration: 0.01ms !important;
++  }
++}
++
++/* --------------------------------------------------------------------------
++   Toast theming — single consumer.
++   The root layout's Toaster (theme="dark", inline
++   --normal-bg/text/border: var(--popover/--popover-foreground/--border)) is
++   the ONLY live Sonner consumer; /board never mounts a second one (two
++   consumers share the toast store and hidden timers would dismiss hovered
++   visible toasts). While the board scope is mounted we retarget the custom
++   properties the toaster's inline styles resolve against, restoring the
++   668e334 cream/earthy toast. Variant palettes below match sonner's own
++   light values for the light board (the element still carries
++   data-sonner-theme=dark from the shared primitive). Specificity is raised
++   to beat sonner's runtime-injected styles.
++   -------------------------------------------------------------------------- */
++body:has(.board-original:not(.dark)) [data-sonner-toaster] {
++  --popover: oklch(0.99 0.005 85);
++  --popover-foreground: oklch(0.25 0.03 55);
++  --border: oklch(0.9 0.02 85);
++  --radius: 1rem;
++  /* sonner light variant palette (restores original light-toast behavior) */
++  --normal-bg-hover: hsl(0, 0%, 95%);
++  --normal-border-hover: hsl(0, 0%, 85%);
++  --success-bg: hsl(143, 85%, 96%);
++  --success-border: hsl(145, 92%, 87%);
++  --success-text: hsl(140, 100%, 27%);
++  --info-bg: hsl(208, 100%, 97%);
++  --info-border: hsl(221, 91%, 93%);
++  --info-text: hsl(210, 92%, 45%);
++  --warning-bg: hsl(49, 100%, 97%);
++  --warning-border: hsl(49, 91%, 84%);
++  --warning-text: hsl(31, 92%, 45%);
++  --error-bg: hsl(359, 100%, 97%);
++  --error-border: hsl(359, 100%, 94%);
++  --error-text: hsl(360, 100%, 45%);
++}
++
++body:has(.board-original:not(.dark)) [data-sonner-toaster][data-sonner-theme='dark'] [data-description] {
++  color: #3f3f3f;
++}
++
++body:has(.board-original:not(.dark)) [data-sonner-toaster][data-sonner-theme='dark'] [data-sonner-toast][data-styled='true'] [data-cancel] {
++  background: rgba(0, 0, 0, 0.08);
++}
++
++body:has(.board-original.dark) [data-sonner-toaster] {
++  --popover: oklch(0.18 0.01 80);
++  --popover-foreground: oklch(0.96 0.01 85);
++  --border: oklch(0.28 0.01 80);
++  --radius: 1rem;
++}
++
++/* Shared root BottomNav (dark-styled, /app links) is replaced by the
++   route-local historical replica; suppressed only while the board scope is
++   mounted — no shared file is edited. */
++body:has(.board-original) nav[aria-label='Primary navigation']:not(.board-nav) {
++  display: none !important;
++}
+diff --git a/app/board/layout.tsx b/app/board/layout.tsx
+new file mode 100644
+index 0000000..aed742c
+--- /dev/null
++++ b/app/board/layout.tsx
+@@ -0,0 +1,39 @@
++import type { Metadata, Viewport } from 'next';
++import './board-original.css';
++import { BoardThemeProvider } from '@/components/original-board/theme';
++
++/**
++ * Route-local layout for /board.
++ *
++ * Isolation notes:
++ * - The root layout forces `class="dark"` on <html> and a dark-only token set;
++ *   this route restores the 668e334 warm palette via the scoped
++ *   `.board-original` wrapper (see board-original.css) without mutating any
++ *   global CSS.
++ * - Theme state is system-initialized and persisted route-locally
++ *   (BoardThemeProvider); the global next-themes provider is not used.
++ * - Historical viewport theme colors from 668e334 (light #f7f3ea / dark #1b1a17).
++ */
++export const viewport: Viewport = {
++  width: 'device-width',
++  initialScale: 1,
++  viewportFit: 'cover',
++  themeColor: [
++    { media: '(prefers-color-scheme: light)', color: '#f7f3ea' },
++    { media: '(prefers-color-scheme: dark)', color: '#1b1a17' },
++  ],
++};
++
++/** Restored-era document metadata (verbatim from 668e334 app/layout.tsx). */
++export const metadata: Metadata = {
++  title: 'Boarded - Digital Route Setter',
++  description: 'Document and share your climbing routes',
++};
++
++export default function BoardLayout({
++  children,
++}: Readonly<{
++  children: React.ReactNode;
++}>) {
++  return <BoardThemeProvider>{children}</BoardThemeProvider>;
++}
+diff --git a/app/board/page.tsx b/app/board/page.tsx
+new file mode 100644
+index 0000000..b4cd384
+--- /dev/null
++++ b/app/board/page.tsx
+@@ -0,0 +1,458 @@
++'use client';
++
++import { useState, useEffect, useMemo } from 'react';
++import Link from 'next/link';
++import Image from 'next/image';
++import { useRouter } from 'next/navigation';
++import { useBoardTheme } from '@/components/original-board/theme';
++import { BottomNav as BoardBottomNav } from '@/components/original-board/shared/BottomNav';
++import { useWallsStore, DEFAULT_WALL } from '@/lib/stores/walls-store';
++import { useRoutesStore } from '@/lib/stores/routes-store';
++import { useIsClient } from '@/lib/hooks/useIsClient';
++import { gradeToNumber, calculateDisplayGrade } from '@boarded/shared/utils/grades';
++import { Button } from '@/components/original-board/ui/button';
++import { InstallPrompt } from '@/components/original-board/shared/InstallPrompt';
++import { ConfirmDialog } from '@/components/original-board/home/ConfirmDialog';
++import { LogClimbDialog } from '@/components/original-board/home/LogClimbDialog';
++import { RouteViewerDialog } from '@/components/original-board/home/RouteViewerDialog';
++import { SearchFilterBar, type SortOption } from '@/components/original-board/home/SearchFilterBar';
++import { WallPickerDialog } from '@/components/original-board/home/WallPickerDialog';
++import { RouteList } from '@/components/original-board/home/RouteList';
++import { toast } from 'sonner';
++import type { Route, Wall } from '@boarded/shared/types';
++
++
++export default function BoardPage() {
++  const router = useRouter();
++  const { theme, resolvedTheme, setTheme } = useBoardTheme();
++  const { walls, selectedWall, setSelectedWall, addWall } = useWallsStore();
++  const { routes, deleteRoute, isLoading: routesLoading, incrementViewCount, isOfflineMode } = useRoutesStore();
++  const isClient = useIsClient();
++
++  // Dialog trigger state
++  const [showWallPicker, setShowWallPicker] = useState(false);
++  const [routeToDelete, setRouteToDelete] = useState<Route | null>(null);
++  const [routeToView, setRouteToView] = useState<Route | null>(null);
++  const [routeToLog, setRouteToLog] = useState<Route | null>(null);
++
++  // Search, sort, and filter state
++  const [searchQuery, setSearchQuery] = useState('');
++  const [sortBy, setSortBy] = useState<SortOption>('newest');
++  const [filterGrade, setFilterGrade] = useState<string>('all');
++
++
++  // Ensure walls exist locally for any fetched routes (important for new devices)
++  useEffect(() => {
++    if (routes.length === 0) return;
++
++    const knownWallIds = new Set(walls.map((w) => w.id));
++    const missingWalls = new Map<string, { imageUrl?: string; imageWidth?: number; imageHeight?: number }>();
++
++    routes.forEach((route) => {
++      if (!route.wall_id || route.wall_id === 'default-wall') return;
++      if (knownWallIds.has(route.wall_id)) return;
++      if (!missingWalls.has(route.wall_id)) {
++        missingWalls.set(route.wall_id, {
++          imageUrl: route.wall_image_url,
++          imageWidth: route.wall_image_width,
++          imageHeight: route.wall_image_height,
++        });
++      }
++    });
++
++    if (missingWalls.size === 0) return;
++
++    missingWalls.forEach((meta, wallId) => {
++      const derivedWall = {
++        id: wallId,
++        user_id: 'local-user',
++        name: `Imported Wall ${wallId.slice(0, 4).toUpperCase()}`,
++        image_url: meta.imageUrl || DEFAULT_WALL.image_url,
++        image_width: meta.imageWidth || 1920,
++        image_height: meta.imageHeight || 1080,
++        is_public: false,
++        created_at: new Date().toISOString(),
++        updated_at: new Date().toISOString(),
++        _derivedFromRoute: true,
++      } as Wall & { _derivedFromRoute: true };
++      addWall(derivedWall);
++    });
++
++  }, [routes, walls, addWall]);
++
++  // Auto-select first wall if none selected
++  useEffect(() => {
++    if (!selectedWall && walls.length > 0) {
++      setSelectedWall(walls[0]);
++    }
++  }, [selectedWall, walls, setSelectedWall]);
++
++  const allWallsSelected = selectedWall?.id === 'all-walls';
++
++  // Get routes for selected wall with search, sort, and filter
++  const wallRoutes = useMemo(() => {
++    if (!selectedWall) return [];
++
++    let filtered = allWallsSelected
++      ? [...routes]
++      : routes.filter((r) => r.wall_id === selectedWall.id);
++
++    // Search filter
++    if (searchQuery.trim()) {
++      const query = searchQuery.toLowerCase();
++      filtered = filtered.filter(r =>
++        r.name.toLowerCase().includes(query) ||
++        (r.user_name?.toLowerCase().includes(query)) ||
++        (r.grade_v?.toLowerCase().includes(query))
++      );
++    }
++
++    // Grade filter
++    if (filterGrade !== 'all') {
++      filtered = filtered.filter(r => r.grade_v === filterGrade);
++    }
++
++    // Sort
++    filtered.sort((a, b) => {
++      switch (sortBy) {
++        case 'newest':
++          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
++        case 'oldest':
++          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
++        case 'name':
++          return a.name.localeCompare(b.name);
++        case 'grade-asc':
++          return gradeToNumber(calculateDisplayGrade(a.grade_v, a.ascents)) - gradeToNumber(calculateDisplayGrade(b.grade_v, b.ascents));
++        case 'grade-desc':
++          return gradeToNumber(calculateDisplayGrade(b.grade_v, b.ascents)) - gradeToNumber(calculateDisplayGrade(a.grade_v, a.ascents));
++        case 'rating': {
++          const aAscents = a.ascents || [];
++          const bAscents = b.ascents || [];
++          const aRatings = aAscents.filter(asc => asc.rating).map(asc => asc.rating!);
++          const bRatings = bAscents.filter(asc => asc.rating).map(asc => asc.rating!);
++          const aAvg = aRatings.length > 0 ? aRatings.reduce((sum, r) => sum + r, 0) / aRatings.length : 0;
++          const bAvg = bRatings.length > 0 ? bRatings.reduce((sum, r) => sum + r, 0) / bRatings.length : 0;
++          return bAvg - aAvg;
++        }
++        case 'most-liked':
++          return (b.like_count || b.liked_by?.length || 0) - (a.like_count || a.liked_by?.length || 0);
++        case 'most-climbed':
++          return (b.ascents?.length || 0) - (a.ascents?.length || 0);
++        case 'most-viewed':
++          return (b.view_count || 0) - (a.view_count || 0);
++        default:
++          return 0;
++      }
++    });
++
++    return filtered;
++  }, [selectedWall, routes, searchQuery, sortBy, filterGrade, allWallsSelected]);
++
++  // Get unique grades from wall routes for filter dropdown
++  const availableGrades = useMemo(() => {
++    if (!selectedWall) return [];
++    const grades = routes
++      .filter(r => (allWallsSelected || r.wall_id === selectedWall.id) && r.grade_v)
++      .map(r => r.grade_v!)
++      .filter((grade, index, self) => self.indexOf(grade) === index)
++      .sort((a, b) => gradeToNumber(a) - gradeToNumber(b));
++    return grades;
++  }, [selectedWall, routes, allWallsSelected]);
++
++  // Handle viewing a route (increments view count)
++  const handleViewRoute = (route: Route) => {
++    setRouteToView(route);
++    incrementViewCount(route.id);
++  };
++
++  // Navigate to editor with route to edit
++  const handleEditRoute = (route: Route) => {
++    router.push(`/editor?edit=${route.id}`);
++  };
++
++  // Navigate directly to the editor.
++  const handleNewRoute = () => {
++    if (allWallsSelected) {
++      setSelectedWall(DEFAULT_WALL);
++    }
++    router.push('/editor');
++  };
++
++  if (!isClient) return null;
++
++  return (
++    <div className="app-shell min-h-dvh pb-28 md:pb-10">
++      {/* Header */}
++      <header className="page-header px-4 md:px-8 pt-5 pb-4">
++        {isOfflineMode && (
++          <div className="mb-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm text-amber-700 dark:text-amber-300">
++            Local-only mode. Cloud sync is unavailable.
++          </div>
++        )}
++        <InstallPrompt />
++        {/* Desktop Header */}
++        <div className="hidden md:flex items-center justify-between border-b border-border/50 pb-4">
++          <div className="flex items-center gap-8">
++            <div className="flex items-center gap-2">
++              <Image
++                src="/icon.png"
++                alt="Boarded logo"
++                width={24}
++                height={24}
++                className="rounded-md"
++              />
++              <h1 className="text-xl font-bold tracking-[-0.02em]">Boarded</h1>
++            </div>
++
++            {/* Wall Selector - Desktop inline dropdown */}
++            <button
++              onClick={() => setShowWallPicker(true)}
++              className="flex items-center gap-2 text-foreground hover:text-primary transition-colors group"
++            >
++              <span className="font-medium">{wallRoutes.length} routes</span>
++              <span className="text-muted-foreground text-sm">· {selectedWall?.name || 'Select Wall'}</span>
++              <svg className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
++                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
++              </svg>
++            </button>
++          </div>
++
++          <div className="flex items-center gap-4">
++            <button
++              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
++              aria-label="Toggle dark mode"
++              className="text-muted-foreground hover:text-foreground transition-colors"
++            >
++              {resolvedTheme === 'dark' ? (
++                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
++                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
++                </svg>
++              ) : (
++                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
++                  <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
++                </svg>
++              )}
++            </button>
++            <Link
++              href="/settings"
++              aria-label="Settings"
++              className="text-muted-foreground hover:text-foreground transition-colors"
++            >
++              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
++                <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
++                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
++              </svg>
++            </Link>
++          </div>
++        </div>
++
++        {/* Mobile Header */}
++        <div className="md:hidden flex items-center justify-between border-b border-border/50 pb-4">
++          <div className="flex items-center gap-4">
++            <div className="flex items-center gap-2">
++              <Image
++                src="/icon.png"
++                alt="Boarded logo"
++                width={22}
++                height={22}
++                className="rounded-md"
++              />
++              <h1 className="text-xl font-bold tracking-[-0.02em]">Boarded</h1>
++            </div>
++
++            {/* Wall Selector - Mobile inline */}
++            <button
++              onClick={() => setShowWallPicker(true)}
++              className="flex items-center gap-1.5 text-foreground active:text-primary transition-colors"
++            >
++              <span className="font-medium text-sm">{wallRoutes.length} routes</span>
++              <span className="text-muted-foreground text-xs">· {selectedWall?.name || 'Select Wall'}</span>
++              <svg className="w-3.5 h-3.5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
++                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
++              </svg>
++            </button>
++          </div>
++
++          <div className="flex items-center gap-2">
++            <button
++              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
++              aria-label="Toggle dark mode"
++              className="text-muted-foreground active:text-foreground transition-colors"
++            >
++              {resolvedTheme === 'dark' ? (
++                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
++                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
++                </svg>
++              ) : (
++                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
++                  <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
++                </svg>
++              )}
++            </button>
++            <Link
++              href="/settings"
++              aria-label="Settings"
++              className="text-muted-foreground active:text-foreground transition-colors"
++            >
++              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
++                <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
++                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
++              </svg>
++            </Link>
++          </div>
++        </div>
++      </header>
++
++      {/* Routes List */}
++      <main className="page-frame px-4 md:px-8 mt-5 md:mt-8">
++        {!selectedWall ? (
++          <div className="py-12 text-center max-w-sm mx-auto">
++            <div className="size-20 rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/20 mx-auto mb-6 flex items-center justify-center">
++              <svg className="w-10 h-10 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
++                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
++              </svg>
++            </div>
++            <h3 className="text-lg font-semibold mb-2">Welcome to Boarded</h3>
++            <p className="text-sm text-muted-foreground mb-6">
++              Start by selecting or adding a climbing wall. Take a photo of your wall to begin setting routes.
++            </p>
++            <Button onClick={() => setShowWallPicker(true)} size="lg" className="gap-2">
++              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
++                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
++              </svg>
++              Get Started
++            </Button>
++          </div>
++        ) : (
++          <>
++            <SearchFilterBar
++              searchQuery={searchQuery}
++              onSearchChange={setSearchQuery}
++              sortBy={sortBy}
++              onSortChange={setSortBy}
++              filterGrade={filterGrade}
++              onFilterGradeChange={setFilterGrade}
++              availableGrades={availableGrades}
++              resultCount={wallRoutes.length}
++            />
++
++            {/* Loading state */}
++            {routesLoading && wallRoutes.length === 0 ? (
++              <div className="py-16 text-center">
++                <div className="size-16 rounded-2xl bg-muted mx-auto mb-4 flex items-center justify-center animate-pulse">
++                  <svg className="w-8 h-8 text-muted-foreground animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
++                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
++                  </svg>
++                </div>
++                <h3 className="font-semibold mb-1">Loading routes...</h3>
++                <p className="text-sm text-muted-foreground">Fetching climbs from the cloud</p>
++              </div>
++            ) : wallRoutes.length === 0 && (searchQuery || filterGrade !== 'all') ? (
++              <div className="py-12 text-center">
++                <div className="size-14 rounded-2xl bg-muted mx-auto mb-3 flex items-center justify-center">
++                  <svg className="w-6 h-6 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
++                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
++                  </svg>
++                </div>
++                <h3 className="font-semibold mb-1">No routes found</h3>
++                <p className="text-sm text-muted-foreground">Try adjusting your search or filters</p>
++              </div>
++            ) : wallRoutes.length === 0 ? (
++              <div className="py-12 text-center max-w-sm mx-auto">
++                <div className="size-20 rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/20 mx-auto mb-6 flex items-center justify-center">
++                  <svg className="w-10 h-10 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
++                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
++                  </svg>
++                </div>
++                <h3 className="text-lg font-semibold mb-2">Create your first route</h3>
++                <p className="text-sm text-muted-foreground mb-6">
++                  Tap on the wall to place holds and build climbing routes. Mark start holds, hand holds, foot chips, and the finish.
++                </p>
++                <Button onClick={handleNewRoute} size="lg" className="gap-2">
++                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
++                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
++                  </svg>
++                  Create Route
++                </Button>
++                <div className="mt-8 pt-6 border-t border-border/50">
++                  <p className="text-xs text-muted-foreground mb-3">Quick tips</p>
++                  <div className="flex justify-center gap-4 text-xs text-muted-foreground">
++                    <div className="flex items-center gap-1.5">
++                      <div className="size-2.5 rounded-full bg-green-500" />
++                      <span>Start</span>
++                    </div>
++                    <div className="flex items-center gap-1.5">
++                      <div className="size-2.5 rounded-full bg-red-500" />
++                      <span>Hands</span>
++                    </div>
++                    <div className="flex items-center gap-1.5">
++                      <div className="size-2.5 rounded-full bg-blue-500" />
++                      <span>Feet</span>
++                    </div>
++                    <div className="flex items-center gap-1.5">
++                      <div className="size-2.5 rounded-full bg-yellow-500" />
++                      <span>Finish</span>
++                    </div>
++                  </div>
++                </div>
++              </div>
++            ) : (
++              <>
++                <RouteList
++                  routes={wallRoutes}
++                  onViewRoute={handleViewRoute}
++                  onLogClimb={setRouteToLog}
++                  onDeleteRoute={setRouteToDelete}
++                  onEditRoute={handleEditRoute}
++                />
++                {wallRoutes.length <= 3 && (
++                  <div className="mx-auto mt-8 flex max-w-md items-center justify-between gap-4 rounded-2xl border border-border/60 bg-card/55 px-4 py-3">
++                    <p className="text-sm text-muted-foreground">Add another problem to this wall.</p>
++                    <Button onClick={handleNewRoute} variant="outline" size="sm">Create route</Button>
++                  </div>
++                )}
++              </>
++            )}
++          </>
++        )}
++      </main>
++
++      {/* Dialogs */}
++      <WallPickerDialog
++        open={showWallPicker}
++        onOpenChange={setShowWallPicker}
++      />
++
++      <ConfirmDialog
++        open={!!routeToDelete}
++        onOpenChange={() => setRouteToDelete(null)}
++        title="Delete Route"
++        description={`Are you sure you want to delete "${routeToDelete?.name}"? This action cannot be undone.`}
++        onConfirm={async () => {
++          if (routeToDelete) {
++            const deleted = await deleteRoute(routeToDelete.id);
++            if (deleted) {
++              toast.success('Route deleted');
++            } else {
++              toast.error('Unable to delete route. Please try again.');
++            }
++          }
++        }}
++      />
++
++      <RouteViewerDialog
++        route={routeToView}
++        onOpenChange={() => setRouteToView(null)}
++        wallImageUrl={selectedWall?.image_url || DEFAULT_WALL.image_url}
++      />
++
++      <LogClimbDialog
++        route={routeToLog}
++        onOpenChange={() => setRouteToLog(null)}
++      />
++
++      {/* Historical bottom navigation (root layout's shared BottomNav is suppressed on /board) */}
++      <BoardBottomNav />
++    </div>
++  );
++}
+diff --git a/components/original-board/home/ConfirmDialog.tsx b/components/original-board/home/ConfirmDialog.tsx
+new file mode 100644
+index 0000000..019908a
+--- /dev/null
++++ b/components/original-board/home/ConfirmDialog.tsx
+@@ -0,0 +1,39 @@
++
++import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/original-board/ui/dialog';
++import { Button } from '@/components/original-board/ui/button';
++
++interface ConfirmDialogProps {
++  open: boolean;
++  onOpenChange: (open: boolean) => void;
++  title: string;
++  description: string;
++  onConfirm: () => void;
++  variant?: 'destructive' | 'default';
++}
++
++export function ConfirmDialog({ open, onOpenChange, title, description, onConfirm, variant = 'destructive' }: ConfirmDialogProps) {
++  return (
++    <Dialog open={open} onOpenChange={onOpenChange}>
++      <DialogContent>
++        <DialogHeader>
++          <DialogTitle>{title}</DialogTitle>
++          <DialogDescription>{description}</DialogDescription>
++        </DialogHeader>
++        <DialogFooter>
++          <Button variant="outline" onClick={() => onOpenChange(false)}>
++            Cancel
++          </Button>
++          <Button
++            variant={variant}
++            onClick={() => {
++              onConfirm();
++              onOpenChange(false);
++            }}
++          >
++            {variant === 'destructive' ? 'Delete' : 'Confirm'}
++          </Button>
++        </DialogFooter>
++      </DialogContent>
++    </Dialog>
++  );
++}
+diff --git a/components/original-board/home/LogClimbDialog.tsx b/components/original-board/home/LogClimbDialog.tsx
+new file mode 100644
+index 0000000..1f1cfff
+--- /dev/null
++++ b/components/original-board/home/LogClimbDialog.tsx
+@@ -0,0 +1,186 @@
++'use client';
++
++import { useState } from 'react';
++import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/original-board/ui/dialog';
++import { Button } from '@/components/original-board/ui/button';
++import { Label } from '@/components/ui/label';
++import { StarRatingInput } from '@/components/ui/star-rating';
++import { useRoutesStore } from '@/lib/stores/routes-store';
++import { useUserStore } from '@/lib/stores/user-store';
++import { cn } from '@/lib/utils';
++import { toast } from 'sonner';
++import type { Route, Ascent } from '@boarded/shared/types';
++import { V_GRADES } from '@boarded/shared/types';
++
++interface LogClimbDialogProps {
++  route: Route | null;
++  onOpenChange: (open: boolean) => void;
++}
++
++export function LogClimbDialog({ route, onOpenChange }: LogClimbDialogProps) {
++  if (!route) return null;
++
++  return (
++    <LogClimbDialogContent
++      key={route.id}
++      route={route}
++      onOpenChange={onOpenChange}
++    />
++  );
++}
++
++function LogClimbDialogContent({
++  route,
++  onOpenChange,
++}: {
++  route: Route;
++  onOpenChange: (open: boolean) => void;
++}) {
++  const { addAscent } = useRoutesStore();
++  const { user } = useUserStore();
++  const currentUserId = user?.id;
++  const currentUserDisplayName = user?.displayName;
++
++  const [logGrade, setLogGrade] = useState(route.grade_v || '');
++  const [logRating, setLogRating] = useState(0);
++  const [logNotes, setLogNotes] = useState('');
++  const [logFlashed, setLogFlashed] = useState(false);
++  const [isLogging, setIsLogging] = useState(false);
++
++  const handleLogClimb = async () => {
++    if (!currentUserId) {
++      toast.error('Log in to log a climb.');
++      return;
++    }
++
++    setIsLogging(true);
++    const ascent: Ascent = {
++      id: crypto.randomUUID(),
++      route_id: route.id,
++      user_id: currentUserId,
++      user_name: currentUserDisplayName || 'Anonymous',
++      grade_v: logGrade || undefined,
++      rating: logRating > 0 ? logRating : undefined,
++      notes: logNotes.trim() || undefined,
++      flashed: logFlashed,
++      created_at: new Date().toISOString(),
++    };
++    const saved = await addAscent(route.id, ascent);
++    setIsLogging(false);
++
++    if (!saved) {
++      toast.error('Unable to save climb. Please try again.');
++      return;
++    }
++
++    onOpenChange(false);
++    toast.success('Climb logged!');
++  };
++
++  return (
++    <Dialog open onOpenChange={onOpenChange}>
++      <DialogContent
++        className="w-[calc(100%-2rem)] max-w-lg gap-0 overflow-hidden rounded-3xl border border-foreground/[0.12] bg-card/80 p-0 shadow-none backdrop-blur-xl motion-reduce:animate-none motion-reduce:transition-none"
++        aria-describedby="log-climb-description"
++      >
++        <DialogHeader className="border-b border-foreground/[0.12] p-5 pr-14">
++          <DialogTitle>Log Climb</DialogTitle>
++          <DialogDescription id="log-climb-description">
++            Record your ascent of &quot;{route.name}&quot;
++          </DialogDescription>
++        </DialogHeader>
++
++        <div className="divide-y divide-foreground/[0.12] px-5">
++          <div className="space-y-2 py-4">
++            <Label htmlFor="log-grade">
++              Your Grade Suggestion
++            </Label>
++            <div className="relative">
++              <select
++                id="log-grade"
++                value={logGrade}
++                onChange={(event) => setLogGrade(event.target.value)}
++                className="h-10 w-full appearance-none border-0 bg-transparent py-2 pr-9 text-sm text-foreground outline-none transition-colors focus:text-foreground motion-reduce:transition-none"
++              >
++                <option value="" className="bg-popover text-popover-foreground">
++                  Select grade
++                </option>
++                {V_GRADES.map((grade) => (
++                  <option key={grade} value={grade} className="bg-popover text-popover-foreground">
++                    {grade}
++                  </option>
++                ))}
++              </select>
++              <svg
++                aria-hidden="true"
++                className="pointer-events-none absolute right-1 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
++                fill="none"
++                viewBox="0 0 24 24"
++                stroke="currentColor"
++                strokeWidth={2}
++              >
++                <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
++              </svg>
++            </div>
++            {route.grade_v && (
++              <p className="text-xs text-muted-foreground">Setter&apos;s grade: {route.grade_v}</p>
++            )}
++          </div>
++
++          <div className="space-y-2 py-4">
++            <Label className="text-muted-foreground">Rating</Label>
++            <StarRatingInput value={logRating} onChange={setLogRating} />
++          </div>
++
++          <div className="flex items-center justify-between gap-4 py-4">
++            <div>
++              <Label htmlFor="log-flash" className="text-foreground">
++                Flashed it?
++              </Label>
++              <p className="mt-1 text-xs text-muted-foreground">Sent on your first try</p>
++            </div>
++            <button
++              id="log-flash"
++              type="button"
++              aria-pressed={logFlashed}
++              onClick={() => setLogFlashed((flashed) => !flashed)}
++              className={cn(
++                'flex size-10 items-center justify-center rounded-full transition-colors motion-reduce:transition-none',
++                logFlashed
++                  ? 'bg-yellow-500 text-white'
++                  : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground'
++              )}
++            >
++              <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
++                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
++              </svg>
++            </button>
++          </div>
++
++          <div className="space-y-2 py-4">
++            <Label htmlFor="log-notes">
++              Notes (optional)
++            </Label>
++            <textarea
++              id="log-notes"
++              value={logNotes}
++              onChange={(event) => setLogNotes(event.target.value)}
++              placeholder="Any beta or thoughts about the climb..."
++              rows={3}
++              className="min-h-24 w-full resize-none border-0 bg-transparent px-0 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-0 motion-reduce:transition-none"
++            />
++          </div>
++        </div>
++
++        <DialogFooter className="border-t border-foreground/[0.12] p-5">
++          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLogging}>
++            Cancel
++          </Button>
++          <Button onClick={handleLogClimb} disabled={isLogging} className="bg-primary hover:bg-primary/90">
++            {isLogging ? 'Logging...' : 'Log Climb'}
++          </Button>
++        </DialogFooter>
++      </DialogContent>
++    </Dialog>
++  );
++}
+diff --git a/components/original-board/home/RouteList.tsx b/components/original-board/home/RouteList.tsx
+new file mode 100644
+index 0000000..050fccd
+--- /dev/null
++++ b/components/original-board/home/RouteList.tsx
+@@ -0,0 +1,577 @@
++'use client';
++
++import { useState } from 'react';
++import { nanoid } from 'nanoid';
++import { motion, AnimatePresence } from 'motion/react';
++import { useRoutesStore } from '@/lib/stores/routes-store';
++import { useUserStore } from '@/lib/stores/user-store';
++import { useWallsStore, DEFAULT_WALL } from '@/lib/stores/walls-store';
++import { cn } from '@/lib/utils';
++import { toast } from 'sonner';
++import { StarRating } from '@/components/ui/star-rating';
++import { HOLD_COLORS } from '@boarded/shared/types';
++import { calculateDisplayGrade } from '@boarded/shared/utils/grades';
++import type { Route } from '@boarded/shared/types';
++import Image from 'next/image';
++
++interface RouteListProps {
++  routes: Route[];
++  onViewRoute: (route: Route) => void;
++  onLogClimb: (route: Route) => void;
++  onDeleteRoute: (route: Route) => void;
++  onEditRoute: (route: Route) => void;
++}
++const hasPendingCreate = (route: Route) =>
++  Boolean((route as Route & { _createSyncPending?: boolean })._createSyncPending);
++
++export function RouteList({ routes, onViewRoute, onLogClimb, onDeleteRoute, onEditRoute }: RouteListProps) {
++  const { user, isModerator } = useUserStore();
++  const currentUserId = user?.id;
++  const { toggleLike, isLikedByUser, getLikeCount, hasUserClimbed, updateRoute, syncLocalRoutes, fetchRouteById } = useRoutesStore();
++  const { getWallById } = useWallsStore();
++
++  const [flippedCards, setFlippedCards] = useState<Set<string>>(new Set());
++
++  const toggleCardFlip = (routeId: string, e: React.MouseEvent) => {
++    e.stopPropagation();
++    setFlippedCards(prev => {
++      const newSet = new Set(prev);
++      if (newSet.has(routeId)) {
++        newSet.delete(routeId);
++      } else {
++        newSet.add(routeId);
++      }
++      return newSet;
++    });
++  };
++
++  const handleToggleLike = (route: Route, e: React.MouseEvent) => {
++    e.stopPropagation();
++    if (route.user_id === 'local-user' || hasPendingCreate(route)) {
++      toast.error('Sync this route before liking it.');
++      return;
++    }
++    if (!currentUserId) {
++      toast.error('Log in to like routes.');
++      return;
++    }
++    toggleLike(route.id, currentUserId);
++  };
++
++  const getShareUrl = (token: string) => {
++    if (typeof window === 'undefined') return token;
++    return `${window.location.origin}/share/${token}`;
++  };
++
++  const handleShareRoute = async (route: Route, e: React.MouseEvent) => {
++    e.stopPropagation();
++    let shareRoute = route;
++    if (shareRoute.user_id === 'local-user' || hasPendingCreate(shareRoute)) {
++      if (!currentUserId) {
++        toast.error('Log in to share a route across devices.');
++        return;
++      }
++      await syncLocalRoutes();
++      const syncedRoute = useRoutesStore.getState().routes.find((candidate) => candidate.id === shareRoute.id);
++      if (!syncedRoute || syncedRoute.user_id === 'local-user' || hasPendingCreate(syncedRoute)) {
++        toast.error('Unable to sync this route before sharing');
++        return;
++      }
++      const verifiedRoute = await fetchRouteById(shareRoute.id);
++      if (!verifiedRoute || verifiedRoute.user_id !== currentUserId || hasPendingCreate(verifiedRoute)) {
++        toast.error('Unable to verify this route before sharing');
++        return;
++      }
++      shareRoute = verifiedRoute;
++    }
++    const canManageSharing = isModerator || shareRoute.user_id === currentUserId;
++    if (!canManageSharing && !shareRoute.is_public) {
++      toast.error('Only the route owner can enable sharing for this route');
++      return;
++    }
++    if (!shareRoute.share_token && !canManageSharing) {
++      toast.error('Only the route owner can enable sharing for this route');
++      return;
++    }
++
++    const token = shareRoute.share_token || nanoid(10);
++    if (canManageSharing && (!shareRoute.is_public || shareRoute.share_token !== token)) {
++      const persisted = await updateRoute(shareRoute.id, { share_token: token, is_public: true });
++      if (!persisted) {
++        toast.error('Unable to persist a share link right now');
++        return;
++      }
++    }
++
++    const url = getShareUrl(token);
++    try {
++      await navigator.clipboard.writeText(url);
++      toast.success(`Share link copied: ${url}`);
++    } catch {
++      toast.error('Unable to copy link');
++    }
++  };
++
++  const canDeleteRoute = (route: Route) => {
++    return isModerator || route.user_id === currentUserId || route.user_id === 'local-user';
++  };
++
++  const canEditRoute = canDeleteRoute;
++
++  return (
++    <div className="-mx-4 divide-y divide-border/50 bg-transparent md:mx-0">
++      {routes.map((route) => {
++        const ascents = route.ascents || [];
++        const avgRating = ascents.length > 0
++          ? ascents.reduce((sum, a) => sum + (a.rating || 0), 0) / ascents.filter(a => a.rating).length || route.rating || 0
++          : route.rating || 0;
++        const displayGrade = calculateDisplayGrade(route.grade_v, ascents);
++        const isExpanded = flippedCards.has(route.id);
++        const wall = getWallById(route.wall_id);
++        const wallImage = route.wall_image_url || wall?.image_url || DEFAULT_WALL.image_url;
++        const wallName = wall?.name || 'Unknown wall';
++
++        return (
++          <div key={route.id} className="group relative">
++            <div className={cn(
++              "absolute inset-0 transition-all duration-200 md:duration-300 md:ease-out",
++              isExpanded
++                ? "bg-muted/40 md:bg-muted/30"
++                : "bg-transparent active:bg-muted/30 md:bg-muted/0 md:group-hover:bg-muted/50"
++            )} />
++
++            <div
++              onClick={() => onViewRoute(route)}
++              className="relative flex cursor-pointer items-center gap-3 px-4 py-4 md:gap-6 md:px-2"
++            >
++              <div className="w-12 shrink-0 md:w-14">
++                <span className={cn(
++                  "text-lg font-bold",
++                  displayGrade ? "text-primary" : "text-muted-foreground"
++                )}>
++                  {displayGrade || '—'}
++                </span>
++              </div>
++
++              <div className="relative size-12 shrink-0 overflow-hidden rounded-xl border border-border/60 bg-muted/40 md:border-border">
++                <Image
++                  src={wallImage}
++                  alt={wallName}
++                  fill
++                  className="object-cover"
++                />
++              </div>
++
++              <div className="min-w-0 flex-1">
++                <h3 className="truncate text-[1.0625rem] font-semibold leading-tight text-foreground md:overflow-visible md:whitespace-normal md:group-hover:text-primary md:transition-colors">
++                  {route.name}
++                </h3>
++                <div className="mt-0.5 flex items-center gap-3 text-sm text-muted-foreground md:gap-4">
++                  <span className="truncate md:overflow-visible md:whitespace-normal">
++                    {route.user_name || 'Anonymous'}
++                  </span>
++                  <span className="truncate text-xs">{wallName}</span>
++                  <span className="flex shrink-0 items-center gap-1 md:hidden">
++                    <span className="flex gap-0.5">
++                      {route.holds.slice(0, 3).map((hold, i) => (
++                        <span
++                          key={i}
++                          className="size-1.5 rounded-full"
++                          style={{ backgroundColor: HOLD_COLORS[hold.type] }}
++                        />
++                      ))}
++                    </span>
++                    {route.holds.length}
++                  </span>
++                  <span className="hidden items-center gap-1 md:flex">
++                    <span className="flex gap-0.5">
++                      {route.holds.slice(0, 4).map((hold, i) => (
++                        <span
++                          key={i}
++                          className="size-1.5 rounded-full"
++                          style={{ backgroundColor: HOLD_COLORS[hold.type] }}
++                        />
++                      ))}
++                    </span>
++                    {route.holds.length}
++                  </span>
++                  {avgRating > 0 && (
++                    <span className="hidden md:block">
++                      <StarRating rating={Math.round(avgRating)} />
++                    </span>
++                  )}
++                  {ascents.length > 0 && (
++                    <span className="hidden md:inline">
++                      {ascents.length} ascent{ascents.length !== 1 ? 's' : ''}
++                    </span>
++                  )}
++                </div>
++              </div>
++
++              <div className={cn(
++                "flex shrink-0 items-center gap-1 md:hidden",
++                !isExpanded && "[&>button:not(:last-child)]:hidden"
++              )}>
++                <button
++                  onClick={(e) => handleToggleLike(route, e)}
++                  aria-label="Like route"
++                  className={cn(
++                    "flex size-9 items-center justify-center rounded-lg transition-colors",
++                    isLikedByUser(route.id, currentUserId || 'local-user')
++                      ? "text-red-500"
++                      : "text-muted-foreground"
++                  )}
++                >
++                  <svg
++                    className="h-5 w-5"
++                    fill={isLikedByUser(route.id, currentUserId || 'local-user') ? "currentColor" : "none"}
++                    viewBox="0 0 24 24"
++                    stroke="currentColor"
++                    strokeWidth={2}
++                  >
++                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
++                  </svg>
++                </button>
++                <button
++                  onClick={(e) => {
++                    e.stopPropagation();
++                    onLogClimb(route);
++                  }}
++                  aria-label="Log climb"
++                  className={cn(
++                    "flex size-9 items-center justify-center rounded-lg transition-colors",
++                    hasUserClimbed(route.id, currentUserId || 'local-user')
++                      ? "text-secondary"
++                      : "text-muted-foreground"
++                  )}
++                >
++                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
++                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
++                  </svg>
++                </button>
++                <button
++                  onClick={(e) => handleShareRoute(route, e)}
++                  aria-label="Share route"
++                  className="flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-primary"
++                >
++                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
++                    <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 12a2.25 2.25 0 114.5 0 2.25 2.25 0 01-4.5 0zm9-6.75a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm0 13.5a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-4.243-11.121l3.486 1.743m-3.486 5.006l3.486-1.743" />
++                  </svg>
++                </button>
++                <button
++                  onClick={(e) => toggleCardFlip(route.id, e)}
++                  aria-label={isExpanded ? "Hide actions" : "Show actions"}
++                  aria-expanded={isExpanded}
++                  className={cn(
++                    "flex h-9 items-center justify-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition-colors",
++                    isExpanded ? "text-primary" : "text-muted-foreground"
++                  )}
++                >
++                  <svg
++                    className={cn(
++                      "h-5 w-5 transition-transform duration-200",
++                      isExpanded && "rotate-180"
++                    )}
++                    fill="none"
++                    viewBox="0 0 24 24"
++                    stroke="currentColor"
++                    strokeWidth={2}
++                  >
++                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
++                  </svg>
++                  <span>{isExpanded ? 'Close' : 'Actions'}</span>
++                </button>
++              </div>
++
++              <div className="hidden items-center gap-1 md:flex">
++                <button
++                  onClick={(e) => handleToggleLike(route, e)}
++                  aria-label="Like route"
++                  title="Like route"
++                  className={cn(
++                    "flex size-8 items-center justify-center rounded-lg transition-colors",
++                    isLikedByUser(route.id, currentUserId || 'local-user')
++                      ? "text-red-500"
++                      : "text-muted-foreground hover:text-red-500"
++                  )}
++                >
++                  <svg
++                    className="h-4 w-4"
++                    fill={isLikedByUser(route.id, currentUserId || 'local-user') ? "currentColor" : "none"}
++                    viewBox="0 0 24 24"
++                    stroke="currentColor"
++                    strokeWidth={2}
++                  >
++                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
++                  </svg>
++                </button>
++                <button
++                  onClick={(e) => {
++                    e.stopPropagation();
++                    onLogClimb(route);
++                  }}
++                  aria-label="Log climb"
++                  title="Log climb"
++                  className={cn(
++                    "flex size-8 items-center justify-center rounded-lg transition-colors",
++                    hasUserClimbed(route.id, currentUserId || 'local-user')
++                      ? "text-secondary"
++                      : "text-muted-foreground hover:text-secondary"
++                  )}
++                >
++                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
++                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
++                  </svg>
++                </button>
++                <button
++                  onClick={(e) => handleShareRoute(route, e)}
++                  aria-label="Share route"
++                  title="Share route"
++                  className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-primary"
++                >
++                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
++                    <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 12a2.25 2.25 0 114.5 0 2.25 2.25 0 01-4.5 0zm9-6.75a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm0 13.5a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-4.243-11.121l3.486 1.743m-3.486 5.006l3.486-1.743" />
++                  </svg>
++                </button>
++                <button
++                  onClick={(e) => toggleCardFlip(route.id, e)}
++                  aria-label="View info"
++                  title={isExpanded ? "Hide route details" : "Show route details"}
++                  className={cn(
++                    "flex h-8 items-center justify-center gap-1.5 rounded-lg px-2 text-xs font-semibold transition-colors",
++                    isExpanded
++                      ? "bg-primary/10 text-primary"
++                      : "text-muted-foreground hover:text-primary"
++                  )}
++                >
++                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
++                    <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
++                  </svg>
++                  <span>Details</span>
++                </button>
++                {canEditRoute(route) && (
++                  <button
++                    onClick={(e) => {
++                      e.stopPropagation();
++                      onEditRoute(route);
++                    }}
++                    aria-label="Edit route"
++                    title="Edit route"
++                    className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-blue-500"
++                  >
++                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
++                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
++                    </svg>
++                  </button>
++                )}
++                {canDeleteRoute(route) && (
++                  <button
++                    onClick={(e) => {
++                      e.stopPropagation();
++                      onDeleteRoute(route);
++                    }}
++                    aria-label="Delete route"
++                    title="Delete route"
++                    className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-destructive"
++                  >
++                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
++                      <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
++                    </svg>
++                  </button>
++                )}
++              </div>
++
++              <svg
++                className={cn(
++                  "hidden h-4 w-4 transition-all md:block",
++                  isExpanded
++                    ? "rotate-90 text-primary"
++                    : "text-muted-foreground/50 group-hover:text-muted-foreground"
++                )}
++                fill="none"
++                viewBox="0 0 24 24"
++                stroke="currentColor"
++                strokeWidth={2}
++              >
++                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
++              </svg>
++            </div>
++
++            <AnimatePresence>
++              {isExpanded && (
++                <motion.div
++                  initial={{ height: 0, opacity: 0 }}
++                  animate={{ height: 'auto', opacity: 1 }}
++                  exit={{ height: 0, opacity: 0 }}
++                  transition={{ duration: 0.2 }}
++                  className="relative overflow-hidden md:hidden"
++                >
++                  <div className="space-y-3 px-4 pb-4">
++                    <div className="grid grid-cols-5 gap-2">
++                      <div className="text-center">
++                        <p className="text-xs text-muted-foreground">Grade</p>
++                        <p className="font-bold text-primary">{displayGrade || '—'}</p>
++                      </div>
++                      <div className="text-center">
++                        <p className="text-xs text-muted-foreground">Rating</p>
++                        <div className="flex justify-center">
++                          {avgRating > 0 ? (
++                            <span className="font-bold">{avgRating.toFixed(1)}</span>
++                          ) : (
++                            <span className="text-muted-foreground">—</span>
++                          )}
++                        </div>
++                      </div>
++                      <div className="text-center">
++                        <p className="text-xs text-muted-foreground">Sends</p>
++                        <p className="font-bold">{ascents.length}</p>
++                      </div>
++                      <div className="text-center">
++                        <p className="text-xs text-muted-foreground">Likes</p>
++                        <p className="font-bold">{getLikeCount(route.id)}</p>
++                      </div>
++                      <div className="text-center">
++                        <p className="text-xs text-muted-foreground">Views</p>
++                        <p className="font-bold">{route.view_count || 0}</p>
++                      </div>
++                    </div>
++
++                    {avgRating > 0 && (
++                      <div className="flex justify-center">
++                        <StarRating rating={Math.round(avgRating)} />
++                      </div>
++                    )}
++
++                    {ascents.length > 0 && (
++                      <div>
++                        <p className="mb-1.5 text-center text-xs text-muted-foreground">Recent climbers</p>
++                        <div className="flex flex-wrap justify-center gap-1.5">
++                          {ascents.slice(0, 4).map((a, i) => (
++                            <span key={i} className="rounded bg-muted/60 px-2 py-0.5 text-xs">
++                              {a.user_name || 'Anonymous'}
++                            </span>
++                          ))}
++                        </div>
++                      </div>
++                    )}
++
++                    <div className="flex justify-center gap-2 pt-1">
++                      <button
++                        onClick={(e) => {
++                          e.stopPropagation();
++                          onLogClimb(route);
++                        }}
++                        className="flex items-center gap-1.5 rounded-lg bg-secondary/10 px-3 py-1.5 text-sm font-medium text-secondary"
++                      >
++                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
++                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
++                        </svg>
++                        Log
++                      </button>
++                      <button
++                        onClick={(e) => handleShareRoute(route, e)}
++                        className="flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary"
++                      >
++                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
++                          <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 12a2.25 2.25 0 114.5 0 2.25 2.25 0 01-4.5 0zm9-6.75a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm0 13.5a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-4.243-11.121l3.486 1.743m-3.486 5.006l3.486-1.743" />
++                        </svg>
++                        Share
++                      </button>
++                      {canEditRoute(route) && (
++                        <button
++                          onClick={(e) => {
++                            e.stopPropagation();
++                            onEditRoute(route);
++                          }}
++                          className="flex items-center gap-1.5 rounded-lg bg-blue-500/10 px-3 py-1.5 text-sm font-medium text-blue-500"
++                        >
++                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
++                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
++                          </svg>
++                          Edit
++                        </button>
++                      )}
++                      {canDeleteRoute(route) && (
++                        <button
++                          onClick={(e) => {
++                            e.stopPropagation();
++                            onDeleteRoute(route);
++                          }}
++                          className="flex items-center gap-1.5 rounded-lg bg-destructive/10 px-3 py-1.5 text-sm font-medium text-destructive"
++                        >
++                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
++                            <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
++                          </svg>
++                          Delete
++                        </button>
++                      )}
++                    </div>
++                  </div>
++                </motion.div>
++              )}
++            </AnimatePresence>
++
++            <AnimatePresence>
++              {isExpanded && (
++                <motion.div
++                  initial={{ height: 0, opacity: 0 }}
++                  animate={{ height: 'auto', opacity: 1 }}
++                  exit={{ height: 0, opacity: 0 }}
++                  transition={{ duration: 0.2 }}
++                  className="relative hidden overflow-hidden md:block"
++                >
++                  <div className="px-2 pb-4 pt-2">
++                    <div className="flex gap-6 text-sm">
++                      <div>
++                        <p className="mb-1 text-xs text-muted-foreground">Grade</p>
++                        <p className="font-bold text-primary">{displayGrade || 'Ungraded'}</p>
++                        {route.grade_v && displayGrade !== route.grade_v && (
++                          <p className="text-xs text-muted-foreground">Setter: {route.grade_v}</p>
++                        )}
++                      </div>
++                      <div>
++                        <p className="mb-1 text-xs text-muted-foreground">Rating</p>
++                        <div className="flex items-center gap-1.5">
++                          <StarRating rating={Math.round(avgRating)} />
++                          {avgRating > 0 && <span className="text-sm font-medium">{avgRating.toFixed(1)}</span>}
++                        </div>
++                      </div>
++                      <div>
++                        <p className="mb-1 text-xs text-muted-foreground">Setter</p>
++                        <p className="font-medium">{route.user_name || 'Anonymous'}</p>
++                      </div>
++                      <div>
++                        <p className="mb-1 text-xs text-muted-foreground">Sends</p>
++                        <p className="font-bold">{ascents.length}</p>
++                      </div>
++                      <div>
++                        <p className="mb-1 text-xs text-muted-foreground">Likes</p>
++                        <p className="font-bold text-red-500">{getLikeCount(route.id)}</p>
++                      </div>
++                      <div>
++                        <p className="mb-1 text-xs text-muted-foreground">Views</p>
++                        <p className="font-bold">{route.view_count || 0}</p>
++                      </div>
++                      {ascents.length > 0 && (
++                        <div className="flex-1">
++                          <p className="mb-1 text-xs text-muted-foreground">Recent climbers</p>
++                          <div className="flex flex-wrap gap-1.5">
++                            {ascents.slice(0, 5).map((a, i) => (
++                              <span key={i} className="rounded bg-muted px-2 py-0.5 text-xs">
++                                {a.user_name || 'Anonymous'}
++                              </span>
++                            ))}
++                          </div>
++                        </div>
++                      )}
++                    </div>
++                  </div>
++                </motion.div>
++              )}
++            </AnimatePresence>
++          </div>
++        );
++      })}
++    </div>
++  );
++}
+diff --git a/components/original-board/home/RouteViewerDialog.tsx b/components/original-board/home/RouteViewerDialog.tsx
+new file mode 100644
+index 0000000..030894a
+--- /dev/null
++++ b/components/original-board/home/RouteViewerDialog.tsx
+@@ -0,0 +1,57 @@
++'use client';
++
++import { Dialog, DialogContent, DialogTitle } from '@/components/original-board/ui/dialog';
++import { RouteViewer } from '@/components/original-board/wall/RouteViewer';
++import { calculateDisplayGrade } from '@boarded/shared/utils/grades';
++import type { Route } from '@boarded/shared/types';
++
++interface RouteViewerDialogProps {
++  route: Route | null;
++  onOpenChange: (open: boolean) => void;
++  wallImageUrl: string;
++}
++
++export function RouteViewerDialog({
++  route,
++  onOpenChange,
++  wallImageUrl,
++}: RouteViewerDialogProps) {
++  return (
++    <Dialog open={Boolean(route)} onOpenChange={onOpenChange}>
++      <DialogContent
++        className="!w-fit !max-w-[96vw] max-h-[94vh] gap-0 overflow-y-auto overflow-x-hidden rounded-3xl border border-foreground/[0.12] bg-card/80 p-0 shadow-none backdrop-blur-xl !animate-none !transition-none"
++        showCloseButton={false}
++        aria-describedby={undefined}
++      >
++        <DialogTitle className="sr-only">{route?.name || 'Route Viewer'}</DialogTitle>
++        {route && (
++          <>
++            <button
++              type="button"
++              onClick={() => onOpenChange(false)}
++              aria-label="Close route viewer"
++              className="absolute right-3 top-3 z-20 flex size-10 items-center justify-center rounded-full border border-foreground/[0.12] bg-card/80 text-foreground/70 backdrop-blur-md transition-colors hover:bg-foreground/[0.1] hover:text-foreground motion-reduce:transition-none"
++            >
++              <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
++                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
++              </svg>
++            </button>
++            <RouteViewer
++              wallImageUrl={route.wall_image_url || wallImageUrl}
++              wallImageWidth={route.wall_image_width}
++              wallImageHeight={route.wall_image_height}
++              holds={route.holds}
++              routeName={route.name}
++              grade={calculateDisplayGrade(route.grade_v, route.ascents)}
++              setterName={route.user_name}
++              routeId={route.id}
++              comments={route.comments || []}
++              route={route}
++              fitToContent
++            />
++          </>
++        )}
++      </DialogContent>
++    </Dialog>
++  );
++}
+diff --git a/components/original-board/home/SearchFilterBar.tsx b/components/original-board/home/SearchFilterBar.tsx
+new file mode 100644
+index 0000000..f758974
+--- /dev/null
++++ b/components/original-board/home/SearchFilterBar.tsx
+@@ -0,0 +1,197 @@
++
++import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/original-board/ui/select';
++
++const SORT_OPTIONS = [
++  ['newest', 'Sort: Newest'],
++  ['oldest', 'Sort: Oldest'],
++  ['name', 'Sort: Name'],
++  ['grade-asc', 'Sort: Easiest'],
++  ['grade-desc', 'Sort: Hardest'],
++  ['rating', 'Sort: Top Rated'],
++  ['most-liked', 'Sort: Most Liked'],
++  ['most-climbed', 'Sort: Most Climbed'],
++  ['most-viewed', 'Sort: Most Viewed'],
++] as const;
++
++export type SortOption = (typeof SORT_OPTIONS)[number][0];
++
++interface SearchFilterBarProps {
++  searchQuery: string;
++  onSearchChange: (query: string) => void;
++  sortBy: SortOption;
++  onSortChange: (sort: SortOption) => void;
++  filterGrade: string;
++  onFilterGradeChange: (grade: string) => void;
++  availableGrades: string[];
++  resultCount: number;
++}
++
++export function SearchFilterBar({
++  searchQuery,
++  onSearchChange,
++  sortBy,
++  onSortChange,
++  filterGrade,
++  onFilterGradeChange,
++  availableGrades,
++  resultCount,
++}: SearchFilterBarProps) {
++  const hasFilters = searchQuery || filterGrade !== 'all';
++
++  const clearFilters = () => {
++    onSearchChange('');
++    onFilterGradeChange('all');
++  };
++
++  const sortOptions = SORT_OPTIONS.map(([value, label]) => (
++    <SelectItem key={value} value={value}>
++      {label}
++    </SelectItem>
++  ));
++  const gradeOptions = availableGrades.map((grade) => (
++    <SelectItem key={grade} value={grade}>
++      {grade}
++    </SelectItem>
++  ));
++
++  const resultLabel = `${resultCount} route${resultCount !== 1 ? 's' : ''} found`;
++
++  return (
++    <>
++      {/* Mobile */}
++      <div className="mb-4 md:hidden">
++        <div className="flex flex-col gap-2 p-2.5 rounded-xl bg-card border border-border">
++          {/* Search Row */}
++          <div className="relative flex-1">
++            <svg
++              className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
++              fill="none"
++              viewBox="0 0 24 24"
++              stroke="currentColor"
++              strokeWidth={2}
++            >
++              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
++            </svg>
++            <input
++              type="text"
++              placeholder="Search routes, setters..."
++              value={searchQuery}
++              onChange={(e) => onSearchChange(e.target.value)}
++              className="w-full pl-9 pr-4 py-2 bg-transparent border-none outline-none text-sm placeholder:text-muted-foreground"
++            />
++          </div>
++
++          {/* Divider */}
++          <div className="h-px bg-border" />
++
++          {/* Filters Row */}
++          <div className="flex items-center gap-2">
++            <Select value={sortBy} onValueChange={(v) => onSortChange(v as SortOption)}>
++              <SelectTrigger className="flex-1 h-8 text-xs border-none bg-transparent shadow-none px-2">
++                <SelectValue placeholder="Sort" />
++              </SelectTrigger>
++              <SelectContent>
++                {sortOptions}
++              </SelectContent>
++            </Select>
++
++            <div className="w-px h-5 bg-border" />
++
++            <Select value={filterGrade} onValueChange={onFilterGradeChange}>
++              <SelectTrigger className="flex-1 h-8 text-xs border-none bg-transparent shadow-none px-2">
++                <SelectValue placeholder="Grade" />
++              </SelectTrigger>
++              <SelectContent>
++                <SelectItem value="all">All Grades</SelectItem>
++                {gradeOptions}
++              </SelectContent>
++            </Select>
++
++            {hasFilters && (
++              <>
++                <div className="w-px h-5 bg-border" />
++                <button
++                  onClick={clearFilters}
++                  className="text-xs text-muted-foreground active:text-foreground transition-colors px-2"
++                >
++                  Clear
++                </button>
++              </>
++            )}
++          </div>
++        </div>
++
++        {hasFilters && (
++          <p className="text-xs text-muted-foreground mt-2">
++            {resultLabel}
++          </p>
++        )}
++      </div>
++
++      {/* Desktop */}
++      <div className="hidden md:block mb-6">
++        <div className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border">
++          <div className="relative flex-1">
++            <svg
++              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
++              fill="none"
++              viewBox="0 0 24 24"
++              stroke="currentColor"
++              strokeWidth={2}
++            >
++              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
++            </svg>
++            <input
++              type="text"
++              placeholder="Search routes, setters..."
++              value={searchQuery}
++              onChange={(e) => onSearchChange(e.target.value)}
++              className="w-full pl-10 pr-4 py-2 bg-transparent border-none outline-none text-sm placeholder:text-muted-foreground"
++            />
++          </div>
++
++          <div className="w-px h-6 bg-border" />
++
++          <Select value={sortBy} onValueChange={(v) => onSortChange(v as SortOption)}>
++            <SelectTrigger className="w-40 h-9 border-none bg-transparent shadow-none">
++              <SelectValue placeholder="Sort by" />
++            </SelectTrigger>
++            <SelectContent>
++              {sortOptions}
++            </SelectContent>
++          </Select>
++
++          <div className="w-px h-6 bg-border" />
++
++          <Select value={filterGrade} onValueChange={onFilterGradeChange}>
++            <SelectTrigger className="w-32 h-9 border-none bg-transparent shadow-none">
++              <SelectValue placeholder="All Grades" />
++            </SelectTrigger>
++            <SelectContent>
++              <SelectItem value="all">All Grades</SelectItem>
++              {gradeOptions}
++            </SelectContent>
++          </Select>
++
++          {hasFilters && (
++            <>
++              <div className="w-px h-6 bg-border" />
++              <button
++                onClick={clearFilters}
++                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
++              >
++                Clear
++              </button>
++            </>
++          )}
++        </div>
++
++        {hasFilters && (
++          <p className="text-sm text-muted-foreground mt-2">
++            {resultLabel}
++          </p>
++        )}
++      </div>
++    </>
++  );
++}
+diff --git a/components/original-board/home/WallPickerDialog.tsx b/components/original-board/home/WallPickerDialog.tsx
+new file mode 100644
+index 0000000..0e8bf3b
+--- /dev/null
++++ b/components/original-board/home/WallPickerDialog.tsx
+@@ -0,0 +1,568 @@
++'use client';
++
++import { useState, useRef } from 'react';
++import Image from 'next/image';
++import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/original-board/ui/dialog';
++import { Button } from '@/components/original-board/ui/button';
++import { Input } from '@/components/original-board/ui/input';
++import { Label } from '@/components/ui/label';
++import { useWallsStore, DEFAULT_WALL } from '@/lib/stores/walls-store';
++import { useRoutesStore } from '@/lib/stores/routes-store';
++import { useUserStore } from '@/lib/stores/user-store';
++import { createClient } from '@/lib/supabase/client';
++import { compressImageWithDimensions } from '@/lib/utils/image';
++import { cn } from '@/lib/utils';
++import { toast } from 'sonner';
++import type { Wall } from '@boarded/shared/types';
++
++interface WallPickerDialogProps {
++  open: boolean;
++  onOpenChange: (open: boolean) => void;
++}
++
++export function WallPickerDialog({ open, onOpenChange }: WallPickerDialogProps) {
++  const { walls, selectedWall, setSelectedWall, addWall, updateWall, deleteWall } = useWallsStore();
++  const { routes } = useRoutesStore();
++  const { user, isModerator } = useUserStore();
++  const currentUserId = user?.id;
++
++  // Add wall state
++  const [showAddWall, setShowAddWall] = useState(false);
++  const [wallName, setWallName] = useState('');
++  const [wallImage, setWallImage] = useState<string | null>(null);
++  const [wallImageFile, setWallImageFile] = useState<File | null>(null);
++  const [isAdding, setIsAdding] = useState(false);
++  const fileInputRef = useRef<HTMLInputElement>(null);
++
++  // Update wall photo state
++  const [wallToUpdatePhoto, setWallToUpdatePhoto] = useState<Wall | null>(null);
++  const [newWallImage, setNewWallImage] = useState<string | null>(null);
++  const [newWallImageFile, setNewWallImageFile] = useState<File | null>(null);
++  const [isUpdatingPhoto, setIsUpdatingPhoto] = useState(false);
++  const updatePhotoInputRef = useRef<HTMLInputElement>(null);
++
++  // Delete wall state
++  const [wallToDelete, setWallToDelete] = useState<Wall | null>(null);
++
++  const allWallsSelected = selectedWall?.id === 'all-walls';
++
++  const createPreviewUrl = (file: File) => URL.createObjectURL(file);
++  const revokePreviewUrl = (url: string | null) => {
++    if (url) URL.revokeObjectURL(url);
++  };
++  const fileToDataUrl = (file: Blob) => new Promise<string>((resolve, reject) => {
++    const reader = new FileReader();
++    reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result) : reject(new Error('Unable to read image'));
++    reader.onerror = () => reject(reader.error || new Error('Unable to read image'));
++    reader.readAsDataURL(file);
++  });
++
++  const uploadWallImage = async (file: File, wallId: string) => {
++    const supabase = createClient();
++    const compressed = await compressImageWithDimensions(file, {
++      maxWidth: 1920,
++      maxHeight: 1920,
++      quality: 0.82,
++      mimeType: 'image/jpeg',
++    });
++
++    if (!currentUserId) {
++      return {
++        imageUrl: await fileToDataUrl(compressed.blob),
++        width: compressed.width,
++        height: compressed.height,
++      };
++    }
++
++    const filePath = `${currentUserId}/${wallId}/${Date.now()}.jpg`;
++    const { error } = await supabase.storage
++      .from('walls')
++      .upload(filePath, compressed.blob, { contentType: 'image/jpeg' });
++
++    if (error) {
++      throw new Error(error.message);
++    }
++
++    const { data } = supabase.storage.from('walls').getPublicUrl(filePath);
++    return {
++      imageUrl: data.publicUrl,
++      width: compressed.width,
++      height: compressed.height,
++    };
++  };
++
++  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
++    const file = e.target.files?.[0];
++    if (file) {
++      revokePreviewUrl(wallImage);
++      setWallImageFile(file);
++      setWallImage(createPreviewUrl(file));
++    }
++  };
++
++  const handleAddWall = async () => {
++    if (!wallName.trim() || !wallImageFile) return;
++
++    setIsAdding(true);
++
++    try {
++      const wallId = crypto.randomUUID();
++      const uploadedWallImage = await uploadWallImage(wallImageFile, wallId);
++
++      const newWall: Wall = {
++        id: wallId,
++        user_id: currentUserId || 'local-user',
++        name: wallName.trim(),
++        image_url: uploadedWallImage.imageUrl,
++        image_width: uploadedWallImage.width,
++        image_height: uploadedWallImage.height,
++        is_public: false,
++        created_at: new Date().toISOString(),
++        updated_at: new Date().toISOString(),
++      };
++
++      const addSucceeded = await addWall(newWall);
++      if (!addSucceeded) {
++        throw new Error('Unable to save wall');
++      }
++
++      setSelectedWall(newWall);
++      setShowAddWall(false);
++      onOpenChange(false);
++      setWallName('');
++      revokePreviewUrl(wallImage);
++      setWallImage(null);
++      setWallImageFile(null);
++      setIsAdding(false);
++      toast.success('Wall added!');
++    } catch (error) {
++      setIsAdding(false);
++      toast.error(error instanceof Error ? error.message : 'Failed to upload wall image');
++    }
++  };
++
++  const handleUpdateWallPhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
++    const file = e.target.files?.[0];
++    if (file) {
++      revokePreviewUrl(newWallImage);
++      setNewWallImageFile(file);
++      setNewWallImage(createPreviewUrl(file));
++    }
++  };
++
++  const handleUpdateWallPhoto = async () => {
++    if (!wallToUpdatePhoto || !newWallImageFile) return;
++
++    setIsUpdatingPhoto(true);
++
++    try {
++      const uploadedWallImage = await uploadWallImage(newWallImageFile, wallToUpdatePhoto.id);
++      const updateSucceeded = await updateWall(wallToUpdatePhoto.id, {
++        image_url: uploadedWallImage.imageUrl,
++        image_width: uploadedWallImage.width,
++        image_height: uploadedWallImage.height,
++      });
++      if (!updateSucceeded) {
++        throw new Error('Unable to save wall photo');
++      }
++
++      if (selectedWall?.id === wallToUpdatePhoto.id) {
++        setSelectedWall({
++          ...wallToUpdatePhoto,
++          image_url: uploadedWallImage.imageUrl,
++          image_width: uploadedWallImage.width,
++          image_height: uploadedWallImage.height,
++        });
++      }
++
++      setWallToUpdatePhoto(null);
++      revokePreviewUrl(newWallImage);
++      setNewWallImage(null);
++      setNewWallImageFile(null);
++      setIsUpdatingPhoto(false);
++      toast.success('Wall photo updated! Existing routes will keep their original photo.');
++    } catch (error) {
++      setIsUpdatingPhoto(false);
++      toast.error(error instanceof Error ? error.message : 'Failed to update wall photo');
++    }
++  };
++
++  const canManageWall = (wall: Wall) =>
++    isModerator || wall.user_id === currentUserId || wall.user_id === 'local-user';
++  const canUpdateWallPhoto = (wall: Wall) => wall.id === 'default-wall' || canManageWall(wall);
++  const canDeleteWall = (wall: Wall) => wall.id !== 'default-wall' && canManageWall(wall);
++
++  return (
++    <>
++      {/* Wall Picker Dialog */}
++      <Dialog open={open} onOpenChange={onOpenChange}>
++        <DialogContent className="max-h-[80vh] overflow-y-auto">
++          <DialogHeader>
++            <DialogTitle>Select Wall</DialogTitle>
++          </DialogHeader>
++
++          <div className="space-y-2 mt-2">
++            {/* All Walls option */}
++            <div
++              className={cn(
++                'w-full flex items-center gap-3 p-3 rounded-xl border transition-colors',
++                allWallsSelected
++                  ? 'border-primary bg-primary/5'
++                  : 'border-border hover:border-primary/30'
++              )}
++            >
++              <button
++                onClick={() => {
++                  setSelectedWall({
++                    id: 'all-walls',
++                    user_id: 'system',
++                    name: 'All Walls',
++                    image_url: DEFAULT_WALL.image_url,
++                    image_width: DEFAULT_WALL.image_width,
++                    image_height: DEFAULT_WALL.image_height,
++                    is_public: true,
++                    created_at: new Date().toISOString(),
++                    updated_at: new Date().toISOString(),
++                  });
++                  onOpenChange(false);
++                }}
++                className="flex items-center gap-3 flex-1 min-w-0 text-left"
++              >
++                <div className="size-14 rounded-lg bg-muted/70 flex items-center justify-center shrink-0">
++                  <svg className="w-6 h-6 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
++                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5m-16.5 5.25h16.5m-16.5 5.25h16.5" />
++                  </svg>
++                </div>
++                <div className="flex-1 min-w-0">
++                  <p className="font-medium truncate">All Walls</p>
++                  <p className="text-sm text-muted-foreground">{routes.length} routes</p>
++                </div>
++              </button>
++              <div className="flex items-center gap-2 shrink-0">
++                {allWallsSelected && (
++                  <div className="size-6 rounded-full bg-primary flex items-center justify-center">
++                    <svg className="w-4 h-4 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
++                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
++                    </svg>
++                  </div>
++                )}
++              </div>
++            </div>
++
++            {walls.map((wall) => {
++              const routeCount = routes.filter((r) => r.wall_id === wall.id).length;
++              const isSelected = selectedWall?.id === wall.id;
++              const canDelete = canDeleteWall(wall);
++
++              return (
++                <div
++                  key={wall.id}
++                  className={cn(
++                    'w-full flex items-center gap-3 p-3 rounded-xl border transition-colors',
++                    isSelected
++                      ? 'border-primary bg-primary/5'
++                      : 'border-border hover:border-primary/30'
++                  )}
++                >
++                  <button
++                    onClick={() => {
++                      setSelectedWall(wall);
++                      onOpenChange(false);
++                    }}
++                    className="flex items-center gap-3 flex-1 min-w-0 text-left"
++                  >
++                    <div className="relative size-14 rounded-lg bg-muted overflow-hidden shrink-0">
++                      <Image
++                        src={wall.image_url}
++                        alt={wall.name}
++                        fill
++                        sizes="56px"
++                        className="object-cover"
++                      />
++                    </div>
++                    <div className="flex-1 min-w-0">
++                      <p className="font-medium truncate">{wall.name}</p>
++                      <p className="text-sm text-muted-foreground">{routeCount} routes</p>
++                    </div>
++                  </button>
++                  <div className="flex items-center gap-2 shrink-0">
++                    {isSelected && (
++                      <div className="size-6 rounded-full bg-primary flex items-center justify-center">
++                        <svg className="w-4 h-4 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
++                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
++                        </svg>
++                      </div>
++                    )}
++                    {canUpdateWallPhoto(wall) && (
++                      <button
++                        onClick={(e) => {
++                          e.stopPropagation();
++                          setWallToUpdatePhoto(wall);
++                          onOpenChange(false);
++                        }}
++                        aria-label="Update wall photo"
++                        className="size-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
++                      >
++                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
++                          <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
++                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
++                        </svg>
++                      </button>
++                    )}
++                    {canDelete && (
++                      <button
++                        onClick={(e) => {
++                          e.stopPropagation();
++                          setWallToDelete(wall);
++                        }}
++                        aria-label="Delete wall"
++                        className="size-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
++                      >
++                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
++                          <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
++                        </svg>
++                      </button>
++                    )}
++                  </div>
++                </div>
++              );
++            })}
++
++            {/* Add new wall button */}
++            <button
++              onClick={() => {
++                onOpenChange(false);
++                setShowAddWall(true);
++              }}
++              className="w-full flex items-center gap-3 p-3 rounded-xl border-2 border-dashed border-border text-muted-foreground hover:text-foreground hover:border-primary/50 hover:bg-primary/5 transition-colors"
++            >
++              <div className="size-14 rounded-lg bg-muted flex items-center justify-center">
++                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
++                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
++                </svg>
++              </div>
++              <span className="font-medium">Add new wall</span>
++            </button>
++          </div>
++        </DialogContent>
++      </Dialog>
++
++      {/* Add Wall Dialog */}
++      <Dialog open={showAddWall} onOpenChange={setShowAddWall}>
++        <DialogContent>
++          <DialogHeader>
++            <DialogTitle>Add Wall</DialogTitle>
++          </DialogHeader>
++
++          <div className="space-y-4">
++            <div className="space-y-2">
++              <Label htmlFor="wall-name">Wall Name</Label>
++              <Input
++                id="wall-name"
++                type="text"
++                value={wallName}
++                onChange={(e) => setWallName(e.target.value)}
++                placeholder="e.g., Garage Wall"
++                disabled={isAdding}
++              />
++            </div>
++
++            <div className="space-y-2">
++              <Label>Wall Photo</Label>
++              <input
++                ref={fileInputRef}
++                type="file"
++                accept="image/*"
++                onChange={handleImageSelect}
++                className="hidden"
++              />
++              {wallImage ? (
++                <div
++                  onClick={() => fileInputRef.current?.click()}
++                  className="relative aspect-video rounded-xl overflow-hidden cursor-pointer"
++                >
++                  <Image
++                    src={wallImage}
++                    alt="Wall preview"
++                    fill
++                    sizes="100vw"
++                    className="object-cover"
++                    unoptimized
++                  />
++                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
++                    <span className="text-white text-sm font-medium">Change photo</span>
++                  </div>
++                </div>
++              ) : (
++                <button
++                  onClick={() => fileInputRef.current?.click()}
++                  className="w-full aspect-video rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
++                >
++                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
++                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
++                  </svg>
++                  <span className="text-sm">Tap to add photo</span>
++                </button>
++              )}
++            </div>
++          </div>
++
++          <DialogFooter>
++            <Button
++              variant="outline"
++              onClick={() => {
++                setShowAddWall(false);
++                setWallName('');
++                revokePreviewUrl(wallImage);
++                setWallImage(null);
++                setWallImageFile(null);
++              }}
++              disabled={isAdding}
++            >
++              Cancel
++            </Button>
++            <Button
++              onClick={handleAddWall}
++              disabled={isAdding || !wallName.trim() || !wallImageFile}
++            >
++              {isAdding ? 'Adding...' : 'Add Wall'}
++            </Button>
++          </DialogFooter>
++        </DialogContent>
++      </Dialog>
++
++      {/* Delete Wall Dialog */}
++      <Dialog open={!!wallToDelete} onOpenChange={() => setWallToDelete(null)}>
++        <DialogContent>
++          <DialogHeader>
++            <DialogTitle>Delete Wall</DialogTitle>
++            <DialogDescription>
++              Are you sure you want to delete &quot;{wallToDelete?.name}&quot;? All routes on this wall will remain but will need to be reassigned. This action cannot be undone.
++            </DialogDescription>
++          </DialogHeader>
++          <DialogFooter>
++            <Button variant="outline" onClick={() => setWallToDelete(null)}>
++              Cancel
++            </Button>
++            <Button
++              variant="destructive"
++              onClick={async () => {
++                if (!wallToDelete) return;
++                const deleteSucceeded = await deleteWall(wallToDelete.id);
++                if (!deleteSucceeded) {
++                  toast.error('Unable to delete wall');
++                  return;
++                }
++                toast.success('Wall deleted');
++                setWallToDelete(null);
++              }}
++            >
++              Delete
++            </Button>
++          </DialogFooter>
++        </DialogContent>
++      </Dialog>
++
++      {/* Update Wall Photo Dialog */}
++      <Dialog open={!!wallToUpdatePhoto} onOpenChange={() => {
++        setWallToUpdatePhoto(null);
++        revokePreviewUrl(newWallImage);
++        setNewWallImage(null);
++        setNewWallImageFile(null);
++      }}>
++        <DialogContent>
++          <DialogHeader>
++            <DialogTitle>Update Wall Photo</DialogTitle>
++            <DialogDescription>
++              Update the photo for &quot;{wallToUpdatePhoto?.name}&quot;. Existing routes will keep their original photo.
++            </DialogDescription>
++          </DialogHeader>
++
++          <div className="space-y-4">
++            <input
++              ref={updatePhotoInputRef}
++              type="file"
++              accept="image/*"
++              onChange={handleUpdateWallPhotoSelect}
++              className="hidden"
++            />
++
++            {/* Current photo */}
++            <div className="space-y-2">
++              <Label>Current Photo</Label>
++              <div className="relative aspect-video rounded-lg overflow-hidden bg-muted">
++                {wallToUpdatePhoto && (
++                  <Image
++                    src={wallToUpdatePhoto.image_url}
++                    alt="Current wall"
++                    fill
++                    sizes="100vw"
++                    className="object-cover opacity-50"
++                  />
++                )}
++              </div>
++            </div>
++
++            {/* New photo */}
++            <div className="space-y-2">
++              <Label>New Photo</Label>
++              {newWallImage ? (
++                <div
++                  onClick={() => updatePhotoInputRef.current?.click()}
++                  className="relative aspect-video rounded-lg overflow-hidden cursor-pointer"
++                >
++                  <Image
++                    src={newWallImage}
++                    alt="New wall preview"
++                    fill
++                    sizes="100vw"
++                    className="object-cover"
++                    unoptimized
++                  />
++                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
++                    <span className="text-white text-sm font-medium">Change photo</span>
++                  </div>
++                </div>
++              ) : (
++                <button
++                  onClick={() => updatePhotoInputRef.current?.click()}
++                  className="w-full aspect-video rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
++                >
++                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
++                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
++                  </svg>
++                  <span className="text-sm">Select new photo</span>
++                </button>
++              )}
++            </div>
++
++            <p className="text-xs text-muted-foreground">
++              Note: All existing routes will continue to display the wall photo from when they were created.
++            </p>
++          </div>
++
++          <DialogFooter>
++            <Button
++              variant="outline"
++              onClick={() => {
++                setWallToUpdatePhoto(null);
++                revokePreviewUrl(newWallImage);
++                setNewWallImage(null);
++                setNewWallImageFile(null);
++              }}
++              disabled={isUpdatingPhoto}
++            >
++              Cancel
++            </Button>
++            <Button
++              onClick={handleUpdateWallPhoto}
++              disabled={isUpdatingPhoto || !newWallImageFile}
++            >
++              {isUpdatingPhoto ? 'Updating...' : 'Update Photo'}
++            </Button>
++          </DialogFooter>
++        </DialogContent>
++      </Dialog>
++    </>
++  );
++}
+diff --git a/components/original-board/route/CommentsSection.tsx b/components/original-board/route/CommentsSection.tsx
+new file mode 100644
+index 0000000..eb8cad1
+--- /dev/null
++++ b/components/original-board/route/CommentsSection.tsx
+@@ -0,0 +1,220 @@
++'use client';
++
++import { useState } from 'react';
++import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
++import { useRoutesStore } from '@/lib/stores/routes-store';
++import { useUserStore } from '@/lib/stores/user-store';
++import { type Comment } from '@boarded/shared/types';
++import { cn } from '@/lib/utils';
++import { toast } from 'sonner';
++
++interface CommentsSectionProps {
++  routeId: string;
++  comments: Comment[];
++}
++
++export function CommentsSection({ routeId, comments }: CommentsSectionProps) {
++  const { addComment, deleteComment } = useRoutesStore();
++  const { user, isModerator } = useUserStore();
++  const [isExpanded, setIsExpanded] = useState(false);
++  const [newComment, setNewComment] = useState('');
++  const [isBeta, setIsBeta] = useState(false);
++  const [isSubmitting, setIsSubmitting] = useState(false);
++  const shouldReduceMotion = useReducedMotion();
++
++  const currentUserId = user?.id;
++  const currentUserDisplayName = user?.displayName;
++  const sortedComments = [...comments].sort((a, b) => {
++    if (a.is_beta && !b.is_beta) return -1;
++    if (!a.is_beta && b.is_beta) return 1;
++    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
++  });
++  const betaCount = comments.filter((comment) => comment.is_beta).length;
++
++  const handleSubmit = async () => {
++    if (!newComment.trim()) return;
++
++    if (newComment.length > 1000) {
++      toast.error('Comment must be less than 1000 characters');
++      return;
++    }
++
++    if (!currentUserId) {
++      toast.error('Log in to comment on routes.');
++      return;
++    }
++
++    setIsSubmitting(true);
++    const comment: Comment = {
++      id: crypto.randomUUID(),
++      route_id: routeId,
++      user_id: currentUserId,
++      user_name: currentUserDisplayName || 'Anonymous',
++      content: newComment.trim(),
++      is_beta: isBeta,
++      created_at: new Date().toISOString(),
++    };
++    const saved = await addComment(routeId, comment);
++    setIsSubmitting(false);
++
++    if (!saved) {
++      toast.error('Unable to save comment. Please try again.');
++      return;
++    }
++
++    setNewComment('');
++    setIsBeta(false);
++    toast.success(isBeta ? 'Beta added!' : 'Comment added!');
++  };
++
++  const handleDelete = async (commentId: string) => {
++    const deleted = await deleteComment(routeId, commentId);
++    if (deleted) {
++      toast.success('Comment deleted');
++    } else {
++      toast.error('Unable to delete comment. Please try again.');
++    }
++  };
++
++  return (
++    <div className="border-t border-foreground/[0.12]">
++      <button
++        type="button"
++        onClick={() => setIsExpanded((expanded) => !expanded)}
++        aria-expanded={isExpanded}
++        className="flex w-full items-center justify-between gap-3 py-3 text-left text-foreground transition-colors hover:bg-muted/50 motion-reduce:transition-none"
++      >
++        <span className="flex items-center gap-2">
++          <svg
++            className={cn(
++              'size-4 text-muted-foreground transition-transform motion-reduce:transition-none',
++              isExpanded && 'rotate-180'
++            )}
++            fill="none"
++            viewBox="0 0 24 24"
++            stroke="currentColor"
++            strokeWidth={2}
++          >
++            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
++          </svg>
++          <span className="text-sm font-semibold">Beta &amp; Comments</span>
++          {comments.length > 0 && (
++            <span className="text-xs text-muted-foreground">({comments.length})</span>
++          )}
++        </span>
++        {betaCount > 0 && (
++          <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
++            {betaCount} beta
++          </span>
++        )}
++      </button>
++
++      <AnimatePresence initial={false}>
++        {isExpanded && (
++          <motion.div
++            initial={{ height: 0, opacity: 0 }}
++            animate={{ height: 'auto', opacity: 1 }}
++            exit={{ height: 0, opacity: 0 }}
++            transition={{ duration: shouldReduceMotion ? 0 : 0.2 }}
++            className="overflow-hidden"
++          >
++            <div className="space-y-3 pb-4">
++              {sortedComments.length > 0 ? (
++                <div className="max-h-64 space-y-2 overflow-y-auto">
++                  {sortedComments.map((comment) => (
++                    <div
++                      key={comment.id}
++                      className={cn(
++                        'rounded-xl p-3',
++                        comment.is_beta
++                          ? 'bg-amber-500/10 ring-1 ring-amber-500/30'
++                          : 'bg-muted/50'
++                      )}
++                    >
++                      <div className="flex items-start justify-between gap-2">
++                        <div className="min-w-0 flex-1">
++                          <div className="mb-1 flex items-center gap-2">
++                            {comment.is_beta && (
++                              <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">
++                                Beta
++                              </span>
++                            )}
++                            <span className="truncate text-sm font-medium text-foreground">
++                              {comment.user_name || 'Anonymous'}
++                            </span>
++                            <span className="text-xs text-muted-foreground">
++                              {new Date(comment.created_at).toLocaleDateString()}
++                            </span>
++                          </div>
++                          <p className="whitespace-pre-wrap break-words text-sm text-foreground/80">
++                            {comment.content}
++                          </p>
++                        </div>
++                        {(isModerator || comment.user_id === currentUserId) && (
++                          <button
++                            type="button"
++                            onClick={() => handleDelete(comment.id)}
++                            aria-label={`Delete comment from ${comment.user_name || 'Anonymous'}`}
++                            className="flex size-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive motion-reduce:transition-none"
++                          >
++                            <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
++                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
++                            </svg>
++                          </button>
++                        )}
++                      </div>
++                    </div>
++                  ))}
++                </div>
++              ) : (
++                <div className="py-3 text-center">
++                  <p className="text-sm text-muted-foreground">No comments yet. Share some beta!</p>
++                </div>
++              )}
++
++              <div className="space-y-2">
++                <textarea
++                  value={newComment}
++                  onChange={(event) => setNewComment(event.target.value)}
++                  placeholder="Share beta or leave a comment..."
++                  rows={3}
++                  maxLength={1000}
++                  className="w-full resize-none rounded-xl border border-border/50 bg-muted/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/50 motion-reduce:transition-none"
++                />
++                <div className="flex items-center justify-between gap-3">
++                  <button
++                    type="button"
++                    onClick={() => setIsBeta((beta) => !beta)}
++                    aria-pressed={isBeta}
++                    className={cn(
++                      'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors motion-reduce:transition-none',
++                      isBeta
++                        ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/30'
++                        : 'bg-muted text-muted-foreground hover:text-foreground'
++                    )}
++                  >
++                    <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
++                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
++                    </svg>
++                    {isBeta ? 'Beta' : 'Mark as Beta'}
++                  </button>
++                  <div className="flex items-center gap-3">
++                    <span className="text-xs text-muted-foreground">{newComment.length}/1000</span>
++                    <button
++                      type="button"
++                      onClick={handleSubmit}
++                      disabled={!newComment.trim() || isSubmitting}
++                      className="rounded-lg bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none"
++                    >
++                      {isSubmitting ? 'Posting...' : 'Post'}
++                    </button>
++                  </div>
++                </div>
++              </div>
++            </div>
++          </motion.div>
++        )}
++      </AnimatePresence>
++    </div>
++  );
++}
+diff --git a/components/original-board/shared/BottomNav.tsx b/components/original-board/shared/BottomNav.tsx
+new file mode 100644
+index 0000000..63fba35
+--- /dev/null
++++ b/components/original-board/shared/BottomNav.tsx
+@@ -0,0 +1,78 @@
++'use client';
++
++import Link from 'next/link';
++import { usePathname } from 'next/navigation';
++import { cn } from '@/lib/utils';
++
++const navItems = [
++  {
++    href: '/board',
++    label: 'Home',
++    icon: (active: boolean) => (
++      <svg className="w-6 h-6" fill={active ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 1.5}>
++        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
++      </svg>
++    ),
++  },
++  {
++    href: '/editor',
++    label: 'Create',
++    icon: (active: boolean) => (
++      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 1.5}>
++        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
++      </svg>
++    ),
++  },
++  {
++    href: '/profile',
++    label: 'Profile',
++    icon: (active: boolean) => (
++      <svg className="w-6 h-6" fill={active ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 1.5}>
++        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
++      </svg>
++    ),
++  },
++];
++
++export function BottomNav() {
++  const pathname = usePathname();
++
++  return (
++    <nav aria-label="Primary navigation" className="board-nav fixed bottom-0 left-0 right-0 z-50 px-3 pb-2 md:hidden">
++      <div className="absolute inset-x-3 inset-y-0 rounded-2xl border border-border bg-card/80 backdrop-blur-xl" />
++
++      <div className="relative flex items-center justify-evenly px-2 py-2 pb-safe">
++        {navItems.map((item) => {
++          const isActive = pathname === item.href;
++
++          return (
++            <Link
++              key={item.href}
++              href={item.href}
++              aria-current={isActive ? 'page' : undefined}
++              className={cn(
++                'relative flex min-w-[72px] flex-col items-center justify-center rounded-xl px-5 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
++                isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
++              )}
++            >
++              {isActive && (
++                <div className="absolute inset-0 rounded-xl border border-primary/10 bg-primary/10" />
++              )}
++              <div className="relative z-10">
++                {item.icon(isActive)}
++              </div>
++              <span
++                className={cn(
++                  'relative z-10 text-xs mt-1 font-medium',
++                  isActive ? 'text-primary' : 'text-muted-foreground'
++                )}
++              >
++                {item.label}
++              </span>
++            </Link>
++          );
++        })}
++      </div>
++    </nav>
++  );
++}
+diff --git a/components/original-board/shared/InstallPrompt.tsx b/components/original-board/shared/InstallPrompt.tsx
+new file mode 100644
+index 0000000..e6fcb3d
+--- /dev/null
++++ b/components/original-board/shared/InstallPrompt.tsx
+@@ -0,0 +1,92 @@
++'use client';
++
++import { useEffect, useState } from 'react';
++import { Button } from '@/components/original-board/ui/button';
++
++interface DeferredPrompt extends Event {
++  prompt: () => Promise<void>;
++  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
++}
++
++function detectIOS() {
++  if (typeof window === 'undefined') return false;
++  const isIOS = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
++  const nav = window.navigator as Navigator & { standalone?: boolean };
++  const isStandalone = nav.standalone === true;
++  return isIOS && !isStandalone;
++}
++
++export function InstallPrompt() {
++
++  const [deferredPrompt, setDeferredPrompt] = useState<DeferredPrompt | null>(null);
++  const [isVisible, setIsVisible] = useState(false);
++  const [showIOS, setShowIOS] = useState(false);
++
++  useEffect(() => {
++    let isMounted = true;
++    const dismissed = sessionStorage.getItem('climbset-install-dismissed') === '1';
++    if (dismissed) return;
++
++    queueMicrotask(() => {
++      if (isMounted) {
++        setShowIOS(detectIOS());
++      }
++    });
++
++    const handleBeforeInstall = (event: Event) => {
++      event.preventDefault();
++      setDeferredPrompt(event as DeferredPrompt);
++      setIsVisible(true);
++    };
++
++    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
++    return () => {
++      isMounted = false;
++      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
++    };
++  }, []);
++
++  const handleInstall = async () => {
++    if (!deferredPrompt) return;
++    await deferredPrompt.prompt();
++    await deferredPrompt.userChoice;
++    setDeferredPrompt(null);
++    setIsVisible(false);
++    setShowIOS(false);
++    sessionStorage.setItem('climbset-install-dismissed', '1');
++  };
++
++  const handleDismiss = () => {
++    sessionStorage.setItem('climbset-install-dismissed', '1');
++    setIsVisible(false);
++    setShowIOS(false);
++  };
++
++  return (
++    <>
++      {isVisible && (
++        <div className="mb-3 rounded-xl border border-border/50 bg-card/80 px-4 py-2 text-sm text-foreground flex items-center justify-between gap-3">
++          <span>Install Boarded for a faster, app-like experience.</span>
++          <div className="flex items-center gap-2">
++            <Button variant="outline" size="sm" onClick={handleDismiss}>
++              Not now
++            </Button>
++            <Button size="sm" onClick={handleInstall}>
++              Install
++            </Button>
++          </div>
++        </div>
++      )}
++      {!isVisible && showIOS && (
++        <div className="mb-3 rounded-xl border border-border/50 bg-card/80 px-4 py-2 text-sm text-foreground">
++          <div className="flex items-center justify-between gap-3">
++            <span>Install on iOS: Tap Share, then “Add to Home Screen”.</span>
++            <Button variant="outline" size="sm" onClick={handleDismiss}>
++              Got it
++            </Button>
++          </div>
++        </div>
++      )}
++    </>
++  );
++}
+diff --git a/components/original-board/theme.tsx b/components/original-board/theme.tsx
+new file mode 100644
+index 0000000..088b295
+--- /dev/null
++++ b/components/original-board/theme.tsx
+@@ -0,0 +1,108 @@
++'use client';
++
++/**
++ * Route-local theme provider for /board, restored from the 668e334 baseline.
++ *
++ * The historical app used next-themes (attribute="class", defaultTheme="system",
++ * enableSystem) at the root. The current root forces dark and must not be
++ * mutated, so the board keeps its own equivalent: state initialized from
++ * `prefers-color-scheme`, persisted to localStorage, applied as a scoped
++ * wrapper class (`board-original dark`) that portal roots (dialogs, select
++ * popovers) also carry so tokens resolve everywhere. Toasts stay consumed by
++ * the single root-layout Toaster, which /board re-themes with route-presence
++ * CSS (see board-original.css) — a second live Toaster would double-consume
++ * the shared toast store (hidden timers dismissing visible toasts).
++ */
++
++import {
++  createContext,
++  useContext,
++  useEffect,
++  useMemo,
++  useState,
++  type ReactNode,
++} from 'react';
++
++export type BoardTheme = 'light' | 'dark' | 'system';
++export type BoardResolvedTheme = 'light' | 'dark';
++
++const STORAGE_KEY = 'boarded-board-theme';
++
++interface BoardThemeContextValue {
++  theme: BoardTheme;
++  resolvedTheme: BoardResolvedTheme;
++  setTheme: (theme: BoardTheme) => void;
++}
++
++const BoardThemeContext = createContext<BoardThemeContextValue>({
++  theme: 'system',
++  resolvedTheme: 'light',
++  setTheme: () => {},
++});
++
++export function useBoardTheme() {
++  return useContext(BoardThemeContext);
++}
++
++/** Class list that scopes the restored board tokens. Portals re-apply it. */
++export function useBoardScopeClass(): string {
++  const { resolvedTheme } = useBoardTheme();
++  return resolvedTheme === 'dark' ? 'board-original dark' : 'board-original';
++}
++
++
++export function BoardThemeProvider({ children }: { children: ReactNode }) {
++  const [theme, setThemeState] = useState<BoardTheme>('system');
++  const [systemDark, setSystemDark] = useState(false);
++  const [mounted, setMounted] = useState(false);
++
++  useEffect(() => {
++    try {
++      const stored = localStorage.getItem(STORAGE_KEY);
++      if (stored === 'light' || stored === 'dark' || stored === 'system') {
++        setThemeState(stored);
++      }
++    } catch {
++      // Private browsing: fall back to system preference.
++    }
++    setSystemDark(window.matchMedia('(prefers-color-scheme: dark)').matches);
++    setMounted(true);
++    const media = window.matchMedia('(prefers-color-scheme: dark)');
++    const onChange = (event: MediaQueryListEvent) => setSystemDark(event.matches);
++    media.addEventListener('change', onChange);
++    return () => media.removeEventListener('change', onChange);
++  }, []);
++
++  const resolvedTheme: BoardResolvedTheme = mounted
++    ? theme === 'system'
++      ? systemDark
++        ? 'dark'
++        : 'light'
++      : theme
++    : 'light';
++
++  const setTheme = (next: BoardTheme) => {
++    setThemeState(next);
++    try {
++      localStorage.setItem(STORAGE_KEY, next);
++    } catch {
++      // Ignore persistence failures.
++    }
++  };
++
++  const value = useMemo(
++    () => ({ theme, resolvedTheme, setTheme }),
++    [theme, resolvedTheme]
++  );
++  return (
++    <BoardThemeContext.Provider value={value}>
++      <div
++        className={
++          resolvedTheme === 'dark' ? 'board-root board-original dark' : 'board-root board-original'
++        }
++      >
++        {children}
++      </div>
++    </BoardThemeContext.Provider>
++  );
++}
+diff --git a/components/original-board/ui/button.tsx b/components/original-board/ui/button.tsx
+new file mode 100644
+index 0000000..525934a
+--- /dev/null
++++ b/components/original-board/ui/button.tsx
+@@ -0,0 +1,62 @@
++import * as React from "react"
++import { Slot } from "@radix-ui/react-slot"
++import { cva, type VariantProps } from "class-variance-authority"
++
++import { cn } from "@/lib/utils"
++
++const buttonVariants = cva(
++  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold transition-[color,background-color,border-color,box-shadow,transform] duration-200 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/30 focus-visible:ring-[3px] active:translate-y-px aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
++  {
++    variants: {
++      variant: {
++        default: "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:shadow-md",
++        destructive:
++          "bg-destructive text-white shadow-sm hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",
++        outline:
++          "border border-border/80 bg-card/70 shadow-xs hover:border-primary/30 hover:bg-accent/12 hover:text-foreground",
++        secondary:
++          "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/88",
++        ghost:
++          "hover:bg-accent/12 hover:text-foreground",
++        link: "text-primary underline-offset-4 hover:underline",
++      },
++      size: {
++        default: "h-10 px-4 py-2 has-[>svg]:px-3",
++        sm: "h-9 rounded-lg gap-1.5 px-3 has-[>svg]:px-2.5",
++        lg: "h-12 rounded-xl px-6 has-[>svg]:px-4",
++        icon: "size-10",
++        "icon-sm": "size-9",
++        "icon-lg": "size-12",
++      },
++    },
++    defaultVariants: {
++      variant: "default",
++      size: "default",
++    },
++  }
++)
++
++function Button({
++  className,
++  variant = "default",
++  size = "default",
++  asChild = false,
++  ...props
++}: React.ComponentProps<"button"> &
++  VariantProps<typeof buttonVariants> & {
++    asChild?: boolean
++  }) {
++  const Comp = asChild ? Slot : "button"
++
++  return (
++    <Comp
++      data-slot="button"
++      data-variant={variant}
++      data-size={size}
++      className={cn(buttonVariants({ variant, size, className }))}
++      {...props}
++    />
++  )
++}
++
++export { Button, buttonVariants }
+diff --git a/components/original-board/ui/dialog.tsx b/components/original-board/ui/dialog.tsx
+new file mode 100644
+index 0000000..1cd3235
+--- /dev/null
++++ b/components/original-board/ui/dialog.tsx
+@@ -0,0 +1,150 @@
++"use client"
++
++import * as React from "react"
++import * as DialogPrimitive from "@radix-ui/react-dialog"
++import { XIcon } from "lucide-react"
++
++import { cn } from "@/lib/utils"
++import { useBoardScopeClass } from "@/components/original-board/theme"
++
++function Dialog({
++  ...props
++}: React.ComponentProps<typeof DialogPrimitive.Root>) {
++  return <DialogPrimitive.Root data-slot="dialog" {...props} />
++}
++
++function DialogTrigger({
++  ...props
++}: React.ComponentProps<typeof DialogPrimitive.Trigger>) {
++  return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />
++}
++
++function DialogPortal({
++  ...props
++}: React.ComponentProps<typeof DialogPrimitive.Portal>) {
++  return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />
++}
++
++function DialogClose({
++  ...props
++}: React.ComponentProps<typeof DialogPrimitive.Close>) {
++  return <DialogPrimitive.Close data-slot="dialog-close" {...props} />
++}
++
++function DialogOverlay({
++  className,
++  ...props
++}: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
++  // Radix portals render into document.body, outside the board wrapper —
++  // re-apply the scoped token class so the warm palette resolves.
++  const scopeClass = useBoardScopeClass()
++  return (
++    <DialogPrimitive.Overlay
++      data-slot="dialog-overlay"
++      className={cn(
++        scopeClass,
++        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-foreground/55 backdrop-blur-sm",
++        className
++      )}
++      {...props}
++    />
++  )
++}
++
++function DialogContent({
++  className,
++  children,
++  showCloseButton = true,
++  ...props
++}: React.ComponentProps<typeof DialogPrimitive.Content> & {
++  showCloseButton?: boolean
++}) {
++  const scopeClass = useBoardScopeClass()
++  return (
++    <DialogPortal data-slot="dialog-portal">
++      <DialogOverlay />
++      <DialogPrimitive.Content
++        data-slot="dialog-content"
++        className={cn(
++          scopeClass,
++          "bg-card/95 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-5 rounded-2xl border border-border/70 p-6 shadow-[var(--shadow-float)] backdrop-blur-xl duration-200 outline-none sm:max-w-lg",
++          className
++        )}
++        {...props}
++      >
++        {children}
++        {showCloseButton && (
++          <DialogPrimitive.Close
++            data-slot="dialog-close"
++            className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent/15 data-[state=open]:text-foreground absolute top-4 right-4 flex size-9 items-center justify-center rounded-lg opacity-70 transition-opacity hover:bg-muted hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
++          >
++            <XIcon />
++            <span className="sr-only">Close</span>
++          </DialogPrimitive.Close>
++        )}
++      </DialogPrimitive.Content>
++    </DialogPortal>
++  )
++}
++
++function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
++  return (
++    <div
++      data-slot="dialog-header"
++      className={cn("flex flex-col gap-2 text-center sm:text-left", className)}
++      {...props}
++    />
++  )
++}
++
++function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
++  return (
++    <div
++      data-slot="dialog-footer"
++      className={cn(
++        "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
++        className
++      )}
++      {...props}
++    />
++  )
++}
++
++function DialogTitle({
++  className,
++  ...props
++}: React.ComponentProps<typeof DialogPrimitive.Title>) {
++  return (
++    <DialogPrimitive.Title
++      data-slot="dialog-title"
++      className={cn("text-xl leading-tight font-semibold", className)}
++      {...props}
++    />
++  )
++}
++
++function DialogDescription({
++  className,
++  ...props
++}: React.ComponentProps<typeof DialogPrimitive.Description>) {
++  return (
++    <DialogPrimitive.Description
++      data-slot="dialog-description"
++      className={cn("text-muted-foreground text-sm", className)}
++      {...props}
++    />
++  )
++}
++
++export {
++  Dialog,
++  DialogClose,
++  DialogContent,
++  DialogDescription,
++  DialogFooter,
++  DialogHeader,
++  DialogOverlay,
++  DialogPortal,
++  DialogTitle,
++  DialogTrigger,
++}
+diff --git a/components/original-board/ui/input.tsx b/components/original-board/ui/input.tsx
+new file mode 100644
+index 0000000..90b2e22
+--- /dev/null
++++ b/components/original-board/ui/input.tsx
+@@ -0,0 +1,21 @@
++import * as React from "react"
++
++import { cn } from "@/lib/utils"
++
++function Input({ className, type, ...props }: React.ComponentProps<"input">) {
++  return (
++    <input
++      type={type}
++      data-slot="input"
++      className={cn(
++        "file:text-foreground placeholder:text-muted-foreground/80 selection:bg-primary selection:text-primary-foreground dark:bg-input/35 border-input h-11 w-full min-w-0 rounded-xl border bg-card/65 px-3.5 py-2 text-base shadow-xs transition-[color,background-color,border-color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
++        "hover:border-primary/25 focus-visible:border-ring focus-visible:bg-card focus-visible:ring-ring/25 focus-visible:ring-[3px]",
++        "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
++        className
++      )}
++      {...props}
++    />
++  )
++}
++
++export { Input }
+diff --git a/components/original-board/ui/select.tsx b/components/original-board/ui/select.tsx
+new file mode 100644
+index 0000000..9bef3a2
+--- /dev/null
++++ b/components/original-board/ui/select.tsx
+@@ -0,0 +1,161 @@
++"use client"
++
++import * as React from "react"
++import * as SelectPrimitive from "@radix-ui/react-select"
++import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react"
++
++import { cn } from "@/lib/utils"
++import { useBoardScopeClass } from "@/components/original-board/theme"
++
++function Select({
++  ...props
++}: React.ComponentProps<typeof SelectPrimitive.Root>) {
++  return <SelectPrimitive.Root data-slot="select" {...props} />
++}
++
++
++function SelectValue({
++  ...props
++}: React.ComponentProps<typeof SelectPrimitive.Value>) {
++  return <SelectPrimitive.Value data-slot="select-value" {...props} />
++}
++
++function SelectTrigger({
++  className,
++  size = "default",
++  children,
++  ...props
++}: React.ComponentProps<typeof SelectPrimitive.Trigger> & {
++  size?: "sm" | "default"
++}) {
++  return (
++    <SelectPrimitive.Trigger
++      data-slot="select-trigger"
++      data-size={size}
++      className={cn(
++        "border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex w-fit items-center justify-between gap-2 rounded-md border bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
++        className
++      )}
++      {...props}
++    >
++      {children}
++      <SelectPrimitive.Icon asChild>
++        <ChevronDownIcon className="size-4 opacity-50" />
++      </SelectPrimitive.Icon>
++    </SelectPrimitive.Trigger>
++  )
++}
++
++function SelectContent({
++  className,
++  children,
++  position = "item-aligned",
++  align = "center",
++  ...props
++}: React.ComponentProps<typeof SelectPrimitive.Content>) {
++  // Select content renders through a portal into document.body, outside the
++  // board wrapper — re-apply the scoped token class so warm palette vars resolve.
++  const scopeClass = useBoardScopeClass()
++  return (
++    <SelectPrimitive.Portal>
++      <SelectPrimitive.Content
++        data-slot="select-content"
++        className={cn(
++          scopeClass,
++          "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 relative z-50 max-h-(--radix-select-content-available-height) min-w-[8rem] origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border shadow-md",
++          position === "popper" &&
++            "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
++          className
++        )}
++        position={position}
++        align={align}
++        {...props}
++      >
++        <SelectScrollUpButton />
++        <SelectPrimitive.Viewport
++          className={cn(
++            "p-1",
++            position === "popper" &&
++              "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)] scroll-my-1"
++          )}
++        >
++          {children}
++        </SelectPrimitive.Viewport>
++        <SelectScrollDownButton />
++      </SelectPrimitive.Content>
++    </SelectPrimitive.Portal>
++  )
++}
++
++
++function SelectItem({
++  className,
++  children,
++  ...props
++}: React.ComponentProps<typeof SelectPrimitive.Item>) {
++  return (
++    <SelectPrimitive.Item
++      data-slot="select-item"
++      className={cn(
++        "focus:bg-accent focus:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
++        className
++      )}
++      {...props}
++    >
++      <span
++        data-slot="select-item-indicator"
++        className="absolute right-2 flex size-3.5 items-center justify-center"
++      >
++        <SelectPrimitive.ItemIndicator>
++          <CheckIcon className="size-4" />
++        </SelectPrimitive.ItemIndicator>
++      </span>
++      <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
++    </SelectPrimitive.Item>
++  )
++}
++
++
++function SelectScrollUpButton({
++  className,
++  ...props
++}: React.ComponentProps<typeof SelectPrimitive.ScrollUpButton>) {
++  return (
++    <SelectPrimitive.ScrollUpButton
++      data-slot="select-scroll-up-button"
++      className={cn(
++        "flex cursor-default items-center justify-center py-1",
++        className
++      )}
++      {...props}
++    >
++      <ChevronUpIcon className="size-4" />
++    </SelectPrimitive.ScrollUpButton>
++  )
++}
++
++function SelectScrollDownButton({
++  className,
++  ...props
++}: React.ComponentProps<typeof SelectPrimitive.ScrollDownButton>) {
++  return (
++    <SelectPrimitive.ScrollDownButton
++      data-slot="select-scroll-down-button"
++      className={cn(
++        "flex cursor-default items-center justify-center py-1",
++        className
++      )}
++      {...props}
++    >
++      <ChevronDownIcon className="size-4" />
++    </SelectPrimitive.ScrollDownButton>
++  )
++}
++
++export {
++  Select,
++  SelectContent,
++  SelectItem,
++  SelectTrigger,
++  SelectValue,
++}
+diff --git a/components/original-board/wall/HoldMarker.tsx b/components/original-board/wall/HoldMarker.tsx
+new file mode 100644
+index 0000000..3bde5f5
+--- /dev/null
++++ b/components/original-board/wall/HoldMarker.tsx
+@@ -0,0 +1,65 @@
++'use client';
++
++import { Hold, HOLD_SIZES, HOLD_BORDER_WIDTH } from '@boarded/shared/types';
++
++interface HoldMarkerProps {
++  hold: Hold;
++  containerWidth: number;
++  containerHeight: number;
++  showSequence: boolean;
++}
++
++export function HoldMarker({
++  hold,
++  containerWidth,
++  containerHeight,
++  showSequence,
++}: HoldMarkerProps) {
++  // Convert percentage to pixels
++  const x = (hold.x / 100) * containerWidth;
++  const y = (hold.y / 100) * containerHeight;
++
++  // Get size in pixels (percentage of container width)
++  const sizePercent = parseFloat(HOLD_SIZES[hold.size]);
++  const size = (sizePercent / 100) * containerWidth;
++  const halfSize = size / 2;
++
++  // Get border width based on hold size
++  const borderWidth = HOLD_BORDER_WIDTH[hold.size];
++
++  return (
++    <div
++      className="absolute pointer-events-none"
++      style={{
++        left: `${x - halfSize}px`,
++        top: `${y - halfSize}px`,
++        width: `${size}px`,
++        height: `${size}px`,
++      }}
++    >
++      {/* Hold circle */}
++      <div
++        className="w-full h-full rounded-full transition-all"
++        style={{
++          borderWidth: `${borderWidth}px`,
++          borderStyle: 'solid',
++          borderColor: hold.color,
++          backgroundColor: `${hold.color}20`, // 20% opacity
++        }}
++      />
++
++      {/* Sequence number */}
++      {showSequence && hold.sequence !== null && (
++        <div
++          className="absolute inset-0 flex items-center justify-center text-white font-bold pointer-events-none"
++          style={{
++            fontSize: `${size * 0.4}px`,
++            textShadow: '0 0 4px rgba(0,0,0,0.8)',
++          }}
++        >
++          {hold.sequence}
++        </div>
++      )}
++    </div>
++  );
++}
+diff --git a/components/original-board/wall/RouteViewer.tsx b/components/original-board/wall/RouteViewer.tsx
+new file mode 100644
+index 0000000..ffee3d8
+--- /dev/null
++++ b/components/original-board/wall/RouteViewer.tsx
+@@ -0,0 +1,755 @@
++'use client';
++
++import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type SyntheticEvent } from 'react';
++import Image from 'next/image';
++import { nanoid } from 'nanoid';
++import { HOLD_BORDER_WIDTH, HOLD_COLORS, type Comment, type Hold, type Route } from '@boarded/shared/types';
++import { calculateDisplayGrade } from '@boarded/shared/utils/grades';
++import { CommentsSection } from '@/components/original-board/route/CommentsSection';
++import { LogClimbDialog } from '@/components/original-board/home/LogClimbDialog';
++import { useRoutesStore } from '@/lib/stores/routes-store';
++import { useUserStore } from '@/lib/stores/user-store';
++import { cn } from '@/lib/utils';
++import { toast } from 'sonner';
++
++interface RouteViewerProps {
++  wallImageUrl: string;
++  wallImageWidth?: number;
++  wallImageHeight?: number;
++  holds: Hold[];
++  routeName: string;
++  grade?: string;
++  setterName?: string;
++  routeId?: string;
++  comments?: Comment[];
++  fitToContent?: boolean;
++  route?: Route;
++}
++
++type Point = { x: number; y: number };
++type ViewerSize = { width: number; height: number };
++type Pan = Point;
++type Gesture =
++  | { kind: 'pan'; startPoint: Point; startPan: Pan }
++  | {
++      kind: 'pinch';
++      startDistance: number;
++      startMidpoint: Point;
++      startZoom: number;
++      startPan: Pan;
++    };
++
++const MIN_ZOOM = 1;
++const MAX_ZOOM = 4;
++const PAN_STEP = 48;
++
++type RouteWithSyncState = Route & { _createSyncPending?: boolean };
++
++const hasPendingCreate = (candidate?: Route) =>
++  Boolean(candidate && (candidate as RouteWithSyncState)._createSyncPending);
++function clamp(value: number, min: number, max: number) {
++  return Math.min(max, Math.max(min, value));
++}
++
++function distanceBetween(first: Point, second: Point) {
++  return Math.hypot(second.x - first.x, second.y - first.y);
++}
++
++function midpointBetween(first: Point, second: Point): Point {
++  return {
++    x: (first.x + second.x) / 2,
++    y: (first.y + second.y) / 2,
++  };
++}
++
++export function RouteViewer({
++  wallImageUrl,
++  wallImageWidth,
++  wallImageHeight,
++  holds,
++  routeName,
++  grade,
++  setterName,
++  routeId,
++  comments = [],
++  fitToContent = false,
++  route,
++}: RouteViewerProps) {
++  const viewportRef = useRef<HTMLDivElement>(null);
++  const [viewportSize, setViewportSize] = useState<ViewerSize>({ width: 0, height: 0 });
++  const [displaySize, setDisplaySize] = useState<ViewerSize | null>(null);
++  const [naturalSize, setNaturalSize] = useState<ViewerSize>({
++    width: wallImageWidth || 1920,
++    height: wallImageHeight || 1080,
++  });
++  const [zoom, setZoom] = useState(MIN_ZOOM);
++  const [pan, setPan] = useState<Pan>({ x: 0, y: 0 });
++  const [isLogOpen, setIsLogOpen] = useState(false);
++  const zoomRef = useRef(MIN_ZOOM);
++  const panRef = useRef<Pan>({ x: 0, y: 0 });
++  const pointerMapRef = useRef(new Map<number, Point>());
++  const gestureRef = useRef<Gesture | null>(null);
++
++  const { routes, toggleLike, isLikedByUser, getLikeCount, updateRoute, syncLocalRoutes, fetchRouteById } = useRoutesStore();
++  const { user, isModerator } = useUserStore();
++  const currentUserId = user?.id;
++
++  const updateViewportSize = useCallback(() => {
++    const viewport = viewportRef.current;
++    if (!viewport) return;
++    const rect = viewport.getBoundingClientRect();
++    setViewportSize((current) => {
++      if (current.width === rect.width && current.height === rect.height) return current;
++      return { width: rect.width, height: rect.height };
++    });
++  }, []);
++
++  useEffect(() => {
++    updateViewportSize();
++    const viewport = viewportRef.current;
++    if (!viewport) return;
++
++    const resizeObserver = new ResizeObserver(updateViewportSize);
++    resizeObserver.observe(viewport);
++    window.addEventListener('resize', updateViewportSize);
++
++    return () => {
++      resizeObserver.disconnect();
++      window.removeEventListener('resize', updateViewportSize);
++    };
++  }, [updateViewportSize]);
++
++  useEffect(() => {
++    if (!fitToContent) {
++      setDisplaySize(null);
++      return;
++    }
++
++    const aspect = naturalSize.width / Math.max(1, naturalSize.height);
++    const fit = () => {
++      const maxWidth = Math.min(window.innerWidth * 0.95, naturalSize.width);
++      const maxHeight = Math.min(
++        window.innerHeight * (routeId ? 0.64 : 0.9),
++        naturalSize.height
++      );
++      let width = maxWidth;
++      let height = width / aspect;
++
++      if (height > maxHeight) {
++        height = maxHeight;
++        width = height * aspect;
++      }
++
++      setDisplaySize({
++        width: Math.max(1, Math.round(width)),
++        height: Math.max(1, Math.round(height)),
++      });
++    };
++
++    fit();
++    window.addEventListener('resize', fit);
++    return () => window.removeEventListener('resize', fit);
++  }, [fitToContent, naturalSize, routeId]);
++
++  const canvasSize = useMemo<ViewerSize>(() => {
++    if (fitToContent && displaySize) return displaySize;
++    if (!viewportSize.width || !viewportSize.height) return { width: 0, height: 0 };
++
++    const aspect = naturalSize.width / Math.max(1, naturalSize.height);
++    let width = Math.min(viewportSize.width, naturalSize.width);
++    let height = width / aspect;
++    if (height > viewportSize.height) {
++      height = viewportSize.height;
++      width = height * aspect;
++    }
++
++    return {
++      width: Math.max(1, width),
++      height: Math.max(1, height),
++    };
++  }, [displaySize, fitToContent, naturalSize, viewportSize]);
++
++  const clampPan = useCallback(
++    (candidate: Pan, scale: number): Pan => {
++      if (!viewportSize.width || !viewportSize.height || !canvasSize.width || !canvasSize.height) {
++        return { x: 0, y: 0 };
++      }
++
++      const maxX = Math.max(0, (canvasSize.width * scale - viewportSize.width) / 2);
++      const maxY = Math.max(0, (canvasSize.height * scale - viewportSize.height) / 2);
++      return {
++        x: clamp(candidate.x, -maxX, maxX),
++        y: clamp(candidate.y, -maxY, maxY),
++      };
++    },
++    [canvasSize, viewportSize]
++  );
++
++  const commitPan = useCallback((nextPan: Pan) => {
++    panRef.current = nextPan;
++    setPan(nextPan);
++  }, []);
++
++  const applyZoom = useCallback(
++    (requestedZoom: number, anchor?: Point) => {
++      const nextZoom = clamp(requestedZoom, MIN_ZOOM, MAX_ZOOM);
++      const currentZoom = zoomRef.current;
++      const currentPan = panRef.current;
++      let nextPan: Pan = {
++        x: currentPan.x * (nextZoom / currentZoom),
++        y: currentPan.y * (nextZoom / currentZoom),
++      };
++
++      if (anchor && viewportSize.width && viewportSize.height) {
++        const center = {
++          x: viewportSize.width / 2,
++          y: viewportSize.height / 2,
++        };
++        const worldPoint = {
++          x: (anchor.x - center.x - currentPan.x) / currentZoom,
++          y: (anchor.y - center.y - currentPan.y) / currentZoom,
++        };
++        nextPan = {
++          x: anchor.x - center.x - worldPoint.x * nextZoom,
++          y: anchor.y - center.y - worldPoint.y * nextZoom,
++        };
++      }
++
++      nextPan = clampPan(nextPan, nextZoom);
++      zoomRef.current = nextZoom;
++      commitPan(nextPan);
++      setZoom(nextZoom);
++    },
++    [clampPan, commitPan, viewportSize]
++  );
++
++  const resetView = useCallback(() => {
++    zoomRef.current = MIN_ZOOM;
++    commitPan({ x: 0, y: 0 });
++    setZoom(MIN_ZOOM);
++  }, [commitPan]);
++
++  useEffect(() => {
++    const nextPan = clampPan(panRef.current, zoomRef.current);
++    if (nextPan.x !== panRef.current.x || nextPan.y !== panRef.current.y) {
++      commitPan(nextPan);
++    }
++  }, [canvasSize, clampPan, commitPan, viewportSize]);
++
++  useEffect(() => {
++    resetView();
++    pointerMapRef.current.clear();
++    gestureRef.current = null;
++  }, [resetView, routeId, wallImageUrl]);
++
++  const handleImageLoad = useCallback(
++    (event: SyntheticEvent<HTMLImageElement>) => {
++      const image = event.currentTarget;
++      if (image.naturalWidth && image.naturalHeight) {
++        setNaturalSize({ width: image.naturalWidth, height: image.naturalHeight });
++      }
++      updateViewportSize();
++    },
++    [updateViewportSize]
++  );
++
++  const getLocalPoint = useCallback((event: ReactPointerEvent<HTMLDivElement>): Point => {
++    const rect = event.currentTarget.getBoundingClientRect();
++    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
++  }, []);
++
++  const beginPinch = useCallback(() => {
++    const points = Array.from(pointerMapRef.current.values()).slice(0, 2);
++    if (points.length < 2) return;
++
++    gestureRef.current = {
++      kind: 'pinch',
++      startDistance: Math.max(1, distanceBetween(points[0], points[1])),
++      startMidpoint: midpointBetween(points[0], points[1]),
++      startZoom: zoomRef.current,
++      startPan: panRef.current,
++    };
++  }, []);
++
++  const handlePointerDown = useCallback(
++    (event: ReactPointerEvent<HTMLDivElement>) => {
++      if (event.pointerType === 'mouse' && event.button !== 0) return;
++
++      const point = getLocalPoint(event);
++      pointerMapRef.current.set(event.pointerId, point);
++      event.currentTarget.setPointerCapture(event.pointerId);
++
++      if (pointerMapRef.current.size >= 2) {
++        beginPinch();
++      } else {
++        gestureRef.current = {
++          kind: 'pan',
++          startPoint: point,
++          startPan: panRef.current,
++        };
++      }
++    },
++    [beginPinch, getLocalPoint]
++  );
++
++  const handlePointerMove = useCallback(
++    (event: ReactPointerEvent<HTMLDivElement>) => {
++      if (!pointerMapRef.current.has(event.pointerId)) return;
++      const point = getLocalPoint(event);
++      pointerMapRef.current.set(event.pointerId, point);
++      const gesture = gestureRef.current;
++
++      if (pointerMapRef.current.size >= 2) {
++        if (!gesture || gesture.kind !== 'pinch') {
++          beginPinch();
++          return;
++        }
++
++        const points = Array.from(pointerMapRef.current.values()).slice(0, 2);
++        const midpoint = midpointBetween(points[0], points[1]);
++        const pinchZoom =
++          gesture.startZoom *
++          (distanceBetween(points[0], points[1]) / Math.max(1, gesture.startDistance));
++        const nextZoom = clamp(pinchZoom, MIN_ZOOM, MAX_ZOOM);
++        const center = {
++          x: viewportSize.width / 2,
++          y: viewportSize.height / 2,
++        };
++        const worldPoint = {
++          x: (gesture.startMidpoint.x - center.x - gesture.startPan.x) / gesture.startZoom,
++          y: (gesture.startMidpoint.y - center.y - gesture.startPan.y) / gesture.startZoom,
++        };
++        const nextPan = clampPan(
++          {
++            x: midpoint.x - center.x - worldPoint.x * nextZoom,
++            y: midpoint.y - center.y - worldPoint.y * nextZoom,
++          },
++          nextZoom
++        );
++
++        zoomRef.current = nextZoom;
++        commitPan(nextPan);
++        setZoom(nextZoom);
++        return;
++      }
++
++      if (gesture?.kind === 'pan' && zoomRef.current > MIN_ZOOM) {
++        commitPan(
++          clampPan(
++            {
++              x: gesture.startPan.x + point.x - gesture.startPoint.x,
++              y: gesture.startPan.y + point.y - gesture.startPoint.y,
++            },
++            zoomRef.current
++          )
++        );
++      }
++    },
++    [beginPinch, clampPan, commitPan, getLocalPoint, viewportSize]
++  );
++
++  const handlePointerUp = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
++    pointerMapRef.current.delete(event.pointerId);
++    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
++      event.currentTarget.releasePointerCapture(event.pointerId);
++    }
++
++    const remaining = Array.from(pointerMapRef.current.entries());
++    if (remaining.length === 1) {
++      gestureRef.current = {
++        kind: 'pan',
++        startPoint: remaining[0][1],
++        startPan: panRef.current,
++      };
++    } else {
++      gestureRef.current = null;
++    }
++  }, []);
++
++  const handleWheel = useCallback(
++    (event: WheelEvent) => {
++      event.preventDefault();
++      const viewport = viewportRef.current;
++      if (!viewport) return;
++      const rect = viewport.getBoundingClientRect();
++      const anchor = { x: event.clientX - rect.left, y: event.clientY - rect.top };
++      const nextZoom = zoomRef.current * Math.exp(-event.deltaY * 0.0015);
++      applyZoom(nextZoom, anchor);
++    },
++    [applyZoom]
++  );
++
++  useEffect(() => {
++    const viewport = viewportRef.current;
++    if (!viewport) return;
++    viewport.addEventListener('wheel', handleWheel, { passive: false });
++    return () => viewport.removeEventListener('wheel', handleWheel);
++  }, [handleWheel]);
++
++  const handleKeyDown = useCallback(
++    (event: ReactKeyboardEvent<HTMLDivElement>) => {
++      if (event.key === 'Escape' && zoomRef.current > MIN_ZOOM) {
++        event.preventDefault();
++        resetView();
++      } else if (event.key === '+' || event.key === '=') {
++        event.preventDefault();
++        applyZoom(zoomRef.current * 1.2);
++      } else if (event.key === '-') {
++        event.preventDefault();
++        applyZoom(zoomRef.current / 1.2);
++      } else if (
++        zoomRef.current > MIN_ZOOM &&
++        (event.key === 'ArrowLeft' ||
++          event.key === 'ArrowRight' ||
++          event.key === 'ArrowUp' ||
++          event.key === 'ArrowDown')
++      ) {
++        event.preventDefault();
++        const delta =
++          event.key === 'ArrowLeft'
++            ? { x: -PAN_STEP, y: 0 }
++            : event.key === 'ArrowRight'
++              ? { x: PAN_STEP, y: 0 }
++              : event.key === 'ArrowUp'
++                ? { x: 0, y: -PAN_STEP }
++                : { x: 0, y: PAN_STEP };
++        commitPan(
++          clampPan(
++            {
++              x: panRef.current.x + delta.x,
++              y: panRef.current.y + delta.y,
++            },
++            zoomRef.current
++          )
++        );
++      }
++    },
++    [applyZoom, clampPan, commitPan, resetView]
++  );
++
++  const currentRoute = routeId ? routes.find((candidate) => candidate.id === routeId) : undefined;
++  const routeForActions = currentRoute || route;
++  const displayGrade = calculateDisplayGrade(routeForActions?.grade_v, routeForActions?.ascents) || grade;
++  const visibleComments = currentRoute?.comments ?? comments;
++  const likeCount = routeId ? getLikeCount(routeId) : routeForActions?.liked_by?.length || 0;
++  const sendCount = routeForActions?.ascents?.length || 0;
++  const isLiked = Boolean(routeId && currentUserId && isLikedByUser(routeId, currentUserId));
++
++  const handleLike = useCallback(async () => {
++    if (!routeId) return;
++    if (routeForActions?.user_id === 'local-user' || hasPendingCreate(routeForActions)) {
++      toast.error('Sync this route before liking it.');
++      return;
++    }
++    if (!currentUserId) {
++      toast.error('Log in to like routes.');
++      return;
++    }
++
++    const saved = await toggleLike(routeId, currentUserId);
++    if (!saved) toast.error('Unable to update like. Please try again.');
++  }, [routeForActions, routeId, toggleLike, currentUserId]);
++
++  const handleShare = useCallback(async () => {
++    let shareRoute = routeForActions;
++    if (!shareRoute) {
++      toast.error('Unable to share this route.');
++      return;
++    }
++    const shareRouteId = shareRoute.id;
++
++    if (shareRoute.user_id === 'local-user' || hasPendingCreate(shareRoute)) {
++      if (!currentUserId) {
++        toast.error('Log in to share a route across devices.');
++        return;
++      }
++      try {
++        await syncLocalRoutes();
++      } catch {
++        toast.error('Unable to sync this route before sharing');
++        return;
++      }
++      const syncedRoute = useRoutesStore.getState().routes.find((candidate) => candidate.id === shareRouteId);
++      if (!syncedRoute || syncedRoute.user_id === 'local-user' || hasPendingCreate(syncedRoute)) {
++        toast.error('Unable to sync this route before sharing');
++        return;
++      }
++      let verifiedRoute: Route | null;
++      try {
++        verifiedRoute = await fetchRouteById(shareRouteId);
++      } catch {
++        toast.error('Unable to verify this route before sharing');
++        return;
++      }
++      if (!verifiedRoute || verifiedRoute.user_id !== currentUserId || hasPendingCreate(verifiedRoute)) {
++        toast.error('Unable to verify this route before sharing');
++        return;
++      }
++      shareRoute = verifiedRoute;
++    }
++
++    const canManageSharing = isModerator || shareRoute.user_id === currentUserId;
++    if (!canManageSharing && !shareRoute.is_public) {
++      toast.error('Only the route owner can enable sharing for this route');
++      return;
++    }
++    if (!canManageSharing && !shareRoute.share_token) {
++      toast.error('Only the route owner can enable sharing for this route');
++      return;
++    }
++
++    const token = shareRoute.share_token || nanoid(10);
++    if (canManageSharing && (!shareRoute.is_public || shareRoute.share_token !== token)) {
++      let persisted = false;
++      try {
++        persisted = await updateRoute(shareRoute.id, { share_token: token, is_public: true });
++      } catch {
++        persisted = false;
++      }
++      if (!persisted) {
++        toast.error('Unable to persist a share link right now');
++        return;
++      }
++    }
++
++    const shareUrl =
++      typeof window !== 'undefined' ? `${window.location.origin}/share/${token}` : '';
++    if (!shareUrl) return;
++
++    try {
++      if (navigator.share) {
++        await navigator.share({ title: routeName, text: `Check out ${routeName}`, url: shareUrl });
++        return;
++      }
++      if (!navigator.clipboard) throw new Error('Clipboard unavailable');
++      await navigator.clipboard.writeText(shareUrl);
++      toast.success('Share link copied.');
++    } catch (error) {
++      if (error instanceof DOMException && error.name === 'AbortError') return;
++      toast.error('Unable to share this route.');
++    }
++  }, [
++    fetchRouteById,
++    isModerator,
++    routeForActions,
++    routeName,
++    syncLocalRoutes,
++    updateRoute,
++    currentUserId,
++  ]);
++
++
++  const viewportStyle =
++    fitToContent && displaySize
++      ? { width: displaySize.width, height: displaySize.height }
++      : undefined;
++  const rootStyle = fitToContent && displaySize ? { width: displaySize.width } : undefined;
++
++  return (
++    <div
++      className={cn(
++        'relative flex min-w-0 flex-col',
++        fitToContent ? 'w-fit max-w-full' : 'h-full w-full min-h-0'
++      )}
++      style={rootStyle}
++    >
++      <div
++        ref={viewportRef}
++        tabIndex={0}
++        onKeyDown={handleKeyDown}
++        onPointerDown={handlePointerDown}
++        onPointerMove={handlePointerMove}
++        onPointerUp={handlePointerUp}
++        onPointerCancel={handlePointerUp}
++        onDoubleClick={resetView}
++        aria-label="Route wall viewer. Pinch or scroll to zoom, then drag to pan."
++        className={cn(
++          'relative min-w-0 touch-none select-none overflow-hidden outline-none',
++          fitToContent ? 'shrink-0' : 'min-h-0 flex-1'
++        )}
++        style={viewportStyle}
++      >
++        <div className="absolute inset-0 flex items-center justify-center overflow-visible">
++          {canvasSize.width > 0 && canvasSize.height > 0 && (
++            <div
++              className="relative shrink-0 origin-center will-change-transform"
++              style={{
++                width: canvasSize.width,
++                height: canvasSize.height,
++                transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})`,
++              }}
++            >
++              <Image
++                src={wallImageUrl}
++                alt="Climbing wall"
++                width={wallImageWidth || naturalSize.width}
++                height={wallImageHeight || naturalSize.height}
++                className="absolute inset-0 block h-full w-full select-none object-fill"
++                priority
++                draggable={false}
++                onLoad={handleImageLoad}
++              />
++
++              <div className="pointer-events-none absolute inset-0">
++                {holds.map((hold) => {
++                  const size = hold.size === 'small' ? 24 : hold.size === 'large' ? 56 : 36;
++                  const borderWidth = HOLD_BORDER_WIDTH[hold.size];
++                  const label =
++                    hold.type === 'start' ? 'S' : hold.type === 'finish' ? 'F' : null;
++
++                  return (
++                    <div
++                      key={hold.id}
++                      className="absolute flex items-center justify-center"
++                      style={{
++                        left: `${hold.x}%`,
++                        top: `${hold.y}%`,
++                        width: size,
++                        height: size,
++                        transform: 'translate(-50%, -50%)',
++                      }}
++                    >
++                      <div
++                        className="relative flex h-full w-full items-center justify-center rounded-full border-solid"
++                        style={{
++                          borderWidth: `${borderWidth}px`,
++                          borderColor: HOLD_COLORS[hold.type],
++                        }}
++                      >
++                        <div
++                          className="absolute inset-0 rounded-full opacity-25"
++                          style={{ backgroundColor: HOLD_COLORS[hold.type] }}
++                        />
++                        {label && (
++                          <span className="relative text-sm font-bold text-foreground">{label}</span>
++                        )}
++                      </div>
++                    </div>
++                  );
++                })}
++              </div>
++            </div>
++          )}
++        </div>
++
++        <div className="pointer-events-none absolute inset-x-0 top-14 flex justify-end p-3">
++          <div className="pointer-events-auto flex items-center gap-1 rounded-xl border border-foreground/[0.12] bg-card/75 p-1 backdrop-blur-md">
++            <button
++              type="button"
++              onClick={() => applyZoom(zoomRef.current / 1.2)}
++              disabled={zoom <= MIN_ZOOM}
++              aria-label="Zoom out"
++              className="flex size-8 items-center justify-center rounded-lg text-foreground/70 transition-colors hover:bg-foreground/[0.08] hover:text-foreground disabled:pointer-events-none disabled:opacity-40 motion-reduce:transition-none"
++            >
++              <span aria-hidden="true" className="text-lg leading-none">−</span>
++            </button>
++            <span className="min-w-12 text-center text-xs font-medium tabular-nums text-foreground/70">
++              {Math.round(zoom * 100)}%
++            </span>
++            <button
++              type="button"
++              onClick={() => applyZoom(zoomRef.current * 1.2)}
++              disabled={zoom >= MAX_ZOOM}
++              aria-label="Zoom in"
++              className="flex size-8 items-center justify-center rounded-lg text-foreground/70 transition-colors hover:bg-foreground/[0.08] hover:text-foreground disabled:pointer-events-none disabled:opacity-40 motion-reduce:transition-none"
++            >
++              <span aria-hidden="true" className="text-lg leading-none">+</span>
++            </button>
++            {zoom > MIN_ZOOM && (
++              <button
++                type="button"
++                onClick={resetView}
++                aria-label="Reset zoom and pan"
++                className="rounded-lg px-2 py-1.5 text-xs font-medium text-foreground/70 transition-colors hover:bg-foreground/[0.08] hover:text-foreground motion-reduce:transition-none"
++              >
++                Reset
++              </button>
++            )}
++          </div>
++        </div>
++      </div>
++
++      {routeId && (
++        <section className="w-full shrink-0 border-t border-foreground/[0.12] bg-card/80 backdrop-blur-xl">
++          <div className="space-y-4 p-4 sm:p-5">
++            <div className="flex items-start justify-between gap-4">
++              <div className="min-w-0">
++                <h3 className="truncate text-lg font-semibold text-foreground">{routeName}</h3>
++                {setterName && <p className="mt-0.5 text-sm text-muted-foreground">by {setterName}</p>}
++              </div>
++              {displayGrade && (
++                <span className="shrink-0 rounded-full bg-primary/90 px-3 py-1 text-xs font-bold text-primary-foreground">
++                  {displayGrade}
++                </span>
++              )}
++            </div>
++
++            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
++              <div className="flex items-center gap-4 text-xs text-muted-foreground">
++                <span>
++                  <strong className="font-semibold text-foreground">{likeCount}</strong> likes
++                </span>
++                <span>
++                  <strong className="font-semibold text-foreground">{sendCount}</strong> sends
++                </span>
++                <span>
++                  <strong className="font-semibold text-foreground">{visibleComments.length}</strong>{' '}
++                  comments
++                </span>
++              </div>
++
++              <div className="flex flex-wrap items-center gap-2">
++                <button
++                  type="button"
++                  onClick={handleLike}
++                  aria-label={isLiked ? 'Unlike route' : 'Like route'}
++                  aria-pressed={isLiked}
++                  className={cn(
++                    'inline-flex h-9 items-center gap-1.5 rounded-xl border border-foreground/[0.12] px-3 text-xs font-semibold transition-colors motion-reduce:transition-none',
++                    isLiked
++                      ? 'border-border/50 bg-muted/50 text-red-500'
++                      : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-red-500'
++                  )}
++                >
++                  <svg className="size-4" fill={isLiked ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
++                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.633 10.25c.1-.39.15-.79.15-1.19V6.75A2.25 2.25 0 019.033 4.5h.322a1.5 1.5 0 011.414 1l.676 2.028c.122.365.464.612.849.612h4.657a2.25 2.25 0 012.214 2.66l-1.027 5.65a2.25 2.25 0 01-2.214 1.848H9.75a3 3 0 01-3-3v-5.048c0-.002-.003-.003-.004-.001L6.633 10.25z" />
++                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 10.5h2.25v7.5H3.75a.75.75 0 01-.75-.75v-6a.75.75 0 01.75-.75z" />
++                  </svg>
++                  Like
++                </button>
++                <button
++                  type="button"
++                  onClick={handleShare}
++                  className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-border/50 bg-muted/50 px-3 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-primary motion-reduce:transition-none"
++                >
++                  <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
++                    <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 12a4.5 4.5 0 014.5-4.5h2.25m0 0L11.25 4.5m3 3l-3 3M16.5 12a4.5 4.5 0 01-4.5 4.5H9.75m0 0l3 3m-3-3l3-3" />
++                  </svg>
++                  Share
++                </button>
++                {routeForActions && (
++                  <button
++                    type="button"
++                    onClick={() => setIsLogOpen(true)}
++                    className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-primary px-3 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90 motion-reduce:transition-none"
++                  >
++                    <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
++                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v18m9-9H3" />
++                    </svg>
++                    Log Send
++                  </button>
++                )}
++              </div>
++            </div>
++
++            <CommentsSection routeId={routeId} comments={visibleComments} />
++          </div>
++        </section>
++      )}
++
++      {isLogOpen && routeForActions && (
++        <LogClimbDialog route={routeForActions} onOpenChange={setIsLogOpen} />
++      )}
++    </div>
++  );
++}

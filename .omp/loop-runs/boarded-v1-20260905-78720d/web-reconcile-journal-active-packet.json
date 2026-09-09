@@ -1,0 +1,21 @@
+{
+  "packet": "web-reconcile-journal",
+  "platform": "web",
+  "shared_semantics": "both, unchanged canonical backend",
+  "context": "# Goal\nExecute Main's four remaining isolated correction packets, without expanding scope. Preserve the newer e1114ed web redesign and /app routing. Main alone owns integration and verification. User approved this final native correction/review round; earlier six launches failed before edits.\n# Constraints\nOnly Gemini and Codex models. No fallback/provider/credential changes. Skip builds, tests, linters, formatters, services and td in all worker worktrees. Use absolute allowlisted paths, including cwd on every command. Primary checkout and sibling worktrees are read-only. Commit ONLY owned files once, report base/head/changed paths, then FREEZE; no post-handoff corrections. Preserve inherited .todos metadata. Do not merge, integrate, push or clean resources.\n# Contract\nRead /Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/resume-correction-round-two.json and resume-handoff.json for exact established failures. Frozen design: /Users/ian/Projects/.boarded-v1-20260905-78720d/design/docs/design-language.md. Active designer is ApprovedModelDesigner, reachable throughout review. Existing packet specs and resume-web-reconciliation-contract.json define unchanged shared APIs. Web mechanics are web-only implementations of unchanged both-platform semantics. Native mechanics are iOS-only. No shared schema/API changes; if required, report to Main before mutation. All reviewer findings must be closed in the actual nested user path, not obsolete duplicate pages. Each worker returns concrete modified artifact and focused verification scenarios, not self-approval.",
+  "correction": "# Target\nExisting isolated /Users/ian/Projects/.boarded-v1-20260905-78720d/web-reconcile-journal at 73ce823. Platform web; unchanged shared both-platform semantics. Allow ONLY web-reconcile-journal paths in /Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/resume-web-reconciliation-contract.json. No social/Flow/Shell edits.\n# Change\nClose all 19 exact findings in resume-correction-round-two.json; canonical outcomes already corrected at73ce823 must remain correct. Repair actual nested LogFlow/Profile/Share behavior, supported avatar model, Node-loadable store, auth identity transitions and private state fencing, durable cache/pending merge on read errors, connected queue recovery including deletion/undo, real session ending and real venue/time facts, publication ownership/cleanup/unknown status, bookmarks, stale route response guards, idempotent restore, composition invalidation, and implemented existing-session publication destination. Preserve newer result-card UI. Remove superseded duplicate legacy implementations instead of maintaining two feature paths, updating owned callers; coordinate any social-owned caller through Main before changes. Existing meaningful journal tests stay; delete the wording-only assertion rather than re-pin text. No fake data/fallbacks or speculative abstractions. Skip builds/tests/linters/formatters.\n# Acceptance\nOne complete frozen confined commit, closure mapping for all19 findings against final source including previously fixed outcome, exact base/head and changed paths. Return precise focused test/runtime scenarios; no claim of rendered approval.",
+  "ownership": [
+    "components/boarded/LogFlow.tsx",
+    "lib/boarded/",
+    "lib/utils/composer.ts",
+    "lib/utils/session-publication.ts",
+    "lib/utils/session-publication.test.ts",
+    "components/log/SessionDetailModal.tsx",
+    "app/log/",
+    "app/profile/"
+  ],
+  "review_scope": "Full surviving owned diff, all19prior findings and real nested destinations. BottomNav caller fix is separately owned social packet.",
+  "authorized_closure": "authorized-final-closure-round.json",
+  "verification": "Main ran node --test lib/boarded/journal.test.ts lib/utils/session-publication.test.ts: 48 passed, 0 failed.",
+  "auth_caller_closure": "LogFlow matches resolved-viewer initialization fence; three consumers wait for resolved matching ownership."
+}

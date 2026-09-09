@@ -1,0 +1,29 @@
+{
+  "packet": "blender",
+  "platform": "web-only landing asset",
+  "verdict": "changes requested",
+  "head_sha": "1c099d1558b81d7dd32367cafb45b3fea2ddb97a",
+  "diff_sha256": "6aa0c2adc6a3a6a2dd1d8aeb3fb3793ba223d57cda0aad2309e52aea3a333691",
+  "findings": [
+    {
+      "severity": "medium",
+      "category": "Editorial/material fit",
+      "evidence": "The hero and both close-up strips show a smooth, egg-shaped shirt, round coral shoulder caps, capsule-like limbs and uniformly smooth skin/clothing. Together with softly lit pastel holds, the climber reads as a toy figurine rather than the tactile climbing imagery in brandkit.png. This is a visible styling mismatch, not a claim of defective animation.",
+      "action": "Refine the existing climber's shoulder/clothing silhouette and material differentiation so the shirt, trousers, skin and shoes no longer share the same molded appearance. Retain the wall, climbing-specific equipment and current composition; use restrained material texture and directional shading to bring the existing asset closer to the editorial reference."
+    }
+  ],
+  "observations": {
+    "framing": "The hero keeps the entire freestanding wall and its feet visible, with clear silhouette separation and space around the asset. The four contact-sheet poses remain within the wall composition.",
+    "lighting": "Soft illumination makes holds, panel seams and dark triangular volumes legible; no blown-out highlights obscure contacts.",
+    "contacts_and_sampled_continuity": "In both elbow strips the left hand remains visually registered to its hold while the right hand changes position. The torso and supporting lower limbs appear stable across those samples, and elbows remain connected. No definite support-foot floating, disarticulation or clipping is established by these views. Some contacts are occluded, so contact correctness is not fully observable.",
+    "brand_specificity": "Wall hardware, climbing holds, shoes and chalk bag keep the subject recognizably climbing-specific rather than generic exercise."
+  },
+  "inspected_image_paths": [
+    "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/blender-previews/boarded-wall-hero.png",
+    "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/blender-previews/climber-contact-sheet.png",
+    "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/blender-previews/climber-elbow-strip.png",
+    "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/blender-previews/climber-high-elbow-strip.png",
+    "/Users/ian/Projects/ClimbingApp/public/brandkit.png"
+  ],
+  "verification_limit": "Direct pixel review of the supplied rendered poses only. Still samples cannot establish continuous contact locking, absence of between-sample snaps/sliding, pacing, or forward/reverse live-scroll behavior. Final browser ClimberAscent clip scrubbing, responsive framing and reduced-motion presentation remain unverified; no final integration approval is granted. No builds, tests, rendering or modifications performed."
+}

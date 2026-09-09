@@ -1,0 +1,20 @@
+{
+  "loading": {
+    "text": "FeedDispatches from Stonegate & the cragAutumn Season 2026Loading climbing journal...Retrieving local ascents and community beta",
+    "busy": [
+      "true"
+    ],
+    "status": []
+  },
+  "settled": {
+    "main": "Feed",
+    "busy": [],
+    "reduce": false,
+    "transitions": [
+      "0.15s",
+      "0s",
+      "0.15s, 0.15s, 0.1s",
+      "0.2s"
+    ]
+  }
+}

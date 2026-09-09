@@ -1,0 +1,128 @@
+[
+  {
+    "name": "explore",
+    "size": "desktop",
+    "overflow": false,
+    "small": [],
+    "violations": []
+  },
+  {
+    "name": "explore",
+    "size": "mobile",
+    "overflow": false,
+    "small": [],
+    "violations": []
+  },
+  {
+    "name": "explore",
+    "size": "reflow320",
+    "overflow": false,
+    "small": [],
+    "violations": []
+  },
+  {
+    "name": "activity",
+    "size": "desktop",
+    "overflow": false,
+    "small": [],
+    "violations": []
+  },
+  {
+    "name": "activity",
+    "size": "mobile",
+    "overflow": false,
+    "small": [],
+    "violations": []
+  },
+  {
+    "name": "activity",
+    "size": "reflow320",
+    "overflow": false,
+    "small": [],
+    "violations": []
+  },
+  {
+    "name": "profile",
+    "size": "desktop",
+    "overflow": false,
+    "small": [],
+    "violations": []
+  },
+  {
+    "name": "profile",
+    "size": "mobile",
+    "overflow": false,
+    "small": [],
+    "violations": []
+  },
+  {
+    "name": "profile",
+    "size": "reflow320",
+    "overflow": false,
+    "small": [],
+    "violations": []
+  },
+  {
+    "name": "route",
+    "size": "desktop",
+    "overflow": false,
+    "small": [],
+    "violations": []
+  },
+  {
+    "name": "route",
+    "size": "mobile",
+    "overflow": false,
+    "small": [],
+    "violations": []
+  },
+  {
+    "name": "route",
+    "size": "reflow320",
+    "overflow": false,
+    "small": [],
+    "violations": []
+  },
+  {
+    "name": "boulder",
+    "size": "desktop",
+    "overflow": false,
+    "small": [],
+    "violations": []
+  },
+  {
+    "name": "boulder",
+    "size": "mobile",
+    "overflow": false,
+    "small": [],
+    "violations": []
+  },
+  {
+    "name": "boulder",
+    "size": "reflow320",
+    "overflow": false,
+    "small": [],
+    "violations": []
+  },
+  {
+    "name": "send",
+    "size": "reflow320",
+    "overflow": false,
+    "small": [],
+    "violations": []
+  },
+  {
+    "name": "log",
+    "size": "reflow320",
+    "overflow": false,
+    "small": [],
+    "violations": []
+  },
+  {
+    "name": "climber",
+    "size": "reflow320",
+    "overflow": false,
+    "small": [],
+    "violations": []
+  }
+]

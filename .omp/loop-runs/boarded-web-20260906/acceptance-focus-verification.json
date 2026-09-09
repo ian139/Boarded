@@ -1,0 +1,20 @@
+{
+  "head": "3db338978994b69850d3b8992538522a617cfced",
+  "runtime": "Isolated Nextdev webpack; initial failed runs occurred before hydration or from temp-rootTurbopackresolution, not acceptance failures.",
+  "errorRecovery": {
+    "viewport": [
+      390,
+      844
+    ],
+    "focused": {
+      "active": "log-date",
+      "tabIndex": 0
+    },
+    "afterTab": "log-attempts",
+    "afterShiftTab": "log-date"
+  },
+  "screenshots": [
+    "acceptance-captures/focus-invalid-390.png",
+    "acceptance-captures/focus-invalid-1440.png"
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "boarded-final-preparation#2": {
+    "minimum_concrete_missing_scenarios": [
+      {
+        "contract": "Ordinary-size explicit multiline caption and long name wrapping",
+        "missing_scenario": "In a focused UI test reusing `--boarded-ui-fixture`, inject or verify a feed item with explicit newline caption (`\"Crux pitch\\nSecond attempt\"`) and long route name under standard Dynamic Type; assert `app.descendants(matching: .any)[\"session-post-caption\"].frame.height > 20` (greater than single-line 18pt frame) without truncation."
+      },
+      {
+        "missing_scenario": "In `BoardedUITests`, resolve `let logBtn = app.buttons[\"Log\"]` and dispatch a tap to coordinate `logBtn.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.0)).withOffset(CGVector(dx: 0, dy: -6))`; assert `app.textFields[\"Venue\"].waitForExistence(timeout: 3)` to verify the upper 12pt overhang region actually activates the tab.",
+        "contract": "Raised Log upper-strip hit region"
+      },
+      {
+        "missing_scenario": "In `testRequiredAccessibilityStateCapturesAndDynamicTypeReflow()`, query `app.buttons[\"Feed\"].descendants(matching: .staticText)[\"Feed\"]` and assert `frame.height > 11` to verify `isStandardDynamicType` lifts the fixed 11pt line-box constraint under accessibility content sizes.",
+        "contract": "Tab bar accessibility label reflow"
+      }
+    ],
+    "coverage_determination": {
+      "ordinary_size_explicit_multiline_captions_and_long_names": {
+        "evidence": "`UITestFixtures.feed` provides single-line short strings only (`caption: \"First try, quiet feet.\"` or `\"Six tries. Quiet feet through the crux, then daylight.\"`, author `\"Mara Chen\"` / `\"Maya K.\"`, route `\"Steep Circuit\"` / `\"Redpoint Ridge\"`). No existing test feeds explicit newlines (`\\n`) or wrapping strings into `SessionPostCard.swift` under standard Dynamic Type, leaving the `SingleLineBox` / `MeasuredLineBoxModifier` explicit-newline truncation risk unexercised.",
+        "directly_covered": false
+      },
+      "compact_regular_ax_reflow": {
+        "directly_covered": false,
+        "evidence": "`testRequiredAccessibilityStateCapturesAndDynamicTypeReflow` verifies share sheet continuation (`session-facts-continuation`) and vertical stacking under `UICTContentSizeCategoryAccessibilityLarge`, but completely lacks assertions on custom tab bar labels in `RootView.swift` to verify that the standard 11pt fixed frame and -12pt offset are relaxed for Dynamic Type growth."
+      },
+      "raised_log_upper_strip_hit_region": {
+        "directly_covered": false,
+        "evidence": "`tab(\"Log\")` in `BoardedUITests.swift` queries `app.buttons.matching(identifier: \"Log\")` and calls standard `fallback.tap()`. In XCTest, `element.tap()` hits normalized midpoint (0.5, 0.5), landing within the lower 32pt portion inside the tab bar frame. Neither `tab(\"Log\")` nor any other test dispatches a tap into the 12pt upper overhang strip (`y ∈ [-12, 0]` relative to the tab bar top edge) defined by `RaisedButtonHitShape(overhang: 12)`."
+      }
+    },
+    "cheapest_existing_runtime_scenario": {
+      "fixture_entrypoint": "UITestFixtures.feed in apps/ios/Boarded/Boarded/Services/UITestFixtures.swift",
+      "description": "Existing XCUITest capture suite launched via `app.launchArguments = [\"--boarded-ui-fixture\"]` covering standard and accessibilityDynamicType in portrait/landscape on compact (<700pt) and regular (>=700pt) window widths.",
+      "test_names": [
+        "BoardedUITests.testRequiredStandardStateCaptures()",
+        "BoardedUITests.testRequiredAccessibilityStateCapturesAndDynamicTypeReflow()"
+      ]
+    }
+  }
+}

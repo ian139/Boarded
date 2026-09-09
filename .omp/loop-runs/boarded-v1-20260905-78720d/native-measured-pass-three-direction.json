@@ -1,0 +1,12 @@
+{
+  "platform": "iOS",
+  "current_preview": "87b6f49",
+  "source_home": "2150a323d428bb5f006fa20cf5c54023ef4e15f3",
+  "source_navigation": "2a16c2996f24ef357e0b2d1609a7b676bafd6d17",
+  "comparison": "native-measured-second-diff.json",
+  "confirmed": "Current squareLog/unreadActivity correct; frozen circle/noActivitydot. One vision report reversed identities and withdrew it. Native groups are too far outward; Root uses five equal expanding columns with no horizontalpadding. Paper measured groups64 with sidepadding/spacebetween need exact read.",
+  "requested_home": "Correct exact bellSVG/dot placement and trace circle/stroke geometry from DOM; investigate hint border-box accounting. Preserve source-approved unrestricted multiline typography; no screenshot offsets/fontchanges.",
+  "requested_navigation": "Use exact measured horizontal group64/space-between layout withresponsive shrinking andunchangedAX/regular treatments. Establish standard49ptrow andLog-12 square+label2below withoutVStackintrinsics shiftinglayout. Loglabel10/11semiboldChalk perdesigner. Preservehitshape and onGeometryChange clearance. Need designerboundedconfirmation beforeauthoring.",
+  "chrome": "Fullsimctl capture also lacks homeindicator; app.screenshot-onlyexplanationnotproven. Read-onlysourceinvestigationrunning. No fakechrome/mask/gatechange.",
+  "gate_percent": 0.5
+}

@@ -1,0 +1,768 @@
+diff --git a/app/explore/page.tsx b/app/explore/page.tsx
+index 45c1c2456d6151266b7473f56bd25e37826e0f49..231aced0b4066fc96042b059e22240b5f9a0764b 100644
+--- a/app/explore/page.tsx
++++ b/app/explore/page.tsx
+@@ -84,6 +84,48 @@ function ExploreContent() {
+   const routesGenRef = useRef(0);
+   const venuesGenRef = useRef(0);
+   const climbersGenRef = useRef(0);
++  const deepLinkGenRef = useRef(0);
++  const authGenRef = useRef(0);
++  const routesRef = useRef(routes);
++  routesRef.current = routes;
++  const prevUserIdRef = useRef<string | undefined>(user?.id);
++
++  // Finding 2: Invalidate and clear account-scoped data and open selections on auth changes
++  useEffect(() => {
++    if (prevUserIdRef.current !== user?.id) {
++      prevUserIdRef.current = user?.id;
++      authGenRef.current++;
++
++      // Invalidate in-flight request generations
++      routesGenRef.current++;
++      venuesGenRef.current++;
++      climbersGenRef.current++;
++      deepLinkGenRef.current++;
++
++      // Close open selections and creation modals
++      setIsNewVenueOpen(false);
++      setIsNewRouteOpen(false);
++      setShowWallPicker(false);
++      setActiveBoardRouteToView(null);
++      setActiveOutdoorRouteToView(null);
++      setRouteToLogPublicTick(null);
++      setSelectedVenueDetail(null);
++
++      // Clear pending mutation locks
++      setPendingBookmarkIds(new Set());
++      setPendingFollowIds(new Set());
++
++      // If user signed out, reset savedOnly
++      if (!user) {
++        setSavedOnly(false);
++      }
++
++      // Clear account-scoped data before replacement queries
++      setRoutes([]);
++      setClimbers([]);
++      setFollowedClimberIds(new Set());
++    }
++  }, [user?.id, user]);
+ 
+   // Modals state
+   const [isNewVenueOpen, setIsNewVenueOpen] = useState(false);
+@@ -117,8 +159,8 @@ function ExploreContent() {
+       let beforeCreatedAt: string | null = null;
+       let beforeId: string | null = null;
+ 
+-      if (!isInitial && routes.length > 0) {
+-        const last = routes[routes.length - 1];
++      if (!isInitial && routesRef.current.length > 0) {
++        const last = routesRef.current[routesRef.current.length - 1];
+         beforeCreatedAt = last.created_at;
+         beforeId = last.id;
+       }
+@@ -165,70 +207,103 @@ function ExploreContent() {
+         setIsLoadingMoreRoutes(false);
+       }
+     }
+-  }, [searchText, selectedVenueFilter, savedOnly, routes]);
++  }, [searchText, selectedVenueFilter, savedOnly, user?.id]);
+ 
+   // Initial and reactive fetch for routes
+   useEffect(() => {
+     if (activeTab === 'routes') {
+-      const currentGen = ++routesGenRef.current;
+-      setIsRoutesLoading(true);
+-      setRoutesError(null);
+-
+-      const load = async () => {
+-        try {
+-          const supabase = createClient();
+-          const { data, error } = await supabase.rpc('get_explore_routes', {
+-            search_text: searchText.trim(),
+-            venue_filter: selectedVenueFilter,
+-            saved_only: savedOnly,
+-            page_size: 30,
+-          });
+-
+-          if (routesGenRef.current !== currentGen) return;
+-
+-          if (error) {
+-            setRoutesError(error.message || 'Unable to load routes');
+-            setRoutes([]);
+-          } else {
+-            const rows = (data || []) as CommunityRoute[];
+-            setRoutes(rows);
+-            setHasMoreRoutes(rows.length === 30);
+-          }
+-        } catch (err: unknown) {
+-          if (routesGenRef.current !== currentGen) return;
+-          setRoutesError(err instanceof Error ? err.message : 'Network error');
+-          setRoutes([]);
+-        } finally {
+-          if (routesGenRef.current === currentGen) {
+-            setIsRoutesLoading(false);
+-          }
+-        }
+-      };
+-
+-      load();
++      fetchExploreRoutes(true);
+     }
+-  }, [activeTab, searchText, selectedVenueFilter, savedOnly]);
++  }, [activeTab, fetchExploreRoutes]);
+ 
+-  // Finding 24: Direct route-ID resolution if passed in searchParams
++  // Finding 3 / Finding 24: Direct route-ID resolution if passed in searchParams
++  // Normalizes deep-linked route row to real viewer-specific CommunityRoute with bookmark, venue, and real wall image.
+   useEffect(() => {
+     if (!routeIdParam) return;
++    const currentGen = ++deepLinkGenRef.current;
++
+     const resolveRoute = async () => {
+       try {
+         const supabase = createClient();
+-        const { data } = await supabase.from('routes').select('*, venue:venues(*)').eq('id', routeIdParam).single();
+-        if (data) {
+-          if (data.discipline === 'board' || data.wall_id) {
+-            setActiveBoardRouteToView(data as Route);
+-          } else {
+-            setActiveOutdoorRouteToView(data as CommunityRoute);
++        const { data: routeRow, error: routeError } = await supabase
++          .from('routes')
++          .select('*, venue:venues(*)').eq('id', routeIdParam)
++          .maybeSingle();
++
++        if (deepLinkGenRef.current !== currentGen || routeError || !routeRow) return;
++
++        // Resolve viewer-specific bookmark status
++        let isSaved = false;
++        if (user?.id) {
++          const { data: bookmarkRow } = await supabase
++            .from('route_bookmarks')
++            .select('route_id')
++            .eq('user_id', user.id)
++            .eq('route_id', routeRow.id)
++            .maybeSingle();
++          if (deepLinkGenRef.current !== currentGen) return;
++          isSaved = Boolean(bookmarkRow);
++        }
++
++        // Resolve actual wall image if wall_id exists and wall_image_url is not set
++        let resolvedWallImage = routeRow.wall_image_url || null;
++        if (!resolvedWallImage && routeRow.wall_id) {
++          const { data: wallRow } = await supabase
++            .from('walls')
++            .select('image_url')
++            .eq('id', routeRow.wall_id)
++            .maybeSingle();
++          if (deepLinkGenRef.current !== currentGen) return;
++          if (wallRow?.image_url) {
++            resolvedWallImage = wallRow.image_url;
+           }
+         }
++
++        const isBoardRoute = routeRow.discipline === 'board' || Boolean(routeRow.wall_id);
++
++        if (isBoardRoute) {
++          const normalizedBoardRoute: Route = {
++            id: routeRow.id,
++            user_id: routeRow.user_id || '',
++            wall_id: routeRow.wall_id || '',
++            wall_image_url: resolvedWallImage || undefined,
++            name: routeRow.name,
++            description: routeRow.description || undefined,
++            grade_v: routeRow.grade_label || routeRow.grade_v || undefined,
++            holds: routeRow.holds || [],
++            is_public: Boolean(routeRow.is_public),
++            view_count: routeRow.view_count || 1,
++            share_token: routeRow.share_token || undefined,
++            created_at: routeRow.created_at,
++            updated_at: routeRow.updated_at || routeRow.created_at,
++          };
++          setActiveBoardRouteToView(normalizedBoardRoute);
++        } else {
++          const normalizedOutdoorRoute: CommunityRoute = {
++            id: routeRow.id,
++            name: routeRow.name,
++            description: routeRow.description || null,
++            discipline: routeRow.discipline as ClimbDiscipline,
++            grade_system: routeRow.grade_system as GradeSystem,
++            grade_label: routeRow.grade_label || null,
++            height_m: routeRow.height_m || null,
++            rock_type: routeRow.rock_type || null,
++            terrain: routeRow.terrain || null,
++            image_url: resolvedWallImage || routeRow.image_url || null,
++            holds: routeRow.holds || [],
++            venue: (routeRow.venue as CommunityVenue) || null,
++            author_id: routeRow.user_id,
++            is_saved: isSaved,
++            created_at: routeRow.created_at,
++          };
++          setActiveOutdoorRouteToView(normalizedOutdoorRoute);
++        }
+       } catch {
+         // Fallback
+       }
+     };
+     resolveRoute();
+-  }, [routeIdParam]);
++  }, [routeIdParam, user?.id]);
+ 
+   // Fetch venues (Finding 29)
+   const fetchVenues = useCallback(async () => {
+@@ -257,7 +332,7 @@ function ExploreContent() {
+         setIsVenuesLoading(false);
+       }
+     }
+-  }, [searchText]);
++  }, [searchText, user?.id]);
+ 
+   // Fetch climbers (Finding 29)
+   const fetchClimbers = useCallback(async () => {
+@@ -292,7 +367,7 @@ function ExploreContent() {
+         setIsClimbersLoading(false);
+       }
+     }
+-  }, [searchText]);
++  }, [searchText, user?.id]);
+ 
+   useEffect(() => {
+     if (activeTab === 'venues') fetchVenues();
+@@ -307,44 +382,61 @@ function ExploreContent() {
+     }
+     if (pendingBookmarkIds.has(route.id)) return;
+ 
++    const initiatingUserId = user.id;
++    const initiatingAuthGen = authGenRef.current;
++
+     setPendingBookmarkIds((prev) => new Set(prev).add(route.id));
+     const nextSaved = !route.is_saved;
+ 
+-    // Optimistic UI update
++    // Optimistic UI update: sync both routes list and open modal
+     setRoutes((prev) =>
+       prev.map((r) => (r.id === route.id ? { ...r, is_saved: nextSaved } : r))
+     );
++    setActiveOutdoorRouteToView((prev) =>
++      prev && prev.id === route.id ? { ...prev, is_saved: nextSaved } : prev
++    );
+ 
+     try {
+       const supabase = createClient();
+       if (nextSaved) {
+         const { error } = await supabase.from('route_bookmarks').insert({
+-          user_id: user.id,
++          user_id: initiatingUserId,
+           route_id: route.id,
+         });
+         if (error && error.code !== '23505') throw error;
+-        toast.success(`Saved "${route.name}"`);
++        if (authGenRef.current === initiatingAuthGen && user?.id === initiatingUserId) {
++          toast.success(`Saved "${route.name}"`);
++        }
+       } else {
+         const { error } = await supabase
+           .from('route_bookmarks')
+           .delete()
+-          .eq('user_id', user.id)
++          .eq('user_id', initiatingUserId)
+           .eq('route_id', route.id);
+         if (error) throw error;
+-        toast.info(`Removed "${route.name}"`);
++        if (authGenRef.current === initiatingAuthGen && user?.id === initiatingUserId) {
++          toast.info(`Removed "${route.name}"`);
++        }
+       }
+     } catch {
+-      // Rollback on failure
+-      setRoutes((prev) =>
+-        prev.map((r) => (r.id === route.id ? { ...r, is_saved: route.is_saved } : r))
+-      );
+-      toast.error('Unable to update bookmark');
++      // Rollback on failure: bound to initiating account generation
++      if (authGenRef.current === initiatingAuthGen && user?.id === initiatingUserId) {
++        setRoutes((prev) =>
++          prev.map((r) => (r.id === route.id ? { ...r, is_saved: route.is_saved } : r))
++        );
++        setActiveOutdoorRouteToView((prev) =>
++          prev && prev.id === route.id ? { ...prev, is_saved: route.is_saved } : prev
++        );
++        toast.error('Unable to update bookmark');
++      }
+     } finally {
+-      setPendingBookmarkIds((prev) => {
+-        const next = new Set(prev);
+-        next.delete(route.id);
+-        return next;
+-      });
++      if (authGenRef.current === initiatingAuthGen && user?.id === initiatingUserId) {
++        setPendingBookmarkIds((prev) => {
++          const next = new Set(prev);
++          next.delete(route.id);
++          return next;
++        });
++      }
+     }
+   };
+ 
+@@ -356,6 +448,9 @@ function ExploreContent() {
+     }
+     if (user.id === climber.id || pendingFollowIds.has(climber.id)) return;
+ 
++    const initiatingUserId = user.id;
++    const initiatingAuthGen = authGenRef.current;
++
+     setPendingFollowIds((prev) => new Set(prev).add(climber.id));
+     const isFollowing = followedClimberIds.has(climber.id);
+     const nextFollowing = !isFollowing;
+@@ -371,33 +466,39 @@ function ExploreContent() {
+       const supabase = createClient();
+       if (nextFollowing) {
+         const { error } = await supabase.from('follows').insert({
+-          follower_id: user.id,
++          follower_id: initiatingUserId,
+           following_id: climber.id,
+         });
+         if (error && error.code !== '23505') throw error;
+-        toast.success(`Following ${climber.full_name || climber.username || 'climber'}`);
++        if (authGenRef.current === initiatingAuthGen && user?.id === initiatingUserId) {
++          toast.success(`Following ${climber.full_name || climber.username || 'climber'}`);
++        }
+       } else {
+         const { error } = await supabase
+           .from('follows')
+           .delete()
+-          .eq('follower_id', user.id)
++          .eq('follower_id', initiatingUserId)
+           .eq('following_id', climber.id);
+         if (error) throw error;
+       }
+     } catch {
+-      setFollowedClimberIds((prev) => {
+-        const next = new Set(prev);
+-        if (isFollowing) next.add(climber.id);
+-        else next.delete(climber.id);
+-        return next;
+-      });
+-      toast.error('Unable to update follow');
++      if (authGenRef.current === initiatingAuthGen && user?.id === initiatingUserId) {
++        setFollowedClimberIds((prev) => {
++          const next = new Set(prev);
++          if (isFollowing) next.add(climber.id);
++          else next.delete(climber.id);
++          return next;
++        });
++        toast.error('Unable to update follow');
++      }
+     } finally {
+-      setPendingFollowIds((prev) => {
+-        const next = new Set(prev);
+-        next.delete(climber.id);
+-        return next;
+-      });
++      if (authGenRef.current === initiatingAuthGen && user?.id === initiatingUserId) {
++        setPendingFollowIds((prev) => {
++          const next = new Set(prev);
++          next.delete(climber.id);
++          return next;
++        });
++      }
+     }
+   };
+ 
+@@ -424,10 +525,20 @@ function ExploreContent() {
+     }
+   };
+ 
+-  // Finding 13: Log attempt handoff to /log
++  // Finding 4: Keep active modal bookmark state in sync with list/rollback
++  const derivedOutdoorRouteToView = useMemo(() => {
++    if (!activeOutdoorRouteToView) return null;
++    const foundInList = routes.find((r) => r.id === activeOutdoorRouteToView.id);
++    if (foundInList) {
++      return { ...activeOutdoorRouteToView, is_saved: foundInList.is_saved };
++    }
++    return activeOutdoorRouteToView;
++  }, [activeOutdoorRouteToView, routes]);
++
++  // Finding 5 / Finding 13: Log attempt handoff to /log with canonical gradeSystem contract
+   const handleLogAttemptOnRoute = (r: CommunityRoute) => {
+     router.push(
+-      `/log?routeId=${encodeURIComponent(r.id)}&routeName=${encodeURIComponent(r.name)}&discipline=${encodeURIComponent(r.discipline)}&grade=${encodeURIComponent(r.grade_label || '')}`
++      `/log?routeId=${encodeURIComponent(r.id)}&routeName=${encodeURIComponent(r.name)}&discipline=${encodeURIComponent(r.discipline)}&grade=${encodeURIComponent(r.grade_label || '')}&gradeSystem=${encodeURIComponent(r.grade_system || '')}`
+     );
+   };
+ 
+@@ -528,7 +639,13 @@ function ExploreContent() {
+               <div className="flex items-center gap-2">
+                 <button
+                   type="button"
+-                  onClick={() => setSavedOnly(!savedOnly)}
++                  onClick={() => {
++                    if (!user) {
++                      toast.error('Sign in to view bookmarks');
++                      return;
++                    }
++                    setSavedOnly(!savedOnly);
++                  }}
+                   className={cn(
+                     'min-h-[36px] px-3 rounded-lg border text-xs font-medium transition-colors inline-flex items-center gap-1.5',
+                     savedOnly
+@@ -608,6 +725,7 @@ function ExploreContent() {
+                     tabIndex={0}
+                     onClick={() => handleViewRoute(r)}
+                     onKeyDown={(e) => {
++                      if (e.target !== e.currentTarget) return;
+                       if (e.key === 'Enter' || e.key === ' ') {
+                         e.preventDefault();
+                         handleViewRoute(r);
+@@ -628,6 +746,9 @@ function ExploreContent() {
+                             e.stopPropagation();
+                             handleToggleBookmark(r);
+                           }}
++                          onKeyDown={(e) => {
++                            e.stopPropagation();
++                          }}
+                           aria-label={r.is_saved ? 'Remove bookmark' : 'Bookmark route'}
+                           className={cn(
+                             'flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-xs transition-colors',
+@@ -670,6 +791,9 @@ function ExploreContent() {
+                           e.stopPropagation();
+                           handleLogAttemptOnRoute(r);
+                         }}
++                        onKeyDown={(e) => {
++                          e.stopPropagation();
++                        }}
+                         className="text-xs font-semibold text-[#345CFF] hover:underline flex-shrink-0"
+                       >
+                         Log Try →
+@@ -755,6 +879,7 @@ function ExploreContent() {
+                     tabIndex={0}
+                     onClick={() => setSelectedVenueDetail(v)}
+                     onKeyDown={(e) => {
++                      if (e.target !== e.currentTarget) return;
+                       if (e.key === 'Enter' || e.key === ' ') {
+                         e.preventDefault();
+                         setSelectedVenueDetail(v);
+@@ -918,14 +1043,29 @@ function ExploreContent() {
+               <h3 className="text-sm font-semibold text-[#F4F2EB]">
+                 Routes on {selectedWall?.name || 'Climbing Wall'} ({filteredBoardRoutes.length})
+               </h3>
+-              <RouteList
+-                routes={filteredBoardRoutes}
+-                onViewRoute={(r) => setActiveBoardRouteToView(r)}
+-                onEditRoute={(r) => router.push(`/editor?edit=${r.id}`)}
+-                onDeleteRoute={(r) => deleteBoardRoute(r.id)}
+-                onLogClimb={(r) => setRouteToLogPublicTick(r)}
+-                onNewRoute={() => router.push('/editor')}
+-              />
++              {filteredBoardRoutes.length === 0 ? (
++                <div className="text-center py-12 px-4 rounded-2xl border border-dashed border-divider bg-[#0D0F14]">
++                  <p className="text-sm font-medium text-[#F4F2EB]">No board routes found on this wall</p>
++                  <p className="text-xs text-[#A8ABB3] mt-1 mb-4">Be the first to set a route on this wall.</p>
++                  <Link
++                    href="/editor"
++                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#345CFF] text-[#F4F2EB] text-xs font-semibold hover:bg-[#2747D9] transition-colors"
++                  >
++                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
++                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.5v15m7.5-7.5h-15" />
++                    </svg>
++                    <span>Create Board Route</span>
++                  </Link>
++                </div>
++              ) : (
++                <RouteList
++                  routes={filteredBoardRoutes}
++                  onViewRoute={(r) => setActiveBoardRouteToView(r)}
++                  onEditRoute={(r) => router.push(`/editor?edit=${r.id}`)}
++                  onDeleteRoute={(r) => deleteBoardRoute(r.id)}
++                  onLogClimb={(r) => setRouteToLogPublicTick(r)}
++                />
++              )}
+             </div>
+           </section>
+         )}
+@@ -950,21 +1090,21 @@ function ExploreContent() {
+         onOpenChange={setShowWallPicker}
+       />
+ 
+-      {/* Finding 20: Outdoor Route Detail Modal */}
++      {/* Finding 20 / Finding 4: Outdoor Route Detail Modal with synced bookmark state */}
+       <OutdoorRouteDetailModal
+-        route={activeOutdoorRouteToView}
+-        isOpen={Boolean(activeOutdoorRouteToView)}
++        route={derivedOutdoorRouteToView}
++        isOpen={Boolean(derivedOutdoorRouteToView)}
+         onClose={() => setActiveOutdoorRouteToView(null)}
+         onLogAttempt={handleLogAttemptOnRoute}
+         onToggleBookmark={handleToggleBookmark}
+       />
+ 
+-      {/* Finding 20: Board Route Viewer Modal */}
++      {/* Finding 20 / Finding 3: Board Route Viewer Modal with real wall image (no demo board fallback) */}
+       {activeBoardRouteToView && (
+         <RouteViewerDialog
+           route={activeBoardRouteToView}
+           onOpenChange={(open) => !open && setActiveBoardRouteToView(null)}
+-          wallImageUrl={activeBoardRouteToView.wall_image_url || selectedWall?.image_url || '/walls/demo-wall.jpg'}
++          wallImageUrl={activeBoardRouteToView.wall_image_url || ''}
+         />
+       )}
+ 
+diff --git a/components/explore/NewRouteModal.tsx b/components/explore/NewRouteModal.tsx
+index 664040130e59db1e4deed95447f366d311001286..35e61e43e583620474ec9cc9a224bbf3720117de 100644
+--- a/components/explore/NewRouteModal.tsx
++++ b/components/explore/NewRouteModal.tsx
+@@ -23,10 +23,10 @@ export function NewRouteModal({ isOpen, onClose, onRouteCreated }: NewRouteModal
+   const [name, setName] = useState('');
+   const [discipline, setDiscipline] = useState<ClimbDiscipline>('sport');
+   const [gradeSystem, setGradeSystem] = useState<GradeSystem>('yds');
+-  const [gradeLabel, setGradeLabel] = useState('5.11a');
++  const [gradeLabel, setGradeLabel] = useState('');
+   const [heightM, setHeightM] = useState<string>('');
+   const [rockType, setRockType] = useState<string>('');
+-  const [terrain, setTerrain] = useState<RouteTerrain>('vertical');
++  const [terrain, setTerrain] = useState<RouteTerrain | ''>('');
+   const [description, setDescription] = useState('');
+   const [isSubmitting, setIsSubmitting] = useState(false);
+ 
+@@ -50,23 +50,45 @@ export function NewRouteModal({ isOpen, onClose, onRouteCreated }: NewRouteModal
+     };
+   }, [isOpen]);
+ 
++  // Close creation modal and reset state if user identity changes
++  useEffect(() => {
++    if (!isOpen) return;
++    handleClose();
++  }, [user?.id]);
+   const handleDisciplineChange = (d: ClimbDiscipline) => {
+     setDiscipline(d);
+-    if (d === 'boulder' || d === 'board') {
+-      setGradeSystem('v_scale');
+-      setGradeLabel('V4');
+-    } else {
+-      setGradeSystem('yds');
+-      setGradeLabel('5.11a');
++    const targetSystem: GradeSystem = (d === 'boulder' || d === 'board') ? 'v_scale' : 'yds';
++    if (targetSystem !== gradeSystem) {
++      setGradeSystem(targetSystem);
++      setGradeLabel('');
++    }
++  };
++
++  const handleGradeSystemChange = (system: GradeSystem) => {
++    if (system !== gradeSystem) {
++      setGradeSystem(system);
++      setGradeLabel('');
+     }
+   };
+ 
++  const handleClose = () => {
++    setName('');
++    setGradeLabel('');
++    setTerrain('');
++    setDescription('');
++    setHeightM('');
++    setRockType('');
++    setSelectedVenueId('');
++    onClose();
++  };
++
+   const handleSubmit = async (e: React.FormEvent) => {
+     e.preventDefault();
+     if (!user) {
+       toast.error('Please sign in to create a route');
+       return;
+     }
++    const submittingUserId = user.id;
+     const trimmedName = name.trim();
+     if (!trimmedName) {
+       toast.error('Route name is required');
+@@ -87,15 +109,15 @@ export function NewRouteModal({ isOpen, onClose, onRouteCreated }: NewRouteModal
+       const { data, error } = await supabase
+         .from('routes')
+         .insert({
+-          user_id: user.id,
++          user_id: submittingUserId,
+           venue_id: selectedVenueId || null,
+           name: trimmedName,
+           discipline,
+           grade_system: gradeSystem,
+-          grade_label: gradeLabel.trim(),
++          grade_label: gradeLabel.trim() || null,
+           height_m: height && height > 0 ? height : null,
+           rock_type: rockType.trim() || null,
+-          terrain,
++          terrain: terrain ? (terrain as RouteTerrain) : null,
+           description: description.trim() || null,
+           holds: [],
+           wall_id: null,
+@@ -117,7 +139,7 @@ export function NewRouteModal({ isOpen, onClose, onRouteCreated }: NewRouteModal
+         grade_label: data.grade_label || null,
+         height_m: data.height_m || null,
+         rock_type: data.rock_type || null,
+-        terrain: data.terrain as RouteTerrain || null,
++        terrain: (data.terrain as RouteTerrain) || null,
+         image_url: data.image_url || null,
+         holds: data.holds || [],
+         venue: (data.venue as CommunityVenue) || selectedVenueObj,
+@@ -126,13 +148,14 @@ export function NewRouteModal({ isOpen, onClose, onRouteCreated }: NewRouteModal
+         created_at: data.created_at,
+       };
+ 
++      // Guard against account changes during in-flight creation
++      if (user?.id !== submittingUserId) {
++        return;
++      }
++
+       toast.success(`Created route: ${trimmedName}`);
+       onRouteCreated?.(normalizedRoute);
+-      setName('');
+-      setDescription('');
+-      setHeightM('');
+-      setRockType('');
+-      onClose();
++      handleClose();
+     } catch {
+       toast.error('Unable to create route');
+     } finally {
+@@ -141,7 +164,7 @@ export function NewRouteModal({ isOpen, onClose, onRouteCreated }: NewRouteModal
+   };
+ 
+   return (
+-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
++    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+       <DialogContent className="sm:max-w-lg bg-[#0D0F14] border-divider text-[#F4F2EB] p-6 max-h-[90vh] overflow-y-auto">
+         <DialogHeader className="mb-4">
+           <DialogTitle className="font-display text-2xl font-semibold italic text-[#F4F2EB]">
+@@ -251,7 +274,7 @@ export function NewRouteModal({ isOpen, onClose, onRouteCreated }: NewRouteModal
+                   <select
+                     id="new-route-grade-system"
+                     value={gradeSystem}
+-                    onChange={(e) => setGradeSystem(e.target.value as GradeSystem)}
++                    onChange={(e) => handleGradeSystemChange(e.target.value as GradeSystem)}
+                     className="w-full min-h-[44px] bg-[#171A22] border border-divider rounded-xl px-3 text-xs text-[#F4F2EB] focus:outline-none focus:ring-2 focus:ring-[#345CFF]"
+                   >
+                     <option value="yds">YDS (5.10a - 5.15d)</option>
+@@ -263,15 +286,14 @@ export function NewRouteModal({ isOpen, onClose, onRouteCreated }: NewRouteModal
+ 
+                 <div>
+                   <label htmlFor="new-route-grade-label" className="block text-xs font-semibold text-[#F4F2EB] mb-1.5 uppercase tracking-wide">
+-                    Grade Label *
++                    Grade Label
+                   </label>
+                   <input
+                     id="new-route-grade-label"
+                     type="text"
+-                    required
+                     value={gradeLabel}
+                     onChange={(e) => setGradeLabel(e.target.value)}
+-                    placeholder="e.g. 5.12a or V7"
++                    placeholder="e.g. 5.12a or V7 (optional)"
+                     className="w-full min-h-[44px] bg-[#171A22] border border-divider rounded-xl px-3.5 text-xs text-[#F4F2EB] placeholder:text-[#A8ABB3]/60 focus:outline-none focus:ring-2 focus:ring-[#345CFF]"
+                   />
+                 </div>
+@@ -286,9 +308,10 @@ export function NewRouteModal({ isOpen, onClose, onRouteCreated }: NewRouteModal
+                   <select
+                     id="new-route-terrain-select"
+                     value={terrain}
+-                    onChange={(e) => setTerrain(e.target.value as RouteTerrain)}
++                    onChange={(e) => setTerrain(e.target.value as RouteTerrain | '')}
+                     className="w-full min-h-[44px] bg-[#171A22] border border-divider rounded-xl px-2 text-xs text-[#F4F2EB] focus:outline-none focus:ring-2 focus:ring-[#345CFF]"
+                   >
++                    <option value="">Unspecified</option>
+                     <option value="slab">Slab</option>
+                     <option value="vertical">Vertical</option>
+                     <option value="overhang">Overhang</option>
+@@ -346,7 +369,7 @@ export function NewRouteModal({ isOpen, onClose, onRouteCreated }: NewRouteModal
+               <div className="flex items-center justify-end gap-3 pt-2">
+                 <button
+                   type="button"
+-                  onClick={onClose}
++                  onClick={handleClose}
+                   className="min-h-[44px] px-4 rounded-xl border border-divider text-xs font-semibold text-[#A8ABB3] hover:text-[#F4F2EB] transition-colors"
+                 >
+                   Cancel
+diff --git a/components/explore/NewVenueModal.tsx b/components/explore/NewVenueModal.tsx
+index 53ad76d11604f21bc7ae2a48ffbdc2f6723fc53d..5a4712c3259e9415c2c46fa1774c37b11d287d2f 100644
+--- a/components/explore/NewVenueModal.tsx
++++ b/components/explore/NewVenueModal.tsx
+@@ -22,12 +22,26 @@ export function NewVenueModal({ isOpen, onClose, onVenueCreated }: NewVenueModal
+   const [description, setDescription] = useState('');
+   const [isSubmitting, setIsSubmitting] = useState(false);
+ 
++  const handleClose = () => {
++    setName('');
++    setArea('');
++    setDescription('');
++    setKind('crag');
++    onClose();
++  };
++
++  // Close creation modal and reset state if user identity changes
++  useEffect(() => {
++    if (!isOpen) return;
++    handleClose();
++  }, [user?.id]);
+   const handleSubmit = async (e: React.FormEvent) => {
+     e.preventDefault();
+     if (!user) {
+       toast.error('Please sign in to add a venue');
+       return;
+     }
++    const submittingUserId = user.id;
+     const trimmedName = name.trim();
+     if (!trimmedName) {
+       toast.error('Venue name is required');
+@@ -40,7 +54,7 @@ export function NewVenueModal({ isOpen, onClose, onVenueCreated }: NewVenueModal
+       const { data, error } = await supabase
+         .from('venues')
+         .insert({
+-          user_id: user.id,
++          user_id: submittingUserId,
+           name: trimmedName,
+           kind,
+           area: area.trim() || null,
+@@ -51,22 +65,25 @@ export function NewVenueModal({ isOpen, onClose, onVenueCreated }: NewVenueModal
+         .single();
+ 
+       if (error) throw error;
++      // Guard against account changes during in-flight creation
++      if (user?.id !== submittingUserId) {
++        return;
++      }
+ 
+       toast.success(`Added ${kind}: ${trimmedName}`);
+       onVenueCreated?.(data as CommunityVenue);
+-      setName('');
+-      setArea('');
+-      setDescription('');
+-      onClose();
++      handleClose();
+     } catch {
+-      toast.error('Unable to create venue');
++      if (user?.id === submittingUserId) {
++        toast.error('Unable to create venue');
++      }
+     } finally {
+       setIsSubmitting(false);
+     }
+   };
+ 
+   return (
+-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
++    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+       <DialogContent className="sm:max-w-md bg-[#0D0F14] border-divider text-[#F4F2EB] p-6">
+         <DialogHeader className="mb-4">
+           <DialogTitle className="font-display text-2xl font-semibold italic text-[#F4F2EB]">
+@@ -153,7 +170,7 @@ export function NewVenueModal({ isOpen, onClose, onVenueCreated }: NewVenueModal
+           <div className="flex items-center justify-end gap-3 pt-2">
+             <button
+               type="button"
+-              onClick={onClose}
++              onClick={handleClose}
+               className="min-h-[44px] px-4 rounded-xl border border-divider text-xs font-semibold text-[#A8ABB3] hover:text-[#F4F2EB] transition-colors"
+             >
+               Cancel

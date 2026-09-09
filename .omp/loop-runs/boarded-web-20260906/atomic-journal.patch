@@ -1,0 +1,1208 @@
+diff --git a/lib/boarded/journal.test.ts b/lib/boarded/journal.test.ts
+index 83affd13324b4eb8a013badd2cf6a6a2ee82ec04..c26785b0afeb95637a5e8425f6ab361e6f626a5e 100644
+--- a/lib/boarded/journal.test.ts
++++ b/lib/boarded/journal.test.ts
+@@ -25,7 +25,7 @@ class MockLocalStorage {
+ 
+   setItem(key: string, value: string): void {
+     if (this.shouldThrowOnSet) {
+-      throw new Error('QuotaExceededError: storage write blocked');
++      throw new Error('QuotaExceededError: localStorage write operation exceeded storage quota');
+     }
+     this.store.set(key, value);
+   }
+@@ -36,95 +36,145 @@ class MockLocalStorage {
+ 
+   clear(): void {
+     this.store.clear();
+-    this.shouldThrowOnSet = false;
+   }
+ }
+ 
+ describe('Domain validation: validateAttempt', () => {
+   it('rejects missing or unknown routes', () => {
+-    const invalidRoute: AttemptInput = {
+-      routeId: 'non-existent-crag-route',
++    const emptyRoute = validateAttempt({
++      routeId: '',
+       date: '2026-09-06',
+-      attempts: 2,
+-      conditions: 'Dry and crisp',
+-      notes: 'Good rest at the third bolt',
+-    };
+-    const errors = validateAttempt(invalidRoute);
+-    assert.ok(errors.routeId, 'Must flag invalid routeId');
+-  });
+-
+-  it('enforces strict YYYY-MM-DD date contract and rejects invalid calendar days', () => {
+-    const base: AttemptInput = {
+-      routeId: 'redpoint-ridge',
+-      date: 'yesterday',
+       attempts: 1,
+       conditions: '',
+       notes: '',
+-    };
+-    assert.ok(validateAttempt(base).date, 'Must reject relative date strings');
+-
+-    base.date = '09/06/2026';
+-    assert.ok(validateAttempt(base).date, 'Must reject US formatted dates');
+-
+-    base.date = '2026-02-31';
+-    assert.ok(validateAttempt(base).date, 'Must reject nonexistent calendar date 2026-02-31');
++    });
++    assert.ok(emptyRoute.routeId, 'Empty routeId must produce an error');
+ 
+-    base.date = '2026-13-45';
+-    assert.ok(validateAttempt(base).date, 'Must reject impossible month/day');
++    const unknownRoute = validateAttempt({
++      routeId: 'non-existent-wall',
++      date: '2026-09-06',
++      attempts: 1,
++      conditions: '',
++      notes: '',
++    });
++    assert.ok(unknownRoute.routeId, 'Unknown routeId must produce an error');
+ 
+-    base.date = '2026-09-06';
+-    assert.equal(validateAttempt(base).date, undefined, 'Must accept valid YYYY-MM-DD');
++    const validRoute = validateAttempt({
++      routeId: routes[0].id,
++      date: '2026-09-06',
++      attempts: 1,
++      conditions: '',
++      notes: '',
++    });
++    assert.equal(validRoute.routeId, undefined, 'Known routeId must have no route error');
+   });
+ 
+-  it('enforces positive integer attempts bounded within 1..100', () => {
+-    const base: AttemptInput = {
++  it('enforces strict YYYY-MM-DD date contract and rejects invalid calendar days', () => {
++    assert.ok(
++      validateAttempt({
++        routeId: 'redpoint-ridge',
++        date: '2026-02-31',
++        attempts: 1,
++        conditions: '',
++        notes: '',
++      }).date,
++      'February 31 is not a valid calendar day'
++    );
++
++    assert.ok(
++      validateAttempt({
++        routeId: 'redpoint-ridge',
++        date: '2026/09/06',
++        attempts: 1,
++        conditions: '',
++        notes: '',
++      }).date,
++      'Non-hyphenated date format must be rejected'
++    );
++
++    const valid = validateAttempt({
+       routeId: 'redpoint-ridge',
+       date: '2026-09-06',
+-      attempts: 0,
++      attempts: 1,
+       conditions: '',
+       notes: '',
+-    };
+-    assert.ok(validateAttempt(base).attempts, 'Must reject 0 attempts');
+-
+-    base.attempts = -3;
+-    assert.ok(validateAttempt(base).attempts, 'Must reject negative attempts');
+-
+-    base.attempts = 1.5;
+-    assert.ok(validateAttempt(base).attempts, 'Must reject fractional attempts');
+-
+-    base.attempts = 101;
+-    assert.ok(validateAttempt(base).attempts, 'Must reject attempt count > 100');
++    });
++    assert.equal(valid.date, undefined, 'Valid YYYY-MM-DD must pass');
++  });
+ 
+-    base.attempts = 6;
+-    assert.equal(validateAttempt(base).attempts, undefined, 'Accepts valid attempt count');
++  it('enforces positive integer attempts bounded within 1..100', () => {
++    assert.ok(
++      validateAttempt({
++        routeId: 'redpoint-ridge',
++        date: '2026-09-06',
++        attempts: 0,
++        conditions: '',
++        notes: '',
++      }).attempts,
++      'Zero attempts must be rejected'
++    );
++
++    assert.ok(
++      validateAttempt({
++        routeId: 'redpoint-ridge',
++        date: '2026-09-06',
++        attempts: 101,
++        conditions: '',
++        notes: '',
++      }).attempts,
++      'Attempts over 100 must be rejected'
++    );
++
++    assert.ok(
++      validateAttempt({
++        routeId: 'redpoint-ridge',
++        date: '2026-09-06',
++        attempts: 1.5,
++        conditions: '',
++        notes: '',
++      }).attempts,
++      'Fractional attempts must be rejected'
++    );
+   });
+ 
+   it('enforces sensible length limits on conditions and notes', () => {
+-    const base: AttemptInput = {
+-      routeId: 'redpoint-ridge',
+-      date: '2026-09-06',
+-      attempts: 1,
+-      conditions: 'x'.repeat(501),
+-      notes: 'y'.repeat(1001),
+-    };
+-    const errors = validateAttempt(base);
+-    assert.ok(errors.conditions, 'Must reject conditions > 500 chars');
+-    assert.ok(errors.notes, 'Must reject notes > 1000 chars');
++    const tooLongConditions = 'a'.repeat(501);
++    assert.ok(
++      validateAttempt({
++        routeId: 'redpoint-ridge',
++        date: '2026-09-06',
++        attempts: 1,
++        conditions: tooLongConditions,
++        notes: '',
++      }).conditions,
++      'Conditions over 500 characters must produce error'
++    );
++
++    const tooLongNotes = 'a'.repeat(1001);
++    assert.ok(
++      validateAttempt({
++        routeId: 'redpoint-ridge',
++        date: '2026-09-06',
++        attempts: 1,
++        conditions: '',
++        notes: tooLongNotes,
++      }).notes,
++      'Notes over 1000 characters must produce error'
++    );
+   });
+ });
+ 
+ describe('Text boundary processing: sanitizeText', () => {
+   it('preserves user angle brackets while trimming surrounding whitespace', () => {
+-    const input = '  Temperature <5°C, crux -> dynamic throw  ';
+-    const clean = sanitizeText(input);
+-    assert.equal(clean, 'Temperature <5°C, crux -> dynamic throw');
+-    assert.ok(clean.includes('<5°C'));
+-    assert.ok(clean.includes('->'));
++    const raw = '  Temp <10°C, crimp -> pinch -> jug  ';
++    const cleaned = sanitizeText(raw, 500);
++    assert.equal(cleaned, 'Temp <10°C, crimp -> pinch -> jug');
++    assert.ok(cleaned.includes('<10°C'));
+   });
+ 
+   it('enforces max length bounds', () => {
+-    const long = 'a'.repeat(200);
+-    assert.equal(sanitizeText(long, 50).length, 50);
++    const text = '1234567890';
++    assert.equal(sanitizeText(text, 5), '12345');
+   });
+ });
+ 
+@@ -198,6 +248,182 @@ describe('Schema hydration and corruption rejection: validateAndSanitizeData', (
+     assert.equal(validateAndSanitizeData(publishedUnsent), null);
+   });
+ 
++  it('rejects malformed attempt counts without coercion or clamping', () => {
++    // string attempts
++    assert.equal(
++      validateAndSanitizeData({
++        entries: [
++          {
++            id: 'e1',
++            routeId: 'redpoint-ridge',
++            date: '2026-09-06',
++            attempts: '6',
++            outcome: 'attempted',
++            published: false,
++          },
++        ],
++      }),
++      null
++    );
++
++    // out-of-bounds counts
++    assert.equal(
++      validateAndSanitizeData({
++        entries: [
++          {
++            id: 'e1',
++            routeId: 'redpoint-ridge',
++            date: '2026-09-06',
++            attempts: 0,
++            outcome: 'attempted',
++            published: false,
++          },
++        ],
++      }),
++      null
++    );
++
++    assert.equal(
++      validateAndSanitizeData({
++        entries: [
++          {
++            id: 'e1',
++            routeId: 'redpoint-ridge',
++            date: '2026-09-06',
++            attempts: 101,
++            outcome: 'attempted',
++            published: false,
++          },
++        ],
++      }),
++      null
++    );
++  });
++
++  it('rejects invalid calendar dates during hydration', () => {
++    assert.equal(
++      validateAndSanitizeData({
++        entries: [
++          {
++            id: 'e1',
++            routeId: 'redpoint-ridge',
++            date: '2026-02-31',
++            attempts: 1,
++            outcome: 'attempted',
++            published: false,
++          },
++        ],
++      }),
++      null
++    );
++
++    assert.equal(
++      validateAndSanitizeData({
++        entries: [
++          {
++            id: 'e1',
++            routeId: 'redpoint-ridge',
++            date: 'not-a-date',
++            attempts: 1,
++            outcome: 'attempted',
++            published: false,
++          },
++        ],
++      }),
++      null
++    );
++  });
++
++  it('rejects unknown routeId and unsafe id segment', () => {
++    assert.equal(
++      validateAndSanitizeData({
++        entries: [
++          {
++            id: 'e1',
++            routeId: 'unknown-route-xyz',
++            date: '2026-09-06',
++            attempts: 1,
++            outcome: 'attempted',
++            published: false,
++          },
++        ],
++      }),
++      null
++    );
++
++    assert.equal(
++      validateAndSanitizeData({
++        entries: [
++          {
++            id: 'bad id with spaces',
++            routeId: 'redpoint-ridge',
++            date: '2026-09-06',
++            attempts: 1,
++            outcome: 'attempted',
++            published: false,
++          },
++        ],
++      }),
++      null
++    );
++  });
++
++  it('rejects invalid text fields and overlength strings', () => {
++    // Non-string conditions
++    assert.equal(
++      validateAndSanitizeData({
++        entries: [
++          {
++            id: 'e1',
++            routeId: 'redpoint-ridge',
++            date: '2026-09-06',
++            attempts: 1,
++            conditions: 12345,
++            outcome: 'attempted',
++            published: false,
++          },
++        ],
++      }),
++      null
++    );
++
++    // Overlength caption
++    assert.equal(
++      validateAndSanitizeData({
++        entries: [
++          {
++            id: 'e1',
++            routeId: 'redpoint-ridge',
++            date: '2026-09-06',
++            attempts: 1,
++            outcome: 'sent',
++            published: true,
++            caption: 'x'.repeat(281),
++          },
++        ],
++      }),
++      null
++    );
++  });
++
++  it('rejects non-boolean top-level fields', () => {
++    assert.equal(
++      validateAndSanitizeData({
++        entries: [],
++        followingMaya: 'true',
++      }),
++      null
++    );
++
++    assert.equal(
++      validateAndSanitizeData({
++        entries: [],
++        activityRead: 1,
++      }),
++      null
++    );
++  });
++
+   it('preserves angle brackets in persisted conditions and notes', () => {
+     const validWithSymbols = {
+       entries: [
+@@ -210,6 +436,7 @@ describe('Schema hydration and corruption rejection: validateAndSanitizeData', (
+           notes: 'Crux move: crimp -> pinch -> jug',
+           outcome: 'sent',
+           published: false,
++          caption: '',
+         },
+       ],
+     };
+@@ -238,7 +465,7 @@ describe('State transitions: attempt -> sent -> published', () => {
+       ready: true,
+       error: null,
+       storageCorrupted: false,
+-      hasPendingWrite: false,
++      storageHydrated: true,
+     });
+   });
+ 
+@@ -347,7 +574,7 @@ describe('Deletion and restoration recovery', () => {
+       ready: true,
+       error: null,
+       storageCorrupted: false,
+-      hasPendingWrite: false,
++      storageHydrated: true,
+     });
+   });
+ 
+@@ -394,10 +621,10 @@ describe('Storage resilience and corruption protection', () => {
+       comments: [...INITIAL_JOURNAL_DATA.comments],
+       followingMaya: true,
+       activityRead: false,
+-      ready: true,
++      ready: false,
+       error: null,
+       storageCorrupted: false,
+-      hasPendingWrite: false,
++      storageHydrated: false,
+     });
+   });
+ 
+@@ -449,55 +676,210 @@ describe('Storage resilience and corruption protection', () => {
+     assert.match(useJournal.getState().error!, /malformed JSON/i);
+   });
+ 
+-  it('retains in-memory state and fails visibly when storage writes fail', () => {
++  it('protects failure -> Retry -> resubmit producing exactly one attempt without duplicate state', () => {
+     useJournal.getState().initialize();
+-    mockStorage.shouldThrowOnSet = true; // Simulate quota exceeded / storage blocked
++    mockStorage.shouldThrowOnSet = true;
+ 
+-    const result = useJournal.getState().recordAttempt({
++    const draft: AttemptInput = {
++      routeId: 'redpoint-ridge',
++      date: '2026-09-06',
++      attempts: 3,
++      conditions: 'Cold morning, <10°C',
++      notes: 'Foot slipped at crux',
++    };
++
++    // 1. Initial attempt fails to persist
++    const failRes = useJournal.getState().recordAttempt(draft);
++    assert.ok('error' in failRes, 'Must return error on persistence failure');
++    assert.match(failRes.error, /storage write failed/i);
++
++    // In-memory journal state is NOT modified
++    assert.equal(useJournal.getState().entries.length, 0, 'Must preserve old journal on write failure');
++    assert.ok(useJournal.getState().error);
++
++    // 2. Storage recovers; user triggers Retry
++    mockStorage.shouldThrowOnSet = false;
++    useJournal.getState().retryStorage();
++    assert.equal(useJournal.getState().error, null, 'Retry re-reads storage and clears error');
++    assert.equal(useJournal.getState().entries.length, 0, 'Retry does not replay pending operation');
++
++    // 3. User resubmits form draft
++    const successRes = useJournal.getState().recordAttempt(draft);
++    assert.ok('id' in successRes, 'Successful resubmit returns generated record id');
++    assert.equal(useJournal.getState().entries.length, 1, 'Exactly one attempt in store');
++
++    // Durable storage contains exactly one attempt
++    const stored = JSON.parse(mockStorage.getItem(STORAGE_KEY)!);
++    assert.equal(stored.entries.length, 1, 'Exactly one attempt in durable storage');
++    assert.equal(stored.entries[0].id, successRes.id);
++  });
++
++  it('protects failure -> Retry -> resubmit producing exactly one comment without duplicate state', () => {
++    useJournal.getState().initialize();
++    const initialCommentsCount = useJournal.getState().comments.length;
++    mockStorage.shouldThrowOnSet = true;
++
++    // 1. Initial comment fails to persist
++    const failRes = useJournal.getState().addComment('maya-redpoint', 'Great beta on the crux!');
++    assert.ok('error' in failRes, 'Must return error on persistence failure');
++
++    // In-memory comments are NOT modified
++    assert.equal(useJournal.getState().comments.length, initialCommentsCount);
++    assert.ok(useJournal.getState().error);
++
++    // 2. Storage recovers; user triggers Retry
++    mockStorage.shouldThrowOnSet = false;
++    useJournal.getState().retryStorage();
++    assert.equal(useJournal.getState().error, null);
++    assert.equal(useJournal.getState().comments.length, initialCommentsCount);
++
++    // 3. User resubmits comment
++    const successRes = useJournal.getState().addComment('maya-redpoint', 'Great beta on the crux!');
++    assert.deepEqual(successRes, { ok: true });
++    assert.equal(useJournal.getState().comments.length, initialCommentsCount + 1);
++
++    const stored = JSON.parse(mockStorage.getItem(STORAGE_KEY)!);
++    assert.equal(stored.comments.length, initialCommentsCount + 1);
++  });
++
++  it('failed delete retains original entry and retry alone does not delete', () => {
++    useJournal.getState().initialize();
++    const recordRes = useJournal.getState().recordAttempt({
+       routeId: 'redpoint-ridge',
+       date: '2026-09-06',
+-      attempts: 5,
++      attempts: 2,
+       conditions: '',
+       notes: '',
+     });
++    assert.ok('id' in recordRes);
++    assert.equal(useJournal.getState().entries.length, 1);
+ 
+-    assert.ok('error' in result, 'Action must return error when durability fails');
+-    assert.match(result.error, /storage write failed/i);
++    // Storage write failure on delete
++    mockStorage.shouldThrowOnSet = true;
++    const deleteRes = useJournal.getState().deleteEntry(recordRes.id);
++    assert.ok('error' in deleteRes, 'Delete must fail when storage write fails');
+ 
+-    const state = useJournal.getState();
+-    assert.ok(state.error, 'Store must reflect visible storage error');
+-    assert.equal(state.entries.length, 1, 'In-memory entries must be preserved despite write failure');
+-    assert.equal(state.entries[0].attempts, 5);
++    // In-memory entry is preserved
++    assert.equal(useJournal.getState().entries.length, 1, 'Entry must be retained on failed delete');
++    assert.equal(useJournal.getState().entries[0].id, recordRes.id);
++
++    // Storage recovers; retry alone must NOT delete the entry
++    mockStorage.shouldThrowOnSet = false;
++    useJournal.getState().retryStorage();
++    assert.equal(useJournal.getState().error, null);
++    assert.equal(useJournal.getState().entries.length, 1, 'Retry alone does not delete the entry');
++
++    const stored = JSON.parse(mockStorage.getItem(STORAGE_KEY)!);
++    assert.equal(stored.entries.length, 1, 'Storage still retains the entry');
+   });
+ 
+-  it('persists pending in-memory changes instead of discarding them on retryStorage', () => {
++  it('denied initial getter with preexisting storage then recovery retains prior data', () => {
++    const priorData = {
++      entries: [
++        {
++          id: 'prior-entry-1',
++          routeId: 'golden-hour',
++          date: '2026-09-05',
++          attempts: 4,
++          conditions: 'Golden hour light, <15°C',
++          notes: 'Delicate balance on headwall crimps',
++          outcome: 'sent',
++          published: true,
++          caption: 'Sent in the sunset',
++        },
++      ],
++      savedRouteIds: ['golden-hour'],
++      likedPostIds: [],
++      comments: [...INITIAL_JOURNAL_DATA.comments],
++      followingMaya: true,
++      activityRead: false,
++    };
++    const rawPrior = JSON.stringify(priorData);
++    mockStorage.setItem(STORAGE_KEY, rawPrior);
++
++    // Simulate getter denial on initial load
++    let accessAllowed = false;
++    const restrictedWindow = {
++      get localStorage(): Storage {
++        if (!accessAllowed) {
++          throw new Error('SecurityError: access to localStorage denied');
++        }
++        return mockStorage as unknown as Storage;
++      },
++    };
++    (globalThis as unknown as { window: unknown }).window = restrictedWindow;
++
++    // 1. Initialize with getter denied
+     useJournal.getState().initialize();
+-    mockStorage.shouldThrowOnSet = true;
++    const state = useJournal.getState();
++    assert.ok(state.ready, 'Store should become ready to show recovery UI');
++    assert.ok(state.error, 'Store must report access error');
++    assert.match(state.error!, /SecurityError/i);
++    assert.equal(state.entries.length, 0, 'Defaults in memory');
+ 
+-    // Perform an action while writes are failing
+-    const result = useJournal.getState().recordAttempt({
++    // 2. Mutations while storage unread must return error and NOT overwrite storage
++    const writeResult = useJournal.getState().recordAttempt({
+       routeId: 'redpoint-ridge',
+       date: '2026-09-06',
+-      attempts: 3,
+-      conditions: 'Overcast',
+-      notes: 'Great friction',
++      attempts: 1,
++      conditions: '',
++      notes: '',
+     });
+-    assert.ok('id' in result || 'error' in result);
++    assert.ok('error' in writeResult, 'Must block mutations before storage is safely loaded');
++    assert.equal(mockStorage.getItem(STORAGE_KEY), rawPrior, 'Preexisting storage must be completely untouched');
++
++    // 3. Access restored, user clicks Retry
++    accessAllowed = true;
++    useJournal.getState().retryStorage();
++
++    const recoveredState = useJournal.getState();
++    assert.equal(recoveredState.error, null, 'Error cleared after successful recovery');
++    assert.equal(recoveredState.entries.length, 1, 'Prior entries recovered');
++    assert.equal(recoveredState.entries[0].id, 'prior-entry-1');
++    assert.equal(recoveredState.savedRouteIds[0], 'golden-hour');
++    assert.equal(mockStorage.getItem(STORAGE_KEY), rawPrior, 'Storage remains intact with prior data');
++  });
++
++  it('preserves malformed entry fields in storage as raw and returns error without overwriting', () => {
++    const rawMalformedEntry = JSON.stringify({
++      entries: [
++        {
++          id: 'e-bad',
++          routeId: 'redpoint-ridge',
++          date: '2026-02-31', // invalid calendar date
++          attempts: '6', // string attempts
++          conditions: 12345, // bad type
++          notes: 'x'.repeat(1001), // overlength
++          caption: 'y'.repeat(281), // overlength
++          outcome: 'attempted',
++          published: false,
++        },
++      ],
++    });
++    mockStorage.setItem(STORAGE_KEY, rawMalformedEntry);
++
++    useJournal.getState().initialize();
+     assert.ok(useJournal.getState().error);
+-    assert.equal(useJournal.getState().entries.length, 1);
++    assert.match(useJournal.getState().error!, /invalid schema/i);
+ 
+-    // Now storage becomes writeable again
+-    mockStorage.shouldThrowOnSet = false;
++    // Raw bytes remain untouched in storage
++    assert.equal(mockStorage.getItem(STORAGE_KEY), rawMalformedEntry);
+ 
+-    // Retry should persist the pending entry and clear the error
++    // Calling retryStorage preserves raw storage
+     useJournal.getState().retryStorage();
+-    assert.equal(useJournal.getState().error, null, 'Error should be cleared on successful retry');
+-    assert.equal(useJournal.getState().entries.length, 1, 'In-memory entry should remain');
++    assert.equal(mockStorage.getItem(STORAGE_KEY), rawMalformedEntry);
++    assert.match(useJournal.getState().error!, /invalid schema/i);
+ 
+-    // Storage should now contain the entry
+-    const saved = JSON.parse(mockStorage.getItem(STORAGE_KEY)!);
+-    assert.equal(saved.entries.length, 1);
+-    assert.equal(saved.entries[0].attempts, 3);
++    // Mutation attempts fail and do not overwrite
++    const res = useJournal.getState().recordAttempt({
++      routeId: 'redpoint-ridge',
++      date: '2026-09-06',
++      attempts: 1,
++      conditions: '',
++      notes: '',
++    });
++    assert.ok('error' in res);
++    assert.equal(mockStorage.getItem(STORAGE_KEY), rawMalformedEntry);
+   });
+ 
+   it('catches security exceptions from accessing the window.localStorage property', () => {
+@@ -523,6 +905,6 @@ describe('Storage resilience and corruption protection', () => {
+       notes: '',
+     });
+     assert.ok('error' in writeResult, 'Must return error on denied storage access');
+-    assert.match(writeResult.error, /SecurityError/i);
++    assert.match(writeResult.error, /Cannot modify journal/i);
+   });
+ });
+diff --git a/lib/boarded/store.ts b/lib/boarded/store.ts
+index 8d7758a96be3d2cdc3543135e9afc14bc7f7d7ac..950389219b714924c029fa77c1b36b48e639deee 100644
+--- a/lib/boarded/store.ts
++++ b/lib/boarded/store.ts
+@@ -8,6 +8,7 @@ import {
+   type JournalData,
+   INITIAL_JOURNAL_DATA,
+   INITIAL_COMMENTS,
++  routes,
+   validateAttempt,
+   sanitizeText,
+ } from './journal.ts';
+@@ -24,7 +25,7 @@ export interface JournalStoreState {
+   ready: boolean;
+   error: string | null;
+   storageCorrupted?: boolean;
+-  hasPendingWrite?: boolean;
++  storageHydrated?: boolean;
+ 
+   initialize: () => void;
+   retryStorage: () => void;
+@@ -40,8 +41,11 @@ export interface JournalStoreState {
+   restoreEntry: (entry: Entry) => { ok: true } | { error: string };
+ }
+ 
++const SAFE_ID_REGEX = /^[a-zA-Z0-9_.~-]+$/;
++
+ /**
+  * Validates and sanitizes untrusted data parsed from localStorage.
++ * Strictly checks ALL Entry fields without destructive coercion or truncation.
+  * Returns null if data is fatally corrupted or structurally invalid.
+  */
+ export function validateAndSanitizeData(data: unknown): JournalData | null {
+@@ -61,39 +65,80 @@ export function validateAndSanitizeData(data: unknown): JournalData | null {
+       return null;
+     }
+     const entryObj = item as Record<string, unknown>;
+-    if (typeof entryObj.id !== 'string' || !entryObj.id.trim()) return null;
+-    if (typeof entryObj.routeId !== 'string' || !entryObj.routeId.trim()) return null;
+-    if (typeof entryObj.date !== 'string' || !entryObj.date.trim()) return null;
+ 
++    // 1. id: nonempty safe URL segment
++    if (
++      typeof entryObj.id !== 'string' ||
++      entryObj.id.length === 0 ||
++      entryObj.id.length > 128 ||
++      !SAFE_ID_REGEX.test(entryObj.id)
++    ) {
++      return null;
++    }
++
++    // 2. routeId: known route
++    if (
++      typeof entryObj.routeId !== 'string' ||
++      !routes.some((r) => r.id === entryObj.routeId)
++    ) {
++      return null;
++    }
++
++    // 3. date, attempts, conditions, notes: strictly validated using validateAttempt
++    if (
++      typeof entryObj.date !== 'string' ||
++      typeof entryObj.attempts !== 'number' ||
++      !Number.isInteger(entryObj.attempts) ||
++      (entryObj.conditions !== undefined && typeof entryObj.conditions !== 'string') ||
++      (entryObj.notes !== undefined && typeof entryObj.notes !== 'string')
++    ) {
++      return null;
++    }
++
++    const conditions = typeof entryObj.conditions === 'string' ? entryObj.conditions : '';
++    const notes = typeof entryObj.notes === 'string' ? entryObj.notes : '';
++
++    const attemptErrors = validateAttempt({
++      routeId: entryObj.routeId,
++      date: entryObj.date,
++      attempts: entryObj.attempts,
++      conditions,
++      notes,
++    });
++    if (Object.keys(attemptErrors).length > 0) {
++      return null;
++    }
++
++    // 4. outcome: explicit union
+     if (entryObj.outcome !== 'attempted' && entryObj.outcome !== 'sent') {
+       return null;
+     }
+ 
+-    // Strict boolean required; reject truthiness coercion like "false"
++    // 5. published: strict boolean
+     if (typeof entryObj.published !== 'boolean') {
+       return null;
+     }
+ 
+-    // Sent-before-published domain invariant
++    // 6. published implies sent
+     if (entryObj.published && entryObj.outcome !== 'sent') {
+       return null;
+     }
+ 
+-    const rawAttempts =
+-      typeof entryObj.attempts === 'number' && Number.isInteger(entryObj.attempts) && entryObj.attempts >= 1
+-        ? entryObj.attempts
+-        : 1;
+-
+-    const conditions =
+-      typeof entryObj.conditions === 'string' ? sanitizeText(entryObj.conditions, 500) : '';
+-    const notes = typeof entryObj.notes === 'string' ? sanitizeText(entryObj.notes, 1000) : '';
+-    const caption = typeof entryObj.caption === 'string' ? sanitizeText(entryObj.caption, 280) : '';
++    // 7. caption: string <= 280
++    if (
++      entryObj.caption !== undefined &&
++      (typeof entryObj.caption !== 'string' || entryObj.caption.length > 280)
++    ) {
++      return null;
++    }
++    const caption = typeof entryObj.caption === 'string' ? entryObj.caption : '';
+ 
++    // Preserve accepted fields exactly without truncation or loss
+     entries.push({
+-      id: sanitizeText(entryObj.id, 100),
+-      routeId: sanitizeText(entryObj.routeId, 100),
+-      date: sanitizeText(entryObj.date, 20),
+-      attempts: Math.max(1, Math.min(100, Math.floor(rawAttempts))),
++      id: entryObj.id,
++      routeId: entryObj.routeId,
++      date: entryObj.date,
++      attempts: entryObj.attempts,
+       conditions,
+       notes,
+       outcome: entryObj.outcome,
+@@ -106,10 +151,8 @@ export function validateAndSanitizeData(data: unknown): JournalData | null {
+   if (obj.savedRouteIds !== undefined) {
+     if (!Array.isArray(obj.savedRouteIds)) return null;
+     for (const r of obj.savedRouteIds) {
+-      if (typeof r !== 'string') return null;
+-      if (r.trim().length > 0) {
+-        savedRouteIds.push(sanitizeText(r, 100));
+-      }
++      if (typeof r !== 'string' || !r.trim()) return null;
++      savedRouteIds.push(r);
+     }
+   }
+ 
+@@ -117,10 +160,8 @@ export function validateAndSanitizeData(data: unknown): JournalData | null {
+   if (obj.likedPostIds !== undefined) {
+     if (!Array.isArray(obj.likedPostIds)) return null;
+     for (const p of obj.likedPostIds) {
+-      if (typeof p !== 'string') return null;
+-      if (p.trim().length > 0) {
+-        likedPostIds.push(sanitizeText(p, 100));
+-      }
++      if (typeof p !== 'string' || !p.trim()) return null;
++      likedPostIds.push(p);
+     }
+   }
+ 
+@@ -132,26 +173,34 @@ export function validateAndSanitizeData(data: unknown): JournalData | null {
+       const cObj = c as Record<string, unknown>;
+       if (typeof cObj.id !== 'string' || !cObj.id.trim()) return null;
+       if (typeof cObj.postId !== 'string' || !cObj.postId.trim()) return null;
+-      if (typeof cObj.text !== 'string') return null;
+-      if (typeof cObj.author !== 'string') return null;
++      if (typeof cObj.text !== 'string' || cObj.text.length > 500) return null;
++      if (typeof cObj.author !== 'string' || !cObj.author.trim()) return null;
++      if (cObj.createdAt !== undefined && typeof cObj.createdAt !== 'string') return null;
+       comments.push({
+-        id: sanitizeText(cObj.id, 100),
+-        postId: sanitizeText(cObj.postId, 100),
+-        text: sanitizeText(cObj.text, 500),
+-        author: sanitizeText(cObj.author, 100),
+-        createdAt: typeof cObj.createdAt === 'string' ? sanitizeText(cObj.createdAt, 50) : undefined,
++        id: cObj.id,
++        postId: cObj.postId,
++        text: cObj.text,
++        author: cObj.author,
++        createdAt: cObj.createdAt,
+       });
+     }
+   }
+ 
++  if (obj.followingMaya !== undefined && typeof obj.followingMaya !== 'boolean') {
++    return null;
++  }
+   const followingMaya = typeof obj.followingMaya === 'boolean' ? obj.followingMaya : true;
++
++  if (obj.activityRead !== undefined && typeof obj.activityRead !== 'boolean') {
++    return null;
++  }
+   const activityRead = typeof obj.activityRead === 'boolean' ? obj.activityRead : false;
+ 
+   return {
+     entries,
+     savedRouteIds,
+     likedPostIds,
+-    comments: comments.length > 0 ? comments : INITIAL_COMMENTS,
++    comments: obj.comments !== undefined ? comments : INITIAL_COMMENTS,
+     followingMaya,
+     activityRead,
+   };
+@@ -162,7 +211,13 @@ function persistToStorage(data: JournalData): { ok: true } | { error: string } {
+     if (typeof window === 'undefined') {
+       return { error: 'localStorage is unavailable in current runtime.' };
+     }
+-    const storage = window.localStorage;
++    let storage: Storage | null = null;
++    try {
++      storage = window.localStorage;
++    } catch (err: unknown) {
++      const message = err instanceof Error ? err.message : String(err);
++      return { error: `Storage access error: ${message}` };
++    }
+     if (!storage) {
+       return { error: 'localStorage is unavailable in current runtime.' };
+     }
+@@ -188,6 +243,12 @@ function applyUpdate(
+     };
+   }
+ 
++  if (!current.storageHydrated) {
++    return {
++      error: 'Cannot modify journal before storage is safely loaded. Preserving unread storage.',
++    };
++  }
++
+   const nextData: JournalData = {
+     entries: partialData.entries ?? current.entries,
+     savedRouteIds: partialData.savedRouteIds ?? current.savedRouteIds,
+@@ -197,24 +258,21 @@ function applyUpdate(
+     activityRead: partialData.activityRead ?? current.activityRead,
+   };
+ 
+-  // Durable write
++  // Persist next snapshot FIRST
+   const persistRes = persistToStorage(nextData);
+   if ('error' in persistRes) {
+-    set({
+-      ...partialData,
+-      error: persistRes.error,
+-      hasPendingWrite: true,
+-    });
++    set({ error: persistRes.error });
+     return { error: persistRes.error };
+   }
+ 
++  // Commit in-memory state ONLY on success
+   set({
+     ...partialData,
+     error: null,
+-    hasPendingWrite: false,
+   });
+   return { ok: true };
+ }
++
+ function updateEntry(
+   entries: Entry[],
+   id: string,
+@@ -242,10 +300,12 @@ export const useJournal = create<JournalStoreState>((set, get) => ({
+   activityRead: INITIAL_JOURNAL_DATA.activityRead,
+   ready: false,
+   error: null,
++  storageCorrupted: false,
++  storageHydrated: false,
+ 
+   initialize: () => {
+     if (typeof window === 'undefined') {
+-      set({ ready: true, error: null, storageCorrupted: false, hasPendingWrite: false });
++      set({ ready: true, error: null, storageCorrupted: false, storageHydrated: true });
+       return;
+     }
+ 
+@@ -259,7 +319,7 @@ export const useJournal = create<JournalStoreState>((set, get) => ({
+           ready: true,
+           error: `Storage access error: ${message}`,
+           storageCorrupted: false,
+-          hasPendingWrite: false,
++          storageHydrated: false,
+         });
+         return;
+       }
+@@ -269,31 +329,32 @@ export const useJournal = create<JournalStoreState>((set, get) => ({
+           ready: true,
+           error: 'Storage access error: localStorage is unavailable in current runtime.',
+           storageCorrupted: false,
+-          hasPendingWrite: false,
++          storageHydrated: false,
++        });
++        return;
++      }
++
++      let raw: string | null = null;
++      try {
++        raw = storage.getItem(STORAGE_KEY);
++      } catch (err: unknown) {
++        const message = err instanceof Error ? err.message : String(err);
++        set({
++          ready: true,
++          error: `Storage access error: ${message}`,
++          storageCorrupted: false,
++          storageHydrated: false,
+         });
+         return;
+       }
+ 
+-      const raw = storage.getItem(STORAGE_KEY);
+       if (raw === null) {
+-        const initial = INITIAL_JOURNAL_DATA;
+-        const persistRes = persistToStorage(initial);
+-        if ('error' in persistRes) {
+-          set({
+-            ...initial,
+-            ready: true,
+-            error: persistRes.error,
+-            storageCorrupted: false,
+-            hasPendingWrite: true,
+-          });
+-          return;
+-        }
+         set({
+-          ...initial,
++          ...INITIAL_JOURNAL_DATA,
+           ready: true,
+           error: null,
+           storageCorrupted: false,
+-          hasPendingWrite: false,
++          storageHydrated: true,
+         });
+         return;
+       }
+@@ -307,7 +368,7 @@ export const useJournal = create<JournalStoreState>((set, get) => ({
+           ready: true,
+           error: 'Stored journal data is malformed JSON. Preserving existing storage without resetting.',
+           storageCorrupted: true,
+-          hasPendingWrite: false,
++          storageHydrated: false,
+         });
+         return;
+       }
+@@ -319,7 +380,7 @@ export const useJournal = create<JournalStoreState>((set, get) => ({
+           ready: true,
+           error: 'Stored journal data has an invalid schema. Preserving existing storage without resetting.',
+           storageCorrupted: true,
+-          hasPendingWrite: false,
++          storageHydrated: false,
+         });
+         return;
+       }
+@@ -334,7 +395,7 @@ export const useJournal = create<JournalStoreState>((set, get) => ({
+         ready: true,
+         error: null,
+         storageCorrupted: false,
+-        hasPendingWrite: false,
++        storageHydrated: true,
+       });
+     } catch (err: unknown) {
+       const message = err instanceof Error ? err.message : String(err);
+@@ -342,14 +403,14 @@ export const useJournal = create<JournalStoreState>((set, get) => ({
+         ready: true,
+         error: `Storage access error: ${message}`,
+         storageCorrupted: false,
+-        hasPendingWrite: false,
++        storageHydrated: false,
+       });
+     }
+   },
+ 
+   retryStorage: () => {
+     if (typeof window === 'undefined') {
+-      set({ error: null });
++      set({ error: null, storageHydrated: true });
+       return;
+     }
+ 
+@@ -358,55 +419,32 @@ export const useJournal = create<JournalStoreState>((set, get) => ({
+       storage = window.localStorage;
+     } catch (err: unknown) {
+       const message = err instanceof Error ? err.message : String(err);
+-      set({ error: `Storage access error: ${message}` });
++      set({ error: `Storage access error: ${message}`, storageHydrated: false });
+       return;
+     }
+ 
+     if (!storage) {
+-      set({ error: 'Storage access error: localStorage is unavailable in current runtime.' });
++      set({ error: 'Storage access error: localStorage is unavailable in current runtime.', storageHydrated: false });
+       return;
+     }
+ 
+-    const current = get();
+-
+-    // Case 1: Retry persisting retained in-memory changes after durable write failure
+-    if (current.hasPendingWrite) {
+-      const currentData: JournalData = {
+-        entries: current.entries,
+-        savedRouteIds: current.savedRouteIds,
+-        likedPostIds: current.likedPostIds,
+-        comments: current.comments,
+-        followingMaya: current.followingMaya,
+-        activityRead: current.activityRead,
+-      };
+-
+-      const result = persistToStorage(currentData);
+-      if ('error' in result) {
+-        set({ error: result.error });
+-      } else {
+-        set({ error: null, hasPendingWrite: false });
++    try {
++      let raw: string | null = null;
++      try {
++        raw = storage.getItem(STORAGE_KEY);
++      } catch (err: unknown) {
++        const message = err instanceof Error ? err.message : String(err);
++        set({ error: `Storage access error: ${message}`, storageHydrated: false });
++        return;
+       }
+-      return;
+-    }
+ 
+-    // Case 2: Read-recovery retry.
+-    // Try re-reading from storage.
+-    // MUST NOT overwrite unreadable or corrupted storage with defaults!
+-    try {
+-      const raw = storage.getItem(STORAGE_KEY);
+       if (raw === null) {
+-        const initial = INITIAL_JOURNAL_DATA;
+-        const persistRes = persistToStorage(initial);
+-        if ('error' in persistRes) {
+-          set({ error: persistRes.error, hasPendingWrite: true });
+-        } else {
+-          set({
+-            ...initial,
+-            error: null,
+-            storageCorrupted: false,
+-            hasPendingWrite: false,
+-          });
+-        }
++        set({
++          ...INITIAL_JOURNAL_DATA,
++          error: null,
++          storageCorrupted: false,
++          storageHydrated: true,
++        });
+         return;
+       }
+ 
+@@ -417,6 +455,7 @@ export const useJournal = create<JournalStoreState>((set, get) => ({
+         set({
+           error: 'Stored journal data is malformed JSON. Preserving existing storage without resetting.',
+           storageCorrupted: true,
++          storageHydrated: false,
+         });
+         return;
+       }
+@@ -426,6 +465,7 @@ export const useJournal = create<JournalStoreState>((set, get) => ({
+         set({
+           error: 'Stored journal data has an invalid schema. Preserving existing storage without resetting.',
+           storageCorrupted: true,
++          storageHydrated: false,
+         });
+         return;
+       }
+@@ -439,11 +479,11 @@ export const useJournal = create<JournalStoreState>((set, get) => ({
+         activityRead: validated.activityRead,
+         error: null,
+         storageCorrupted: false,
+-        hasPendingWrite: false,
++        storageHydrated: true,
+       });
+     } catch (err: unknown) {
+       const message = err instanceof Error ? err.message : String(err);
+-      set({ error: `Retry failed: ${message}` });
++      set({ error: `Retry failed: ${message}`, storageHydrated: false });
+     }
+   },
+ 
+@@ -477,6 +517,7 @@ export const useJournal = create<JournalStoreState>((set, get) => ({
+ 
+     return { id };
+   },
++
+   markSent: (id: string) => {
+     const updateRes = updateEntry(get().entries, id, (entry) => {
+       if (entry.outcome === 'sent') {
+@@ -586,12 +627,6 @@ export const useJournal = create<JournalStoreState>((set, get) => ({
+       return { error: 'Invalid entry object for restoration.' };
+     }
+ 
+-    if (get().storageCorrupted) {
+-      return {
+-        error: 'Cannot modify journal while storage contains corrupted data. Preserving existing storage without resetting.',
+-      };
+-    }
+-
+     const currentEntries = get().entries;
+     if (currentEntries.some((e) => e.id === entry.id)) {
+       // Idempotent: already present
+@@ -602,15 +637,15 @@ export const useJournal = create<JournalStoreState>((set, get) => ({
+     const published = outcome === 'sent' ? Boolean(entry.published) : false;
+ 
+     const safeEntry: Entry = {
+-      id: sanitizeText(entry.id, 100),
+-      routeId: sanitizeText(entry.routeId, 100),
+-      date: sanitizeText(entry.date, 20),
+-      attempts: Math.max(1, Math.min(100, Math.floor(entry.attempts || 1))),
+-      conditions: sanitizeText(entry.conditions || '', 500),
+-      notes: sanitizeText(entry.notes || '', 1000),
++      id: entry.id,
++      routeId: entry.routeId,
++      date: entry.date,
++      attempts: entry.attempts,
++      conditions: typeof entry.conditions === 'string' ? entry.conditions : '',
++      notes: typeof entry.notes === 'string' ? entry.notes : '',
+       outcome,
+       published,
+-      caption: sanitizeText(entry.caption || '', 280),
++      caption: typeof entry.caption === 'string' ? entry.caption : '',
+     };
+ 
+     const nextEntries = [safeEntry, ...currentEntries];

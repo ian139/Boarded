@@ -1,0 +1,23 @@
+{
+  "review_kind": "packet",
+  "identity": {
+    "repo": "/Users/ian/Projects/ClimbingApp",
+    "branch": "loop/boarded-v1-20260905-78720d/design",
+    "base_sha": "9a68ff18ffd612b21bfb5173a50b82ee7c35297e",
+    "head_sha": "60cfa93eb5b710a09ed917ee676ace39916179ad",
+    "diff_sha256": "9acd52f026c823b84ec0a4330a47ade50e5ba2c26bbf32fe1bb63b824bbec549",
+    "packet_spec_sha256": "2df082e9dcd250cb13bea088f3725a5cb2e81e2ebbfd4bb16bc407db36bb7e9d",
+    "dependency_heads": {},
+    "target_snapshot_sha256": "7e18b94f09611c15ffcdeac9ccb7300669e02759e307724915230bf50cd1ec4c",
+    "confinement_sha256": "056ab93457489194114cf7fbef27a6dd090e739c78918abd7f211779739e7796"
+  },
+  "changed_paths": [
+    "docs/design-language.md"
+  ],
+  "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/design",
+  "packet_spec": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/design-packet.json",
+  "diff_path": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/design.patch",
+  "execution_evidence": [],
+  "review_status": "pending",
+  "designer_verdict": null
+}

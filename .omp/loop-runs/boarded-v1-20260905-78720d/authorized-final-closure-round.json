@@ -1,0 +1,116 @@
+{
+  "schema": "omp.correction-round.v1",
+  "authorization": "User selected Continue targeted corrections for nine web findings and one iOS sync-status race on 2026-09-06. One additional bounded implementation/review round.",
+  "state": "authorizing",
+  "web": {
+    "findings": [
+      {
+        "title": "Replay bookmarks without requiring an ungranted UPDATE permission",
+        "body": "Every queued `saved: true` operation uses the default merge-upsert, which requires UPDATE permission even when inserting a new row. Canonical migration 014 explicitly grants authenticated users only SELECT, INSERT and DELETE on `route_bookmarks`, with no UPDATE policy, so this request fails and the head-of-queue item prevents later attempts, deletions and restores from syncing. Use an idempotent insert compatible with the existing grants. This also affects the cross-slice Profile Remove path when a bookmark created by social Details is absent from the journal's cached saved IDs; that caller's incorrect toggle intent is a separate finding.",
+        "priority": 1,
+        "confidence": 1,
+        "file_path": "lib/boarded/store.ts",
+        "line_start": 689,
+        "line_end": 693
+      },
+      {
+        "title": "Make hydrated server entries valid for the durable cache",
+        "body": "The new hydration copies canonical server captions and attempt numbers directly into `Entry` and persists them, but `validateAndSanitizeData` still rejects captions longer than 280 and calls `validateAttempt`, which rejects counts above 100. Migration 013 permits captions through 2000 characters and any positive attempt number. An account containing either valid server value therefore loads once, then its next initialization/reopen marks the entire journal corrupted and returns before remote recovery or queue replay; all mutations are subsequently blocked. Align the cache reader with the canonical values this new writer persists.",
+        "priority": 1,
+        "confidence": 1,
+        "file_path": "lib/boarded/store.ts",
+        "line_start": 575,
+        "line_end": 581
+      },
+      {
+        "title": "Preserve published-post state across attempt deletion and undo",
+        "body": "Deleting a published post's featured attempt from Profile immediately runs this remote DELETE; migration 013 defines `session_posts.featured_attempt_id` with ON DELETE CASCADE, which also removes the post's engagement and timeline snapshot. Profile promises Undo and `restoreEntry` restores the original entry with `published: true`, but its queued restore only upserts `climb_attempts`, never the cascaded post or related data. Thus Delete followed by Undo permanently removes the public post while the journal initially claims it remains published. Preserve the dependent publication through the undo window or make the deletion/restoration lifecycle cover it; this is a store-to-publication dependency.",
+        "priority": 1,
+        "confidence": 0.99,
+        "file_path": "lib/boarded/store.ts",
+        "line_start": 684,
+        "line_end": 687
+      },
+      {
+        "title": "Validate canonical attempt fields before appending durable operations",
+        "body": "The authenticated validation only adds nonempty venue and parseable time checks; `validateAttempt` never checks the new grade, route-name or venue bounds. The actual form permits a blank Custom grade and venue names up to 200 characters, while migration 013 requires a nonempty grade and venue names of at most 120. Such a submission is reported saved and durably queued, but always fails the database constraints. Because replay stops at that first error and deleting the bad entry merely appends a later operation, this ordinary invalid input permanently blocks all subsequent synchronization. Reject these canonical-invalid values before committing the operation.",
+        "priority": 1,
+        "confidence": 1,
+        "file_path": "lib/boarded/store.ts",
+        "line_start": 729,
+        "line_end": 735
+      },
+      {
+        "title": "Hydrate the journal date in the same timezone as the logger",
+        "body": "The form derives `occurredAt` from the entered local date/time but initially stores `date` as the user's local date. This hydration instead takes the UTC prefix of the returned timestamp. For example, a September 6 evening attempt in UTC\u22127 is persisted with a September 7 UTC timestamp, so reopening or retrying changes its Profile date from September 6 to September 7. Derive the displayed date consistently from the actual timestamp in the intended local timezone instead of slicing its UTC representation.",
+        "priority": 2,
+        "confidence": 1,
+        "file_path": "lib/boarded/store.ts",
+        "line_start": 574,
+        "line_end": 576
+      },
+      {
+        "title": "Restart hydration when a local edit invalidates its response",
+        "body": "Initialization exposes the cached journal as ready before the remote reads finish, and every queued local edit increments `hydrationRevision`. If an account with uncached remote history records an attempt while those reads are pending, this guard discards the entire history response. Successful replay only adds the new operation's session/attempt, and neither replay nor the same-account Log/Profile identity hooks start another hydration, so the existing remote journal remains missing with no pending/error retry indicator until a reload. Merge the local operations into the fetched history or schedule replacement hydration instead of silently abandoning it.",
+        "priority": 2,
+        "confidence": 0.99,
+        "file_path": "lib/boarded/store.ts",
+        "line_start": 545,
+        "line_end": 545
+      }
+    ],
+    "overall_correctness": "incorrect",
+    "explanation": "Changes requested for lib/boarded/store.ts, journal.ts and journal.test.ts plus their necessary auth/schema/UI consumers: six remaining defects affect bookmark replay permissions, canonical cache compatibility, published deletion/undo, invalid-input queue blocking, local dates and interrupted hydration; the original Node-loading, canonical-outcome, identity-rebind, reconnect-dispatch and repeated-restore defects are corrected in source. Review_kind=packet; immutable identity: repo=/Users/ian/Projects/ClimbingApp; branch=loop/boarded-v1-20260905-78720d/web-reconcile-journal; base_sha=fe6438c359084e5e5e33dbe7e3c58d8e58131034; head_sha=b16f6331cd82112b2b98eaee2dceddc82cfda09e; diff_sha256=540b7b3d4b2ad9de77364d85b54e871cc702ca4eaaad3c84364f4b81c254980e; packet_spec_sha256=a526e1d222676d064a03b7a892e96cd8e6ffec33366bc91777a58b84602378d2; dependency_heads.data=869233640a83246f5677587acdb9d4d0b124d632; target_snapshot_sha256=8cebec60f9284dcae5c2b850bd76396dbd49182e5430a54be29ef66f3e3d0795; confinement_sha256=480d0b8c56f810fcb9a81a13c90a47019e98eda1faa9ec0878ca031ba9b6dca0. Findings are bound to the immutable active.patch and the social37a9508 receiving contract, not subsequent worktree edits; no edits, execution, builds, tests or rendered verification were performed.",
+    "confidence": 0.99
+  },
+  "publication": {
+    "overall_correctness": "incorrect",
+    "explanation": "Changes requested for the assigned six-path source scope: three independent remaining defects affect card composition and Saved interactions; the venue-validation overlap is deferred to JournalStoreReview rather than duplicated here. Identity binding: review_kind=packet; repo=/Users/ian/Projects/ClimbingApp; branch=loop/boarded-v1-20260905-78720d/web-reconcile-journal; base_sha=fe6438c359084e5e5e33dbe7e3c58d8e58131034; head_sha=b16f6331cd82112b2b98eaee2dceddc82cfda09e; diff_sha256=540b7b3d4b2ad9de77364d85b54e871cc702ca4eaaad3c84364f4b81c254980e; packet_spec_sha256=a526e1d222676d064a03b7a892e96cd8e6ffec33366bc91777a58b84602378d2; dependency_heads[data]=869233640a83246f5677587acdb9d4d0b124d632; target_snapshot_sha256=8cebec60f9284dcae5c2b850bd76396dbd49182e5430a54be29ef66f3e3d0795; confinement_sha256=480d0b8c56f810fcb9a81a13c90a47019e98eda1faa9ec0878ca031ba9b6dca0. Read-only review traced social37a9508 receiving routes and canonical backend contracts; supported avatar access, session ending, ownership/cleanup handling, unknown-status fencing, account guards, route/composition revisions, existing-session routing, and result-card class structure are present, with no execution or rendered approval claimed.",
+    "confidence": 0.99,
+    "findings": [
+      {
+        "title": "Pass the session timeline and duration into card composition",
+        "body": "Selecting \u201cAttempt Timeline\u201d in the nested ShareFlow never renders a timeline: this is the only production call to composeSessionResultCard, and it passes overlayStyle without timeline, so composer.ts always falls through to the stats branch. It also omits durationSeconds, so the advertised \u201cTries & Duration\u201d treatment cannot display the session duration, including for existing ended sessions. Load the selected session's real attempt timeline and timing and include those facts in composition and its invalidation dependencies.",
+        "priority": 2,
+        "confidence": 1,
+        "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/web-reconcile-journal/components/boarded/LogFlow.tsx",
+        "line_start": 817,
+        "line_end": 824
+      },
+      {
+        "title": "Remove saved routes using explicit unsave intent",
+        "body": "When a route is bookmarked through social37a9508's RouteDetail or SendDetail after journal initialization, those callers write route_bookmarks directly without updating savedRouteIds. The new Saved RPC displays that real bookmark, but clicking Remove calls toggleSave against the stale journal set; store.ts therefore queues saved:true instead of deleting the bookmark. The bookmark is not removed, independently of the separately reported upsert permission defect. Reconcile the authoritative bookmark state or dispatch an explicit durable unsave operation rather than inferring Remove from stale membership.",
+        "priority": 2,
+        "confidence": 1,
+        "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/web-reconcile-journal/components/boarded/LogFlow.tsx",
+        "line_start": 1595,
+        "line_end": 1599
+      },
+      {
+        "title": "Retry the failed Saved request with its original pagination mode",
+        "body": "After Saved has loaded a page, switching away and back starts fetchSaved(true), but an initial-refresh failure leaves savedCursor.current pointing to the previous successful page. This Retry button then calls fetchSaved(false), requesting older rows rather than retrying the failed first page; any newly saved routes in that first page remain absent even though Retry succeeds. Track whether the failed request was initial or continuation, or reset the cursor when beginning an initial refresh.",
+        "priority": 2,
+        "confidence": 0.99,
+        "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/web-reconcile-journal/components/boarded/LogFlow.tsx",
+        "line_start": 1610,
+        "line_end": 1612
+      }
+    ]
+  },
+  "native": {
+    "overall_correctness": "incorrect",
+    "explanation": "Changes requested: replay completion now triggers a refresh, but an older in-flight history request can overwrite the refreshed sync statuses; ownership-error presentation remains source-correct. No writes, execution checks, or rendering claims. Binding: review_kind=packet; packet=native-journal; platform=iOS; repo=/Users/ian/Projects/ClimbingApp; branch=loop/boarded-v1-20260905-78720d/native-journal; base_sha=a178c2c406f8d5b7d35a309471ba24d3775b49fd; head_sha=5c0f4501fbb71cd9d7fa04636d72cea76386e70d; diff_sha256=6e5e31d377df738c3910fe80b7b734c5dd359459c573907aa8a3fcb9f8b1f108; packet_spec_sha256=406c70acec19778e7f96323febe567e6bfb24cf36edbe51969bc00d6ed1f607f; dependency_heads.native=a178c2c406f8d5b7d35a309471ba24d3775b49fd; target_snapshot_sha256=ae26baaec70e0c008d91bf2fb6778f464cbc0c4393e60de55032ddd1b75092b5; confinement_sha256=cb5827e03c3f087011190fd973323a81b56e09f56e907cda55ac7383a8b9b12d.",
+    "confidence": 0.98,
+    "findings": [
+      {
+        "title": "Discard superseded history loads before publishing sync statuses",
+        "body": "The replay-completion handler starts another loadHistory() without superseding any request already running. mergedSessions() snapshots local sync states before awaiting fetchSessions(), so a history load started while a session is queued/syncing can finish after the new completion-triggered load. It then passes this same-account guard and overwrites the fresh .synced statuses with its older snapshots, restoring \u201cPending sync\u201d indefinitely after successful replay. Add a load generation or equivalent latest-request check before publishing the history and status dictionaries.",
+        "priority": 2,
+        "confidence": 0.99,
+        "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/native-journal/apps/ios/Boarded/Boarded/Views/Log/LogViews.swift",
+        "line_start": 138,
+        "line_end": 142
+      }
+    ]
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "schema": "omp.behavioral_reproduction.v1",
+  "head": "e1114ed0422b789e39ccf9b4ec43c88f238eedd8",
+  "focus": {
+    "beforeTabIndex": 0,
+    "afterErrorLink": -1,
+    "afterTab": "log-attempts",
+    "afterShiftTab": "log-route"
+  },
+  "caption": {
+    "detail": {
+      "quotes": [
+        "“Private notes should not replace an empty caption.”"
+      ],
+      "notesVisible": true
+    },
+    "exported": {
+      "captionField": "",
+      "svgHasFallback": true
+    },
+    "recovery": {
+      "inputs": [],
+      "alert": []
+    }
+  },
+  "clipboard": {
+    "before": {
+      "disabled": false,
+      "focused": "Copy Direct Send URL",
+      "html": "<button type=\"button\" class=\"b-button\"><svg class=\"w-4 h-4\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375-9-9\"></path></svg>Copy Direct Send URL</button>"
+    },
+    "after": {
+      "inputs": [
+        {
+          "readOnly": true,
+          "ariaLabel": null,
+          "labels": [],
+          "width": 604,
+          "height": 34
+        }
+      ],
+      "alerts": [
+        "Could not write to clipboard. Select and copy the URL below:"
+      ],
+      "statuses": []
+    }
+  },
+  "isolation": "Caption/clipboard ran in isolated browser contexts then closed; original journal preserved. Focus used invalid unsaved form only."
+}

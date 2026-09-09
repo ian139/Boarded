@@ -1,0 +1,20 @@
+{
+  "corruption": {
+    "text": "Stored journal data is malformed JSON. Preserving existing storage without resetting.RetryFeedDispatches from Stonegate & the cragAutumn Season 2026Storage unavailableStored journal data is malformed JSON. Preserving existing storage without resetting.Retry journal storage",
+    "raw": "{broken journal"
+  },
+  "retry": {
+    "raw": "{broken journal",
+    "alert": "Stored journal data is malformed JSON. Preserving existing storage without resetting.Retry"
+  },
+  "denied": {
+    "text": "Storage access error: Storage unavailable in verificationRetryFeedDispatches from Stonegate & the cragAutumn Season 2026Storage unavailableStorage access error: Storage unavailable in verificationRetry journal storage",
+    "errors": [
+      "Storage access error: Storage unavailable in verificationRetry"
+    ]
+  },
+  "recovery": {
+    "loaded": "Feed",
+    "storage": null
+  }
+}

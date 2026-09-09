@@ -1,0 +1,22 @@
+diff --git a/components/boarded/Shell.tsx b/components/boarded/Shell.tsx
+index 12ae798e4440d108aa802be7fb2c9b600ac261eb..d45ebe0bf3e5732911aa6cfdda2c350861ab229a 100644
+--- a/components/boarded/Shell.tsx
++++ b/components/boarded/Shell.tsx
+@@ -394,7 +394,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
+ 
+       {/* Slim Mobile Brand Header */}
+       <header className="b-mobile-header" role="banner">
+-        <Link href="/app" className="b-brand-logo text-xl inline-flex items-center min-h-[44px]">
++        <Link href="/" className="b-brand-logo text-xl inline-flex items-center min-h-[44px]">
+           Boarded
+         </Link>
+         <span className="b-eyebrow">Climbing Journal</span>
+@@ -403,7 +403,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
+       <div className="b-shell-layout">
+         {/* Desktop Sidebar Navigation */}
+         <nav className="b-desktop-nav" aria-label="Primary application navigation">
+-          <Link href="/app" className="b-brand-link inline-flex items-center min-h-[44px]">
++          <Link href="/" className="b-brand-link inline-flex items-center min-h-[44px]">
+             <span className="b-brand-logo">Boarded</span>
+           </Link>
+ 

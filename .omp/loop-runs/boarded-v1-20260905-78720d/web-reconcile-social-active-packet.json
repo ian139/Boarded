@@ -1,0 +1,29 @@
+{
+  "packet": "web-reconcile-social",
+  "context": "# Goal\nExecute Main's four remaining isolated correction packets, without expanding scope. Preserve the newer e1114ed web redesign and /app routing. Main alone owns integration and verification. User approved this final native correction/review round; earlier six launches failed before edits.\n# Constraints\nOnly Gemini and Codex models. No fallback/provider/credential changes. Skip builds, tests, linters, formatters, services and td in all worker worktrees. Use absolute allowlisted paths, including cwd on every command. Primary checkout and sibling worktrees are read-only. Commit ONLY owned files once, report base/head/changed paths, then FREEZE; no post-handoff corrections. Preserve inherited .todos metadata. Do not merge, integrate, push or clean resources.\n# Contract\nRead /Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/resume-correction-round-two.json and resume-handoff.json for exact established failures. Frozen design: /Users/ian/Projects/.boarded-v1-20260905-78720d/design/docs/design-language.md. Active designer is ApprovedModelDesigner, reachable throughout review. Existing packet specs and resume-web-reconciliation-contract.json define unchanged shared APIs. Web mechanics are web-only implementations of unchanged both-platform semantics. Native mechanics are iOS-only. No shared schema/API changes; if required, report to Main before mutation. All reviewer findings must be closed in the actual nested user path, not obsolete duplicate pages. Each worker returns concrete modified artifact and focused verification scenarios, not self-approval.",
+  "correction": "# Target\nExisting isolated /Users/ian/Projects/.boarded-v1-20260905-78720d/web-reconcile-social at cbab87f. Platform web; unchanged both-platform semantics. Allow ONLY components/boarded/Community.tsx for the confirmed Explore callback/effect cycle. Other existing social ownership paths are read-only unless Main explicitly authorizes a journal integration caller change.\n# Change\nRemove result/cursor state from the initial Explore-fetch callback/effect identity. Initial fetch must settle after success; load-more appends without restarting first-page fetch; changed filters reset coherently; reject stale responses. Preserve newer nested UI and real APIs. Do not alter journal exports or other surfaces. Skip builds/tests/linters/formatters.\n# Acceptance\nOne frozen confined commit with exact base/head and focused scenarios for initial load, continuation and filter change. Preserve unrelated inherited .todos metadata and do not treat it as owned.",
+  "ownership": [
+    "components/boarded/Feed.tsx",
+    "components/boarded/Community.tsx",
+    "components/boarded/Details.tsx",
+    "components/boarded/Flow.tsx",
+    "components/boarded/Shell.tsx",
+    "components/boarded/Photo.tsx",
+    "components/boarded/flow.css",
+    "app/app/",
+    "app/explore/",
+    "app/activity/",
+    "components/shared/BottomNav.tsx",
+    "public/sw.js",
+    "components/providers/Providers.tsx",
+    "components/home/RouteList.tsx",
+    "lib/stores/routes-store.ts"
+  ],
+  "source_review_scope": "Review full surviving owned diff against base; previous approvals remain context only. No validation or writes.",
+  "caller_cutover": "Main authorized replacing retired /profile calls in BottomNav and service worker with preserved /app/profile; no cache policy or styling changes.",
+  "runtime_closure": {
+    "sidebar": "web-sidebar-base-runtime.json",
+    "auth": "Observed /app bypasses existing AuthProvider, leaving user state uninitialized; use existing provider and identity-bind Shell journal initialization. Native already owns AppSession; no auth API or shared semantic change."
+  },
+  "compile_closure": "Joined tsc: nullable wall_id callers at RouteList130 and routes-store78/93. Remove only proven orphan or migrate required caller; no non-null casts."
+}

@@ -1,0 +1,108 @@
+{
+  "verdict": "Reviewed all 15 actual web screenshots. Core layout and serif/sans hierarchy remain coherent across the three widths; no demonstrated application-content collision or inaccessible clipping. Two visible evidence defects prevent a clean visual sign-off: absent Feed photography and development chrome overlapping compact navigation. Neither establishes a production implementation failure by itself.",
+  "source_identity": {
+    "matrix": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/web-final-render-matrix.json",
+    "preview_head": "e44d7d3",
+    "source_social": "aad32183dda1ade0487c498d4d1af4a800025946",
+    "source_journal": "8cda47f3390a654ca8f58af58519b0ce6bde0912",
+    "basis": "Matrix identifies real authenticated application rendering with synthetic canonical API fixtures. Reviewed the supplied design-language.md while preserving the approved newer e1114ed nested/app direction; no older-web replacement or Paper parity assessment."
+  },
+  "evidence_root": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/web-joined-final-captures/",
+  "findings": [
+    {
+      "severity": "Material visual-evidence gap",
+      "screenshots": [
+        "desktop-Feed.png",
+        "mobile-Feed.png",
+        "zoom-200-equivalent-Feed.png"
+      ],
+      "viewports": [
+        "1440×1024 CSS, DPR1",
+        "390×844 CSS, DPR1",
+        "720×512 CSS, DPR2; 1440×1024 output"
+      ],
+      "region": "Feed media rectangle: approximately desktop x359–989/y223–502; mobile x33–357/y336–615; zoom output x90–1350/y550 onward.",
+      "observed": "All three show an image symbol and 'Climbing documentation photo'/'Climbing route on a textured wall' instead of physical climbing photography. The large empty media field dominates mobile and zoom views. Desktop and mobile still show clear route-grade/title hierarchy below it.",
+      "qualification": "The screenshots demonstrate missing rendered photography, not its cause. Fixture omission versus image-loading/implementation failure is untested. This is not a request to replace the approved card composition."
+    },
+    {
+      "severity": "Material capture obstruction",
+      "screenshots": [
+        "mobile-Explore.png",
+        "mobile-Activity.png",
+        "mobile-Profile.png",
+        "zoom-200-equivalent-Explore.png",
+        "zoom-200-equivalent-Activity.png",
+        "zoom-200-equivalent-Profile.png"
+      ],
+      "viewports": [
+        "390×844 CSS, DPR1",
+        "720×512 CSS, DPR2"
+      ],
+      "region": "Bottom-left navigation: mobile approximately x20–138/y789–826; zoom output x40–277/y912–984.",
+      "observed": "A red '1 Issue' development badge overlays the bottom navigation. At mobile width it covers the Feed icon and part of Explore; at zoom-equivalent width it covers the Feed icon region. A smaller black development badge also overlays the Feed icon region in mobile/zoom Feed and Log captures.",
+      "qualification": "This is actual visible overlap in the submitted evidence, not proof the shipped app contains the overlay or that navigation clicks fail. Desktop Explore/Activity/Profile also show the issue badge, but below the sidebar actions rather than obscuring them. The badge's underlying issue is not established by pixels."
+    },
+    {
+      "severity": "Legibility caution, not measured contrast failure",
+      "screenshots": [
+        "desktop-Explore.png",
+        "mobile-Explore.png",
+        "desktop-Activity.png",
+        "mobile-Activity.png",
+        "zoom-200-equivalent-Activity.png"
+      ],
+      "region": "Explore small indigo route grades and desktop venue links; Activity indigo 'Unread' label.",
+      "observed": "These small colored labels have noticeably less visual separation from the dark surface than adjacent Chalk text. Labels remain decipherable in the captures; the activity dot, border, and icon reinforce the unread distinction.",
+      "qualification": "No contrast ratio was measured, so this is not a WCAG-failure assertion. Prefer checking these exact small-text pairs rather than treating the whole palette as illegible."
+    }
+  ],
+  "screen_review": [
+    {
+      "screen": "Feed",
+      "captures": [
+        "desktop-Feed.png",
+        "mobile-Feed.png",
+        "zoom-200-equivalent-Feed.png"
+      ],
+      "observed": "Desktop main card/sidebar are distinct and aligned; mobile header/filter controls wrap without collision; grade/title and factual metadata retain hierarchy. Zoom shows only author and media above the fixed navigation. The lower facts/actions are offscreen, not proven inaccessible."
+    },
+    {
+      "screen": "Explore",
+      "captures": [
+        "desktop-Explore.png",
+        "mobile-Explore.png",
+        "zoom-200-equivalent-Explore.png"
+      ],
+      "observed": "Desktop directory sections, route actions, and venue cards have clear grouping. Mobile top actions wrap to two lines; route Save/Log Attempt actions stack below metadata without overlap. Mobile category strip visibly cuts the Venues chip at its right boundary and does not show Climbers. This is compatible with the contract's horizontally scrolling filters; screenshot alone cannot establish scroll/focus reachability. Desktop climber metadata/bio are explicitly ellipsized, not a page-edge overflow."
+    },
+    {
+      "screen": "Log",
+      "captures": [
+        "desktop-Log.png",
+        "mobile-Log.png",
+        "zoom-200-equivalent-Log.png"
+      ],
+      "observed": "Desktop form columns and bottom Save action fit; mobile fields become a single column with persistent labels and readable supporting copy. The outlined heading remains intact in all three. Mobile Grade and later fields, and zoom fields after time, continue below the captured viewport. Long placeholder text is cropped inside its input; that is not evidence of lost entered data."
+    },
+    {
+      "screen": "Activity",
+      "captures": [
+        "desktop-Activity.png",
+        "mobile-Activity.png",
+        "zoom-200-equivalent-Activity.png"
+      ],
+      "observed": "Card heading, mark-read action, actor sentence, timestamp, and report link are legible. Mobile mark-read action moves below the introduction and the notification sentence wraps inside its card. At zoom the notification remains readable above navigation; its outer panel continues below the fold."
+    },
+    {
+      "screen": "Profile",
+      "captures": [
+        "desktop-Profile.png",
+        "mobile-Profile.png",
+        "zoom-200-equivalent-Profile.png"
+      ],
+      "observed": "Identity and four summary metrics retain hierarchy. Mobile Log Session action moves below identity and metrics form a readable 2×2 grid. Desktop journal cards show readable status badges and separated actions; mobile first journal card continues below navigation. Zoom shows identity, metrics, and tab row, with entries below the viewport. No missing journal entries can be inferred from their absence above the fold."
+    }
+  ],
+  "limits": "Read-only visual inspection of all 15 screenshots and supplied contract/matrix. No edits, builds, tests, services, or interaction verification. Vertical scroll reachability, horizontally scrolling filters, keyboard focus order, save/share/delete/mark-read behavior, privacy enforcement, real-backend data, image recovery, and forthcoming interaction captures remain untested. Matrix reports of no page errors/unknown endpoints/horizontal overflow are supplied harness evidence, not independently exercised here. 200% equivalent means 720×512 CSS at DPR2, not browser-chrome zoom automation. No Android/iOS conclusions, Paper parity claim, or overall mission approval."
+}

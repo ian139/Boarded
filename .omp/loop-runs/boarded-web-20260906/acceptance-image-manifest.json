@@ -1,0 +1,346 @@
+{
+  "schema": "omp.rendered_evidence_manifest.v1",
+  "candidate": {
+    "repo": "/tmp/boarded-web-candidate-20260906",
+    "branch": "loop/boarded-web-20260906/candidate",
+    "base_sha": "a86f0b0dfd490ae996a30c3e43d6edfd2a9d8a2e",
+    "head_sha": "e1114ed0422b789e39ccf9b4ec43c88f238eedd8",
+    "diff_sha256": "144c56d071bc5ab60ed6c2ceea7129940fa0a684a73186dd29943932fb565939",
+    "packet_spec_sha256": "a041494210e33c84a13e53bceefb507d6311daa0a698afa9c6a4efd9388f7f0b",
+    "dependency_heads": {
+      "atomic_flow": "e65c3bfaec882fbc1ee0b78f21fae7ebfda94279",
+      "navigation": "549354ca008c39ff9f3aa9a9488c77aece99e228",
+      "visual_final": "a448895c14a2523366d86484358228bea375fb1e",
+      "visual_polish": "c0eba46521eebed8b175d04f4f621d31382dfd3e",
+      "community_touch": "745969d75804ff8fd7b834221c691a3eef0fd52e",
+      "journal_touch": "827efe662760c4581bc495c7f382995d41b940ab"
+    },
+    "target_snapshot_sha256": "3c0a2ba3524d91ddb66ebdf2adb85fc099b0631ed49602aaecee20a36a116fe0",
+    "confinement_sha256": "b872b3c9f222afcf27ee2a5b980576f1bb4c8d736764e4b9860bd23c500c412f"
+  },
+  "images": [
+    {
+      "path": "tmp/boarded-feed/actual-desktop.png",
+      "sha256": "7ee72b9a4a5adc00d66131a32a10fb79fd6221cea89c0f64924a9752ecacb839",
+      "raster_width": 1440,
+      "raster_height": 1024,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/actual-mobile.png",
+      "sha256": "6c3c2d399bcb938f63159be98f7e6c0c5c740d9d62c8aea972c551e2a7807773",
+      "raster_width": 390,
+      "raster_height": 844,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/actual-reflow320.png",
+      "sha256": "d0e8f3247367c15f8fd375361011d820c96c690d6eb796b78e9aeea9fef6d56d",
+      "raster_width": 320,
+      "raster_height": 844,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/explore-desktop.png",
+      "sha256": "bad7f354da868b4943465d5e3ab30a8feaad31b9486efcc6817424c3b5732a10",
+      "raster_width": 1440,
+      "raster_height": 1984,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/explore-mobile.png",
+      "sha256": "1234b17ae87f547eb1f150c8cc605f839b82b929f03080aeb2edb4ad6397ebd5",
+      "raster_width": 390,
+      "raster_height": 2616,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/explore-reflow320.png",
+      "sha256": "d4c16943c66d378d16d82733b41b649bcc618b6c0e162734ddc4a5bbad3ce105",
+      "raster_width": 320,
+      "raster_height": 2731,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/activity-desktop.png",
+      "sha256": "349e543fe53a273574b6f11cc5c0ad3a0ef4868a9440b9e936dfddc6915580cc",
+      "raster_width": 1440,
+      "raster_height": 1278,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/activity-mobile.png",
+      "sha256": "2b409bd5a4f6f6df0ecf96430f1d52db6da2579f52b42b3b9a943982eed2afd9",
+      "raster_width": 390,
+      "raster_height": 1545,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/activity-reflow320.png",
+      "sha256": "84329d6656d8def4de9a5eedabf4456dc0e8186001a99172f0b716bc2c2bf53d",
+      "raster_width": 320,
+      "raster_height": 1658,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/log-desktop.png",
+      "sha256": "90dee0d61c6bdec37bdf318a222d6a7264518bc3a81661048e19f003fccaaa50",
+      "raster_width": 1440,
+      "raster_height": 1024,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/log-mobile.png",
+      "sha256": "79e06f62aac8cfd24beb0b56f0d10b76f765eb06b422dcf69613661dfa27c5ec",
+      "raster_width": 390,
+      "raster_height": 1116,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/log-reflow320.png",
+      "sha256": "7451d85e7782eeb21717617d828edf061747a07cc49f6f9467f386970e41e322",
+      "raster_width": 320,
+      "raster_height": 1212,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/profile-desktop.png",
+      "sha256": "020f4ac1848f67ea4c2511813af90eddc8e15684eed44bdd31c96d51bebf925b",
+      "raster_width": 1440,
+      "raster_height": 1039,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/profile-mobile.png",
+      "sha256": "06e83e272ba333d5579498f848b786686fa9fb386c1549acd834bc6223bb1047",
+      "raster_width": 390,
+      "raster_height": 1326,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/profile-reflow320.png",
+      "sha256": "651541cf643468cff265969bdecf2d8bcfe4b95149ccfcb77b807683ff9515a2",
+      "raster_width": 320,
+      "raster_height": 1579,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/send-desktop.png",
+      "sha256": "7e0c7697cac562bed6dcc8a518b44757b8cf872b9d4979642ecca8ba615071a3",
+      "raster_width": 1440,
+      "raster_height": 2677,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/send-mobile.png",
+      "sha256": "5e4393e86b0041e721d7a6b1f7e82a9a71bfa5fed70f2ae84b8045a53d6651d6",
+      "raster_width": 390,
+      "raster_height": 2978,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/send-reflow320.png",
+      "sha256": "499631c76ec433137127e1a3deaa8185d0de844f111c89100642bbcbc02dd849",
+      "raster_width": 320,
+      "raster_height": 2975,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/route-desktop.png",
+      "sha256": "cd016121e4df3c956bde7af309d0ee659383147c6f9a8bb4613059788a697f86",
+      "raster_width": 1440,
+      "raster_height": 1885,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/route-mobile.png",
+      "sha256": "704f7c8c759660702c224820f1100400628fb36c8bb0212f44da6ecc60a2cda8",
+      "raster_width": 390,
+      "raster_height": 1956,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/route-reflow320.png",
+      "sha256": "8920f8505c2f4b42706de5aee95369043d2d164fdb63eef3611c78677ea1881d",
+      "raster_width": 320,
+      "raster_height": 2043,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/boulder-desktop.png",
+      "sha256": "42c33776d9afd5cf312fc3da430bf3a5254210ff45654346c1f8612b6a47e236",
+      "raster_width": 1440,
+      "raster_height": 1363,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/boulder-mobile.png",
+      "sha256": "676970697b3c1f028defddcd5274d5de035d5e012e1a2e5e9685ddef72cd57af",
+      "raster_width": 390,
+      "raster_height": 1672,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/boulder-reflow320.png",
+      "sha256": "099aa701bc82fbda0f36c0285e65f290a53e94d52bdec56dbf8d007ba8f24e1a",
+      "raster_width": 320,
+      "raster_height": 1878,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/climber-desktop.png",
+      "sha256": "8dd053762c888a7cac5a76d59cafb31d4e90a59d4b3fbde5b7271eb29a4ba6a7",
+      "raster_width": 1440,
+      "raster_height": 1024,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/climber-mobile.png",
+      "sha256": "cb91f422da3db0adfde68fa2e9cd5c574dbdff212903b9933f02c4b19dd1db07",
+      "raster_width": 390,
+      "raster_height": 937,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/climber-reflow320.png",
+      "sha256": "ec5a78de4e1b7f3d99c6d805cf71e4b8409ac9f828d960ad5f6273e3f72e577b",
+      "raster_width": 320,
+      "raster_height": 937,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/attempt-desktop.png",
+      "sha256": "cd6c0945526ad74dbd026574fe2d91b3ce1a2f723b934272814fa7b7cae1e06e",
+      "raster_width": 1440,
+      "raster_height": 1024,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/attempt-mobile.png",
+      "sha256": "4d30a422c5cc313c70c24729f818171daa5254932a6c5505ca8a31d88fcb17b3",
+      "raster_width": 390,
+      "raster_height": 980,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/attempt-reflow320.png",
+      "sha256": "e648553f32efb99b007794b8bc01d7cd00cb8213f82065a7ddde658bb7be38bf",
+      "raster_width": 320,
+      "raster_height": 996,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/share-desktop.png",
+      "sha256": "44e1c7d7473f5a762d353db3f83366a94686a3a6da478ba65d75c3572f5b1f31",
+      "raster_width": 1440,
+      "raster_height": 1024,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/share-mobile.png",
+      "sha256": "0b6cd2e5640a404f239093d5a09f835ae4de95aede054aa41cce9e16bf94d910",
+      "raster_width": 390,
+      "raster_height": 1237,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/share-reflow320.png",
+      "sha256": "4c1a88bb088f1f7ca67c6bcdaaa04217d80b58003778543a4e1afc693e718ec1",
+      "raster_width": 320,
+      "raster_height": 1308,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/self-send-desktop.png",
+      "sha256": "5d535d4e074c32246c003b2817518dfc2c37d19995b8ece01ba3ecc954f4c91d",
+      "raster_width": 1440,
+      "raster_height": 1037,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/self-send-mobile.png",
+      "sha256": "640380c925e16c5f4cb93829c14a649a68b259532a3826ed6b2568f209e537fe",
+      "raster_width": 390,
+      "raster_height": 1332,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/self-send-reflow320.png",
+      "sha256": "655324a2dc880611c727be0be4c68f681ca9fa6ba35977c33fcdace30f74a5ed",
+      "raster_width": 320,
+      "raster_height": 1344,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/profile-delete-dialog-desktop.png",
+      "sha256": "ca071e85022587e9a87dfa47244accef317d73c175e1f7dee576fc00cc04e581",
+      "raster_width": 1440,
+      "raster_height": 1024,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/feed-forced-colors-mobile.png",
+      "sha256": "eadf198e86bd0391aed9625615286f8a9f6ff8883f9d91d9e677014205666bd9",
+      "raster_width": 390,
+      "raster_height": 1137,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/feed-text200-mobile.png",
+      "sha256": "eb805abfd836a9ab234647e36518443fabc3c6a4404bd7ed67b36f520fd4124f",
+      "raster_width": 390,
+      "raster_height": 1706,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/feed-loading-mobile.png",
+      "sha256": "02b4a5ccee8f9e47a862fb1ddc572048cef2066974fd5d4a0886adbfd8bf0247",
+      "raster_width": 390,
+      "raster_height": 844,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/feed-empty-mobile.png",
+      "sha256": "c85c4437ea10eecf4e835ff8034319057d2c77faf88c786c7b8c23949e7e1216",
+      "raster_width": 390,
+      "raster_height": 844,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/feed-image-failure-mobile.png",
+      "sha256": "ac23120a20d0b6c2a04c596a38ffe3ac6fabc2d5b75b06f242443982929f5f95",
+      "raster_width": 390,
+      "raster_height": 844,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/log-invalid-mobile.png",
+      "sha256": "e9eae293cea43134708a40b2d7fb61ed06e1531001e089b2a69fe66fed658b7f",
+      "raster_width": 800,
+      "raster_height": 1167,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/profile-delete-dialog-mobile.png",
+      "sha256": "7c03c73c36bbc181ffb209598551b39dc7dcdf174e58fd43cef56581679fb38f",
+      "raster_width": 390,
+      "raster_height": 844,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/profile-delete-failed-mobile.png",
+      "sha256": "92019c82e68dbcfeba4fab0e98ffd5e14fb1ca49e76ab697f86c578c01016eb7",
+      "raster_width": 390,
+      "raster_height": 844,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    },
+    {
+      "path": "tmp/boarded-feed/share-overlength-mobile.png",
+      "sha256": "a12b74d363c5bcdc33ac50d76d7ca232de819318007877294e1a82c706c275a1",
+      "raster_width": 390,
+      "raster_height": 1571,
+      "capture_provenance": "Retained implementation screenshot; prior head association is handoff-ledger evidence, not embedded PNG commit metadata."
+    }
+  ],
+  "review": "Independent vision review covers all46 named screenshots; not Paper references."
+}

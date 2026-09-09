@@ -1,0 +1,10 @@
+{
+  "preview": "6a501f9",
+  "source": "b4548b6a42d1975356a90de5fe354b7c29aae092",
+  "artifact": "artifact://805",
+  "tests_passed": 1,
+  "failures": 0,
+  "result": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/native-preview-derived/Logs/Test/Test-Boarded-2026.09.08_13-17-20--0400.xcresult",
+  "attachments": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/native-6a501f9-measured-attachments/manifest.json",
+  "home": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/native-6a501f9-measured-attachments/3BAF7A87-A22B-49E3-BAC8-F795D77A4924.png"
+}

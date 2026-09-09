@@ -1,0 +1,31 @@
+{
+  "packet": "native-root-row-alignment",
+  "review_kind": "packet",
+  "identity": {
+    "repo": "/Users/ian/Projects/ClimbingApp",
+    "branch": "loop/boarded-v1-20260905-78720d/native-navigation-measured",
+    "base_sha": "0d97730856e2ec52e4ed3ab6c4fcde0c7216f9d6",
+    "head_sha": "91767318bb85dae413f382f85f6e8d9110d32863",
+    "diff_sha256": "c1ebd4e85443745275564ded070375b38b1d9d00f3588287c1104858e7d171fd",
+    "packet_spec_sha256": "5467d7ce636f197b8beb5248797e5549b1eeea988c33fe5b55cdb8b5153b0f80",
+    "dependency_heads": {
+      "native_preview_base": "87b6f491e2215db68321d3ec43c01ed49cf6998b"
+    },
+    "target_snapshot_sha256": "1e45dd07f7effbbbdfd5bd30d7a6c3f7b023d91f9ee35d1ccb5033bf0ef8abd2",
+    "confinement_sha256": "0ac5fb13524ab8cffa4c14f98e281ed1c46d2080665843e5912f459276354cf7"
+  },
+  "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/native-navigation-measured",
+  "packet_spec": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/native-root-row-alignment-spec.json",
+  "changed_paths": [
+    "apps/ios/Boarded/Boarded/RootView.swift"
+  ],
+  "target_snapshot": [
+    {
+      "path": "apps/ios/Boarded/Boarded/RootView.swift",
+      "sha256": "a8e3c7219780e5f1bdc2851746c12a35296cf97719a5ae3090c4959d8af99557"
+    }
+  ],
+  "owned_paths_clean": true,
+  "execution_evidence": [],
+  "designer_verdict": null
+}

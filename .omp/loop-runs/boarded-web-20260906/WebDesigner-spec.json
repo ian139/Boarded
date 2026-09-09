@@ -1,0 +1,20 @@
+{
+  "authority": "local isolated authoring only; no main or unrelated/native changes",
+  "designer": "WebDesigner",
+  "owner": "WebDesigner",
+  "paper": "quota blocked; no parity claims",
+  "paths": [
+    "app/app/page.tsx",
+    "app/app/layout.tsx",
+    "app/app/boarded.css",
+    "components/boarded/Shell.tsx",
+    "components/boarded/Feed.tsx",
+    "components/boarded/Photo.tsx",
+    "components/shared/BottomNav.tsx",
+    "components/providers/Providers.tsx",
+    "public/boarded/redpoint-ridge.webp",
+    "docs/boarded-web.md"
+  ],
+  "platform": "web",
+  "scope": "responsive accessible local Boarded social climbing happy path; dispatched assignment authoritative"
+}

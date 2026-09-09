@@ -1,0 +1,12 @@
+{
+  "candidate": "f89681d only; inspected actual capture and native-third-measured-feed-diff.png against unchanged frozen reference.",
+  "observed": [
+    "Photo, crop, large layout regions, grade/title stacking and next-session placement now broadly coincide; no large displaced content region is evident.",
+    "Largest conspicuous residual regions include real status/home chrome, square Log versus reference circle, and kudos corner shape. These correspond to stipulated overrides, not proposed corrections.",
+    "Activity still has a blue notification dot absent from frozen reference. This is a concrete remaining state/content difference outside the listed overrides.",
+    "Remaining non-Log navigation differences are localized to icon/text contours; the earlier gross icon-shape and placement mismatch is no longer evident.",
+    "Smaller residuals remain around author/subtitle text, route typography, action text/icons, preview text, and trace-marker edges/junctions. Screenshot evidence cannot establish whether these are font metrics, stroke definitions, color management or rasterization alone."
+  ],
+  "next_inspection": "Verify Activity-dot state against approved design/state before changing it. For geometric correction, inspect trace SVG marker/path layering and stroke definitions against recovered DOM: residual marks concentrate at marker junctions rather than throughout the photo. For text, check resolved font face/weight and line-box metrics before applying any positional adjustment; no further gross displacement is evidenced.",
+  "limits": "Preserve mandated square Log, real chrome and kudos radius. No pixel-derived constants, comparator changes, source edits, tests or overall parity approval."
+}

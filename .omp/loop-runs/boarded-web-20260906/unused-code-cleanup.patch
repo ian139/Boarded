@@ -1,0 +1,59 @@
+diff --git a/components/boarded/Community.tsx b/components/boarded/Community.tsx
+index 251a0ec27187bc0631e2280a66c1448af5fa5806..aa0a1b9e075cb736dc42d5f4453d3d147274725c 100644
+--- a/components/boarded/Community.tsx
++++ b/components/boarded/Community.tsx
+@@ -2,7 +2,7 @@
+ 
+ import { useState } from 'react';
+ import Link from 'next/link';
+-import { routes, mayaPost, type Route } from '@/lib/boarded/journal';
++import { routes } from '@/lib/boarded/journal';
+ import { useJournal } from '@/lib/boarded/store';
+ 
+ interface VenueItem {
+@@ -386,7 +386,6 @@ export function ActivityScreen() {
+     }
+   };
+   const isLikedMaya = likedPostIds.includes('maya-redpoint');
+-  const userCommentsOnMaya = comments.filter((c) => c.postId === 'maya-redpoint' && c.author === 'Alex R.');
+   const recentSeedComments = comments.filter((c) => c.postId === 'maya-redpoint').slice(-3);
+ 
+   return (
+diff --git a/components/boarded/Details.tsx b/components/boarded/Details.tsx
+index 5b111783cacf59b3257f08bb0f9e2bc2ce293919..3bff46744ddfa334bb649c35ccef3585b5237b2b 100644
+--- a/components/boarded/Details.tsx
++++ b/components/boarded/Details.tsx
+@@ -6,9 +6,6 @@ import { Photo } from '@/components/boarded/Photo';
+ import {
+   routes,
+   mayaPost,
+-  type Route,
+-  type Entry,
+-  type Comment,
+ } from '@/lib/boarded/journal';
+ import { useJournal } from '@/lib/boarded/store';
+ 
+diff --git a/components/boarded/LogFlow.tsx b/components/boarded/LogFlow.tsx
+index d0c96ce0f98778f0797e308b894dc1c3f5d3c661..fce264b30be33abcdc16080f5c04d7fc7e5fb167 100644
+--- a/components/boarded/LogFlow.tsx
++++ b/components/boarded/LogFlow.tsx
+@@ -7,7 +7,6 @@ import * as Dialog from '@radix-ui/react-dialog';
+ import {
+   routes,
+   validateAttempt,
+-  type Route,
+   type Entry,
+   type AttemptInput,
+ } from '@/lib/boarded/journal';
+diff --git a/lib/boarded/journal.test.ts b/lib/boarded/journal.test.ts
+index c26785b0afeb95637a5e8425f6ab361e6f626a5e..0c3d90f5f9ea00bac38b1436ad09cbee63c791a0 100644
+--- a/lib/boarded/journal.test.ts
++++ b/lib/boarded/journal.test.ts
+@@ -6,7 +6,6 @@ import {
+   sanitizeText,
+   INITIAL_JOURNAL_DATA,
+   type AttemptInput,
+-  type Entry,
+ } from './journal.ts';
+ import {
+   useJournal,

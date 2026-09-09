@@ -1,0 +1,25 @@
+{
+  "overall_correctness": "incorrect",
+  "explanation": "This final verdict supersedes the earlier provisional approval: the patch introduces long-content truncation and incorrectly scaled multiline caption spacing; no builds, tests, captures, or visual approval were performed. Bound nine-field identity: repo=/Users/ian/Projects/ClimbingApp; branch=loop/boarded-v1-20260905-78720d/native-feed-visual; base_sha=b4548b6a42d1975356a90de5fe354b7c29aae092; head_sha=ff05d2219bdb263797ef91ccc9582619675e13b2; diff_sha256=d6c451a91ba24cf5b94a9355175e8ed278b0482670b20c6c86798c2f85bb139d (canonical full-index patch); packet_spec_sha256=99f251c2acc14ff355613e24ef55ae4cdd01c0ee5fb183571c4201dffc9f1ea7; dependency_heads.native_preview_base=6a501f9483d10e70effe54c1eef740ddcac17515; target_snapshot_sha256=d953443a670e8f5a87038fdc9f81570386afac5a8a2fa149d7dbd3446b537e75; confinement_sha256=812f909ffe6e9eb63421f018ac9097d9a03d274478050e141d528c33353711ea. Verified changed paths are exactly apps/ios/Boarded/Boarded/Views/Home/HomeFeedView.swift and apps/ios/Boarded/Boarded/Views/Home/SessionPostCard.swift, the isolated worktree is clean on the bound branch/head, and both file-content hashes match the packet; Root/navigation and prior approved source were not re-reviewed.",
+  "confidence": 0.95,
+  "findings": [
+    {
+      "title": "Preserve natural wrapping when imposing measured line-box heights",
+      "body": "At ordinary Dynamic Type sizes, a production route name that exceeds the available header width previously wrapped and let the header grow. This fixed height now caps the entire route-subtitle HStack at one line, so its Text truncates instead of displaying the wrapped content; the new fixed heights on author, venue, and preview text impose the same restriction. Disabling these frames only above `.large` does not protect long content at the default size, and removing clipping does not restore the missing layout height. Preserve the measured single-line placement while allowing multiline content to contribute its full height, rather than applying a single line's height to the entire text container.",
+      "priority": 2,
+      "confidence": 0.93,
+      "file_path": "apps/ios/Boarded/Boarded/Views/Home/SessionPostCard.swift",
+      "line_start": 236,
+      "line_end": 236
+    },
+    {
+      "title": "Scale the caption's intrinsic-height term with its font",
+      "body": "Both `captionSize` and `captionLineHeight` scale with Dynamic Type, but the subtracted `16.5` remains fixed. Consequently, multiline captions receive increasingly excessive inter-line spacing as text size grows: even accepting the assumed base intrinsic height of 16.5, a scaling factor s produces spacing `18s - 16.5` rather than `(18 - 16.5)s`, adding an unintended `16.5(s - 1)` between every pair of lines. This path remains active in accessibility layouts and changes their natural spacing despite the stated preservation requirement. Derive the subtraction from the actual scaled caption font metrics, or retain natural spacing in expanded layouts, instead of subtracting an unscaled guessed metric.",
+      "priority": 2,
+      "confidence": 0.99,
+      "file_path": "apps/ios/Boarded/Boarded/Views/Home/SessionPostCard.swift",
+      "line_start": 73,
+      "line_end": 75
+    }
+  ]
+}

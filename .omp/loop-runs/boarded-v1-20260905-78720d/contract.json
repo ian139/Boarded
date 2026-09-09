@@ -1,0 +1,205 @@
+{
+  "version": "boarded.v1.20260905",
+  "goal": "Complete approved real V1 across iOS/web and refine current landing + Blender animation. No reduced Feed-only slice.",
+  "platforms": [
+    "iOS",
+    "web"
+  ],
+  "destinations": [
+    "Feed",
+    "Explore",
+    "Log",
+    "Activity",
+    "Profile"
+  ],
+  "non_goals": [
+    "chat",
+    "events",
+    "meetups UI",
+    "training plans",
+    "gym administration",
+    "marketplaces",
+    "coaching analytics",
+    "production migrations",
+    "deployment",
+    "secrets",
+    "subscription changes"
+  ],
+  "design": {
+    "colors": {
+      "obsidian": "#0A0B10",
+      "slate": "#171A22",
+      "chalk": "#F4F2EB",
+      "action": "#345CFF",
+      "success": "#32D583",
+      "failure": "#FF6B64",
+      "secondary": "#A8ABB3"
+    },
+    "font": "Keep exact bundled Cormorant Garamond Semibold Italic TTF. Native SF/system sans for controls; web existing system sans. Tabular numeric metadata. Never modify/substitute brand TTF.",
+    "principles": [
+      "Editorial climbing publication; photography leads; restrained borders and negative space.",
+      "Indigo identifies agency/active icons; selected small labels remain Chalk (Indigo/Obsidian contrast insufficient).",
+      "Green is successful climb status, never reaction semantics. Send kudos is neutral heart.",
+      "44pt minimum hit target; dynamic text, readable photo contrast, native safe areas, reduced motion, keyboard and VoiceOver.",
+      "No glassmorphism, loud gradients, oversized pills, nested cards, decorative variants. Existing selective transparent-to-Obsidian photo fade approved."
+    ],
+    "source": "docs/design-language.md mandatory read; newer approved user contract overrides its old green-agency/meetups sections. public/brandkit.png visual source.",
+    "feed_reference": {
+      "paper_file": "01M1NCB4B1K8XKBSPKDRYF8XZM",
+      "page": "2-0",
+      "node": "E6-0",
+      "name": "10 - Feed / Populated / iPhone",
+      "point_size": [
+        402,
+        874
+      ],
+      "scale": 3,
+      "png_size": [
+        1206,
+        2622
+      ],
+      "appearance": "dark",
+      "locale": "en-US",
+      "clock": "2026-09-05T09:41:00Z",
+      "dynamic_type": "Large",
+      "geometry": "62 status+safe, 56 header, 673 scroll feed (58 author+479 media+40 note+52 actions+44 next hint), 49 tabs+34 bottom safe. Non-layout tab divider; no overflow.",
+      "baseline": "/tmp/boarded-paper-designer-20260905-e7a6c3/10-feed-final-v3-3x.png",
+      "preview": "/tmp/boarded-paper-designer-20260905-e7a6c3/10-feed-final-v3-1x.png",
+      "cloud_photo": "https://app.paper.design/file-assets/01M1NCB4B1K8XKBSPKDRYF8XZM/4752CGNPVWBMQ3YR4H489H9D86.jpg",
+      "crop_source": "public/brandkit.png",
+      "crop_rectangle": [
+        590,
+        80,
+        1085,
+        680
+      ],
+      "photo_size": [
+        495,
+        600
+      ],
+      "fixture": "Existing --boarded-ui-fixture; extend rather than new production fake flow. Viewer Alex R.; Maya K. Following; Stonegate; 2h; Sent Redpoint Ridge; 5.12a; Sport \u00b7 27 m \u00b7 Limestone \u00b7 Overhang; Six tries. Quiet feet through the crux, then daylight.; Send kudos \u00b7 34; 12 comments. Next Jordan T., new session, Bishop, just now.",
+      "freeze": "Feed selected; scroll0; unliked/unsaved; unread activity. No active-session banner/modal/keyboard. Disable UIKit AND SwiftUI transactions, asynchronous updates, networking and clocks in fixture capture; await images/fonts.",
+      "odiff": "Per-pixel0.1; at most0.5% unmasked difference; no material typography/layout mismatch. Never mask content or loosen threshold. Old Paper export has known1pt divider issue; disclose rather than hide it."
+    }
+  },
+  "domain": {
+    "existing": "Supabase migrations001-013; public profiles; board walls/routes/public ascents ticks distinct from private climbing_sessions/climb_attempts and explicitly published session_posts. Preserve both active domains; no automatic duplicate public ticks from private Log, no old-user data deletion.",
+    "venues": "public.venues: id UUID, user_id UUID owner, name text, kind crag|gym|board, area nullable text, description nullable text, image_url nullable text, is_public boolean, created_at/updated_at timestamptz. RLS: visible public/owner/moderator, write owner. Discovery includes existing public boards without inventing real-world crags or seed data in production.",
+    "routes": "Extend existing routes, not a second route catalog: venue_id nullable UUID, discipline enum existing native values (default board for existing board routes), grade_system native enum, grade_label nullable/backfill only known grade_v/grade_font, height_m nullable positive, rock_type nullable text, terrain nullable slab|vertical|overhang|roof. Existing board grade_v/grade_font and editor graph remain active domain attributes; keep their consumers. wall_id may be null for outdoor routes (no fake wall IDs). Existing route image/holds remain canonical. New UI creation must supply real facts or null; no hardcoded limestone/height/location for production.",
+    "attempt_link_cutover": "Rename climb_attempts.board_route_id to route_id and migrate every active SQL/client/test consumer. Route link can now target board or outdoor routes; nullable for manually named climbs. No legacy field alias. Keep existing discipline/grade/outcome/notes/session semantics and privacy.",
+    "follows": "public.follows(follower_id UUID, following_id UUID, created_at timestamptz), composite PK, no self-follow; public relationships/counts, authenticated caller may insert/delete only own follower_id. Use existing shared Follow type names where correct; no duplicate aliases.",
+    "bookmarks": "public.route_bookmarks(user_id UUID,route_id UUID,created_at timestamptz),composite PK; strictly owner-only read/write and only accessible routes may be saved. Hidden/deleted route targets must not leak facts through saved/Feed APIs.",
+    "activity": "public.activity_events(id UUID,recipient_id UUID,actor_id UUID,kind like|comment|follow|crew_send,post_id nullable UUID,created_at timestamptz,read_at nullable timestamptz). Create from actual like/comment/follow/new followed-author post transitions; no self-notifications. Recipient-only read/mark-read; no client event forging or changing actor/recipient/kind. Constraints/indexes deduplicate transitions; removal behavior tied to real source. Actor public identity joins. Inbox is community notifications, not private attempt history.",
+    "visibility": "Every discovery/feed/activity join must preserve current private session boundaries and underlying route/wall/venue visibility. Only explicitly published session fields may cross authors. Never fabricate Following status from a profile name, expose private notes/timelines, or use service-role clients.",
+    "models": "Data owner adds canonical shared TS types matching current Swift models and CommunityRoute/CommunityVenue/CommunityClimber/ActivityEvent; web imports them, native owns Codable counterparts. Explicit nullable metadata; unavailable fields omitted honestly in UI. Port canonical native grade ranking/statistics into existing shared utilities, with meaningful edge tests only.",
+    "private_session_context": "Add nullable conditions text(1..500) and notes text(1..1000) to climbing_sessions and both client models/forms. Private by existing session ownership; never implicitly publish notes/conditions through Feed. Share caption is a separate deliberate publication field."
+  },
+  "rpc": {
+    "get_session_feed": {
+      "args": "before_created_at timestamptz=NULL,before_id uuid=NULL,author_filter uuid=NULL,page_size int=20,following_only boolean=false,post_filter uuid=NULL",
+      "returns": "SETOF JSONB; retain existing public post/author/session/count fields. Add author.is_followed, top-level route:CommunityRoute|null, and session.featured_attempt.route_id nullable only when linked route accessible. No overload/legacy alias: drop replaced old signature. Feed destination requests following_only=true; Explore is discovery; profile/post detail can request false and author_filter/post_filter."
+    },
+    "get_explore_routes": {
+      "args": "search_text text=empty,venue_filter uuid=NULL,saved_only boolean=false,before_created_at timestamptz=NULL,before_id uuid=NULL,page_size int=30",
+      "returns": "SETOF JSONB CommunityRoute: id,name,description,discipline,grade_system,grade_label,height_m,rock_type,terrain,image_url,holds,venue:CommunityVenue|null,author_id,is_saved,created_at. Stable created_at DESC/id DESC cursor; authorized routes only."
+    },
+    "search_climbers": {
+      "args": "search_text text=empty,page_size int=30",
+      "returns": "SETOF JSONB id,username,full_name,avatar_url,bio,home_area,is_followed,follower_count,following_count. Public profiles; bounded query. Exact count semantics."
+    },
+    "get_activity": {
+      "args": "before_created_at timestamptz=NULL,before_id uuid=NULL,page_size int=30",
+      "returns": "SETOF JSONB id,kind,actor{id,username,full_name,avatar_url,home_area},post_id,created_at,read_at. Caller inbox only, stable cursor. Follow opens actor; like/comment/crew_send opens actual post."
+    },
+    "direct_tables": "Use existing authenticated Supabase patterns for venue search/create, route create, follows, bookmarks, mark activity read/read-count, sessions/attempts, likes/comments/posts and social-media upload. Keep ownership/valid ended-session publish/storage-path rules. No new REST server abstraction or speculative services."
+  },
+  "web_routes": {
+    "Feed": "/app",
+    "Explore": "/explore",
+    "Log": "/log",
+    "Activity": "/activity",
+    "Profile": "/profile",
+    "editor": "/editor remains reachable via Explore; preserve existing board-route creation/detail/public share behavior. Keep auth/settings accessible; no dead tabs."
+  },
+  "landing": {
+    "owned_runtime": [
+      "app/page.tsx",
+      "app/landing.css",
+      "components/landing/"
+    ],
+    "asset_paths": [
+      "public/walls/generated/boarded-wall.glb",
+      "public/walls/generated/boarded-wall-poster.webp"
+    ],
+    "clip": "ClimberAscent",
+    "duration_seconds": 12,
+    "scrub": "mixer.setTime(12*ascentProgress), deterministic forward/reverse normalized[0,1], no autonomous mixer update during scrubbing. Preserve asset path and clip contract.",
+    "motion": "Refine current real rig/contact transfers, natural eased pacing, framing, loading, reverse scroll, resize, touch, frame-rate independence, reduced-motion still. No floating/sliding support limbs, snapping, generic wellness visuals, or background rendering when offscreen. Existing Blender MCP preferred; do not overwrite unrelated/unsaved Blender scene."
+  },
+  "ownership": {
+    "design": {
+      "platform": "both",
+      "allow": [
+        "docs/design-language.md"
+      ],
+      "role": "Named active V1Designer; owns design contract and peer design review through final gate; may update existing design doc to approved V1 contract. No app source writes."
+    },
+    "data": {
+      "platform": "both",
+      "allow": [
+        "supabase/",
+        "packages/shared/"
+      ],
+      "exclude": [
+        "packages/shared/package.json",
+        "packages/shared/tsconfig.json"
+      ],
+      "role": "SQL/shared domain owner; no client UI writes."
+    },
+    "native": {
+      "platform": "iOS",
+      "allow": [
+        "apps/ios/Boarded/"
+      ],
+      "role": "Native implementation of frozen shared contract only; includes theme/models/services/fixtures/tests/project asset integration. No new shared semantics without barrier."
+    },
+    "web": {
+      "platform": "web",
+      "allow": [
+        "app/",
+        "components/",
+        "lib/",
+        "public/brand/"
+      ],
+      "exclude": [
+        "app/page.tsx",
+        "app/landing.css",
+        "components/landing/"
+      ],
+      "role": "Web implementation of frozen shared contract; owns app/globals.css token integration and existing web UI/auth/editor cutover. Do not touch landing or Blender."
+    },
+    "landing": {
+      "platform": "web",
+      "allow": [
+        "app/page.tsx",
+        "app/landing.css",
+        "components/landing/"
+      ],
+      "role": "Landing layout/controller only; asset output path/12secclip fixed; no globals.css edits."
+    },
+    "blender": {
+      "platform": "web",
+      "allow": [
+        "design/blender/",
+        "public/walls/generated/boarded-wall.glb",
+        "public/walls/generated/boarded-wall-poster.webp"
+      ],
+      "role": "Blender asset authoring; no web/sourceuserasset deletion outside these paths."
+    }
+  },
+  "workflow": {
+    "authoring": "Only allowlisted files inside own explicitly assigned worktree. Primary, siblings and run records read-only. Main alone integrates reviewed exact artifacts. No push, remote changes, migrations on existing DB, package installs, broad tests, format/lint or cleanup. Skip ALL build/test/render validation during concurrent authoring; report ready for Main risk-selected verification. Blender asset export is required deliverable generation, not validation.",
+    "structural": "Any divergence from this interface pauses affected work: STRUCTURAL_CHANGE packet=<id> head=<sha-or-WIP> interface=<identifier> impact=<breaking|schema|signature|dispatch> action=<required-action>; all affected owners ACK. Do not negotiate incompatible APIs ad hoc.",
+    "handoff": "Commit only packet-owned files locally; return base/head/changed paths, actual implementation coverage, exact runnable verification scenarios, risks. Do not self-approve; V1Designer and independent reviewer/vision gate integration. Main will supply reviewed dependency commits/rebase when needed, never worker merge."
+  }
+}

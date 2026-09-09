@@ -1,0 +1,10 @@
+{
+  "platform": "iOS",
+  "base_sha": "6a501f9483d10e70effe54c1eef740ddcac17515",
+  "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/native-measured-verification",
+  "allow": [
+    "apps/ios/Boarded/Boarded/Services/UITestFixtures.swift",
+    "apps/ios/Boarded/BoardedUITests/BoardedUITests.swift"
+  ],
+  "contract": "Only test-data opt-in variant and two focused actual-UI regressions: preserve multiline caption/long route display at ordinary size, and activate Log by touching its visible upper overhang. No production screen changes, baseline fixture mutation, broad tests, builds, services or validation by worker. Main joins source-reviewed artifact and runs focused cases."
+}

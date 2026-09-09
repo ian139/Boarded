@@ -1,0 +1,95 @@
+{
+  "mapping_of_changes": [
+    {
+      "measured_node": "RJ-0",
+      "native_change": "Updated 'Boarded' title tracking from -0.5 to -0.58",
+      "file": "apps/ios/Boarded/Boarded/Views/Home/HomeFeedView.swift",
+      "measured_property": "letter-spacing: -0.58px, font-size: 29px"
+    },
+    {
+      "file": "apps/ios/Boarded/Boarded/Views/Home/SessionPostCard.swift",
+      "measured_property": "gap: 10px, height: 58px",
+      "measured_node": "RR-0",
+      "native_change": "Updated author avatar-to-text gap from 12pt to 10pt"
+    },
+    {
+      "native_change": "Updated avatar initials weight from .semibold to .bold",
+      "measured_property": "font-size: 15px, font-weight: 700 (bold)",
+      "file": "apps/ios/Boarded/Boarded/Views/Home/SessionPostCard.swift",
+      "measured_node": "RT-0"
+    },
+    {
+      "file": "apps/ios/Boarded/Boarded/Views/Home/SessionPostCard.swift",
+      "measured_node": "RV-0",
+      "native_change": "Updated author title color from AppColor.chalk to Color.hex('#C8CAD2')",
+      "measured_property": "rect: (72, 128.5), font: 15/18 semibold, color: rgb(200, 202, 210) (#C8CAD2)"
+    },
+    {
+      "measured_node": "RX-0",
+      "native_change": "Updated checkmark weight from .bold to .semibold",
+      "file": "apps/ios/Boarded/Boarded/Views/Home/SessionPostCard.swift",
+      "measured_property": "rect: (72, 148.5), font-size: 13px, font-weight: 600 (semibold), color: rgb(50, 213, 131)"
+    },
+    {
+      "native_change": "Confirmed Sent text alignment at x=88, font 13 regular, color #C8CAD2",
+      "file": "apps/ios/Boarded/Boarded/Views/Home/SessionPostCard.swift",
+      "measured_property": "rect: (88, 148.5), font: 13/17 regular, color: rgb(200, 202, 210)",
+      "measured_node": "RY-0"
+    },
+    {
+      "file": "apps/ios/Boarded/Boarded/Views/Home/SessionPostCard.swift",
+      "measured_property": "right 382, y: 131 / 147; S0-0: 12/16 medium, S1-0: 12/16 regular, color: rgb(200, 202, 210), gap: 0",
+      "measured_node": "RZ-0, S0-0, S1-0",
+      "native_change": "Updated venue font weight to .medium, venue & timestamp colors from #9FA3B0 to #C8CAD2, and vertical spacing to 0"
+    },
+    {
+      "measured_property": "rect: (0, 176, 402x479), background-color: rgb(23, 26, 34); linear-gradient(0% 0, 58% 0, 82% 0.84, 100% 1.0)",
+      "file": "apps/ios/Boarded/Boarded/Views/Home/SessionPostCard.swift",
+      "measured_node": "S2-0, S4-0",
+      "native_change": "Added surfaceCard background and aligned gradient stops to 0%, 58%, 82% (opacity 0.84), 100% (opacity 1.0)"
+    },
+    {
+      "measured_node": "S5-0 .. S9-0",
+      "native_change": "Replaced guessed route trace path and markers with exact 112x180 Paper SVG geometry positioned at (274, 16) with opacity 0.94",
+      "measured_property": "SVG rect: (274, 192, 112x180), opacity: 0.94; path d: M96 10 L64 36 L80 64 L44 92 L60 122 L20 164 stroke 2.5 round; markers at (64,36) r=4.5 indigo, (44,92) r=4.5 indigo, (20,164) r=5.0 send green",
+      "file": "apps/ios/Boarded/Boarded/Views/Home/SessionPostCard.swift"
+    },
+    {
+      "measured_property": "rect: (20, 548, 362x91), bottom padding 16; SB-0: 38/39 Cormorant 600 italic (no shadow/tracking); SC-0: 28/30 Cormorant 600 italic; SD-0: 13/18 medium",
+      "file": "apps/ios/Boarded/Boarded/Views/Home/SessionPostCard.swift",
+      "measured_node": "SA-0, SB-0, SC-0, SD-0",
+      "native_change": "Updated grade (removed shadow and tracking), updated title font size from 26 to 28, updated metadata font weight to .medium, and updated bottom padding from 14 to 16"
+    },
+    {
+      "measured_node": "SE-0, SF-0",
+      "native_change": "Updated caption lineSpacing to 4pt (18pt line-height) and padding to top: 13, bottom: 9 to align baseline to y=668",
+      "file": "apps/ios/Boarded/Boarded/Views/Home/SessionPostCard.swift",
+      "measured_property": "SE-0 rect: (0, 655, 402x40); SF-0 rect: (20, 668), font: 14/18 regular"
+    },
+    {
+      "measured_node": "SG-0 .. SW-0",
+      "native_change": "Aligned actions row layout (kudos 151, comments 64, bookmark 44, share 44, gaps 8pt, trailing 14pt) and implemented exact Lucide SVG shapes (FeedHeartIcon 17x17, FeedCommentIcon 18x18, FeedBookmarkIcon 19x19, FeedShareIcon 19x19) with 22pt capsule radius override for kudos",
+      "file": "apps/ios/Boarded/Boarded/Views/Home/SessionPostCard.swift",
+      "measured_property": "SG-0 rect: (0, 695, 402x52), content y=699 h=44; kudos x=20 w=151, comments x=179 w=64, bookmark x=292 w=44, share x=344 w=44; gaps 8pt, trailing padding 14pt; Lucide SVG icons with stroke 1.8"
+    },
+    {
+      "measured_node": "SX-0 .. T2-0",
+      "native_change": "Updated secondPostHeader with non-layout top divider overlay, 44pt height, avatar gap 10pt, initials 13pt bold, title .medium weight, and subtitle color #C8CAD2",
+      "file": "apps/ios/Boarded/Boarded/Views/Home/SessionPostCard.swift",
+      "measured_property": "SX-0 rect: (0, 747, 402x44), 1px border top; SY-0: (20, 754.5, 34x34); SZ-0: 13 bold; T1-0: (64, 756.5) 12/15 medium; T2-0: (64, 772.5) 11/14 regular, color: rgb(200, 202, 210)"
+    }
+  ],
+  "head_commit": "7628412bf11ea2d106d224fb6a687c14316da4e5",
+  "status": "completed",
+  "residual_uncertainty": "None in assigned Home scope. All measurements derive directly from recovered Paper DOM nodes and explicit designer geometry authorization. Rendering and ICC color space verification deferred to Main integration.",
+  "assumptions": [
+    "Main handles image render verification, raster capture, strict diff comparison against frozen 10-feed-final-v3-3x.png, and designer/vision signoff.",
+    "Color space difference between Display P3 ICC profile in frozen PNG and untagged sRGB Chromium render is handled by Main per provenance note.",
+    "Real native chrome and tab bar handling remain in RootView / TabBar without modifications per explicit scope confinement."
+  ],
+  "owned_changed_paths": [
+    "apps/ios/Boarded/Boarded/Views/Home/HomeFeedView.swift",
+    "apps/ios/Boarded/Boarded/Views/Home/SessionPostCard.swift"
+  ],
+  "base_commit": "9e512520324b9c12b410de5e9226854ee44a3ed9"
+}

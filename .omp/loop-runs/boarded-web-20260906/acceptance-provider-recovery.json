@@ -1,0 +1,11 @@
+{
+  "schema": "omp.provider_recovery.v1",
+  "failed": [
+    "WebAcceptanceDesigner",
+    "ShareAcceptanceRecovery"
+  ],
+  "cause": "Gemini Cloud Code Assist429 individual quota; both standard task roles unavailable, reset~3h20m. No subscription changes.",
+  "implementation": "Bounded low-risk2file completion routed to cheap-worker; same isolated allowlist, no architectural/security decisions.",
+  "designer": "Named vision lane owns rendered-design verdict; no source authoring.",
+  "attempt_note": "Quota-rejected recovery made no edits and does not consume another implementation attempt."
+}

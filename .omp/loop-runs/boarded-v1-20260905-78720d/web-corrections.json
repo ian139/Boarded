@@ -1,0 +1,9 @@
+{
+  "packet": "web",
+  "attempt": "consolidated-correction",
+  "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/web",
+  "base_review": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/web-review.json",
+  "findings": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/web-findings.json",
+  "extra": "Resolve ALL 33 canonical findings. This is complete behavior repair, not hook-only patch. Highest risks: canonical preallocated post-ID/storage image/source/alt payload and actual result-card composition; no stock photos, no swallowed upload failure, no abandoned public images, recoverable ended-session publication; clear private data on identity changes and guard stale requests. Complete actual session/route/venue/history/profile/inbox journeys and all cursor/auth/accessibility contracts; preserve public board ticks as distinct action. Restore hooks/component prop conformance/Suspense, consume shared TS domain from Data. No production fallback facts, any-casts hiding incompatible rows, or no-op links. Preserve each finding observable behavior, no speculative abstraction; use existing native publication contract and existing web primitives/libs.",
+  "constraints": "Same owned allowlist. Skip builds/tests/lint/formatters while authoring. Main runs focused verification after complete handoff; no self approval, no integration. Return actual tool-derived head and a complete finding-to-change coverage map, not claims of unrun tests."
+}

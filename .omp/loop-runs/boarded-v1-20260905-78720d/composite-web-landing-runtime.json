@@ -1,0 +1,189 @@
+{
+  "head": "6487578",
+  "runtime_head": "4e2ff41 (6487578 changes only approved design document)",
+  "build": "Next.js16.1.1 webpack production build and TypeScript passed, backgroundbg_2",
+  "result": {
+    "captures": [
+      {
+        "name": "Feed",
+        "route": "/app",
+        "viewport": {
+          "label": "desktop",
+          "width": 1440,
+          "height": 1024,
+          "deviceScaleFactor": 1
+        },
+        "appearance": "dark",
+        "screenshot": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/composite-final-production/desktop-Feed.png",
+        "state": {
+          "url": "http://127.0.0.1:4195/app",
+          "width": 1440,
+          "scrollWidth": 1440,
+          "wordmarks": [
+            {
+              "href": "/",
+              "height": 44
+            }
+          ],
+          "images": [
+            {
+              "src": "https://boarded-fixture.invalid/storage/v1/object/public/social-media/11111111-1111-4111-8111-111111111111/77777777-7777-4777-8777-777777777777.jpg",
+              "complete": true,
+              "naturalWidth": 495
+            }
+          ]
+        }
+      },
+      {
+        "name": "Landing",
+        "route": "/",
+        "viewport": {
+          "label": "desktop",
+          "width": 1440,
+          "height": 1024,
+          "deviceScaleFactor": 1
+        },
+        "appearance": "dark",
+        "screenshot": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/composite-final-production/desktop-Landing.png",
+        "state": {
+          "url": "http://127.0.0.1:4195/",
+          "width": 1440,
+          "scrollWidth": 1440,
+          "anchor": {
+            "state": "ready",
+            "progress": "0.00000",
+            "targetProgress": "0.00000",
+            "yaw": "0.01047",
+            "scale": "1.0000",
+            "opacity": "1.0000",
+            "ascent": "0.00000",
+            "clipTime": "0.0000",
+            "phase": "showcase",
+            "hasAscent": "true"
+          },
+          "canvas": {
+            "x": 0,
+            "y": 0,
+            "width": 1440,
+            "height": 1024,
+            "top": 0,
+            "right": 1440,
+            "bottom": 1024,
+            "left": 0
+          }
+        }
+      },
+      {
+        "name": "Feed",
+        "route": "/app",
+        "viewport": {
+          "label": "mobile",
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 1
+        },
+        "appearance": "dark",
+        "screenshot": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/composite-final-production/mobile-Feed.png",
+        "state": {
+          "url": "http://127.0.0.1:4195/app",
+          "width": 390,
+          "scrollWidth": 390,
+          "wordmarks": [
+            {
+              "href": "/",
+              "height": 44
+            }
+          ],
+          "images": [
+            {
+              "src": "https://boarded-fixture.invalid/storage/v1/object/public/social-media/11111111-1111-4111-8111-111111111111/77777777-7777-4777-8777-777777777777.jpg",
+              "complete": true,
+              "naturalWidth": 495
+            }
+          ]
+        }
+      },
+      {
+        "name": "Landing",
+        "route": "/",
+        "viewport": {
+          "label": "mobile",
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 1
+        },
+        "appearance": "dark",
+        "screenshot": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/composite-final-production/mobile-Landing.png",
+        "state": {
+          "url": "http://127.0.0.1:4195/",
+          "width": 390,
+          "scrollWidth": 390,
+          "anchor": {
+            "state": "ready",
+            "hasAscent": "true",
+            "progress": "0.00000",
+            "targetProgress": "0.00000",
+            "yaw": "0.03955",
+            "scale": "1.0000",
+            "opacity": "1.0000",
+            "ascent": "0.00000",
+            "clipTime": "0.0000",
+            "phase": "showcase"
+          },
+          "canvas": {
+            "x": 0,
+            "y": 0,
+            "width": 390,
+            "height": 844,
+            "top": 0,
+            "right": 390,
+            "bottom": 844,
+            "left": 0
+          }
+        }
+      }
+    ],
+    "navigation": [
+      {
+        "viewport": "desktop",
+        "from": "/app",
+        "action": "actual visible Boarded anchor click",
+        "to": "http://127.0.0.1:4195/"
+      },
+      {
+        "viewport": "mobile",
+        "from": "/app",
+        "action": "actual visible Boarded anchor click",
+        "to": "http://127.0.0.1:4195/"
+      }
+    ],
+    "assetEvidence": [
+      {
+        "url": "http://127.0.0.1:4195/walls/generated/boarded-wall-poster.webp",
+        "status": 304,
+        "bytes": 63880,
+        "sha256": "f286925256e4b38fe1b6cf0c8015855687659e63a7e22fac4878166cf270f61c"
+      },
+      {
+        "url": "http://127.0.0.1:4195/walls/generated/boarded-wall.glb",
+        "status": 200,
+        "bytes": 1909356,
+        "sha256": "4f19edf6608ee6e8e77f2c352e8a57c8376b5ce73ee8d8f8b1ad68b08d096873"
+      },
+      {
+        "url": "http://127.0.0.1:4195/walls/generated/boarded-wall-poster.webp",
+        "status": 304,
+        "bytes": 63880,
+        "sha256": "f286925256e4b38fe1b6cf0c8015855687659e63a7e22fac4878166cf270f61c"
+      },
+      {
+        "url": "http://127.0.0.1:4195/walls/generated/boarded-wall.glb",
+        "status": 304,
+        "bytes": 1909356,
+        "sha256": "4f19edf6608ee6e8e77f2c352e8a57c8376b5ce73ee8d8f8b1ad68b08d096873"
+      }
+    ],
+    "unknown": [],
+    "errors": []
+  }
+}

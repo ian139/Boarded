@@ -1,0 +1,85 @@
+{
+  "schema": "omp.targeted_export_runtime.v1",
+  "tuple": {
+    "repo": "/tmp/boarded-web-acceptance-export-20260906",
+    "branch": "loop/boarded-web-20260906/acceptance-export",
+    "base_sha": "e70cc2b5f074aaa512b0d356fe9d69cad11ad2c8",
+    "head_sha": "ab0774aa7f9414b14f8349ded3b602ab5ba84fb8",
+    "diff_sha256": "5fea3e75d6a7dc5b3362d5d61a45ac5ecc5c49befd8daa2223cf1176e291aeb7",
+    "packet_spec_sha256": "e366df509ab49b13dfc8b9d4376d788f2388f44de05591a054cbf9729e475bd8",
+    "dependency_heads": {
+      "share_boundaries": "e70cc2b5f074aaa512b0d356fe9d69cad11ad2c8"
+    },
+    "target_snapshot_sha256": "18e4eb45137afd3cc46dd39293a5f593fb75988dc28f49e6e0dbde7e5a11b148",
+    "confinement_sha256": "70c4ac9f74a48a0e778076c7ce378b18351e0e60f5c9ad47e47adaa65031b6ca"
+  },
+  "runtime": "Nextproductionwebpack:3114",
+  "fontFailure": {
+    "alert": [
+      "Could not load the canonical card font. Try Download Result Card again."
+    ],
+    "retryEnabled": true
+  },
+  "downloads": [
+    {
+      "kind": "empty",
+      "file": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-web-20260906/acceptance-captures/downloads/empty/boarded-redpoint-ridge-result.svg",
+      "guid": "1a592973-4b4e-4fa1-af76-a1a0dfe9f85d",
+      "filename": "boarded-redpoint-ridge-result.svg",
+      "fontHash": "6a9d9b79e12d1bacf936714597f04053de53c3728fefa926629856e82c69e129",
+      "fonts": [
+        {
+          "family": "CormorantGaramond",
+          "status": "loaded",
+          "weight": "600",
+          "style": "italic"
+        }
+      ],
+      "metadata": {
+        "parseErrors": 0,
+        "gradients": 0,
+        "rootStyle": "background:#0A0B10; font-family:system-ui,-apple-system,sans-serif;",
+        "grade": {
+          "fill": "#F4F2EB",
+          "family": "CormorantGaramond,serif",
+          "weight": "600",
+          "style": "italic"
+        },
+        "privateNotes": false,
+        "fallbackCaption": false,
+        "conditions": true,
+        "unicodeCaption": false
+      }
+    },
+    {
+      "kind": "unicode",
+      "file": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-web-20260906/acceptance-captures/downloads/unicode/boarded-redpoint-ridge-result.svg",
+      "guid": "9f461d67-13a2-415a-8346-3e2c0e0c940f",
+      "filename": "boarded-redpoint-ridge-result.svg",
+      "fontHash": "6a9d9b79e12d1bacf936714597f04053de53c3728fefa926629856e82c69e129",
+      "fonts": [
+        {
+          "family": "CormorantGaramond",
+          "status": "loaded",
+          "weight": "600",
+          "style": "italic"
+        }
+      ],
+      "metadata": {
+        "parseErrors": 0,
+        "gradients": 0,
+        "rootStyle": "background:#0A0B10; font-family:system-ui,-apple-system,sans-serif;",
+        "grade": {
+          "fill": "#F4F2EB",
+          "family": "CormorantGaramond,serif",
+          "weight": "600",
+          "style": "italic"
+        },
+        "privateNotes": false,
+        "fallbackCaption": false,
+        "conditions": true,
+        "unicodeCaption": true
+      }
+    }
+  ]
+}

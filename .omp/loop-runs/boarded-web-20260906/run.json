@@ -1,0 +1,269 @@
+{
+  "id": "boarded-web-20260906",
+  "issue": "td-b387b8",
+  "platform": "web",
+  "state": "mvp_wip_verified_paper_deferred",
+  "base_sha": "a86f0b0",
+  "authority": "local reversible changes; no secrets remote writes paid services or native changes",
+  "resources": [
+    {
+      "kind": "agent",
+      "name": "WebDesigner",
+      "allocation": "isolated worktree via harness",
+      "status": "planned"
+    },
+    {
+      "kind": "scratch",
+      "path": "/Users/ian/Projects/ClimbingApp/tmp/boarded-feed",
+      "status": "planned"
+    },
+    {
+      "kind": "agent",
+      "name": "JournalEngineer",
+      "allocation": "isolated worktree via harness",
+      "status": "running"
+    },
+    {
+      "kind": "scratch",
+      "path": "/tmp/boarded-web-verification-20260906",
+      "status": "allocated"
+    },
+    {
+      "kind": "browser",
+      "name": "boarded-chromium",
+      "status": "running",
+      "owned": true
+    },
+    {
+      "kind": "worker-worktree",
+      "owner": "WebDesigner",
+      "path": "/Users/ian/.omp/wt/t6278f5645/m",
+      "branch": "main",
+      "status": "running"
+    },
+    {
+      "kind": "worker-worktree",
+      "owner": "JournalEngineer",
+      "path": "/Users/ian/.omp/wt/t83a1ee128/m",
+      "branch": "main",
+      "status": "running"
+    },
+    {
+      "kind": "candidate-worktree",
+      "path": "/tmp/boarded-web-candidate-20260906",
+      "branch": "loop/boarded-web-20260906/candidate",
+      "status": "planned"
+    },
+    {
+      "kind": "worker-worktree",
+      "owner": "FlowEngineer",
+      "path": "/Users/ian/.omp/wt/tffe7ba691/m",
+      "status": "running"
+    },
+    {
+      "kind": "process",
+      "name": "boarded-web-review",
+      "cwd": "/tmp/boarded-web-candidate-20260906",
+      "status": "running"
+    },
+    {
+      "kind": "scratch",
+      "path": "/tmp/boarded-web-chromium-profile-20260906",
+      "status": "planned"
+    },
+    {
+      "kind": "process",
+      "name": "boarded-web-chromium",
+      "status": "planned"
+    },
+    {
+      "kind": "worker-worktree",
+      "owner": "WebDesignOwner",
+      "path": "/tmp/boarded-web-design-fix-20260906",
+      "branch": "loop/boarded-web-20260906/design-fix",
+      "status": "planned"
+    },
+    {
+      "kind": "worker-worktree",
+      "owner": "JournalFix",
+      "path": "/tmp/boarded-web-journal-fix-20260906",
+      "branch": "loop/boarded-web-20260906/journal-fix",
+      "status": "planned"
+    },
+    {
+      "kind": "worker-worktree",
+      "owner": "FlowFix",
+      "path": "/tmp/boarded-web-flow-fix-20260906",
+      "branch": "loop/boarded-web-20260906/flow-fix",
+      "status": "planned"
+    },
+    {
+      "kind": "worker-worktree",
+      "owner": "JournalAtomic",
+      "path": "/tmp/boarded-web-journal-atomic-20260906",
+      "branch": "loop/boarded-web-20260906/journal-atomic",
+      "status": "planned"
+    },
+    {
+      "kind": "worker-worktree",
+      "owner": "WebCleanup",
+      "path": "/tmp/boarded-web-cleanup-20260906",
+      "branch": "loop/boarded-web-20260906/cleanup",
+      "status": "planned"
+    },
+    {
+      "kind": "worker-worktree",
+      "owner": "AtomicFlowRebind",
+      "path": "/tmp/boarded-web-atomic-flow-20260906",
+      "branch": "loop/boarded-web-20260906/atomic-flow",
+      "status": "planned"
+    },
+    {
+      "kind": "worker-worktree",
+      "owner": "WebDesignFinal",
+      "path": "/tmp/boarded-web-design-final-20260906",
+      "branch": "loop/boarded-web-20260906/design-final",
+      "status": "planned"
+    },
+    {
+      "kind": "managed-process",
+      "name": "boarded-web-production",
+      "cwd": "/tmp/boarded-web-candidate-20260906",
+      "status": "running"
+    },
+    {
+      "kind": "worker-worktree",
+      "owner": "WebTouchCommunity",
+      "path": "/tmp/boarded-web-touch-community-20260906",
+      "branch": "loop/boarded-web-20260906/touch-community",
+      "status": "planned"
+    },
+    {
+      "kind": "worker-worktree",
+      "owner": "WebTouchJournal",
+      "path": "/tmp/boarded-web-touch-journal-20260906",
+      "branch": "loop/boarded-web-20260906/touch-journal",
+      "status": "planned"
+    },
+    {
+      "kind": "worker-worktree",
+      "owner": "NavigationFocusFix",
+      "path": "/Users/ian/.omp/wt/tb8e7e8457/m",
+      "status": "unused-harness-allocation",
+      "branch": "main"
+    },
+    {
+      "kind": "worker-worktree",
+      "owner": "NavigationFocusFix",
+      "path": "/tmp/boarded-web-navigation-focus-20260906",
+      "branch": "loop/boarded-web-20260906/navigation-focus",
+      "status": "planned"
+    },
+    {
+      "kind": "worker-worktree",
+      "owner": "WebVisualPolish",
+      "path": "/tmp/boarded-web-visual-polish-20260906",
+      "branch": "loop/boarded-web-20260906/visual-polish",
+      "status": "planned"
+    },
+    {
+      "kind": "scratch-download-directory",
+      "path": "/tmp/boarded-web-verification-20260906/downloads",
+      "status": "planned"
+    },
+    {
+      "kind": "cmux-browser",
+      "owner": "Main",
+      "workspace_ref": "workspace:3",
+      "purpose": "local human review preview and native browser zoom verification",
+      "status": "open",
+      "surface_ref": "surface:75",
+      "pane_ref": "pane:29",
+      "window_ref": "window:1"
+    }
+  ],
+  "guards": {
+    "integration": "complete packet + exact hash independent review + designer verdict + rendered desktop/mobile evidence",
+    "completion": "full requested path + targeted behavioral/a11y checks + build/lint/typecheck + visual comparison or explicit unreachable blocker"
+  },
+  "limits": {
+    "visual_passes": 5,
+    "nonimproving_passes": 2,
+    "packet_review_rounds": 2
+  },
+  "preserve": [
+    "all preexisting dirty paths",
+    "all iOS paths",
+    "existing Paper pages"
+  ],
+  "paper_blocker": "Weekly MCP quota reached; reported reset in five days. 21 Paper planning and 3 export/diff tasks remain blocked; not retried during resume.",
+  "resource_anomaly": "Harness automatically removed first two isolated worktrees at yield; retained exact patches reconstructed in candidate without any edits, new candidate SHAs bind review.",
+  "packet_tuples": {
+    "WebDesigner": {
+      "repo": "/tmp/boarded-web-candidate-20260906",
+      "branch": "loop/boarded-web-20260906/candidate",
+      "base_sha": "a86f0b0dfd490ae996a30c3e43d6edfd2a9d8a2e",
+      "head_sha": "7a386063dcff9db33c581342af4526979d18f46f",
+      "diff_sha256": "eb189a044beb31a50d17f050ec811ed64d146e31903e32fd3d3615bcd64c56fc",
+      "packet_spec_sha256": "1118301fa76668ec1e32d41444c65b5b9ced33a67f3c6253bfcc16d1ca6aa132",
+      "dependency_heads": {},
+      "target_snapshot_sha256": "ccfc944a0b0104478a0098f2821f60c295575209d943f178833d607e3e95799b",
+      "confinement_sha256": "73869ee2740b579441dfe770e99da32e386132401af16528dd438d05ee845f53"
+    },
+    "JournalEngineer": {
+      "repo": "/tmp/boarded-web-candidate-20260906",
+      "branch": "loop/boarded-web-20260906/candidate",
+      "base_sha": "7a386063dcff9db33c581342af4526979d18f46f",
+      "head_sha": "cb2fcd5ac564e0b5ddc617e7e963d0274786d344",
+      "diff_sha256": "bdee4dd86e21e678b4ce879b64cd98f2c43506aa9c41023275a1a24e6644711f",
+      "packet_spec_sha256": "10b3e1ecbfcd5f07ffab667cdcd28187c07f5626f4e15c2f195e4e346c185485",
+      "dependency_heads": {},
+      "target_snapshot_sha256": "9300c812bd02af586dbe98d24fb8cc978976e9d4d649d675825f1489dbdcd35f",
+      "confinement_sha256": "5398fb7c60d1ebf09d8eb7a996b750f11f20f7f14c1880b77a928c1408215f04"
+    }
+  },
+  "evidence": {
+    "journal_tests": "23 passed node --test lib/boarded/journal.test.ts",
+    "typescript": "npx tsc --noEmit --incremental false passed",
+    "initial_happy_path": "Maya send→Redpoint Ridge→preselected log→record attempt→mark sent→publish→profile reload shows one persisted sent/published result",
+    "desktop_axe": "0 WCAG A/AA violations scoped to .boarded",
+    "mobile_send_axe": "contrast 3.63:1 helper text; dispatched FlowFix",
+    "visual_pass1": "independent vision findings implemented in designer branch; queued capture"
+  },
+  "decision": "Atomic durable mutations: write snapshot before committing memory, failed operation leaves prior data unchanged with caller draft intact; read failure blocks mutations until successful strict hydration. Removes pending-operation ambiguity.",
+  "delivery": {
+    "milestones_completed": 37,
+    "milestones_paper_blocked": 24,
+    "open_delivery_tasks": 0,
+    "full_mission_complete": false,
+    "integration": "Main integrated approved corrections;20/20owned primaryfiles match ebd5b8c.",
+    "current_scope_complete": true,
+    "delivery_label": "MVP/WIP",
+    "paper_disposition": "Deferred by explicit user decision; not completed and no longer blocking current web delivery",
+    "session_checklist": "mission-checklist.json",
+    "integration_evidence": "acceptance-final-integration.json",
+    "human_review_report": "delivery-report.json",
+    "cleanup_report": "cleanup-report.json",
+    "post_integration_tests": "46/46 passed across 12 suites",
+    "resource_disposal": "None; exact preservation and already-absent outcomes recorded",
+    "review_provenance": "Original agent URIs unavailable; approvals survive in handoff ledger",
+    "final_tuple": "acceptance-final-tuple.json",
+    "acceptance_matrix": "acceptance-matrix.json",
+    "cleanup": "acceptance-cleanup-report.json"
+  },
+  "atomic_consumer_resync": {
+    "supersedes": "FlowFix",
+    "reason": "New persist-before-memory failure semantics require respecified consumer packet; independent review rejects deletion/Undo on old contract. Include exact unresolved SVG/caption boundaries, portal styling, and hydrated hash behavior in one final bounded correction.",
+    "attempts": 0,
+    "max_attempts": 2,
+    "review_rounds": 0,
+    "max_review_rounds": 2
+  },
+  "worker_recovery": {
+    "interrupted": "LogFlowFix",
+    "review": "InterruptedFlowReview",
+    "remaining_findings": 2,
+    "assigned": "FocusGuardFix",
+    "worktree": "/tmp/boarded-web-atomic-flow-20260906"
+  }
+}

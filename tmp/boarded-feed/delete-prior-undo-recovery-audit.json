@@ -1,0 +1,20 @@
+{
+  "deletion": {
+    "focus": "<button type=\"button\" class=\"b-button b-button-primary text-xs px-3 py-1.5 min-h-0\">Undo Deletion</button>",
+    "count": 1,
+    "undoText": "Entry for \"Redpoint Ridge\" deleted.Undo Deletion"
+  },
+  "failed": {
+    "count": 1,
+    "dialog": true,
+    "error": "Could not delete entry for \"Redpoint Ridge\": Storage write failed: Blocked second deletion",
+    "undoText": "Entry for \"Redpoint Ridge\" deleted.Undo Deletion"
+  },
+  "restored": {
+    "ids": [
+      "review-sent",
+      "review-attempt"
+    ],
+    "focus": "delete-entry-review-sent"
+  }
+}

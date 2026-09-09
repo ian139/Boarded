@@ -1,0 +1,114 @@
+diff --git a/app/app/page.tsx b/app/app/page.tsx
+index 9dd71e20b914c9485840dd45e906e1d08a0c4f63..463c7b6f2dcee187c6d5351295d0052c87270ff5 100644
+--- a/app/app/page.tsx
++++ b/app/app/page.tsx
+@@ -1,5 +1,11 @@
++import type { Metadata } from 'next';
+ import { Feed } from '@/components/boarded/Feed';
+ 
++export const metadata: Metadata = {
++  title: 'Feed — Boarded',
++  description: 'Local climbing journal and field dispatches from Stonegate & the crag.',
++};
++
+ export default function AppPage() {
+   return <Feed />;
+ }
+diff --git a/components/boarded/Photo.tsx b/components/boarded/Photo.tsx
+index c388aee3f61dea364064f57e41f77cdd9f8b4d1d..66fb2add8329cf25f2f505ca4611a5beacd5486a 100644
+--- a/components/boarded/Photo.tsx
++++ b/components/boarded/Photo.tsx
+@@ -44,7 +44,7 @@ export function Photo({ src, alt, className = '' }: PhotoProps) {
+       <img
+         src={src}
+         alt={alt}
+-        loading="lazy"
++        loading="eager"
+         decoding="async"
+         onLoad={() => setIsLoaded(true)}
+         onError={() => setHasError(true)}
+diff --git a/components/boarded/Shell.tsx b/components/boarded/Shell.tsx
+index 6b4bfe0af61aed3b81b5b2bbfb3e5b5f77e48b9b..da8c3d0a42f8bb71551379a25f6bdb3d97accbfe 100644
+--- a/components/boarded/Shell.tsx
++++ b/components/boarded/Shell.tsx
+@@ -127,15 +127,62 @@ export function Shell({ children }: { children: React.ReactNode }) {
+       }
+     }
+ 
+-    if (mainRef.current) {
+-      const heading = mainRef.current.querySelector<HTMLElement>('h1');
+-      if (heading) {
+-        heading.setAttribute('tabIndex', '-1');
+-        heading.focus({ preventScroll: true });
+-      } else {
+-        mainRef.current.focus({ preventScroll: true });
+-      }
++    if (!mainRef.current) return;
++
++    // Check if destination h1 already exists
++    const existingHeading = mainRef.current.querySelector<HTMLElement>('h1');
++    if (existingHeading) {
++      existingHeading.setAttribute('tabIndex', '-1');
++      existingHeading.focus({ preventScroll: true });
++      return;
+     }
++
++    // If child is suspended or mounting asynchronously, wait for destination h1 via bounded MutationObserver
++    let observer: MutationObserver | null = null;
++    let timeoutId: number | null = null;
++
++    const cleanup = () => {
++      if (observer) {
++        observer.disconnect();
++        observer = null;
++      }
++      if (timeoutId) {
++        clearTimeout(timeoutId);
++        timeoutId = null;
++      }
++    };
++
++    observer = new MutationObserver(() => {
++      if (mainRef.current) {
++        const heading = mainRef.current.querySelector<HTMLElement>('h1');
++        if (heading) {
++          cleanup();
++          heading.setAttribute('tabIndex', '-1');
++          heading.focus({ preventScroll: true });
++        }
++      }
++    });
++
++    observer.observe(mainRef.current, {
++      childList: true,
++      subtree: true,
++    });
++
++    // Fallback: disconnect after 1500ms and focus h1 or main
++    timeoutId = window.setTimeout(() => {
++      cleanup();
++      if (mainRef.current) {
++        const heading = mainRef.current.querySelector<HTMLElement>('h1');
++        if (heading) {
++          heading.setAttribute('tabIndex', '-1');
++          heading.focus({ preventScroll: true });
++        } else {
++          mainRef.current.focus({ preventScroll: true });
++        }
++      }
++    }, 1500);
++
++    return cleanup;
+   }, [pathname]);
+ 
+   // Handle intra-page hash changes (e.g. #comments, #share)
+diff --git a/docs/boarded-web.md b/docs/boarded-web.md
+index 7301bb695e8dd6466d8392b9ec3e3a1aa6f6d40c..f67c660426bc47f4607c7b34da469f36f8047661 100644
+--- a/docs/boarded-web.md
++++ b/docs/boarded-web.md
+@@ -426,4 +426,4 @@ The following contract corrections were implemented across `app/app/boarded.css`
+ 13. **Mobile Sent Badge Single-Line Integrity:** Enforced `white-space: nowrap; flex-shrink: 0;` on `.b-status` alongside `flex-shrink-0` header containment, eliminating awkward "SEN" / "T" wrapping on narrow viewports while preserving author metadata room.
+ 14. **Mobile Log Primary Visual Emphasis:** Styled mobile navigation Log action (`/app/log`) with solid Electric Indigo fill and elevated prominence while maintaining the accessible five-destination navigation structure.
+ 15. **Climber Photography Top-Anchored Crop:** Configured `.b-photo img` with `object-position: top center;` and `max-height: 640px;` ensuring the climber's raised hand reaching to clip the quickdraw is visible without clipping on desktop viewports.
+-16. **Dynamic Route Titles & Selector Safety:** Integrated `getRouteTitle` in `Shell.tsx` for route-derived descriptive document titles; guarded hash targeting using decoded `getElementById` to avoid selector syntax exceptions on malformed hashes; and integrated popstate detection to safeguard native browser back/forward focus restoration.
++16. **Dynamic Route Titles & Bounded Asynchronous Focus Management:** Integrated `getRouteTitle` in `Shell.tsx` for route-derived descriptive document titles; guarded hash targeting using decoded `getElementById` to avoid selector syntax exceptions on malformed hashes; integrated popstate detection to safeguard native browser back/forward focus restoration; and implemented a bounded `MutationObserver` (with 1500ms timeout cleanup) on `<main>` that waits for suspended/asynchronously mounted destination `<h1>` elements to appear before focusing them, preventing premature focus lock on unnamed container elements.

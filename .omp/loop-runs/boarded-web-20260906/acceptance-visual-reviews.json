@@ -1,0 +1,234 @@
+{
+  "schema": "omp.independent_visual_reviews.v1",
+  "reports": [
+    {
+      "boarded-acceptance-images#1": {
+        "verdict": "APPROVED — retained desktop rendered evidence; no concrete visual acceptance blocker found.",
+        "scope": "Checklist 36–37 desktop only. Read both design documents and directly examined all 13 requested retained image files, without sampling, browser use, recapture, source edits, or validation commands. Applied approved web override: Indigo actions/selection, Green sends, opaque dark editorial surfaces.",
+        "evidence_directory": "/Users/ian/Projects/ClimbingApp/tmp/boarded-feed",
+        "dimensions_note": "Feed capture metadata (final-feed-capture-contract.json) explicitly records desktop viewport 1440×1024 CSS px, DPR 1. All reviewed images are 1440 pixels wide. Remaining audit metadata labels captures desktop but does not independently record viewport height; full-page image height must not be confused with viewport height. Image dimensions below describe retained raster bounds, not an independently verified CSS viewport for those files.",
+        "files": [
+          {
+            "file": "actual-desktop.png",
+            "image_dimensions": "1440×1024",
+            "finding": "PASS. Three-column feed has clear selected navigation, dominant climbing photograph, intact 5.12a/Redpoint Ridge headline, green SENT badge, and separated right-hand context/actions. Bottom of card continues beyond viewport; this crop does not establish clipping of the underlying page or show the lower reaction controls."
+          },
+          {
+            "file": "explore-desktop.png",
+            "image_dimensions": "1440×1984",
+            "finding": "PASS. Search, category chips, eight-result grouping, route actions, venue facts, and climber rows remain separated and readable through the full-page image. Heading focus outline does not obscure its text."
+          },
+          {
+            "file": "activity-desktop.png",
+            "image_dimensions": "1440×1278",
+            "finding": "PASS. Unread indicator and label are distinct; send, comment, following, and logged-attempt entries maintain clear alignment. Long comment text wraps without overlap; Mark all as read remains prominent."
+          },
+          {
+            "file": "log-desktop.png",
+            "image_dimensions": "1440×1024",
+            "finding": "PASS. Persistent field labels, route selection, date/count, condition field, notes, counters, Cancel and Indigo save action fit within the form. Secondary route-description teaser is ellipsized, but route identity, grade and essential controls remain intact."
+          },
+          {
+            "file": "profile-desktop.png",
+            "image_dimensions": "1440×1039",
+            "finding": "PASS. Identity, four summary metrics, active journal tab, and two entries are orderly. Sent/published and attempted/private statuses are distinct; notes and view/share/delete action rows do not collide."
+          },
+          {
+            "file": "send-desktop.png",
+            "image_dimensions": "1440×2677",
+            "finding": "PASS. Author/grade/photo hierarchy is clear; factual shelf and reaction controls sit below photography. Separate share section, twelve comment rows, and complete comment composer remain contained through the full-page capture."
+          },
+          {
+            "file": "route-desktop.png",
+            "image_dimensions": "1440×1885",
+            "finding": "PASS. Route title and save/log controls coexist without collision. Photo, fact shelf, beta, labeled topo, glossary rows and community ticks have clear vertical order. Tick captions use teasers without hiding route/status/action identity."
+          },
+          {
+            "file": "boulder-desktop.png",
+            "image_dimensions": "1440×1363",
+            "finding": "PASS. V6 title and actions fit; non-photo venue block, two-column specifications, labeled boulder diagram, glossary and empty ascent state remain readable and contained."
+          },
+          {
+            "file": "climber-desktop.png",
+            "image_dimensions": "1440×1024",
+            "finding": "PASS. Avatar/name, following presentation, biography, featured ascent and primary report action are clearly separated; navigation controls are fully visible."
+          },
+          {
+            "file": "attempt-desktop.png",
+            "image_dimensions": "1440×1024",
+            "finding": "PASS. Neutral attempted/working-beta status contrasts with Indigo Mark as sent action. Date/count/crag, conditions and complete notes are readable; lower navigation controls fit."
+          },
+          {
+            "file": "share-desktop.png",
+            "image_dimensions": "1440×1024",
+            "finding": "PASS. Result preview, green verified-send badge, caption input/count, visibly disabled Published to Journal state, SVG download and copy-link action are all contained. Local-device publishing limitation is visibly explained."
+          },
+          {
+            "file": "self-send-desktop.png",
+            "image_dimensions": "1440×1037",
+            "finding": "PASS. Photo-free personal report retains author, grade, facts and caption hierarchy; zero cheers/comments, share controls and complete empty comment composer remain visible without overlap."
+          },
+          {
+            "file": "profile-delete-dialog-desktop.png",
+            "image_dimensions": "1440×1024",
+            "finding": "PASS. Centered opaque dialog is clearly isolated by background dimming. Full route/date-specific confirmation and undo explanation wrap cleanly; Cancel and red Confirm Delete are distinct and unobstructed."
+          }
+        ],
+        "limitations": "These are historical retained screenshots, not newly captured evidence bound to candidate e1114ed. No examined metadata establishes exact-head provenance. Static pixels establish presentation only, not keyboard behavior, hit-target measurements, contrast ratios, persistence, downloads or interaction execution. Earlier intermediate audit failures are not reopened as current visual defects. Paper items remain DEFERRED; no Paper-reference or screenshot-diff parity claim."
+      }
+    },
+    {
+      "boarded-acceptance-images#2": {
+        "verdict": "APPROVED for the supplied mobile/reflow visual evidence; no concrete current blocker established. This is a historical-image disposition, not exact-e1114ed certification or Paper parity.",
+        "scope": "Read docs/design-language.md and docs/boarded-web.md; applied approved web override: Indigo actions/navigation, Green sends, dark editorial surfaces. Examined all 33 requested image files under /Users/ian/Projects/ClimbingApp/tmp/boarded-feed. No edits, browser, recaptures, tests or builds.",
+        "dimensions": "Feed capture contract explicitly records mobile viewport 390×844 and reflow320 viewport 320×844, DPR 1. Remaining standard captures visually match those widths and fixed-navigation position, but their viewport heights are inference rather than independently supplied metadata; many are full-document images taller than the viewport. Important exception: log-invalid-mobile.png is visibly an 800-pixel-wide capture (approximately 800×1167 image, navigation ending at y≈638), NOT 390-pixel mobile evidence. Full-image dimensions explicitly returned by reader include explore 390×2616 / 320×2731; activity reflow 320×1658; profile reflow 320×1579; send 390×2978 / 320×2975; route 390×1956 / 320×2043; boulder 390×1672 / 320×1878; text200 390×1706; overlength 390×1571.",
+        "per_file": [
+          {
+            "files": [
+              "actual-mobile.png",
+              "actual-reflow320.png"
+            ],
+            "disposition": "Approve. Readable author and wrapped timestamp; intact Sent badge; photograph and grade/title stay within card. Fixed bottom navigation is clear. Initial viewport does not show lower feed actions."
+          },
+          {
+            "files": [
+              "explore-mobile.png",
+              "explore-reflow320.png"
+            ],
+            "disposition": "Approve with screenshot limitation. Heading wraps; route, venue and climber cards remain contained. Search placeholder and rightmost category chip are cut off at horizontal control edge; looks like a horizontally continuing category rail, not demonstrated page overflow. Static evidence cannot establish whether remaining categories are reachable."
+          },
+          {
+            "files": [
+              "activity-mobile.png",
+              "activity-reflow320.png"
+            ],
+            "disposition": "Approve. Notifications and timestamp/action text wrap without card collisions. Unread indicator, send check and comment symbols remain distinct."
+          },
+          {
+            "files": [
+              "log-mobile.png",
+              "log-reflow320.png"
+            ],
+            "disposition": "Approve. Labels, helper text and fields are legible; narrow heading wraps and Cancel/Save actions stack. Selected route and example placeholders truncate within ordinary single-line fields, not beyond the page."
+          },
+          {
+            "files": [
+              "profile-mobile.png",
+              "profile-reflow320.png"
+            ],
+            "disposition": "Approve. Two-column metrics remain intact; journal statuses and actions wrap/stack at 320px. Delete is visibly destructive and separate from share/details."
+          },
+          {
+            "files": [
+              "send-mobile.png",
+              "send-reflow320.png"
+            ],
+            "disposition": "Approve at available rendered detail. Route heading, author, image, share section, twelve comment cards and comment composer remain within single-column panels; buttons wrap. No definite clipped comment content."
+          },
+          {
+            "files": [
+              "route-mobile.png",
+              "route-reflow320.png"
+            ],
+            "disposition": "Approve. Grade/title intact, Save and Log stack at 320px, route facts wrap; disclosure labels and community ticks fit. Decorative topo labels are tiny, but explanatory route content and legend are separately present."
+          },
+          {
+            "files": [
+              "boulder-mobile.png",
+              "boulder-reflow320.png"
+            ],
+            "disposition": "Approve. Boulder-specific facts, safety prose, disclosures and empty ticks fit. At 320px the decorative topo heading breaks the word DECORATIVE across lines; awkward typography, not loss of essential information or a blocker."
+          },
+          {
+            "files": [
+              "climber-mobile.png",
+              "climber-reflow320.png"
+            ],
+            "disposition": "Approve. Identity, biography and featured ascent remain readable; bottom actions stack at 320px. One action lies under fixed navigation in the full-document capture; no proof it is unreachable after scrolling."
+          },
+          {
+            "files": [
+              "attempt-mobile.png",
+              "attempt-reflow320.png"
+            ],
+            "disposition": "Approve. Attempt status, conditions, notes and Mark as sent explanation/action remain distinct and contained; narrow layout wraps header and lower actions."
+          },
+          {
+            "files": [
+              "share-mobile.png",
+              "share-reflow320.png"
+            ],
+            "disposition": "Approve. Result card, grade, title, facts and caption reflow; published button has a visibly disabled treatment; download and copy controls remain contained."
+          },
+          {
+            "files": [
+              "self-send-mobile.png",
+              "self-send-reflow320.png"
+            ],
+            "disposition": "Approve. Author, successful-send state, zero-count reaction buttons, private links and empty comment composer fit; no photo is present in these particular records."
+          },
+          {
+            "files": [
+              "feed-forced-colors-mobile.png"
+            ],
+            "disposition": "Approve. High-contrast text, explicit card/control borders, visible links and Sent check+label survive the alternate palette; all five navigation labels remain present."
+          },
+          {
+            "files": [
+              "feed-text200-mobile.png"
+            ],
+            "disposition": "Approve. Enlarged wordmark, metadata, grade/title, facts and quote wrap; action buttons wrap into separate rows; all five enlarged nav labels remain visible without overlap."
+          },
+          {
+            "files": [
+              "feed-loading-mobile.png"
+            ],
+            "disposition": "Approve. Feed heading persists and loading explanation is legible within a bounded panel; navigation remains clearly presented."
+          },
+          {
+            "files": [
+              "feed-empty-mobile.png"
+            ],
+            "disposition": "Approve. Empty-state title, explanation and Explore CTA are centered, legible and contained."
+          },
+          {
+            "files": [
+              "feed-image-failure-mobile.png"
+            ],
+            "disposition": "Approve fallback presentation. Photo placeholder has icon and readable descriptive text; route, send state and caption remain available. This older capture truncates author timestamp to '… S…'; latest actual-mobile.png instead visibly wraps date/location, so do not reopen that historical issue."
+          },
+          {
+            "files": [
+              "log-invalid-mobile.png"
+            ],
+            "disposition": "Approve visible error presentation ONLY; insufficient true-mobile error evidence. Error summary, linked message, inline attempts error and retained note are legible. Capture is 800px wide despite filename and contains an old development '1 Issue' overlay plus top-header overlap; do not treat these historical capture artifacts as current candidate failures."
+          },
+          {
+            "files": [
+              "profile-delete-dialog-mobile.png"
+            ],
+            "disposition": "Approve. Centered opaque dialog, readable target/date/undo warning, separated Cancel and red Confirm Delete. Latest dialog capture has a dimmed, non-blurred backdrop."
+          },
+          {
+            "files": [
+              "profile-delete-failed-mobile.png"
+            ],
+            "disposition": "Approve error readability. Persistent failure message fits above Cancel/Confirm Delete; dialog remains readable. Background is visibly blurred in this older image, unlike newer profile-delete-dialog-mobile.png; historical visual difference is not evidence that current code still blurs."
+          },
+          {
+            "files": [
+              "share-overlength-mobile.png"
+            ],
+            "disposition": "Approve error/reflow evidence with historical capture artifact. Long unbroken caption wraps inside preview, counter shows 400/280, and explicit red maximum-length error is readable above Publish. A Boarded header strip crosses the middle of the preview in this older capture; newer share-mobile.png/share-reflow320.png show top-positioned header. No current obstruction established."
+          }
+        ],
+        "limitations": [
+          "Full-page captures place the fixed bottom navigation around original viewport y=788–844 over mid-document content. This proves an overlay at the captured scroll position, not that lower content is inaccessible after scrolling; no runtime interaction claims made.",
+          "The reader downsampled tall images. Directly inspected every returned image; attempted native-resolution follow-up on explore/send reflow, but image-question tool itself received only 200×1568 and reported resized dimensions. Reported this tooling limitation via xd://report_issue. Therefore do not characterize the entire 33-image inspection as pixel-perfect native-resolution proof.",
+          "Screenshots do not establish exact CSS hit-target sizes, keyboard behavior, horizontal-rail scrolling, numeric contrast or exact-head provenance. Those remain Main's integration with prior behavioral/source audits.",
+          "Paper checklist24 items remain DEFERRED; no Paper references, comparison or diff claim."
+        ]
+      }
+    }
+  ]
+}

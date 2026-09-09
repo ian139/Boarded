@@ -1,0 +1,252 @@
+diff --git a/apps/ios/Boarded/Boarded/RootView.swift b/apps/ios/Boarded/Boarded/RootView.swift
+index bee6516803c9e2c1f47c166278a9498d309fbb6f..2cc5e4022360bd6c70b653935d79d861d65f7f4f 100644
+--- a/apps/ios/Boarded/Boarded/RootView.swift
++++ b/apps/ios/Boarded/Boarded/RootView.swift
+@@ -152,11 +152,11 @@ struct RootView: View {
+ 
+     private var customTabBar: some View {
+         HStack(alignment: .top, spacing: 0) {
+-            tabButton(tab: .feed, icon: "house", label: "Feed", accessibilityID: "Feed")
+-            tabButton(tab: .explore, icon: "safari", label: "Explore", accessibilityID: "Explore")
++            tabButton(tab: .feed, label: "Feed", accessibilityID: "Feed")
++            tabButton(tab: .explore, label: "Explore", accessibilityID: "Explore")
+             centerLogButton
+-            tabButton(tab: .activity, icon: "waveform.path.ecg", label: "Activity", accessibilityID: "Activity", hasBadge: navigation.unreadActivityCount > 0)
+-            tabButton(tab: .profile, icon: "person.crop.circle", label: "Profile", accessibilityID: "Profile")
++            tabButton(tab: .activity, label: "Activity", accessibilityID: "Activity", hasBadge: navigation.unreadActivityCount > 0)
++            tabButton(tab: .profile, label: "Profile", accessibilityID: "Profile")
+         }
+         .frame(height: 49)
+         .background(
+@@ -173,6 +173,12 @@ struct RootView: View {
+         .accessibilityIdentifier("main-tabs")
+     }
+ 
++    private var isStandardDynamicType: Bool {
++        let requested = AppLaunchConfiguration.isUITestFixture ? UITestFixtures.requestedDynamicTypeSize : nil
++        let effective = requested ?? systemDynamicTypeSize
++        return tabLabelSize <= 10 && !effective.isAccessibilitySize
++    }
++
+     private var centerLogButton: some View {
+         Button(action: {
+             navigation.selectedTab = .log
+@@ -195,14 +201,14 @@ struct RootView: View {
+                 }
+ 
+                 Text("Log")
+-                    .font(.system(size: tabLabelSize, weight: navigation.selectedTab == .log ? .semibold : .regular))
++                    .font(.system(size: tabLabelSize, weight: navigation.selectedTab == .log ? .semibold : .medium))
+                     .foregroundStyle(navigation.selectedTab == .log ? AppColor.chalk : Color.hex("#C8CAD2"))
+-
+-                Color.clear
+-                    .frame(width: 4, height: 4)
++                    .frame(height: isStandardDynamicType ? 11 : nil)
++                    .offset(y: isStandardDynamicType ? -12 : 0)
+             }
+             .frame(maxWidth: .infinity)
+             .frame(minWidth: 44, minHeight: 44)
++            .contentShape(RaisedButtonHitShape(overhang: 12))
+         }
+         .buttonStyle(.plain)
+         .accessibilityLabel("Log")
+@@ -210,9 +216,35 @@ struct RootView: View {
+         .accessibilityAddTraits(navigation.selectedTab == .log ? .isSelected : [])
+     }
+ 
++    @ViewBuilder
++    private func tabIcon(tab: AppTab, isSelected: Bool) -> some View {
++        let strokeWidth: CGFloat = isSelected ? (2.0 * 20.0 / 24.0) : (1.8 * 20.0 / 24.0)
++        let strokeColor = isSelected ? AppColor.indigo : Color.hex("#9FA3B0")
++        let strokeStyle = StrokeStyle(lineWidth: strokeWidth, lineCap: .round, lineJoin: .round)
++
++        Group {
++            switch tab {
++            case .feed:
++                TabHouseIconShape()
++                    .stroke(strokeColor, style: strokeStyle)
++            case .explore:
++                TabCompassIconShape()
++                    .stroke(strokeColor, style: strokeStyle)
++            case .activity:
++                TabPulseIconShape()
++                    .stroke(strokeColor, style: strokeStyle)
++            case .profile:
++                TabPersonIconShape()
++                    .stroke(strokeColor, style: strokeStyle)
++            case .log:
++                EmptyView()
++            }
++        }
++        .frame(width: 20, height: 20)
++    }
++
+     private func tabButton(
+         tab: AppTab,
+-        icon: String,
+         label: String,
+         accessibilityID: String,
+         hasBadge: Bool = false
+@@ -223,10 +255,7 @@ struct RootView: View {
+         }) {
+             VStack(spacing: 3) {
+                 ZStack(alignment: .topTrailing) {
+-                    Image(systemName: icon)
+-                        .font(.system(size: 20, weight: isSelected ? .semibold : .regular))
+-                        .foregroundStyle(isSelected ? AppColor.indigo : Color.hex("#9FA3B0"))
+-                        .frame(width: 28, height: 22)
++                    tabIcon(tab: tab, isSelected: isSelected)
+ 
+                     if hasBadge {
+                         Circle()
+@@ -235,22 +264,27 @@ struct RootView: View {
+                             .offset(x: 3, y: -2)
+                     }
+                 }
++                .frame(width: 20, height: 20)
+ 
+-                Text(label)
+-                    .font(.system(size: tabLabelSize, weight: isSelected ? .semibold : .regular))
+-                    .tracking(tab == .feed && isSelected ? 0.2 : 0)
+-                    .foregroundStyle(isSelected ? AppColor.chalk : Color.hex("#C8CAD2"))
++                HStack(spacing: 3) {
++                    Text(label)
++                        .font(.system(size: tabLabelSize, weight: isSelected ? .semibold : .medium))
++                        .tracking(tab == .feed && isSelected ? 0.2 : 0)
++                        .foregroundStyle(isSelected ? AppColor.chalk : Color.hex("#C8CAD2"))
+ 
+-                if tab == .feed && isSelected {
+-                    Circle()
+-                        .fill(AppColor.indigo)
+-                        .frame(width: 4, height: 4)
+-                } else {
+-                    Color.clear
+-                        .frame(width: 4, height: 4)
++                    if tab == .feed && isSelected {
++                        Circle()
++                            .fill(AppColor.indigo)
++                            .frame(width: 3.5, height: 3.5)
++                    }
+                 }
++                .frame(height: isStandardDynamicType ? 11 : nil)
+             }
+-            .frame(maxWidth: .infinity, minHeight: 44)
++            .padding(.top, isStandardDynamicType ? 7.5 : 0)
++            .padding(.bottom, isStandardDynamicType ? 7.5 : 0)
++            .frame(maxWidth: .infinity)
++            .frame(minHeight: 44)
++            .contentShape(Rectangle())
+         }
+         .buttonStyle(.plain)
+         .accessibilityLabel(label)
+@@ -259,6 +293,110 @@ struct RootView: View {
+     }
+ }
+ 
++private struct TabHouseIconShape: Shape {
++    func path(in rect: CGRect) -> Path {
++        var path = Path()
++        let scale = min(rect.width / 24.0, rect.height / 24.0)
++        let offsetX = (rect.width - 24.0 * scale) / 2.0
++        let offsetY = (rect.height - 24.0 * scale) / 2.0
++
++        // SVG: M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z
++        path.move(to: CGPoint(x: 3.0, y: 9.0))
++        path.addLine(to: CGPoint(x: 12.0, y: 2.0))
++        path.addLine(to: CGPoint(x: 21.0, y: 9.0))
++        path.addLine(to: CGPoint(x: 21.0, y: 20.0))
++        path.addCurve(to: CGPoint(x: 19.0, y: 22.0), control1: CGPoint(x: 21.0, y: 21.10), control2: CGPoint(x: 20.10, y: 22.0))
++        path.addLine(to: CGPoint(x: 5.0, y: 22.0))
++        path.addCurve(to: CGPoint(x: 3.0, y: 20.0), control1: CGPoint(x: 3.90, y: 22.0), control2: CGPoint(x: 3.0, y: 21.10))
++        path.closeSubpath()
++
++        // SVG polyline: 9 22 9 12 15 12 15 22
++        path.move(to: CGPoint(x: 9.0, y: 22.0))
++        path.addLine(to: CGPoint(x: 9.0, y: 12.0))
++        path.addLine(to: CGPoint(x: 15.0, y: 12.0))
++        path.addLine(to: CGPoint(x: 15.0, y: 22.0))
++
++        return path.applying(CGAffineTransform(scaleX: scale, y: scale).concatenating(CGAffineTransform(translationX: offsetX, y: offsetY)))
++    }
++}
++
++private struct TabCompassIconShape: Shape {
++    func path(in rect: CGRect) -> Path {
++        var path = Path()
++        let scale = min(rect.width / 24.0, rect.height / 24.0)
++        let offsetX = (rect.width - 24.0 * scale) / 2.0
++        let offsetY = (rect.height - 24.0 * scale) / 2.0
++
++        // SVG circle: cx=12, cy=12, r=10
++        path.addEllipse(in: CGRect(x: 2.0, y: 2.0, width: 20.0, height: 20.0))
++
++        // SVG polygon: points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"
++        path.move(to: CGPoint(x: 16.24, y: 7.76))
++        path.addLine(to: CGPoint(x: 14.12, y: 14.12))
++        path.addLine(to: CGPoint(x: 7.76, y: 16.24))
++        path.addLine(to: CGPoint(x: 9.88, y: 9.88))
++        path.closeSubpath()
++
++        return path.applying(CGAffineTransform(scaleX: scale, y: scale).concatenating(CGAffineTransform(translationX: offsetX, y: offsetY)))
++    }
++}
++
++private struct TabPulseIconShape: Shape {
++    func path(in rect: CGRect) -> Path {
++        var path = Path()
++        let scale = min(rect.width / 24.0, rect.height / 24.0)
++        let offsetX = (rect.width - 24.0 * scale) / 2.0
++        let offsetY = (rect.height - 24.0 * scale) / 2.0
++
++        // SVG path: M22 12h-4l-3 9L9 3l-3 9H2
++        path.move(to: CGPoint(x: 22.0, y: 12.0))
++        path.addLine(to: CGPoint(x: 18.0, y: 12.0))
++        path.addLine(to: CGPoint(x: 15.0, y: 21.0))
++        path.addLine(to: CGPoint(x: 9.0, y: 3.0))
++        path.addLine(to: CGPoint(x: 6.0, y: 12.0))
++        path.addLine(to: CGPoint(x: 2.0, y: 12.0))
++
++        return path.applying(CGAffineTransform(scaleX: scale, y: scale).concatenating(CGAffineTransform(translationX: offsetX, y: offsetY)))
++    }
++}
++
++private struct TabPersonIconShape: Shape {
++    func path(in rect: CGRect) -> Path {
++        var path = Path()
++        let scale = min(rect.width / 24.0, rect.height / 24.0)
++        let offsetX = (rect.width - 24.0 * scale) / 2.0
++        let offsetY = (rect.height - 24.0 * scale) / 2.0
++
++        // SVG circle: cx=12, cy=7, r=4
++        path.addEllipse(in: CGRect(x: 8.0, y: 3.0, width: 8.0, height: 8.0))
++
++        // SVG path: M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2
++        path.move(to: CGPoint(x: 20.0, y: 21.0))
++        path.addLine(to: CGPoint(x: 20.0, y: 19.0))
++        path.addCurve(to: CGPoint(x: 16.0, y: 15.0), control1: CGPoint(x: 20.0, y: 16.79), control2: CGPoint(x: 18.21, y: 15.0))
++        path.addLine(to: CGPoint(x: 8.0, y: 15.0))
++        path.addCurve(to: CGPoint(x: 4.0, y: 19.0), control1: CGPoint(x: 5.79, y: 15.0), control2: CGPoint(x: 4.0, y: 16.79))
++        path.addLine(to: CGPoint(x: 4.0, y: 21.0))
++
++        return path.applying(CGAffineTransform(scaleX: scale, y: scale).concatenating(CGAffineTransform(translationX: offsetX, y: offsetY)))
++    }
++}
++
++private struct RaisedButtonHitShape: Shape {
++    var overhang: CGFloat = 12
++
++    func path(in rect: CGRect) -> Path {
++        var path = Path()
++        path.addRect(CGRect(
++            x: rect.minX,
++            y: rect.minY - overhang,
++            width: rect.width,
++            height: rect.height + overhang
++        ))
++        return path
++    }
++}
++
+ /// Custom tabs own presentation and accessibility; the native tab controller
+ /// retains destination state and computes the unobscured content safe area.
+ private struct NativeTabBarAccessibilityBoundary: UIViewControllerRepresentable {

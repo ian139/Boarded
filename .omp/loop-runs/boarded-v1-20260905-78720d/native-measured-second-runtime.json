@@ -1,0 +1,12 @@
+{
+  "preview_head": "87b6f491e2215db68321d3ec43c01ed49cf6998b",
+  "home_source": "2150a323d428bb5f006fa20cf5c54023ef4e15f3",
+  "navigation_source": "2a16c2996f24ef357e0b2d1609a7b676bafd6d17",
+  "artifact": "artifact://971",
+  "test": "testRequiredStandardStateCaptures",
+  "passed": 1,
+  "failures": 0,
+  "xcresult": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/native-preview-derived/Logs/Test/Test-Boarded-2026.09.08_15-11-51--0400.xcresult",
+  "attachments": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/native-87b6f49-measured-attachments/manifest.json",
+  "home": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/native-87b6f49-measured-attachments/3D4E2F2C-92E5-4E2C-B471-BFB0C350AD9D.png"
+}

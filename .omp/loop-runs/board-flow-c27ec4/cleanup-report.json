@@ -1,0 +1,172 @@
+{
+  "schema": "omp.cleanup_report.v1",
+  "task": "td-c27ec4",
+  "status": "complete",
+  "integration": {
+    "routes": [
+      "/board/editor",
+      "/board/profile",
+      "/board/settings",
+      "/board/login",
+      "/board/signup"
+    ],
+    "patches": [
+      {
+        "packet": "editor",
+        "source": "/tmp/original-flow-c27ec4-editor.patch",
+        "sha256": "10323f97b8309505915c61383fad0705a80514fb871b29453c54da87e6607ca0"
+      },
+      {
+        "packet": "profile",
+        "source": "/tmp/original-flow-c27ec4-profile.patch",
+        "sha256": "abb3bded832a886a447032f772bab1c79179b777b02bf1c318f428f0a5da7758"
+      },
+      {
+        "packet": "final",
+        "source": "/tmp/original-flow-c27ec4-final.patch",
+        "sha256": "ee802ecc2e526ee18294242ced52ce99ce0cf483bdee17d7d35574977157d752"
+      }
+    ],
+    "reviewed": true,
+    "verified": true,
+    "pushOrDeploy": "not requested or performed"
+  },
+  "removed": [
+    {
+      "kind": "process",
+      "name": "original-flow-c27ec4-preview",
+      "cwd": "/Users/ian/Projects/ClimbingApp-board-flow-c27ec4-final",
+      "port": 3208,
+      "status": "exited",
+      "exitCode": 0
+    },
+    {
+      "kind": "process",
+      "name": "original-flow-c27ec4-chromium",
+      "port": 9401,
+      "status": "exited",
+      "exitCode": 1
+    },
+    {
+      "kind": "browser-tab",
+      "name": "original-flow-c27ec4-verification",
+      "status": "released"
+    },
+    {
+      "kind": "browser-profile",
+      "path": "/tmp/original-flow-c27ec4-chrome",
+      "status": "absent"
+    }
+  ],
+  "preserved": [
+    {
+      "kind": "worktree",
+      "path": "/Users/ian/Projects/ClimbingApp-board-flow-c27ec4-editor",
+      "branch": "loop/board-flow-c27ec4/editor",
+      "head": "90ea1b2",
+      "changed": 7,
+      "untracked": 28,
+      "reason": "Inherited unrelated dirty baseline; safe deletion guard fails closed"
+    },
+    {
+      "kind": "worktree",
+      "path": "/Users/ian/Projects/ClimbingApp-board-flow-c27ec4-profile",
+      "branch": "loop/board-flow-c27ec4/profile",
+      "head": "8cfb1a0",
+      "changed": 7,
+      "untracked": 28,
+      "reason": "Inherited unrelated dirty baseline; safe deletion guard fails closed"
+    },
+    {
+      "kind": "worktree",
+      "path": "/Users/ian/Projects/ClimbingApp-board-flow-c27ec4-integration",
+      "branch": "loop/board-flow-c27ec4/integration",
+      "head": "98e27da",
+      "changed": 8,
+      "untracked": 30,
+      "reason": "Inherited dirty baseline and unexplained post-freeze settings edit; preservation required"
+    },
+    {
+      "kind": "worktree",
+      "path": "/Users/ian/Projects/ClimbingApp-board-flow-c27ec4-final",
+      "branch": "loop/board-flow-c27ec4/final",
+      "head": "eeec560",
+      "changed": 7,
+      "untracked": 30,
+      "reason": "Inherited dirty baseline and assembled editor/profile artifacts; safe deletion guard fails closed"
+    },
+    {
+      "kind": "preexisting-worktree",
+      "path": "/Users/ian/Projects/ClimbingApp-board-restore-review",
+      "reason": "Not allocated by this task"
+    },
+    {
+      "kind": "primary-preview",
+      "name": "boarded-main-preview",
+      "port": 3115,
+      "status": "ready",
+      "reason": "Pre-existing user preview retained"
+    },
+    {
+      "kind": "primary-checkout",
+      "path": "/Users/ian/Projects/ClimbingApp",
+      "reason": "User dirty work preserved; nine protected source hashes unchanged"
+    },
+    {
+      "kind": "evidence",
+      "path": ".omp/loop-runs/board-flow-c27ec4/evidence",
+      "screenshots": 26,
+      "patches": 3,
+      "reason": "Durable reviewed and post-integration proof"
+    },
+    {
+      "kind": "temporary-evidence",
+      "paths": [
+        "/tmp/original-flow-c27ec4-editor-empty-desktop.png",
+        "/tmp/original-flow-c27ec4-editor-empty-mobile.png",
+        "/tmp/original-flow-c27ec4-editor-active-desktop.png",
+        "/tmp/original-flow-c27ec4-editor-active-mobile.png",
+        "/tmp/original-flow-c27ec4-editor-edit-desktop.png",
+        "/tmp/original-flow-c27ec4-editor-save-desktop.png",
+        "/tmp/original-flow-c27ec4-editor-save-mobile.png",
+        "/tmp/original-flow-c27ec4-editor-dark-desktop.png",
+        "/tmp/original-flow-c27ec4-editor-dark-mobile.png",
+        "/tmp/original-flow-c27ec4-profile-empty-desktop.png",
+        "/tmp/original-flow-c27ec4-profile-empty-mobile.png",
+        "/tmp/original-flow-c27ec4-profile-populated-desktop.png",
+        "/tmp/original-flow-c27ec4-profile-populated-mobile.png",
+        "/tmp/original-flow-c27ec4-profile-populated-mobile-bottom.png",
+        "/tmp/original-flow-c27ec4-profile-dark-desktop.png",
+        "/tmp/original-flow-c27ec4-profile-dark-mobile.png",
+        "/tmp/original-flow-c27ec4-settings-desktop.png",
+        "/tmp/original-flow-c27ec4-settings-mobile.png",
+        "/tmp/original-flow-c27ec4-settings-dark-desktop.png",
+        "/tmp/original-flow-c27ec4-settings-reset-mobile.png",
+        "/tmp/original-flow-c27ec4-login-desktop.png",
+        "/tmp/original-flow-c27ec4-login-mobile.png",
+        "/tmp/original-flow-c27ec4-signup-desktop.png",
+        "/tmp/original-flow-c27ec4-signup-mobile.png",
+        "/tmp/original-flow-c27ec4-integrated-editor-mobile.png",
+        "/tmp/original-flow-c27ec4-integrated-profile-mobile.png",
+        "/tmp/original-flow-c27ec4-editor.patch",
+        "/tmp/original-flow-c27ec4-profile.patch",
+        "/tmp/original-flow-c27ec4-final.patch"
+      ],
+      "reason": "Original reviewer-referenced evidence also retained; durable copies exist"
+    },
+    {
+      "kind": "cmux-context",
+      "reason": "No task-created CMUX workspace; all pre-existing workspace/surface state left untouched"
+    }
+  ],
+  "blockers": [],
+  "anchorLast": {
+    "status": "preserved",
+    "reason": "No anchor deletion requested; primary preview remains ready and existing context untouched"
+  },
+  "workers": {
+    "OriginalEditorRestore": "closed; no further edits",
+    "OriginalProfileRestore": "closed; no further edits",
+    "OriginalFlowIntegration": "closed; no further edits"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "preview_head": "70034a3",
+  "feed_head": "9e512520324b9c12b410de5e9226854ee44a3ed9",
+  "journal_head": "432091811ca886f5bb15e0f1e96c79ce8846cf03",
+  "driver_head": "f3dc913dc1d2f6f28f20293c6858514f9df5aae1",
+  "artifact": "artifact://659",
+  "result": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/native-preview-derived/Logs/Test/Test-Boarded-2026.09.06_18-01-48--0400.xcresult",
+  "cases_passed": 4,
+  "failures": 0,
+  "attachments": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/native-70034a3-attachments/manifest.json"
+}

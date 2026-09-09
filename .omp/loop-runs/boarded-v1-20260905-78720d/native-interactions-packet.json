@@ -1,0 +1,66 @@
+{
+  "packet": "native-interactions",
+  "platform": "iOS",
+  "parent": "native",
+  "base_sha": "a178c2c406f8d5b7d35a309471ba24d3775b49fd",
+  "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/native-interactions",
+  "ownership": {
+    "platform": "iOS",
+    "allow": [
+      "apps/ios/Boarded/Boarded/RootView.swift",
+      "apps/ios/Boarded/Boarded/Views/Home/",
+      "apps/ios/Boarded/Boarded/Views/Activity/",
+      "apps/ios/Boarded/ViewModels/HomeFeedViewModel.swift",
+      "apps/ios/Boarded/ViewModels/SessionPostDetailViewModel.swift",
+      "apps/ios/Boarded/ViewModels/ActivityViewModel.swift"
+    ]
+  },
+  "findings": [
+    {
+      "title": "Actually invoke the Feed route-navigation callback",
+      "body": "Original finding 14 is partial. HomeFeedView supplies onRouteTap and RootView supplies its destination, but SessionPostCard never invokes onRouteTap; its only new header control invokes onAuthorTap. Feed \u2192 Route Detail \u2192 prefilled Log therefore remains unreachable. Add an actual route control and migrate the remaining detail/profile card callbacks rather than leaving enabled author buttons backed by empty closures.",
+      "priority": 1,
+      "confidence": 1,
+      "file_path": "apps/ios/Boarded/Boarded/Views/Home/SessionPostCard.swift",
+      "line_start": 19,
+      "line_end": 22
+    },
+    {
+      "title": "Perform one bookmark mutation and render its returned state",
+      "body": "Original finding 13 remains. Post detail toggles through the community repository, then viewModel.toggleBookmark toggles the same route through the feed repository; both production implementations mutate route_bookmarks, so every successful tap undoes itself. The model's isSaved also never enters currentPost, which prefers the immutable initial item. Execute one mutation and bind its returned state into the displayed card.",
+      "priority": 1,
+      "confidence": 1,
+      "file_path": "apps/ios/Boarded/Boarded/Views/Home/SessionPostDetailView.swift",
+      "line_start": 98,
+      "line_end": 101
+    },
+    {
+      "title": "Keep fixture-relative timestamps out of production presentation",
+      "body": "Original finding 28's ordering is repaired, but HomeFeedView now labels every production second post 'just now' regardless of its age. SessionPostCard also special-cases a fixture UUID to '2h' without fixture gating. Derive production presentation from actual timestamps and inject fixture display-time behavior through the explicit fixture environment.",
+      "priority": 2,
+      "confidence": 1,
+      "file_path": "apps/ios/Boarded/Boarded/Views/Home/HomeFeedView.swift",
+      "line_start": 223,
+      "line_end": 226
+    },
+    {
+      "title": "Reset shared unread state when authentication changes",
+      "body": "Original finding 15 only synchronizes Activity-view updates. AppNavigation survives sign-out/account changes without clearing unreadActivityCount, and its value is refreshed only by the inbox view. Feed and the tab bar can therefore retain the previous account's unread count until Activity is visited and finishes loading. Reset/scope the count to session.userId and refresh from the authenticated root lifecycle.",
+      "priority": 2,
+      "confidence": 0.99,
+      "file_path": "apps/ios/Boarded/Boarded/Views/Activity/ActivityViews.swift",
+      "line_start": 85,
+      "line_end": 90
+    },
+    {
+      "title": "Prevent older read failures from rolling back newer successes",
+      "body": "With multiple unread events, a user can tap one and then Read All while its write is pending. If Read All succeeds but the earlier single-event request fails, the new rollback marks that event unread and increments the count despite confirmed server state. Serialize read operations or use mutation generations so an older failure cannot undo a later success.",
+      "priority": 2,
+      "confidence": 0.99,
+      "file_path": "apps/ios/Boarded/ViewModels/ActivityViewModel.swift",
+      "line_start": 65,
+      "line_end": 72
+    }
+  ],
+  "shared_contract": "Platform iOS mechanics of frozen BOTH-platform V1 semantics. Preserve SessionPostCard onLike/onBookmark/onAuthorTap/onRouteTap ()->Void names and wire real callbacks everywhere; optional nil may replace default no-op if needed to render noninteractive when absent, coordinate exact type with journal owner. NativeFixtures owns SharedFixtureStore: remove process-wide shared; init(savedRouteIDs:Set<UUID>=[], followedClimberIDs:Set<UUID>=[]), synchronized private sets, isSaved(_:UUID)->Bool,isFollowing(_:UUID)->Bool,toggleSavedRoute(_:UUID)->Bool,toggleFollow(_:UUID)->Bool. All mock repository initializers gain fixtureStore:SharedFixtureStore?=nil; nil means new isolated store honoring existing supplied seeds. AppServices owns one explicit shared fixture instance supplied to feed/community/profile mocks. Journal owner implements MockProfileRepository constructor/projections against that same interface; no singleton anywhere. ProfileRepository.fetchSavedRoutes pagination may evolve with every current caller in journal-owned paths. Fixtures owner coordinates its tests against resulting signature, do not edit journal files. Journal private history reuses SessionRepository and SessionSyncService/SwiftData, no second persistence store; preserve account ownership and local pending edits. All workers skip all builds/tests/lint/formatters; Main verifies once immutable."
+}

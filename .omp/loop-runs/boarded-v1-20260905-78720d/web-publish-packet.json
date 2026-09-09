@@ -1,0 +1,156 @@
+{
+  "packet": "web-publish",
+  "platform": "web",
+  "parent": "web",
+  "base_sha": "964882a47f13fcdb09efb5632f41e44328663faf",
+  "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/web-publish",
+  "ownership": {
+    "platform": "web",
+    "allow": [
+      "app/log/page.tsx",
+      "lib/utils/composer.ts",
+      "components/log/SessionDetailModal.tsx",
+      "lib/utils/session-publication.ts",
+      "lib/utils/session-publication.test.ts"
+    ],
+    "role": "Bounded correction of existing web V1 mechanics only"
+  },
+  "findings": [
+    {
+      "title": "Load the selected ended session's attempts before publication",
+      "body": "Past Sessions and SessionDetailModal call handleOpenFinishModal(session), but this function selects from the page's active-session attempts array rather than loading the supplied session. After a private save or hard reload, that array is empty, so the featured-climb selector has no options and Publish remains disabled. The modal's separately loaded attempts are never passed back, leaving the advertised resumable publication flow unusable.",
+      "priority": 1,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/log/page.tsx",
+      "line_start": 289,
+      "line_end": 298
+    },
+    {
+      "title": "Reconcile the ended session immediately after its update succeeds",
+      "body": "If ending the session succeeds but session_posts insertion fails, neither activeSession nor sessionToPublish receives the persisted ended_at. Cancelling the composer therefore returns to a Live Session and permits additional logging after its recorded end; retrying also overwrites the end time because target.ended_at remains null. Preserve the successful end transition independently of publication success and retry from that ended state.",
+      "priority": 1,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/log/page.tsx",
+      "line_start": 414,
+      "line_end": 421
+    },
+    {
+      "title": "Reconcile uncertain post insertion before deleting its artwork",
+      "body": "A post insert can commit on the server while its response is lost. This branch treats every returned error as proof that no post exists and removes both uploaded images; after connectivity recovers, it can therefore leave a valid public session_posts row pointing to deleted artwork. The next retry allocates another post ID and conflicts with session_posts.session_id's unique constraint. Retain the operation identity and check whether that post committed before cleanup or retry.",
+      "priority": 1,
+      "confidence": 0.99,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/log/page.tsx",
+      "line_start": 438,
+      "line_end": 443
+    },
+    {
+      "title": "Retain failed public-upload cleanup for retry",
+      "body": "Storage remove returns an error in its result, but both cleanup calls ignore that result and the catch also discards failures. If removal fails after an upload or post error, uploadedKeys exists only in this invocation and is forgotten when the user cancels, saves privately, or navigates away. The photograph and composed card remain in the publicly readable bucket without a post or recoverable cleanup record.",
+      "priority": 1,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/log/page.tsx",
+      "line_start": 454,
+      "line_end": 461
+    },
+    {
+      "title": "Guard Log mutation completions against identity changes",
+      "body": "The fetch path checks activeUserIdRef, but handleStartSession and handleLogAttempt do not. If a start request completes after logout in another tab, this setter repopulates activeSession after the logout effect cleared it; the unguarded JSX then displays its private conditions and notes while signed out. A delayed attempt response can likewise append account A's private record into account B's current session. Scope mutation completions and session drafts to the initiating identity.",
+      "priority": 1,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/log/page.tsx",
+      "line_start": 221,
+      "line_end": 227
+    },
+    {
+      "title": "Preserve the route's grade system in the Log handoff",
+      "body": "Explore sends discipline and grade_label but omits grade_system, and Log infers the system only from discipline. Selecting a Font boulder such as 7A therefore prefills its real label under v_scale and persists the wrong grading system unless the user manually corrects it; custom grades are also not representable in Log's selector. Carry and consume the canonical grade_system rather than guessing from discipline.",
+      "priority": 2,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/log/page.tsx",
+      "line_start": 59,
+      "line_end": 65
+    },
+    {
+      "title": "Clear the catalog link when entering a different manual climb",
+      "body": "linkedRouteId is set from the URL and never cleared anywhere, while the route name, grade, and discipline remain freely editable. After logging linked route A, entering a different manual climb B still inserts A's route_id. Publishing B then exposes A's route metadata, Beta target, and bookmark action. Detach the link when changing away from the selected catalog climb or provide an explicit route-selection/unlink control.",
+      "priority": 2,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/log/page.tsx",
+      "line_start": 253,
+      "line_end": 260
+    },
+    {
+      "title": "Finish pagination for saved routes and publishable session history",
+      "body": "Profile still requests only the first 30 saved routes and provides no continuation control, so older bookmarks remain inaccessible from Saved. Log likewise caps pastSessions at 20 without continuation, which also limits the only page that supplies the session publication callback. Complete these bounded lists rather than treating their first page as the full journal or ticklist.",
+      "priority": 2,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/profile/page.tsx",
+      "line_start": 285,
+      "line_end": 289
+    },
+    {
+      "title": "Make private session inspection keyboard-operable",
+      "body": "Profile's only session-inspection action is an onClick on a div with no keyboard semantics, and its trailing Inspect Tries indicator is a span. Log's past-session Details action has the same structure. Keyboard and switch users therefore cannot reopen saved attempt history even though pointer users can; use semantic inspection controls without swallowing the separate Publish action.",
+      "priority": 2,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/profile/page.tsx",
+      "line_start": 716,
+      "line_end": 719
+    },
+    {
+      "title": "Measure the grade using its actual export font",
+      "body": "The grade is drawn at 72px Cormorant, but ctx.font is changed to 24px system sans before measureText determines the venue's starting position. For ordinary multi-character labels such as 5.12a, this measures a substantially narrower string and places the venue inside the grade's drawn extent. Measure before changing fonts or place the venue in a separately bounded row so the uploaded artwork does not overlap its core facts.",
+      "priority": 2,
+      "confidence": 0.99,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/lib/utils/composer.ts",
+      "line_start": 90,
+      "line_end": 95
+    },
+    {
+      "title": "Preview the composed crop and facts before publishing",
+      "body": "photoPreviewUrl is the original file's object URL and is shown only as a 64px square thumbnail; composition runs for the first time inside handlePublishToFeed and immediately uploads a center-cropped 4:5 image with additional facts. Neither the chosen Stats/Timeline treatment nor the actual exported crop is previewed, so users cannot inspect what they are about to publish. Generate and display the same composed artifact before the publication action.",
+      "priority": 2,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/log/page.tsx",
+      "line_start": 974,
+      "line_end": 981
+    },
+    {
+      "title": "Generate image alt text from the actual attempt outcome",
+      "body": "The composer permits a featured attempt whose outcome is fell or stopped, but imageAlt always says that the climb was sent. FeedCard uses this value directly as its image alternative, so assistive technology receives a false successful result for those posts. Derive the alternative from featuredAtt.outcome and the facts actually depicted.",
+      "priority": 2,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/log/page.tsx",
+      "line_start": 423,
+      "line_end": 424
+    },
+    {
+      "title": "Preserve an ended session's original finish timestamp",
+      "body": "The newly added history Publish action opens this same composer for an already-ended session. Choosing Save Privately Only then unconditionally replaces ended_at with now, extending an old session by hours or days and changing its duration/history even though the user only declined publication. Skip the end mutation for an already-ended target.",
+      "priority": 2,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/log/page.tsx",
+      "line_start": 321,
+      "line_end": 325
+    },
+    {
+      "title": "Distinguish failed private-session reads from empty history",
+      "body": "An active-session query error falls through to clearing activeSession and attempts, while attempt/history errors are ignored; SessionDetailModal also converts an errored attempts result into an empty list. An offline or rejected read therefore presents Start Session or No attempts recorded instead of a recoverable failure and can prompt another session creation despite an existing live session. Preserve an explicit unknown/error state and offer retry rather than asserting missing records.",
+      "priority": 2,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/log/page.tsx",
+      "line_start": 137,
+      "line_end": 143
+    },
+    {
+      "title": "Allow saved attempt notes to be read in full",
+      "body": "SessionDetailModal is the only web inspection view for saved attempt notes, but it places the entire note in a single truncated metadata line with no expansion, tooltip, or secondary detail action. A normal multi-sentence note therefore becomes permanently unreadable to sighted users after saving the session. Let the private detail view wrap or expand the stored note instead of applying the compact timeline truncation to its only full-history view.",
+      "priority": 2,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/components/log/SessionDetailModal.tsx",
+      "line_start": 184,
+      "line_end": 187
+    }
+  ],
+  "shared_contract": "Existing canonical contract.json remains. Grade handoff adds gradeSystem alongside current routeId,routeName,discipline,grade. Explorer emits and Log consumes real canonical enum. Feed Beta navigates /explore?routeId=<id> rather than independent board fallback. SessionDetailModal optional onPublish(session) remains unchanged; Log loads selected session attempts by ID. Profile only consumes modal for private inspection. No backend API change. Designer V1Designer owns all UI interpretation."
+}

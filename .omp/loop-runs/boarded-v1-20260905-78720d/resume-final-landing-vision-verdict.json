@@ -1,0 +1,68 @@
+{
+  "verdict": "Visual pass with disclosed limitations: dark-slate clothing, sampled layout/CTA separation, recognizable forward/reverse pose progression and visible reduced-motion poster. No image-supported blocking material defect. Athlete realism remains a non-blocking art-direction concern, not evidence of broken rendering or rigging.",
+  "identities": {
+    "original_landing": "4c38560cd943f1a93cf020d4be7b73335e05279f",
+    "updated_landing": "32eb4262a13c60647077cef09897305535229704",
+    "blender_both_reviews": "3d05383837d686f04a1873e412e764be3a35fcb4",
+    "original_manifest": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/resume-landing-runtime.json",
+    "updated_manifest": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/resume-landing-final-runtime.json",
+    "design_document": "/Users/ian/Projects/.boarded-v1-20260905-78720d/design/docs/design-language.md"
+  },
+  "findings": [
+    {
+      "topic": "Materials and athlete",
+      "result": "Across original desktop start/mid/top/reverse, mobile mid, updated desktop captures and visible poster, shirt is dark blue-slate and trousers blue-gray slate—not white fallback. Skin, brown hair, dark shoes and pale chalk bag are distinct. Rounded hair and segmented, smooth limbs read as a stylized figurine. This is an art-direction preference relative to the document's tactile/editorial character, not a demonstrated material failure."
+    },
+    {
+      "topic": "Pose and reversal",
+      "result": "Original mid/reverse show the same recognizable raised-hand, spread-leg pose at different board perspectives. Updated video frames at 10s show lower/mid-board reaching, 15s show upper-board straddle, and 20s show descent to the lower board. Updated reverse-zero still restores the initial low crouched pose. No visible exploded joints or inverted anatomy in inspected samples. Summit legs are nearly horizontal in an exaggerated straddle; a more asymmetric loaded-leg stance would improve athletic realism, but these images do not establish impossible contact or a blocking rig defect."
+    },
+    {
+      "topic": "Clipping and CTA collision",
+      "result": "Board, support feet and athlete fit in original desktop start/mid/top/reverse and mobile mid, with clear separation from copy/actions. Updated desktop start/ascent/reverse-zero preserve this separation. Both footer captures show the board gone and account actions unobstructed. Text cut by the top/bottom viewport during intermediate scroll captures is not evidence of container clipping."
+    },
+    {
+      "topic": "Legibility and reflow",
+      "result": "Clear display-serif/sans hierarchy, dark surfaces and indigo primary actions broadly match the design document. Original mobile start stacks hero copy and actions without visible horizontal clipping; header controls fit. Mobile footer keeps Create free account/Sign in together and moves Open Boarded below. Small gray metadata is noticeably faint and tightly wrapped, especially Birch ply/specifications, but body copy and CTAs remain readable. Mobile start puts the illustration below the first fold; mobile mid has substantial negative space around the board."
+    },
+    {
+      "topic": "Reduced motion",
+      "result": "Original mobile-reduced capture exposed only a tiny poster edge and could not approve composition. Updated resume-landing-32eb-reduced-poster.png closes that gap: whole board, feet and dark-clothed athlete are visible, contained, and separate from specifications/captions. Poster is brighter/paler than WebGL but clothing remains slate. Manifest records static state and zero canvases; image alone does not verify absence of GLTF loading/RAF or temporal stillness."
+    },
+    {
+      "topic": "Development overlay",
+      "result": "Red '1 Issue' badge remains visible in supplied original and updated images/video frames and sometimes overlays lower-left text. Main identifies unrelated walls inventory401 and documents an empty-array GET fixture; I did not independently diagnose it. This is capture contamination, not an image-supported athlete/landing defect."
+    }
+  ],
+  "inspected_files": {
+    "directory": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/",
+    "original_all_nine": [
+      "resume-landing-desktop-start.png",
+      "resume-landing-desktop-mid.png",
+      "resume-landing-desktop-top.png",
+      "resume-landing-desktop-reverse.png",
+      "resume-landing-desktop-footer.png",
+      "resume-landing-mobile-start.png",
+      "resume-landing-mobile-mid.png",
+      "resume-landing-mobile-footer.png",
+      "resume-landing-mobile-reduced.png"
+    ],
+    "updated_all_five": [
+      "resume-landing-32eb-desktop-start.png",
+      "resume-landing-32eb-desktop-ascent.png",
+      "resume-landing-32eb-desktop-reverse-zero.png",
+      "resume-landing-32eb-desktop-footer.png",
+      "resume-landing-32eb-reduced-poster.png"
+    ],
+    "video": "resume-landing-32eb-forward-reverse.webm",
+    "video_inspection": "Read six-frame preview plus full-resolution timestamp frames at 10s,15s,20s,28s. This is sampled rendered-video inspection, not uninterrupted playback or every-frame analysis."
+  },
+  "limitations": [
+    "Original evidence comprises eight WebGL-state screenshots and one reduced-motion static screenshot, not nine WebGL renders.",
+    "Updated landing identity differs from original; updated evidence supplements rather than silently replaces the original review. Fresh updated mobile animated reflow is not supplied; original mobile evidence remains the basis for that finding.",
+    "No numeric hand/foot contact, penetration, temporal smoothness or frame-perfect reversal claims. Sampled video supports progression and return, not every transition.",
+    "Only supplied dark desktop1440×1024/mobile390×844 surfaces reviewed; no zoom, intermediate widths, keyboard navigation, production asset delivery or actual link behavior validated.",
+    "Asset interception and unrelated GET fixture are manifest/Main-provided scope facts, not visually provable provenance.",
+    "No edits, services, builds, tests, linters or formatters run."
+  ]
+}

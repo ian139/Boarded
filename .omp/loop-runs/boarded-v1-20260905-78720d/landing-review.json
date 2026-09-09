@@ -1,0 +1,25 @@
+{
+  "review_kind": "packet",
+  "identity": {
+    "repo": "/Users/ian/Projects/ClimbingApp",
+    "branch": "loop/boarded-v1-20260905-78720d/landing",
+    "base_sha": "9a68ff18ffd612b21bfb5173a50b82ee7c35297e",
+    "head_sha": "4517f2f893d5f782c40b655f0d4f268a80e68b28",
+    "diff_sha256": "b16cbf3686166c976ff87bf5e2ed9c4cef636ef4e3cc4785b8af24896060bddb",
+    "packet_spec_sha256": "0f4cc03129ccfc030f7d0d33531ea801bacec285bcfaddd7c28d4ba21d8c261e",
+    "dependency_heads": {},
+    "target_snapshot_sha256": "11a17cc09b109a6c0671c76e6e6c59f087f04701ed0766b57c996dfecba83197",
+    "confinement_sha256": "5e9dd81ed62697dfbee0e44e169d238127b4c0ae65fcc9a79b96dffdc75b6e01"
+  },
+  "changed_paths": [
+    "app/landing.css",
+    "app/page.tsx",
+    "components/landing/ClimbingWallExperience.tsx"
+  ],
+  "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/landing",
+  "packet_spec": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/landing-packet.json",
+  "diff_path": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/landing.patch",
+  "execution_evidence": [],
+  "review_status": "pending",
+  "designer_verdict": null
+}

@@ -1,0 +1,225 @@
+diff --git a/components/boarded/LogFlow.tsx b/components/boarded/LogFlow.tsx
+index fce264b30be33abcdc16080f5c04d7fc7e5fb167..56db1f5d29403663bdcffcdb6abda23b31dddef8 100644
+--- a/components/boarded/LogFlow.tsx
++++ b/components/boarded/LogFlow.tsx
+@@ -477,7 +477,9 @@ export function ShareFlow({ entryId }: ShareFlowProps) {
+   const entry = entries.find((e) => e.id === entryId);
+   const route = entry ? routes.find((r) => r.id === entry.routeId) : null;
+ 
+-  const [caption, setCaption] = useState(() => entry?.caption || entry?.notes || 'Clean send on the project!');
++  const [caption, setCaption] = useState(() =>
++    entry?.published ? (entry.caption ?? '') : entry?.notes || 'Clean send on the project!'
++  );
+   const isUserEditedRef = useRef(false);
+   const hydratedEntryIdRef = useRef<string | null>(null);
+ 
+@@ -485,7 +487,7 @@ export function ShareFlow({ entryId }: ShareFlowProps) {
+   useEffect(() => {
+     if (entry && !isUserEditedRef.current && hydratedEntryIdRef.current !== entry.id) {
+       hydratedEntryIdRef.current = entry.id;
+-      setCaption(entry.caption || entry.notes || 'Clean send on the project!');
++      setCaption(entry.published ? (entry.caption ?? '') : entry.notes || 'Clean send on the project!');
+     }
+   }, [entry]);
+ 
+@@ -572,6 +574,11 @@ export function ShareFlow({ entryId }: ShareFlowProps) {
+     setPublishStatus(null);
+     setPublishError(null);
+ 
++    if (caption.length > 280) {
++      setPublishError('Caption must be 280 characters or fewer before publishing.');
++      return;
++    }
++
+     const res = publish(entry.id, caption);
+     if ('error' in res) {
+       setPublishError(res.error);
+@@ -693,17 +700,26 @@ export function ShareFlow({ entryId }: ShareFlowProps) {
+     return `${prefix}${toSafeXml(line)}${suffix}`;
+   });
+ 
++  const captionStartY = 412;
+   const captionSvgText = formattedCaptionLines
+     .map((lineHtml, idx) => {
+-      const y = 412 + idx * 22;
++      const y = captionStartY + idx * 22;
+       return `<text x="80" y="${y}" fill="#d1d5db" font-size="14" font-style="italic">${lineHtml}</text>`;
+     })
+     .join('\n  ');
+-
+-  const conditionsY = Math.min(560, 412 + formattedCaptionLines.length * 22 + 18);
+-
++  const captionEndY = captionStartY + Math.max(captionLines.length, 1) * 22;
++  const conditionsLines = wrapTextUnicode(entry.conditions || '', 56);
++  const conditionsY = conditionsLines.length > 0 ? captionEndY + 18 : 0;
++  const conditionsEndY = conditionsLines.length > 0 ? conditionsY + conditionsLines.length * 18 : 0;
++  const captionBoxBottom = Math.max(585, conditionsEndY + 24, captionEndY + 24);
++  const svgHeight = Math.max(700, captionBoxBottom + 85);
++  const footerY = svgHeight - 60;
++  const conditionsSvgText = conditionsLines.map((line, idx) => {
++    const prefix = idx === 0 ? 'Conditions: ' : '';
++    return `<text x="80" y="${conditionsY + idx * 18}" fill="#9ca3af" font-size="12">${prefix}${toSafeXml(line)}</text>`;
++  }).join('\n  ');
+   const svgCardContent = `
+-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 700" width="600" height="700" style="background:#0A0B10; font-family:system-ui,-apple-system,sans-serif;">
++<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 ${svgHeight}" width="600" height="${svgHeight}" style="background:#0A0B10; font-family:system-ui,-apple-system,sans-serif;">
+   <defs>
+     <linearGradient id="glow" x1="0%" y1="0%" x2="100%" y2="100%">
+       <stop offset="0%" stop-color="#345CFF" stop-opacity="0.25" />
+@@ -712,8 +728,8 @@ export function ShareFlow({ entryId }: ShareFlowProps) {
+   </defs>
+ 
+   <!-- Background Canvas -->
+-  <rect width="600" height="700" fill="#0A0B10" />
+-  <rect x="24" y="24" width="552" height="652" rx="16" fill="url(#glow)" stroke="#171A22" stroke-width="2" />
++  <rect width="600" height="${svgHeight}" fill="#0A0B10" />
++  <rect x="24" y="24" width="552" height="${svgHeight - 48}" rx="16" fill="url(#glow)" stroke="#171A22" stroke-width="2" />
+ 
+   <!-- Brand Mark Header -->
+   <text x="56" y="70" fill="#F4F2EB" font-size="12" font-weight="800" letter-spacing="2">BOARDED CLIMBING JOURNAL</text>
+@@ -740,28 +756,21 @@ export function ShareFlow({ entryId }: ShareFlowProps) {
+   <rect x="56" y="255" width="488" height="68" rx="8" fill="#171A22" stroke="rgba(244,242,235,0.08)" />
+   <text x="76" y="285" fill="#9ca3af" font-size="11" font-weight="700" letter-spacing="1">CLIMBER</text>
+   <text x="76" y="307" fill="#F4F2EB" font-size="14" font-weight="600">Alex R.</text>
+-
+   <text x="210" y="285" fill="#9ca3af" font-size="11" font-weight="700" letter-spacing="1">ATTEMPTS</text>
+   <text x="210" y="307" fill="#F4F2EB" font-size="14" font-weight="600">${entry.attempts} tries</text>
+-
+   <text x="340" y="285" fill="#9ca3af" font-size="11" font-weight="700" letter-spacing="1">DATE</text>
+   <text x="340" y="307" fill="#F4F2EB" font-size="14" font-weight="600">${toSafeXml(entry.date)}</text>
+-
+   <text x="470" y="285" fill="#32D583" font-size="11" font-weight="700" letter-spacing="1">OUTCOME</text>
+   <text x="470" y="307" fill="#32D583" font-size="14" font-weight="700">SENT</text>
+ 
+   <!-- Caption & Beta Notes -->
+-  <rect x="56" y="345" width="488" height="240" rx="8" fill="#12141C" stroke="rgba(244,242,235,0.06)" />
++  <rect x="56" y="345" width="488" height="${captionBoxBottom - 345}" rx="8" fill="#12141C" stroke="rgba(244,242,235,0.06)" />
+   <text x="80" y="380" fill="#F4F2EB" font-size="13" font-weight="700">CAPTION &amp; NOTES</text>
+   ${captionSvgText}
+-  ${
+-    entry.conditions
+-      ? `<text x="80" y="${conditionsY}" fill="#9ca3af" font-size="12">Conditions: ${toSafeXml(entry.conditions.slice(0, 60))}</text>`
+-      : ''
+-  }
++  ${conditionsSvgText}
+ 
+   <!-- Footer Seal -->
+-  <text x="300" y="640" fill="#6b7280" font-size="11" text-anchor="middle">
++  <text x="300" y="${footerY}" fill="#6b7280" font-size="11" text-anchor="middle">
+     Verified Local Record · Boarded Editorial Journal
+   </text>
+ </svg>
+@@ -973,26 +982,33 @@ export function ProfileScreen() {
+   const deleteTriggerBtnRef = useRef<HTMLButtonElement | null>(null);
+   const undoButtonRef = useRef<HTMLButtonElement | null>(null);
+   const justConfirmedRef = useRef(false);
++  const profileRootRef = useRef<HTMLElement | null>(null);
++  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
++
++  useEffect(() => {
++    setPortalContainer(profileRootRef.current);
++  }, []);
+ 
+   // Undo persistent action state
+   const [lastDeletedEntry, setLastDeletedEntry] = useState<Entry | null>(null);
+   const [undoNotice, setUndoNotice] = useState<string | null>(null);
++  const [deleteError, setDeleteError] = useState<string | null>(null);
+ 
+   const handleDeleteConfirm = () => {
+     if (!entryToDelete) return;
+     const target = entryToDelete;
+     const routeName = routes.find((r) => r.id === target.routeId)?.name || target.routeId;
+-    justConfirmedRef.current = true;
+-
++    setDeleteError(null);
+     const res = deleteEntry(target.id);
+-    // Deterministic recovery: always retain target for undo!
+-    setLastDeletedEntry(target);
+-
+     if ('error' in res) {
+-      setUndoNotice(`Entry for "${routeName}" removed from session, but storage write failed: ${res.error}. You can undo or retry.`);
+-    } else {
+-      setUndoNotice(`Entry for "${routeName}" deleted.`);
++      justConfirmedRef.current = false;
++      setDeleteError(`Could not delete entry for "${routeName}": ${res.error}`);
++      return;
+     }
++    justConfirmedRef.current = true;
++    setDeleteError(null);
++    setLastDeletedEntry(target);
++    setUndoNotice(`Entry for "${routeName}" deleted.`);
+     setEntryToDelete(null);
+   };
+ 
+@@ -1006,7 +1022,7 @@ export function ProfileScreen() {
+       setUndoNotice(null);
+       setLastDeletedEntry(null);
+       setTimeout(() => {
+-        deleteTriggerBtnRef.current?.focus();
++        document.getElementById(`delete-entry-${target.id}`)?.focus();
+       }, 50);
+     }
+   };
+@@ -1021,14 +1037,13 @@ export function ProfileScreen() {
+   const savedRoutes = routes.filter((r) => savedRouteIds.includes(r.id));
+ 
+   return (
+-    <article className="b-page" aria-labelledby="profile-heading">
++    <article ref={profileRootRef} className="b-page" aria-labelledby="profile-heading">
+       <div className="b-page-header">
+         <span className="b-eyebrow">Climber Profile</span>
+         <Link href="/app" className="b-button b-button-ghost">
+           Back to Feed
+         </Link>
+       </div>
+-
+       {/* Climber Identity Card */}
+       <header className="b-panel b-stack">
+         <div className="flex items-start justify-between flex-wrap gap-4">
+@@ -1134,7 +1149,7 @@ export function ProfileScreen() {
+             {entries.length === 0 ? (
+               <div className="b-panel text-center py-8">
+                 <p className="text-stone-300 font-medium">Your journal has no recorded attempts.</p>
+-                <p className="text-xs text-stone-500 mt-1 mb-4">
++                <p className="text-xs text-stone-400 mt-1 mb-4">
+                   Log your tries, tick your projects, and build your climbing history.
+                 </p>
+                 <Link href="/app/log" className="b-button b-button-primary">
+@@ -1206,9 +1221,11 @@ export function ProfileScreen() {
+                       </div>
+ 
+                       <button
++                        id={`delete-entry-${entry.id}`}
+                         type="button"
+                         onClick={(e) => {
+                           deleteTriggerBtnRef.current = e.currentTarget;
++                          setDeleteError(null);
+                           setEntryToDelete(entry);
+                         }}
+                         className="b-button b-button-danger text-xs"
+@@ -1277,11 +1294,12 @@ export function ProfileScreen() {
+         open={Boolean(entryToDelete)}
+         onOpenChange={(open) => {
+           if (!open) {
++            setDeleteError(null);
+             setEntryToDelete(null);
+           }
+         }}
+       >
+-        <Dialog.Portal>
++        <Dialog.Portal container={portalContainer}>
+           <Dialog.Overlay className="b-modal-overlay" />
+           <Dialog.Content
+             className="b-modal-dialog"
+@@ -1308,6 +1326,11 @@ export function ProfileScreen() {
+                 : 'this climb'}
+               &rdquo; from {entryToDelete?.date}? You can undo this action immediately after deleting.
+             </Dialog.Description>
++            {deleteError && (
++              <div role="alert" className="b-errors">
++                {deleteError}
++              </div>
++            )}
+             <div className="b-modal-actions">
+               <Dialog.Close asChild>
+                 <button type="button" className="b-button b-button-ghost">

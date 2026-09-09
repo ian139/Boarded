@@ -1,0 +1,2870 @@
+diff --git a/packages/shared/types/index.ts b/packages/shared/types/index.ts
+index a984c797e663a0353a9dc17b4e64befa09bb295a..94b39754cc388e63c3d367f1450c9a21a99e67b8 100644
+--- a/packages/shared/types/index.ts
++++ b/packages/shared/types/index.ts
+@@ -16,7 +16,7 @@ export interface Hold {
+   notes?: string; // Optional per-hold notes
+ }
+ 
+-// Ascent - when someone climbs a route
++// Ascent - when someone climbs a route (public board-route tick contract)
+ export interface Ascent {
+   id: string;
+   route_id: string;
+@@ -40,36 +40,69 @@ export interface Comment {
+   created_at: string;
+ }
+ 
++// Shared domain enums
++export type ClimbDiscipline =
++  | 'boulder'
++  | 'sport'
++  | 'trad'
++  | 'top_rope'
++  | 'board'
++  | 'other';
++
++export type GradeSystem = 'v_scale' | 'font' | 'yds' | 'custom';
++
++export type AttemptOutcome = 'sent' | 'fell' | 'stopped';
++
++export type SyncState = 'queued' | 'syncing' | 'failed' | 'synced';
++
++export type OverlayStyle = 'stats' | 'attempt_timeline';
++
++export type VenueKind = 'crag' | 'gym' | 'board';
++
++export type RouteTerrain = 'slab' | 'vertical' | 'overhang' | 'roof';
++
++export type ActivityEventKind = 'like' | 'comment' | 'follow' | 'crew_send';
++
+ // Route types
+ export interface Route {
+   id: string;
+   user_id: string;
+   user_name?: string; // Setter's display name
+-  wall_id: string;
++  wall_id?: string | null;
+   wall_image_url?: string; // Snapshot of wall image at route creation (for history)
+   wall_image_width?: number;
+   wall_image_height?: number;
+   name: string;
+-  description?: string;
+-  grade_v?: string; // V-scale (V0, V1, V2, etc.)
+-  grade_font?: string; // Font scale (4, 5a, 6b+, etc.)
+-  rating?: number; // 1-5 star rating
++  description?: string | null;
++  grade_v?: string | null; // V-scale (V0, V1, V2, etc.)
++  grade_font?: string | null; // Font scale (4, 5a, 6b+, etc.)
++  rating?: number | null; // 1-5 star rating
+   holds: Hold[];
+   is_public: boolean;
+   view_count: number;
+   share_token?: string;
+   created_at: string;
+   updated_at: string;
++  // Extended community attributes
++  venue_id?: string | null;
++  discipline?: ClimbDiscipline;
++  grade_system?: GradeSystem;
++  grade_label?: string | null;
++  height_m?: number | null;
++  rock_type?: string | null;
++  terrain?: RouteTerrain | null;
+   // Ascent data
+   ascents?: Ascent[];
+   // Comments/Beta
+   comments?: Comment[];
+   // Joined data
+   wall?: Wall;
++  venue?: CommunityVenue | null;
+   user?: Profile;
+   is_liked?: boolean;
+   like_count?: number;
+   liked_by?: string[]; // Array of user IDs who liked this route
++  is_saved?: boolean;
+ }
+ 
+ // Wall types
+@@ -90,12 +123,27 @@ export interface Wall {
+ export interface Profile {
+   id: string;
+   username: string;
+-  full_name?: string;
+-  avatar_url?: string;
+-  bio?: string;
+-  is_public: boolean;
++  full_name?: string | null;
++  avatar_url?: string | null;
++  bio?: string | null;
++  home_area?: string | null;
++  is_public?: boolean;
+   created_at: string;
+-  updated_at: string;
++  updated_at?: string;
++}
++
++export interface ProfileDraft {
++  id: string;
++  username: string;
++  full_name?: string | null;
++  home_area?: string | null;
++}
++
++export interface ProfileUpdate {
++  full_name?: string | null;
++  username?: string | null;
++  bio?: string | null;
++  home_area?: string | null;
+ }
+ 
+ // Social graph: follow relationship between two profiles.
+@@ -105,7 +153,7 @@ export interface Follow {
+   created_at: string;
+ }
+ 
+-// Follower/following counts returned by get_profile_follow_counts.
++// Follower/following counts returned by get_profile_follow_counts or search_climbers.
+ export interface ProfileFollowCounts {
+   follower_count: number;
+   following_count: number;
+@@ -120,6 +168,216 @@ export interface FollowingFeedItem {
+   author_username: string | null;
+ }
+ 
++// Community catalog venues
++export interface CommunityVenue {
++  id: string;
++  user_id?: string;
++  name: string;
++  kind: VenueKind;
++  area: string | null;
++  description: string | null;
++  image_url: string | null;
++  is_public?: boolean;
++  created_at?: string;
++  updated_at?: string;
++}
++
++// Canonical community route projection
++export interface CommunityRoute {
++  id: string;
++  name: string;
++  description: string | null;
++  discipline: ClimbDiscipline;
++  grade_system: GradeSystem;
++  grade_label: string | null;
++  height_m: number | null;
++  rock_type: string | null;
++  terrain: RouteTerrain | null;
++  image_url: string | null;
++  holds: Hold[];
++  venue: CommunityVenue | null;
++  author_id: string | null;
++  is_saved: boolean;
++  created_at: string;
++}
++
++// Climber projection for discovery search
++export interface CommunityClimber {
++  id: string;
++  username: string | null;
++  full_name: string | null;
++  avatar_url: string | null;
++  bio: string | null;
++  home_area: string | null;
++  is_followed: boolean;
++  follower_count: number;
++  following_count: number;
++}
++
++// Route bookmark (owner-only saved routes)
++export interface RouteBookmark {
++  user_id: string;
++  route_id: string;
++  created_at: string;
++}
++
++// Activity actor projection
++export interface ActivityActor {
++  id: string;
++  username: string | null;
++  full_name: string | null;
++  avatar_url: string | null;
++  home_area: string | null;
++}
++
++// Activity event (community notifications inbox)
++export interface ActivityEvent {
++  id: string;
++  kind: ActivityEventKind;
++  actor: ActivityActor;
++  post_id: string | null;
++  created_at: string;
++  read_at: string | null;
++}
++
++// Private climbing session
++export interface ClimbingSession {
++  id: string;
++  user_id: string;
++  venue_name: string;
++  conditions?: string | null;
++  notes?: string | null;
++  started_at: string;
++  ended_at: string | null;
++  created_at: string;
++  updated_at: string;
++}
++
++// Private climb attempt (route_id replaces legacy board_route_id)
++export interface ClimbAttempt {
++  id: string;
++  session_id: string;
++  user_id: string;
++  route_id: string | null;
++  route_name: string;
++  discipline: ClimbDiscipline;
++  grade_system: GradeSystem;
++  grade_label: string;
++  outcome: AttemptOutcome;
++  attempt_number: number;
++  notes: string | null;
++  occurred_at: string;
++  created_at: string;
++}
++
++// Published session post
++export interface SessionPost {
++  id: string;
++  user_id: string;
++  session_id: string;
++  featured_attempt_id: string;
++  caption: string | null;
++  image_path: string;
++  image_alt: string;
++  overlay_style: OverlayStyle;
++  created_at: string;
++  updated_at: string;
++}
++
++export interface SessionPostLike {
++  post_id: string;
++  user_id: string;
++  created_at: string;
++}
++
++export interface SessionPostComment {
++  id: string;
++  post_id: string;
++  user_id: string;
++  content: string;
++  created_at: string;
++  updated_at: string;
++}
++
++// Feed projections
++export interface FeedAuthor {
++  id: string;
++  username: string | null;
++  full_name: string | null;
++  avatar_url: string | null;
++  bio: string | null;
++  home_area: string | null;
++  is_followed?: boolean;
++}
++
++export interface FeedFeaturedAttempt {
++  id: string;
++  route_id?: string | null;
++  route_name: string;
++  discipline: ClimbDiscipline;
++  grade_system: GradeSystem;
++  grade_label: string;
++  outcome: AttemptOutcome;
++  attempt_number: number;
++  occurred_at: string;
++}
++
++export interface FeedAttemptTimelineItem {
++  attempt_number: number;
++  outcome: AttemptOutcome;
++}
++
++export interface FeedSessionSummary {
++  id: string;
++  venue_name: string;
++  started_at: string;
++  ended_at: string;
++  duration_seconds: number;
++  attempt_count: number;
++  send_count: number;
++  featured_attempt: FeedFeaturedAttempt;
++  attempt_timeline?: FeedAttemptTimelineItem[] | null;
++}
++
++export interface SessionFeedItem {
++  id: string;
++  user_id: string;
++  session_id: string;
++  featured_attempt_id: string;
++  caption: string | null;
++  image_path: string;
++  image_alt: string;
++  overlay_style: OverlayStyle;
++  created_at: string;
++  updated_at: string;
++  author: FeedAuthor;
++  session: FeedSessionSummary;
++  route: CommunityRoute | null;
++  like_count: number;
++  comment_count: number;
++  is_liked: boolean;
++}
++
++export interface FeedCursor {
++  created_at: string;
++  id: string;
++}
++
++// Grade rankings & Profile statistics
++export interface RankedGrade {
++  system: GradeSystem;
++  label: string;
++  rank: number;
++}
++
++export interface ProfileStatistics {
++  sessionCount: number;
++  sendCount: number;
++  attemptCount: number;
++  sendRate: number | null;
++  bestGrade: RankedGrade | null;
++}
++
+ // Hold colors mapping
+ export const HOLD_COLORS: Record<HoldType, string> = {
+   start: '#10b981',   // green
+diff --git a/packages/shared/utils/grades.test.ts b/packages/shared/utils/grades.test.ts
+index 5e2728501f57f36bb8c7b9403d109eb610d56b8c..e09c209e0e6f59b363c915b0a3f220a17e7c62e7 100644
+--- a/packages/shared/utils/grades.test.ts
++++ b/packages/shared/utils/grades.test.ts
+@@ -2,11 +2,20 @@ import { describe, it } from 'node:test';
+ import assert from 'node:assert/strict';
+ import {
+   calculateDisplayGrade,
++  calculateProfileStatistics,
++  canonicalGrade,
+   canonicalizeGrade,
++  gradeLabelForRank,
++  gradeRank,
+   gradeToNumber,
+-  numberToGrade,
++  gradesForSystem,
+   normalizeRouteGrades,
++  numberToGrade,
++  FONT_GRADES,
++  V_GRADES,
++  YDS_GRADES,
+ } from './grades.ts';
++import type { ClimbAttempt, ClimbingSession } from '../types/index.ts';
+ 
+ describe('canonicalizeGrade', () => {
+   it('canonicalizes case and surrounding whitespace', () => {
+@@ -43,6 +52,180 @@ describe('grade calculations', () => {
+   });
+ });
+ 
++describe('multi-system grade catalog', () => {
++  it('exposes canonical grade catalogs matching native lists', () => {
++    assert.deepEqual(gradesForSystem('v_scale'), V_GRADES);
++    assert.deepEqual(gradesForSystem('font'), FONT_GRADES);
++    assert.deepEqual(gradesForSystem('yds'), YDS_GRADES);
++    assert.deepEqual(gradesForSystem('custom'), []);
++  });
++
++  it('canonicalizes grades across all supported systems', () => {
++    assert.equal(canonicalGrade('  6a+ ', 'font'), '6a+');
++    assert.equal(canonicalGrade('5.12A', 'yds'), '5.12a');
++    assert.equal(canonicalGrade('  v10 ', 'v_scale'), 'V10');
++    assert.equal(canonicalGrade('  Project 42  ', 'custom'), 'Project 42');
++    assert.equal(canonicalGrade('', 'custom'), null);
++    assert.equal(canonicalGrade('5.16a', 'yds'), null);
++    assert.equal(canonicalGrade('invalid', 'font'), null);
++  });
++
++  it('computes ranks and reverse lookups correctly', () => {
++    assert.equal(gradeRank('VB', 'v_scale'), 0);
++    assert.equal(gradeRank('V17', 'v_scale'), 18);
++    assert.equal(gradeRank('4', 'font'), 0);
++    assert.equal(gradeRank('9a', 'font'), 22);
++    assert.equal(gradeRank('5.0', 'yds'), 0);
++    assert.equal(gradeRank('5.15d', 'yds'), 33);
++    assert.equal(gradeRank('custom-thing', 'custom'), -1);
++
++    assert.equal(gradeLabelForRank(0, 'v_scale'), 'VB');
++    assert.equal(gradeLabelForRank(18, 'v_scale'), 'V17');
++    assert.equal(gradeLabelForRank(0, 'font'), '4');
++    assert.equal(gradeLabelForRank(0, 'yds'), '5.0');
++    assert.equal(gradeLabelForRank(99, 'yds'), null);
++  });
++});
++
++describe('calculateProfileStatistics', () => {
++  it('returns empty statistics when sessions and attempts are empty', () => {
++    const stats = calculateProfileStatistics([], []);
++    assert.deepEqual(stats, {
++      sessionCount: 0,
++      sendCount: 0,
++      attemptCount: 0,
++      sendRate: null,
++      bestGrade: null,
++    });
++  });
++
++  it('calculates send counts, send rate, and best grade across systems', () => {
++    const sessions: ClimbingSession[] = [
++      {
++        id: 's1',
++        user_id: 'u1',
++        venue_name: 'Gym',
++        started_at: '2026-09-01T10:00:00Z',
++        ended_at: '2026-09-01T12:00:00Z',
++        created_at: '2026-09-01T10:00:00Z',
++        updated_at: '2026-09-01T12:00:00Z',
++      },
++    ];
++
++    const attempts: ClimbAttempt[] = [
++      {
++        id: 'a1',
++        session_id: 's1',
++        user_id: 'u1',
++        route_id: null,
++        route_name: 'Warmup',
++        discipline: 'boulder',
++        grade_system: 'v_scale',
++        grade_label: 'V3',
++        outcome: 'sent',
++        attempt_number: 1,
++        notes: null,
++        occurred_at: '2026-09-01T10:15:00Z',
++        created_at: '2026-09-01T10:15:00Z',
++      },
++      {
++        id: 'a2',
++        session_id: 's1',
++        user_id: 'u1',
++        route_id: null,
++        route_name: 'Project',
++        discipline: 'sport',
++        grade_system: 'yds',
++        grade_label: '5.12a',
++        outcome: 'sent',
++        attempt_number: 2,
++        notes: null,
++        occurred_at: '2026-09-01T11:00:00Z',
++        created_at: '2026-09-01T11:00:00Z',
++      },
++      {
++        id: 'a3',
++        session_id: 's1',
++        user_id: 'u1',
++        route_id: null,
++        route_name: 'High Project',
++        discipline: 'sport',
++        grade_system: 'yds',
++        grade_label: '5.13a',
++        outcome: 'fell',
++        attempt_number: 1,
++        notes: null,
++        occurred_at: '2026-09-01T11:30:00Z',
++        created_at: '2026-09-01T11:30:00Z',
++      },
++    ];
++
++    const stats = calculateProfileStatistics(sessions, attempts);
++    assert.equal(stats.sessionCount, 1);
++    assert.equal(stats.attemptCount, 3);
++    assert.equal(stats.sendCount, 2);
++    assert.equal(stats.sendRate, 2 / 3);
++    assert.deepEqual(stats.bestGrade, {
++      system: 'yds',
++      label: '5.12a',
++      rank: 18,
++    });
++  });
++
++  it('ignores fallen attempts and custom unranked attempts when computing best grade', () => {
++    const sessions: ClimbingSession[] = [
++      {
++        id: 's1',
++        user_id: 'u1',
++        venue_name: 'Outdoor',
++        started_at: '2026-09-01T10:00:00Z',
++        ended_at: '2026-09-01T12:00:00Z',
++        created_at: '2026-09-01T10:00:00Z',
++        updated_at: '2026-09-01T12:00:00Z',
++      },
++    ];
++
++    const attempts: ClimbAttempt[] = [
++      {
++        id: 'a1',
++        session_id: 's1',
++        user_id: 'u1',
++        route_id: null,
++        route_name: 'Fell Hard',
++        discipline: 'boulder',
++        grade_system: 'v_scale',
++        grade_label: 'V15',
++        outcome: 'fell',
++        attempt_number: 1,
++        notes: null,
++        occurred_at: '2026-09-01T10:15:00Z',
++        created_at: '2026-09-01T10:15:00Z',
++      },
++      {
++        id: 'a2',
++        session_id: 's1',
++        user_id: 'u1',
++        route_id: null,
++        route_name: 'Custom Send',
++        discipline: 'other',
++        grade_system: 'custom',
++        grade_label: 'Mega Route',
++        outcome: 'sent',
++        attempt_number: 1,
++        notes: null,
++        occurred_at: '2026-09-01T10:30:00Z',
++        created_at: '2026-09-01T10:30:00Z',
++      },
++    ];
++
++    const stats = calculateProfileStatistics(sessions, attempts);
++    assert.equal(stats.sessionCount, 1);
++    assert.equal(stats.attemptCount, 2);
++    assert.equal(stats.sendCount, 1);
++    assert.equal(stats.bestGrade, null);
++  });
++});
++
+ describe('normalizeRouteGrades', () => {
+   it('normalizes route and nested ascent string grades at ingress', () => {
+     const route = {
+diff --git a/packages/shared/utils/grades.ts b/packages/shared/utils/grades.ts
+index eabec22f651c3b41de78453d29bd5d62fe584134..38978a219b16c10b6bfb376ff3f8c30ea08d4ff2 100644
+--- a/packages/shared/utils/grades.ts
++++ b/packages/shared/utils/grades.ts
+@@ -1,8 +1,94 @@
+-import type { Ascent, Route } from '../types/index.ts';
++import type {
++  Ascent,
++  ClimbAttempt,
++  ClimbingSession,
++  GradeSystem,
++  ProfileStatistics,
++  RankedGrade,
++  Route,
++} from '../types/index.ts';
+ import { V_GRADES } from '../types/index.ts';
+ 
++export { V_GRADES };
++
++export const FONT_GRADES: readonly string[] = [
++  '4', '5a', '5b', '5c', '6a', '6a+', '6b', '6b+', '6c', '6c+',
++  '7a', '7a+', '7b', '7b+', '7c', '7c+', '8a', '8a+', '8b', '8b+',
++  '8c', '8c+', '9a'
++];
++
++export const YDS_GRADES: readonly string[] = [
++  '5.0', '5.1', '5.2', '5.3', '5.4', '5.5', '5.6', '5.7', '5.8', '5.9',
++  '5.10a', '5.10b', '5.10c', '5.10d', '5.11a', '5.11b', '5.11c', '5.11d',
++  '5.12a', '5.12b', '5.12c', '5.12d', '5.13a', '5.13b', '5.13c', '5.13d',
++  '5.14a', '5.14b', '5.14c', '5.14d', '5.15a', '5.15b', '5.15c', '5.15d'
++];
++
+ export type GradeInput = string | null | undefined;
+ 
++/**
++ * Returns the ordered canonical list of grade labels for a system.
++ * Custom grades have no intrinsic ordering and return an empty list.
++ */
++export const gradesForSystem = (system: GradeSystem): readonly string[] => {
++  switch (system) {
++    case 'v_scale':
++      return V_GRADES;
++    case 'font':
++      return FONT_GRADES;
++    case 'yds':
++      return YDS_GRADES;
++    case 'custom':
++      return [];
++  }
++};
++
++/**
++ * Returns the canonical label for a grade within its system, or null when
++ * the label is not a member of the system's catalog. Custom labels are trimmed.
++ */
++export const canonicalGrade = (
++  label: GradeInput,
++  system: GradeSystem
++): string | null => {
++  if (typeof label !== 'string') return null;
++  const trimmed = label.trim();
++  if (!trimmed) return null;
++  if (system === 'custom') return trimmed;
++
++  const catalog = gradesForSystem(system);
++  const found = catalog.find((g) => g.toLowerCase() === trimmed.toLowerCase());
++  return found ?? null;
++};
++
++/**
++ * Zero-based rank within the system's ordering, or -1 for unknown/custom.
++ */
++export const gradeRank = (
++  label: GradeInput,
++  system: GradeSystem
++): number => {
++  const canonical = canonicalGrade(label, system);
++  if (!canonical) return -1;
++  const catalog = gradesForSystem(system);
++  const index = catalog.indexOf(canonical);
++  return index >= 0 ? index : -1;
++};
++
++/**
++ * Returns the grade label for a zero-based rank within a system, or null if out of range.
++ */
++export const gradeLabelForRank = (
++  rank: number,
++  system: GradeSystem
++): string | null => {
++  const catalog = gradesForSystem(system);
++  if (rank >= 0 && rank < catalog.length) {
++    return catalog[rank];
++  }
++  return null;
++};
++
+ /** Convert an unknown runtime value to a canonical V-scale label. */
+ export const canonicalizeGrade = (grade: unknown): string | undefined => {
+   if (typeof grade !== 'string') return undefined;
+@@ -43,12 +129,15 @@ export const numberToGrade = (num: number): string | undefined => {
+   return undefined;
+ };
+ 
+-export const calculateDisplayGrade = (setterGrade?: GradeInput, ascents?: Array<{ grade_v?: GradeInput }>): string | undefined => {
++export const calculateDisplayGrade = (
++  setterGrade?: GradeInput,
++  ascents?: Array<{ grade_v?: GradeInput }>
++): string | undefined => {
+   const canonicalSetter = canonicalizeGrade(setterGrade);
+   const setterNum = gradeToNumber(canonicalSetter);
+   const userGrades = (ascents || [])
+-    .map(a => gradeToNumber(a.grade_v))
+-    .filter(g => g >= 0);
++    .map((a) => gradeToNumber(a.grade_v))
++    .filter((g) => g >= 0);
+ 
+   if (setterNum < 0 && userGrades.length === 0) return undefined;
+   if (setterNum >= 0 && userGrades.length === 0) return canonicalSetter;
+@@ -57,5 +146,52 @@ export const calculateDisplayGrade = (setterGrade?: GradeInput, ascents?: Array<
+ 
+   if (setterNum < 0) return numberToGrade(avgUser);
+ 
+-  return numberToGrade((setterNum * 0.5) + (avgUser * 0.5));
++  return numberToGrade(setterNum * 0.5 + avgUser * 0.5);
++};
++
++/**
++ * Session-derived profile statistics calculated from private sessions and
++ * attempts only. Matches native ProfileStatisticsCalculator logic.
++ */
++export const calculateProfileStatistics = (
++  sessions: readonly ClimbingSession[],
++  attempts: readonly ClimbAttempt[]
++): ProfileStatistics => {
++  const sessionCount = sessions.length;
++  const attemptCount = attempts.length;
++  const sentAttempts = attempts.filter((a) => a.outcome === 'sent');
++  const sendCount = sentAttempts.length;
++  const sendRate = attemptCount > 0 ? sendCount / attemptCount : null;
++
++  let bestGrade: RankedGrade | null = null;
++
++  for (const attempt of sentAttempts) {
++    const rank = gradeRank(attempt.grade_label, attempt.grade_system);
++    if (rank < 0) continue;
++
++    const candidate: RankedGrade = {
++      system: attempt.grade_system,
++      label: attempt.grade_label,
++      rank,
++    };
++
++    if (!bestGrade) {
++      bestGrade = candidate;
++    } else if (candidate.rank > bestGrade.rank) {
++      bestGrade = candidate;
++    } else if (
++      candidate.rank === bestGrade.rank &&
++      candidate.label.localeCompare(bestGrade.label) > 0
++    ) {
++      bestGrade = candidate;
++    }
++  }
++
++  return {
++    sessionCount,
++    sendCount,
++    attemptCount,
++    sendRate,
++    bestGrade,
++  };
+ };
+diff --git a/supabase/migrations/014_community_prerequisites.sql b/supabase/migrations/014_community_prerequisites.sql
+new file mode 100644
+index 0000000000000000000000000000000000000000..14eab33c641ba95f9cff804aceaf8b307c7d6ccc
+--- /dev/null
++++ b/supabase/migrations/014_community_prerequisites.sql
+@@ -0,0 +1,1163 @@
++-- 014_community_prerequisites.sql
++-- Additive migration implementing the V1 community contract:
++-- 1. Venues catalog with honest nullable metadata
++-- 2. Extended route catalog (outdoor/crag support, nullable wall_id, venue_id, discipline, grade system, metadata)
++-- 3. Cutover climb_attempts.board_route_id to route_id
++-- 4. Private climbing session conditions & notes
++-- 5. Public social follows table and relationship counts
++-- 6. Owner-only route bookmarks
++-- 7. Activity events inbox driven by real social transitions
++-- 8. Updated get_session_feed RPC (author.is_followed, top-level route, attempt.route_id, following_only filter)
++-- 9. Community discovery RPCs: get_explore_routes, search_climbers, get_activity
++
++-- ============================================================================
++-- 1. VENUES TABLE & PRIVACY LIFECYCLE
++-- ============================================================================
++CREATE TABLE IF NOT EXISTS public.venues (
++  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
++  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
++  name TEXT NOT NULL CHECK (length(trim(name)) >= 1 AND length(name) <= 120),
++  kind TEXT NOT NULL CHECK (kind IN ('crag', 'gym', 'board')),
++  area TEXT CHECK (area IS NULL OR (length(trim(area)) >= 1 AND length(area) <= 120)),
++  description TEXT CHECK (description IS NULL OR length(description) <= 2000),
++  image_url TEXT CHECK (image_url IS NULL OR length(image_url) <= 1000),
++  is_public BOOLEAN NOT NULL DEFAULT true,
++  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
++  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
++);
++
++CREATE INDEX IF NOT EXISTS idx_venues_is_public ON public.venues(is_public);
++CREATE INDEX IF NOT EXISTS idx_venues_user_id ON public.venues(user_id);
++CREATE INDEX IF NOT EXISTS idx_venues_kind ON public.venues(kind);
++
++ALTER TABLE public.venues ENABLE ROW LEVEL SECURITY;
++
++CREATE POLICY "venues_select_visible" ON public.venues
++  FOR SELECT TO anon, authenticated
++  USING (
++    is_public = true
++    OR auth.uid() = user_id
++    OR public.is_moderator()
++  );
++
++CREATE POLICY "venues_insert_owner" ON public.venues
++  FOR INSERT TO authenticated
++  WITH CHECK (auth.uid() = user_id);
++
++CREATE POLICY "venues_update_owner" ON public.venues
++  FOR UPDATE TO authenticated
++  USING (auth.uid() = user_id OR public.is_moderator())
++  WITH CHECK (auth.uid() = user_id OR public.is_moderator());
++
++CREATE POLICY "venues_delete_owner" ON public.venues
++  FOR DELETE TO authenticated
++  USING (auth.uid() = user_id OR public.is_moderator());
++
++REVOKE ALL ON TABLE public.venues FROM PUBLIC, anon, authenticated;
++GRANT SELECT ON TABLE public.venues TO anon, authenticated;
++GRANT INSERT, UPDATE, DELETE ON TABLE public.venues TO authenticated;
++
++-- ============================================================================
++-- 2. WALL AND VENUE DELETION PRIVACY (PREVENT PRIVATIZED ROUTES BECOMING PUBLIC)
++-- ============================================================================
++-- Deleted private wall tombstone table: ensures that deleted private walls are never
++-- classified as local/missing walls by security predicates.
++CREATE TABLE IF NOT EXISTS public.deleted_private_walls (
++  wall_id TEXT PRIMARY KEY,
++  deleted_at TIMESTAMPTZ NOT NULL DEFAULT now()
++);
++
++ALTER TABLE public.deleted_private_walls ENABLE ROW LEVEL SECURITY;
++REVOKE ALL ON TABLE public.deleted_private_walls FROM PUBLIC, anon, authenticated;
++
++-- When a private wall is deleted, record its tombstone and privatize all child routes
++CREATE OR REPLACE FUNCTION public.handle_wall_deletion_privacy()
++RETURNS trigger
++LANGUAGE plpgsql
++SECURITY DEFINER
++SET search_path = public, pg_temp
++AS $$
++BEGIN
++  IF OLD.is_public IS DISTINCT FROM true THEN
++    INSERT INTO public.deleted_private_walls (wall_id)
++    VALUES (OLD.id::text)
++    ON CONFLICT (wall_id) DO NOTHING;
++
++    UPDATE public.routes
++       SET is_public = false
++     WHERE wall_id = OLD.id::text;
++  END IF;
++  RETURN OLD;
++END;
++$$;
++
++DROP TRIGGER IF EXISTS trg_wall_deletion_privacy ON public.walls;
++CREATE TRIGGER trg_wall_deletion_privacy
++  BEFORE DELETE ON public.walls
++  FOR EACH ROW
++  EXECUTE FUNCTION public.handle_wall_deletion_privacy();
++
++-- When a private venue is deleted, privatize all surviving child routes so they never fall open
++CREATE OR REPLACE FUNCTION public.handle_venue_deletion_privacy()
++RETURNS trigger
++LANGUAGE plpgsql
++SECURITY DEFINER
++SET search_path = public, pg_temp
++AS $$
++BEGIN
++  IF OLD.is_public IS DISTINCT FROM true THEN
++    UPDATE public.routes
++       SET is_public = false
++     WHERE venue_id = OLD.id;
++  END IF;
++  RETURN OLD;
++END;
++$$;
++
++DROP TRIGGER IF EXISTS trg_venue_deletion_privacy ON public.venues;
++CREATE TRIGGER trg_venue_deletion_privacy
++  BEFORE DELETE ON public.venues
++  FOR EACH ROW
++  EXECUTE FUNCTION public.handle_venue_deletion_privacy();
++
++-- ============================================================================
++-- 3. EXTEND ROUTES TABLE
++-- ============================================================================
++-- wall_id is nullable for outdoor/crag routes (no fake wall IDs)
++ALTER TABLE public.routes ALTER COLUMN wall_id DROP NOT NULL;
++
++-- Add venue link and physical/community climbing metadata
++ALTER TABLE public.routes
++  ADD COLUMN IF NOT EXISTS venue_id UUID REFERENCES public.venues(id) ON DELETE SET NULL,
++  ADD COLUMN IF NOT EXISTS discipline TEXT NOT NULL DEFAULT 'board'
++    CHECK (discipline IN ('boulder', 'sport', 'trad', 'top_rope', 'board', 'other')),
++  ADD COLUMN IF NOT EXISTS grade_system TEXT NOT NULL DEFAULT 'v_scale'
++    CHECK (grade_system IN ('v_scale', 'font', 'yds', 'custom')),
++  ADD COLUMN IF NOT EXISTS grade_label TEXT
++    CHECK (grade_label IS NULL OR length(grade_label) <= 24),
++  ADD COLUMN IF NOT EXISTS height_m NUMERIC(6, 2)
++    CHECK (height_m IS NULL OR height_m > 0),
++  ADD COLUMN IF NOT EXISTS rock_type TEXT
++    CHECK (rock_type IS NULL OR (length(trim(rock_type)) >= 1 AND length(rock_type) <= 120)),
++  ADD COLUMN IF NOT EXISTS terrain TEXT
++    CHECK (terrain IS NULL OR terrain IN ('slab', 'vertical', 'overhang', 'roof'));
++
++-- Backfill existing routes: preserve existing grade_v/grade_font; populate canonical grade_label
++-- only if representable within the 24-char constraint to guarantee zero migration aborts.
++UPDATE public.routes
++   SET grade_label = CASE
++         WHEN length(trim(COALESCE(grade_v, grade_font))) <= 24
++         THEN trim(COALESCE(grade_v, grade_font))
++         ELSE NULL
++       END,
++       grade_system = CASE
++         WHEN grade_v IS NOT NULL THEN 'v_scale'
++         WHEN grade_font IS NOT NULL THEN 'font'
++         ELSE grade_system
++       END
++ WHERE grade_label IS NULL AND (grade_v IS NOT NULL OR grade_font IS NOT NULL);
++
++CREATE INDEX IF NOT EXISTS idx_routes_venue_id ON public.routes(venue_id);
++CREATE INDEX IF NOT EXISTS idx_routes_discipline ON public.routes(discipline);
++CREATE INDEX IF NOT EXISTS idx_routes_grade_system ON public.routes(grade_system);
++
++-- ============================================================================
++-- 4. PARENT VISIBILITY SECURITY DEFINER PREDICATES
++-- Fixed search_path SECURITY DEFINER predicates that bypass caller RLS on parent
++-- tables (walls, venues) to reliably distinguish genuinely missing/local records
++-- from existing hidden/private records, while enforcing caller owner/moderator/public rules.
++-- ============================================================================
++CREATE OR REPLACE FUNCTION public.is_wall_accessible(target_wall_id TEXT)
++RETURNS boolean
++LANGUAGE sql
++STABLE
++SECURITY DEFINER
++SET search_path = public, pg_temp
++AS $$
++  SELECT CASE
++    -- NULL wall_id (e.g. outdoor crag routes) requires no wall
++    WHEN target_wall_id IS NULL THEN true
++    -- Deleted private wall tombstone: always inaccessible to preserve privacy
++    WHEN EXISTS (SELECT 1 FROM public.deleted_private_walls WHERE wall_id = target_wall_id) THEN false
++    -- If the wall exists in public.walls, it MUST be public, caller-owned, or caller is moderator
++    WHEN EXISTS (SELECT 1 FROM public.walls WHERE id::text = target_wall_id) THEN
++      EXISTS (
++        SELECT 1 FROM public.walls
++         WHERE id::text = target_wall_id
++           AND (is_public = true OR user_id = auth.uid() OR public.is_moderator())
++      )
++    -- Local/unregistered wall IDs (e.g. 'default-wall') with no server record are allowed
++    ELSE true
++  END;
++$$;
++REVOKE ALL ON FUNCTION public.is_wall_accessible(text) FROM PUBLIC;
++GRANT EXECUTE ON FUNCTION public.is_wall_accessible(text) TO anon, authenticated;
++
++CREATE OR REPLACE FUNCTION public.is_venue_accessible(target_venue_id UUID)
++RETURNS boolean
++LANGUAGE sql
++STABLE
++SECURITY DEFINER
++SET search_path = public, pg_temp
++AS $$
++  SELECT CASE
++    WHEN target_venue_id IS NULL THEN true
++    ELSE EXISTS (
++      SELECT 1 FROM public.venues
++       WHERE id = target_venue_id
++         AND (is_public = true OR user_id = auth.uid() OR public.is_moderator())
++    )
++  END;
++$$;
++REVOKE ALL ON FUNCTION public.is_venue_accessible(uuid) FROM PUBLIC;
++GRANT EXECUTE ON FUNCTION public.is_venue_accessible(uuid) TO anon, authenticated;
++
++CREATE OR REPLACE FUNCTION public.is_route_accessible(target_route_id UUID)
++RETURNS boolean
++LANGUAGE sql
++STABLE
++SECURITY DEFINER
++SET search_path = public, pg_temp
++AS $$
++  SELECT EXISTS (
++    SELECT 1 FROM public.routes r
++     WHERE r.id = target_route_id
++       AND (r.is_public = true OR r.user_id = auth.uid() OR public.is_moderator())
++       AND public.is_wall_accessible(r.wall_id)
++       AND public.is_venue_accessible(r.venue_id)
++  );
++$$;
++REVOKE ALL ON FUNCTION public.is_route_accessible(uuid) FROM PUBLIC;
++GRANT EXECUTE ON FUNCTION public.is_route_accessible(uuid) TO anon, authenticated;
++
++-- Enforce underlying wall and venue visibility for public routes:
++-- A public route on a private wall or private venue cannot be viewed by everyone.
++DROP POLICY IF EXISTS "Public routes are viewable by everyone" ON public.routes;
++CREATE POLICY "Public routes are viewable by everyone" ON public.routes
++  FOR SELECT TO anon, authenticated
++  USING (
++    is_public = true
++    AND public.is_wall_accessible(wall_id)
++    AND public.is_venue_accessible(venue_id)
++  );
++
++-- ============================================================================
++-- 5. SECURE ROUTE VIEW COUNT RPC (REPLACES 007 WITH PARENT VISIBILITY CHECKS)
++-- ============================================================================
++CREATE OR REPLACE FUNCTION public.increment_route_view(target_route_id uuid)
++RETURNS integer
++LANGUAGE plpgsql
++SECURITY DEFINER
++SET search_path = public, pg_temp
++AS $$
++DECLARE
++  next_count INTEGER;
++BEGIN
++  IF NOT public.is_route_accessible(target_route_id) THEN
++    RETURN NULL;
++  END IF;
++
++  UPDATE public.routes
++     SET view_count = COALESCE(view_count, 0) + 1
++   WHERE id = target_route_id
++  RETURNING view_count INTO next_count;
++
++  RETURN next_count;
++END;
++$$;
++REVOKE ALL ON FUNCTION public.increment_route_view(uuid) FROM PUBLIC;
++GRANT EXECUTE ON FUNCTION public.increment_route_view(uuid) TO anon, authenticated;
++
++-- ============================================================================
++-- 6. CLIMBING SESSIONS PRIVATE CONTEXT (CONDITIONS & NOTES)
++-- ============================================================================
++ALTER TABLE public.climbing_sessions
++  ADD COLUMN IF NOT EXISTS conditions TEXT
++    CHECK (conditions IS NULL OR (length(trim(conditions)) >= 1 AND length(conditions) <= 500)),
++  ADD COLUMN IF NOT EXISTS notes TEXT
++    CHECK (notes IS NULL OR (length(trim(notes)) >= 1 AND length(notes) <= 1000));
++
++-- ============================================================================
++-- 7. ATTEMPT LINK CUTOVER: board_route_id -> route_id
++-- ============================================================================
++DO $$
++BEGIN
++  IF EXISTS (
++    SELECT 1 FROM information_schema.columns
++     WHERE table_schema = 'public'
++       AND table_name = 'climb_attempts'
++       AND column_name = 'board_route_id'
++  ) THEN
++    ALTER TABLE public.climb_attempts RENAME COLUMN board_route_id TO route_id;
++  END IF;
++END $$;
++
++ALTER INDEX IF EXISTS public.idx_climb_attempts_board_route_id RENAME TO idx_climb_attempts_route_id;
++CREATE INDEX IF NOT EXISTS idx_climb_attempts_route_id ON public.climb_attempts(route_id);
++
++-- ============================================================================
++-- 8. DEDICATED PER-TABLE IMMUTABILITY TRIGGERS (DATA-V1-001)
++-- Table-specific trigger functions avoid referencing absent fields during PL/pgSQL compilation.
++-- ============================================================================
++CREATE OR REPLACE FUNCTION public.prevent_climbing_session_parent_change()
++RETURNS trigger
++LANGUAGE plpgsql
++AS $$
++BEGIN
++  IF NEW.user_id IS DISTINCT FROM OLD.user_id THEN
++    RAISE EXCEPTION 'session user_id is immutable' USING ERRCODE = '42501';
++  END IF;
++  RETURN NEW;
++END;
++$$;
++DROP TRIGGER IF EXISTS prevent_climbing_session_parent_change ON public.climbing_sessions;
++DROP TRIGGER IF EXISTS trg_climbing_sessions_prevent_parent_change ON public.climbing_sessions;
++CREATE TRIGGER prevent_climbing_session_parent_change
++  BEFORE UPDATE ON public.climbing_sessions
++  FOR EACH ROW
++  EXECUTE FUNCTION public.prevent_climbing_session_parent_change();
++
++CREATE OR REPLACE FUNCTION public.prevent_climb_attempt_parent_change()
++RETURNS trigger
++LANGUAGE plpgsql
++AS $$
++BEGIN
++  IF NEW.user_id IS DISTINCT FROM OLD.user_id
++     OR NEW.session_id IS DISTINCT FROM OLD.session_id THEN
++    RAISE EXCEPTION 'attempt ownership and parent keys are immutable' USING ERRCODE = '42501';
++  END IF;
++
++  IF NEW.route_id IS DISTINCT FROM OLD.route_id
++     AND NOT (
++       OLD.route_id IS NOT NULL
++       AND NEW.route_id IS NULL
++       AND NOT EXISTS (
++         SELECT 1 FROM public.routes AS r WHERE r.id = OLD.route_id
++       )
++     ) THEN
++    RAISE EXCEPTION 'attempt route_id is immutable while the route exists' USING ERRCODE = '42501';
++  END IF;
++  RETURN NEW;
++END;
++$$;
++
++DROP TRIGGER IF EXISTS prevent_climb_attempt_parent_change ON public.climb_attempts;
++DROP TRIGGER IF EXISTS trg_climb_attempts_prevent_parent_change ON public.climb_attempts;
++CREATE TRIGGER prevent_climb_attempt_parent_change
++  BEFORE UPDATE ON public.climb_attempts
++  FOR EACH ROW
++  EXECUTE FUNCTION public.prevent_climb_attempt_parent_change();
++
++CREATE OR REPLACE FUNCTION public.prevent_session_post_parent_change()
++RETURNS trigger
++LANGUAGE plpgsql
++AS $$
++BEGIN
++  IF NEW.id IS DISTINCT FROM OLD.id
++     OR NEW.created_at IS DISTINCT FROM OLD.created_at
++     OR NEW.user_id IS DISTINCT FROM OLD.user_id
++     OR NEW.session_id IS DISTINCT FROM OLD.session_id
++     OR NEW.featured_attempt_id IS DISTINCT FROM OLD.featured_attempt_id THEN
++    RAISE EXCEPTION 'post identity, cursor fields, ownership, session_id, and featured_attempt_id are immutable'
++      USING ERRCODE = '42501';
++  END IF;
++  RETURN NEW;
++END;
++$$;
++
++DROP TRIGGER IF EXISTS prevent_session_post_parent_change ON public.session_posts;
++DROP TRIGGER IF EXISTS trg_session_posts_prevent_parent_change ON public.session_posts;
++CREATE TRIGGER prevent_session_post_parent_change
++  BEFORE UPDATE ON public.session_posts
++  FOR EACH ROW
++  EXECUTE FUNCTION public.prevent_session_post_parent_change();
++
++CREATE OR REPLACE FUNCTION public.prevent_session_post_like_parent_change()
++RETURNS trigger
++LANGUAGE plpgsql
++AS $$
++BEGIN
++  IF NEW.post_id IS DISTINCT FROM OLD.post_id
++     OR NEW.user_id IS DISTINCT FROM OLD.user_id THEN
++    RAISE EXCEPTION 'like parent and owner are immutable' USING ERRCODE = '42501';
++  END IF;
++  RETURN NEW;
++END;
++$$;
++
++DROP TRIGGER IF EXISTS prevent_session_post_like_parent_change ON public.session_post_likes;
++DROP TRIGGER IF EXISTS trg_session_post_likes_prevent_parent_change ON public.session_post_likes;
++CREATE TRIGGER prevent_session_post_like_parent_change
++  BEFORE UPDATE ON public.session_post_likes
++  FOR EACH ROW
++  EXECUTE FUNCTION public.prevent_session_post_like_parent_change();
++
++CREATE OR REPLACE FUNCTION public.prevent_session_post_comment_parent_change()
++RETURNS trigger
++LANGUAGE plpgsql
++AS $$
++BEGIN
++  IF NEW.id IS DISTINCT FROM OLD.id
++     OR NEW.post_id IS DISTINCT FROM OLD.post_id
++     OR NEW.user_id IS DISTINCT FROM OLD.user_id THEN
++    RAISE EXCEPTION 'comment identity, parent, and owner are immutable' USING ERRCODE = '42501';
++  END IF;
++  RETURN NEW;
++END;
++$$;
++
++DROP TRIGGER IF EXISTS prevent_session_post_comment_parent_change ON public.session_post_comments;
++DROP TRIGGER IF EXISTS trg_session_post_comments_prevent_parent_change ON public.session_post_comments;
++CREATE TRIGGER prevent_session_post_comment_parent_change
++  BEFORE UPDATE ON public.session_post_comments
++  FOR EACH ROW
++  EXECUTE FUNCTION public.prevent_session_post_comment_parent_change();
++
++CREATE OR REPLACE FUNCTION public.prevent_venue_parent_change()
++RETURNS trigger
++LANGUAGE plpgsql
++AS $$
++BEGIN
++  IF NEW.user_id IS DISTINCT FROM OLD.user_id THEN
++    RAISE EXCEPTION 'venue user_id is immutable' USING ERRCODE = '42501';
++  END IF;
++  RETURN NEW;
++END;
++$$;
++
++DROP TRIGGER IF EXISTS prevent_venue_parent_change ON public.venues;
++DROP TRIGGER IF EXISTS trg_venues_prevent_parent_change ON public.venues;
++CREATE TRIGGER prevent_venue_parent_change
++  BEFORE UPDATE ON public.venues
++  FOR EACH ROW
++  EXECUTE FUNCTION public.prevent_venue_parent_change();
++
++CREATE OR REPLACE FUNCTION public.prevent_meetup_parent_change()
++RETURNS trigger
++LANGUAGE plpgsql
++AS $$
++BEGIN
++  IF NEW.organizer_id IS DISTINCT FROM OLD.organizer_id THEN
++    RAISE EXCEPTION 'meetup organizer_id is immutable' USING ERRCODE = '42501';
++  END IF;
++  RETURN NEW;
++END;
++$$;
++
++DROP TRIGGER IF EXISTS prevent_meetup_parent_change ON public.meetups;
++DROP TRIGGER IF EXISTS trg_meetups_prevent_parent_change ON public.meetups;
++CREATE TRIGGER prevent_meetup_parent_change
++  BEFORE UPDATE ON public.meetups
++  FOR EACH ROW
++  EXECUTE FUNCTION public.prevent_meetup_parent_change();
++
++CREATE OR REPLACE FUNCTION public.prevent_meetup_attendance_parent_change()
++RETURNS trigger
++LANGUAGE plpgsql
++AS $$
++BEGIN
++  IF NEW.meetup_id IS DISTINCT FROM OLD.meetup_id
++     OR NEW.user_id IS DISTINCT FROM OLD.user_id THEN
++    RAISE EXCEPTION 'attendance parent and owner are immutable' USING ERRCODE = '42501';
++  END IF;
++  RETURN NEW;
++END;
++$$;
++
++DROP TRIGGER IF EXISTS prevent_meetup_attendance_parent_change ON public.meetup_attendees;
++DROP TRIGGER IF EXISTS trg_meetup_attendees_prevent_parent_change ON public.meetup_attendees;
++CREATE TRIGGER prevent_meetup_attendance_parent_change
++  BEFORE UPDATE ON public.meetup_attendees
++  FOR EACH ROW
++  EXECUTE FUNCTION public.prevent_meetup_attendance_parent_change();
++
++CREATE OR REPLACE FUNCTION public.prevent_meetup_comment_parent_change()
++RETURNS trigger
++LANGUAGE plpgsql
++AS $$
++BEGIN
++  IF NEW.meetup_id IS DISTINCT FROM OLD.meetup_id
++     OR NEW.user_id IS DISTINCT FROM OLD.user_id THEN
++    RAISE EXCEPTION 'meetup comment parent and owner are immutable' USING ERRCODE = '42501';
++  END IF;
++  RETURN NEW;
++END;
++$$;
++
++DROP TRIGGER IF EXISTS prevent_meetup_comment_parent_change ON public.meetup_comments;
++DROP TRIGGER IF EXISTS trg_meetup_comments_prevent_parent_change ON public.meetup_comments;
++CREATE TRIGGER prevent_meetup_comment_parent_change
++  BEFORE UPDATE ON public.meetup_comments
++  FOR EACH ROW
++  EXECUTE FUNCTION public.prevent_meetup_comment_parent_change();
++
++-- Drop the retired monolithic trigger function from 013 completely
++DROP FUNCTION IF EXISTS public.prevent_social_parent_change();
++-- 9. FOLLOWS TABLE (SOCIAL GRAPH)
++-- ============================================================================
++CREATE TABLE IF NOT EXISTS public.follows (
++  follower_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
++  following_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
++  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
++  PRIMARY KEY (follower_id, following_id),
++  CONSTRAINT follows_no_self_follow CHECK (follower_id <> following_id),
++  CONSTRAINT follows_finite_created_at CHECK (created_at >= '2020-01-01T00:00:00Z' AND created_at <= now() + interval '5 minutes')
++);
++
++CREATE INDEX IF NOT EXISTS idx_follows_following_id ON public.follows(following_id);
++CREATE INDEX IF NOT EXISTS idx_follows_follower_id ON public.follows(follower_id);
++
++ALTER TABLE public.follows ENABLE ROW LEVEL SECURITY;
++
++CREATE POLICY "follows_select_public" ON public.follows
++  FOR SELECT TO anon, authenticated
++  USING (true);
++
++CREATE POLICY "follows_insert_owner" ON public.follows
++  FOR INSERT TO authenticated
++  WITH CHECK (auth.uid() = follower_id);
++
++CREATE POLICY "follows_delete_owner" ON public.follows
++  FOR DELETE TO authenticated
++  USING (auth.uid() = follower_id OR public.is_moderator());
++
++REVOKE ALL ON TABLE public.follows FROM PUBLIC, anon, authenticated;
++GRANT SELECT ON TABLE public.follows TO anon, authenticated;
++GRANT INSERT, DELETE ON TABLE public.follows TO authenticated;
++
++CREATE OR REPLACE FUNCTION public.prevent_follow_parent_change()
++RETURNS trigger
++LANGUAGE plpgsql
++AS $$
++BEGIN
++  IF NEW.follower_id IS DISTINCT FROM OLD.follower_id
++     OR NEW.following_id IS DISTINCT FROM OLD.following_id THEN
++    RAISE EXCEPTION 'follow keys are immutable' USING ERRCODE = '42501';
++  END IF;
++  RETURN NEW;
++END;
++$$;
++
++DROP TRIGGER IF EXISTS trg_follows_prevent_parent_change ON public.follows;
++CREATE TRIGGER trg_follows_prevent_parent_change
++  BEFORE UPDATE ON public.follows
++  FOR EACH ROW
++  EXECUTE FUNCTION public.prevent_follow_parent_change();
++
++-- ============================================================================
++-- 10. ROUTE BOOKMARKS (OWNER-ONLY SAVED ROUTES)
++-- ============================================================================
++CREATE TABLE IF NOT EXISTS public.route_bookmarks (
++  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
++  route_id UUID NOT NULL REFERENCES public.routes(id) ON DELETE CASCADE,
++  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
++  PRIMARY KEY (user_id, route_id)
++);
++
++CREATE INDEX IF NOT EXISTS idx_route_bookmarks_route_id ON public.route_bookmarks(route_id);
++CREATE INDEX IF NOT EXISTS idx_route_bookmarks_user_id ON public.route_bookmarks(user_id);
++
++ALTER TABLE public.route_bookmarks ENABLE ROW LEVEL SECURITY;
++
++-- Owner-only read: only accessible routes (with accessible wall & venue) may be observed
++CREATE POLICY "route_bookmarks_select_owner" ON public.route_bookmarks
++  FOR SELECT TO authenticated
++  USING (
++    auth.uid() = user_id
++    AND public.is_route_accessible(route_id)
++  );
++
++-- Owner-only write: only accessible routes (with accessible wall & venue) may be bookmarked
++CREATE POLICY "route_bookmarks_insert_owner" ON public.route_bookmarks
++  FOR INSERT TO authenticated
++  WITH CHECK (
++    auth.uid() = user_id
++    AND public.is_route_accessible(route_id)
++  );
++
++CREATE POLICY "route_bookmarks_delete_owner" ON public.route_bookmarks
++  FOR DELETE TO authenticated
++  USING (auth.uid() = user_id);
++
++REVOKE ALL ON TABLE public.route_bookmarks FROM PUBLIC, anon, authenticated;
++GRANT SELECT, INSERT, DELETE ON TABLE public.route_bookmarks TO authenticated;
++
++CREATE OR REPLACE FUNCTION public.prevent_route_bookmark_parent_change()
++RETURNS trigger
++LANGUAGE plpgsql
++AS $$
++BEGIN
++  IF NEW.user_id IS DISTINCT FROM OLD.user_id
++     OR NEW.route_id IS DISTINCT FROM OLD.route_id THEN
++    RAISE EXCEPTION 'bookmark keys are immutable' USING ERRCODE = '42501';
++  END IF;
++  RETURN NEW;
++END;
++$$;
++
++DROP TRIGGER IF EXISTS trg_route_bookmarks_prevent_parent_change ON public.route_bookmarks;
++CREATE TRIGGER trg_route_bookmarks_prevent_parent_change
++  BEFORE UPDATE ON public.route_bookmarks
++  FOR EACH ROW
++  EXECUTE FUNCTION public.prevent_route_bookmark_parent_change();
++
++-- ============================================================================
++-- 11. ACTIVITY EVENTS (COMMUNITY NOTIFICATIONS INBOX)
++-- ============================================================================
++CREATE TABLE IF NOT EXISTS public.activity_events (
++  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
++  recipient_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
++  actor_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
++  kind TEXT NOT NULL CHECK (kind IN ('like', 'comment', 'follow', 'crew_send')),
++  post_id UUID REFERENCES public.session_posts(id) ON DELETE CASCADE,
++  source_id UUID, -- Exact 1:1 provenance binding for selective deletion (e.g. comment id)
++  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
++  read_at TIMESTAMPTZ CHECK (read_at IS NULL OR read_at <= now()),
++  CONSTRAINT activity_events_no_self_notification CHECK (recipient_id <> actor_id),
++  CONSTRAINT activity_events_finite_created_at CHECK (created_at >= '2020-01-01T00:00:00Z' AND created_at <= now() + interval '5 minutes')
++);
++
++-- Deduplication indexes for transitions
++CREATE UNIQUE INDEX IF NOT EXISTS idx_activity_events_like_uniq
++  ON public.activity_events(recipient_id, actor_id, kind, post_id)
++  WHERE kind = 'like';
++
++CREATE UNIQUE INDEX IF NOT EXISTS idx_activity_events_follow_uniq
++  ON public.activity_events(recipient_id, actor_id, kind)
++  WHERE kind = 'follow';
++
++CREATE UNIQUE INDEX IF NOT EXISTS idx_activity_events_crew_send_uniq
++  ON public.activity_events(recipient_id, actor_id, kind, post_id)
++  WHERE kind = 'crew_send';
++
++CREATE UNIQUE INDEX IF NOT EXISTS idx_activity_events_comment_uniq
++  ON public.activity_events(recipient_id, kind, source_id)
++  WHERE kind = 'comment';
++
++CREATE INDEX IF NOT EXISTS idx_activity_events_recipient_cursor
++  ON public.activity_events(recipient_id, created_at DESC, id DESC);
++
++CREATE INDEX IF NOT EXISTS idx_activity_events_recipient_unread
++  ON public.activity_events(recipient_id)
++  WHERE read_at IS NULL;
++
++ALTER TABLE public.activity_events ENABLE ROW LEVEL SECURITY;
++
++-- Recipient-only read
++CREATE POLICY "activity_events_select_recipient" ON public.activity_events
++  FOR SELECT TO authenticated
++  USING (auth.uid() = recipient_id);
++
++-- Recipient-only mark-read (UPDATE)
++CREATE POLICY "activity_events_update_recipient" ON public.activity_events
++  FOR UPDATE TO authenticated
++  USING (auth.uid() = recipient_id)
++  WITH CHECK (auth.uid() = recipient_id);
++
++-- Recipient-only delete
++CREATE POLICY "activity_events_delete_recipient" ON public.activity_events
++  FOR DELETE TO authenticated
++  USING (auth.uid() = recipient_id OR public.is_moderator());
++
++REVOKE ALL ON TABLE public.activity_events FROM PUBLIC, anon, authenticated;
++GRANT SELECT, UPDATE, DELETE ON TABLE public.activity_events TO authenticated;
++
++-- Prevent client tampering of immutable activity event attributes
++CREATE OR REPLACE FUNCTION public.prevent_activity_event_tampering()
++RETURNS trigger
++LANGUAGE plpgsql
++AS $$
++BEGIN
++  IF NEW.id IS DISTINCT FROM OLD.id
++     OR NEW.recipient_id IS DISTINCT FROM OLD.recipient_id
++     OR NEW.actor_id IS DISTINCT FROM OLD.actor_id
++     OR NEW.kind IS DISTINCT FROM OLD.kind
++     OR NEW.post_id IS DISTINCT FROM OLD.post_id
++     OR NEW.source_id IS DISTINCT FROM OLD.source_id
++     OR NEW.created_at IS DISTINCT FROM OLD.created_at THEN
++    RAISE EXCEPTION 'activity event fields are immutable; only read_at can be updated' USING ERRCODE = '42501';
++  END IF;
++  RETURN NEW;
++END;
++$$;
++
++DROP TRIGGER IF EXISTS trg_prevent_activity_event_tampering ON public.activity_events;
++CREATE TRIGGER trg_prevent_activity_event_tampering
++  BEFORE UPDATE ON public.activity_events
++  FOR EACH ROW
++  EXECUTE FUNCTION public.prevent_activity_event_tampering();
++
++-- Event Triggers: like, comment, follow, and crew_send transitions with trusted server time
++CREATE OR REPLACE FUNCTION public.handle_session_post_like_activity()
++RETURNS trigger
++LANGUAGE plpgsql
++SECURITY DEFINER
++SET search_path = public, pg_temp
++AS $$
++DECLARE
++  p_author UUID;
++BEGIN
++  IF TG_OP = 'INSERT' THEN
++    SELECT user_id INTO p_author FROM public.session_posts WHERE id = NEW.post_id;
++    IF p_author IS NOT NULL AND p_author <> NEW.user_id THEN
++      INSERT INTO public.activity_events (recipient_id, actor_id, kind, post_id, source_id, created_at)
++      VALUES (p_author, NEW.user_id, 'like', NEW.post_id, NULL, now())
++      ON CONFLICT DO NOTHING;
++    END IF;
++    RETURN NEW;
++  ELSIF TG_OP = 'DELETE' THEN
++    DELETE FROM public.activity_events
++     WHERE kind = 'like' AND actor_id = OLD.user_id AND post_id = OLD.post_id;
++    RETURN OLD;
++  END IF;
++  RETURN NULL;
++END;
++$$;
++
++DROP TRIGGER IF EXISTS trg_session_post_like_activity ON public.session_post_likes;
++CREATE TRIGGER trg_session_post_like_activity
++  AFTER INSERT OR DELETE ON public.session_post_likes
++  FOR EACH ROW
++  EXECUTE FUNCTION public.handle_session_post_like_activity();
++
++-- 1:1 exact comment provenance binding: deleting an individual comment removes exactly its event
++CREATE OR REPLACE FUNCTION public.handle_session_post_comment_activity()
++RETURNS trigger
++LANGUAGE plpgsql
++SECURITY DEFINER
++SET search_path = public, pg_temp
++AS $$
++DECLARE
++  p_author UUID;
++BEGIN
++  IF TG_OP = 'INSERT' THEN
++    SELECT user_id INTO p_author FROM public.session_posts WHERE id = NEW.post_id;
++    IF p_author IS NOT NULL AND p_author <> NEW.user_id THEN
++      INSERT INTO public.activity_events (recipient_id, actor_id, kind, post_id, source_id, created_at)
++      VALUES (p_author, NEW.user_id, 'comment', NEW.post_id, NEW.id, now());
++    END IF;
++    RETURN NEW;
++  ELSIF TG_OP = 'DELETE' THEN
++    DELETE FROM public.activity_events
++     WHERE kind = 'comment' AND source_id = OLD.id;
++    RETURN OLD;
++  END IF;
++  RETURN NULL;
++END;
++$$;
++
++DROP TRIGGER IF EXISTS trg_session_post_comment_activity ON public.session_post_comments;
++CREATE TRIGGER trg_session_post_comment_activity
++  AFTER INSERT OR DELETE ON public.session_post_comments
++  FOR EACH ROW
++  EXECUTE FUNCTION public.handle_session_post_comment_activity();
++
++CREATE OR REPLACE FUNCTION public.handle_follow_activity()
++RETURNS trigger
++LANGUAGE plpgsql
++SECURITY DEFINER
++SET search_path = public, pg_temp
++AS $$
++BEGIN
++  IF TG_OP = 'INSERT' THEN
++    IF NEW.following_id <> NEW.follower_id THEN
++      INSERT INTO public.activity_events (recipient_id, actor_id, kind, post_id, source_id, created_at)
++      VALUES (NEW.following_id, NEW.follower_id, 'follow', NULL, NULL, now())
++      ON CONFLICT DO NOTHING;
++    END IF;
++    RETURN NEW;
++  ELSIF TG_OP = 'DELETE' THEN
++    DELETE FROM public.activity_events
++     WHERE kind = 'follow' AND actor_id = OLD.follower_id AND recipient_id = OLD.following_id;
++    RETURN OLD;
++  END IF;
++  RETURN NULL;
++END;
++$$;
++
++DROP TRIGGER IF EXISTS trg_follow_activity ON public.follows;
++CREATE TRIGGER trg_follow_activity
++  AFTER INSERT OR DELETE ON public.follows
++  FOR EACH ROW
++  EXECUTE FUNCTION public.handle_follow_activity();
++
++CREATE OR REPLACE FUNCTION public.handle_session_post_crew_send_activity()
++RETURNS trigger
++LANGUAGE plpgsql
++SECURITY DEFINER
++SET search_path = public, pg_temp
++AS $$
++BEGIN
++  IF TG_OP = 'INSERT' THEN
++    INSERT INTO public.activity_events (recipient_id, actor_id, kind, post_id, source_id, created_at)
++    SELECT f.follower_id, NEW.user_id, 'crew_send', NEW.id, NULL, now()
++      FROM public.follows f
++     WHERE f.following_id = NEW.user_id
++       AND f.follower_id <> NEW.user_id
++    ON CONFLICT DO NOTHING;
++    RETURN NEW;
++  END IF;
++  RETURN NULL;
++END;
++$$;
++
++DROP TRIGGER IF EXISTS trg_session_post_crew_send_activity ON public.session_posts;
++CREATE TRIGGER trg_session_post_crew_send_activity
++  AFTER INSERT ON public.session_posts
++  FOR EACH ROW
++  EXECUTE FUNCTION public.handle_session_post_crew_send_activity();
++
++-- ============================================================================
++-- 12. RPC: get_session_feed (REPLACES OLD SIGNATURE WITHOUT OVERLOAD)
++-- ============================================================================
++DROP FUNCTION IF EXISTS public.get_session_feed(timestamptz, uuid, uuid, integer);
++
++CREATE OR REPLACE FUNCTION public.get_session_feed(
++  before_created_at TIMESTAMPTZ DEFAULT NULL,
++  before_id UUID DEFAULT NULL,
++  author_filter UUID DEFAULT NULL,
++  page_size INTEGER DEFAULT 20,
++  following_only BOOLEAN DEFAULT false,
++  post_filter UUID DEFAULT NULL
++)
++RETURNS SETOF JSONB
++LANGUAGE sql
++STABLE
++SECURITY DEFINER
++SET search_path = public, pg_temp
++AS $$
++  SELECT jsonb_build_object(
++    'id', sp.id,
++    'user_id', sp.user_id,
++    'session_id', sp.session_id,
++    'featured_attempt_id', sp.featured_attempt_id,
++    'caption', sp.caption,
++    'image_path', sp.image_path,
++    'image_alt', sp.image_alt,
++    'overlay_style', sp.overlay_style,
++    'created_at', sp.created_at,
++    'updated_at', sp.updated_at,
++    'author', jsonb_build_object(
++      'id', p.id,
++      'username', p.username,
++      'full_name', p.full_name,
++      'avatar_url', p.avatar_url,
++      'bio', p.bio,
++      'home_area', p.home_area,
++      'is_followed', EXISTS (
++        SELECT 1 FROM public.follows f
++         WHERE f.follower_id = auth.uid() AND f.following_id = p.id
++      )
++    ),
++    'session', jsonb_build_object(
++      'id', cs.id,
++      'venue_name', cs.venue_name,
++      'started_at', cs.started_at,
++      'ended_at', cs.ended_at,
++      'duration_seconds', ROUND(EXTRACT(EPOCH FROM (cs.ended_at - cs.started_at)))::INTEGER,
++      -- Published totals are calculated from the server publication snapshot so later
++      -- private attempts never alter public statistics (DATA-V1-003).
++      'attempt_count', COALESCE(
++        (SELECT jsonb_array_length(timeline.timeline)
++           FROM public.session_post_attempt_timeline_snapshots timeline
++          WHERE timeline.post_id = sp.id),
++        0
++      ),
++      'send_count', COALESCE(
++        (SELECT count(*)::INTEGER
++           FROM jsonb_to_recordset(
++             COALESCE(
++               (SELECT timeline.timeline
++                  FROM public.session_post_attempt_timeline_snapshots timeline
++                 WHERE timeline.post_id = sp.id),
++               '[]'::jsonb
++             )
++           ) AS x(outcome text)
++          WHERE x.outcome = 'sent'),
++        0
++      ),
++      'featured_attempt', jsonb_build_object(
++        'id', ca.id,
++        'route_id', CASE
++          WHEN ca.route_id IS NOT NULL AND (r.id IS NOT NULL) THEN ca.route_id
++          ELSE NULL
++        END,
++        'route_name', ca.route_name,
++        'discipline', ca.discipline,
++        'grade_system', ca.grade_system,
++        'grade_label', ca.grade_label,
++        'outcome', ca.outcome,
++        'attempt_number', ca.attempt_number,
++        'occurred_at', ca.occurred_at
++      ),
++      'attempt_timeline', CASE
++        WHEN sp.overlay_style = 'attempt_timeline' THEN (
++          SELECT timeline.timeline
++            FROM public.session_post_attempt_timeline_snapshots AS timeline
++           WHERE timeline.post_id = sp.id
++        )
++        ELSE NULL
++      END
++    ),
++    'route', CASE
++      WHEN ca.route_id IS NOT NULL AND (r.id IS NOT NULL) THEN
++        jsonb_build_object(
++          'id', r.id,
++          'name', r.name,
++          'description', r.description,
++          'discipline', r.discipline,
++          'grade_system', r.grade_system,
++          'grade_label', r.grade_label,
++          'height_m', r.height_m,
++          'rock_type', r.rock_type,
++          'terrain', r.terrain,
++          'image_url', CASE
++            WHEN r.wall_id IS NOT NULL AND public.is_wall_accessible(r.wall_id) THEN COALESCE(
++              r.wall_image_url,
++              (SELECT w.image_url FROM public.walls w WHERE w.id::text = r.wall_id)
++            )
++            WHEN r.wall_id IS NULL THEN r.wall_image_url
++            ELSE NULL
++          END,
++          'holds', r.holds,
++          'venue', CASE
++            WHEN v.id IS NOT NULL THEN jsonb_build_object(
++              'id', v.id,
++              'name', v.name,
++              'kind', v.kind,
++              'area', v.area,
++              'description', v.description,
++              'image_url', v.image_url
++            )
++            ELSE NULL
++          END,
++          'author_id', r.user_id,
++          'is_saved', EXISTS (
++            SELECT 1 FROM public.route_bookmarks rb
++             WHERE rb.route_id = r.id AND rb.user_id = auth.uid()
++          ),
++          'created_at', r.created_at
++        )
++      ELSE NULL
++    END,
++    'like_count', (SELECT count(*)::INTEGER FROM public.session_post_likes AS spl WHERE spl.post_id = sp.id),
++    'comment_count', (SELECT count(*)::INTEGER FROM public.session_post_comments AS spc WHERE spc.post_id = sp.id),
++    'is_liked', EXISTS (
++      SELECT 1 FROM public.session_post_likes AS spl
++       WHERE spl.post_id = sp.id AND spl.user_id = auth.uid()
++    )
++  )
++  FROM public.session_posts AS sp
++  JOIN public.climbing_sessions AS cs ON cs.id = sp.session_id
++  JOIN public.climb_attempts AS ca ON ca.id = sp.featured_attempt_id
++  JOIN public.profiles AS p ON p.id = sp.user_id
++  LEFT JOIN public.routes AS r ON r.id = ca.route_id
++    AND (r.is_public = true OR r.user_id = auth.uid() OR public.is_moderator())
++    AND public.is_wall_accessible(r.wall_id)
++    AND public.is_venue_accessible(r.venue_id)
++  LEFT JOIN public.venues AS v ON v.id = r.venue_id
++    AND (v.is_public = true OR v.user_id = auth.uid() OR public.is_moderator())
++  WHERE (author_filter IS NULL OR sp.user_id = author_filter)
++    AND (post_filter IS NULL OR sp.id = post_filter)
++    AND (
++      NOT following_only
++      OR EXISTS (
++        SELECT 1 FROM public.follows f
++         WHERE f.follower_id = auth.uid() AND f.following_id = sp.user_id
++      )
++    )
++    AND (
++      (before_created_at IS NULL AND before_id IS NULL)
++      OR (
++        before_created_at IS NOT NULL
++        AND before_id IS NOT NULL
++        AND (sp.created_at, sp.id) < (before_created_at, before_id)
++      )
++    )
++  ORDER BY sp.created_at DESC, sp.id DESC
++  LIMIT LEAST(GREATEST(COALESCE(page_size, 20), 1), 50);
++$$;
++
++REVOKE ALL ON FUNCTION public.get_session_feed(timestamptz, uuid, uuid, integer, boolean, uuid) FROM PUBLIC;
++GRANT EXECUTE ON FUNCTION public.get_session_feed(timestamptz, uuid, uuid, integer, boolean, uuid) TO anon, authenticated;
++
++-- ============================================================================
++-- 13. RPC: get_explore_routes
++-- ============================================================================
++CREATE OR REPLACE FUNCTION public.get_explore_routes(
++  search_text TEXT DEFAULT '',
++  venue_filter UUID DEFAULT NULL,
++  saved_only BOOLEAN DEFAULT false,
++  before_created_at TIMESTAMPTZ DEFAULT NULL,
++  before_id UUID DEFAULT NULL,
++  page_size INTEGER DEFAULT 30
++)
++RETURNS SETOF JSONB
++LANGUAGE sql
++STABLE
++SECURITY DEFINER
++SET search_path = public, pg_temp
++AS $$
++  SELECT jsonb_build_object(
++    'id', r.id,
++    'name', r.name,
++    'description', r.description,
++    'discipline', r.discipline,
++    'grade_system', r.grade_system,
++    'grade_label', r.grade_label,
++    'height_m', r.height_m,
++    'rock_type', r.rock_type,
++    'terrain', r.terrain,
++    'image_url', CASE
++      WHEN r.wall_id IS NOT NULL AND public.is_wall_accessible(r.wall_id) THEN COALESCE(
++        r.wall_image_url,
++        (SELECT w.image_url FROM public.walls w WHERE w.id::text = r.wall_id)
++      )
++      WHEN r.wall_id IS NULL THEN r.wall_image_url
++      ELSE NULL
++    END,
++    'holds', r.holds,
++    'venue', CASE
++      WHEN v.id IS NOT NULL THEN jsonb_build_object(
++        'id', v.id,
++        'name', v.name,
++        'kind', v.kind,
++        'area', v.area,
++        'description', v.description,
++        'image_url', v.image_url
++      )
++      ELSE NULL
++    END,
++    'author_id', r.user_id,
++    'is_saved', EXISTS (
++      SELECT 1 FROM public.route_bookmarks rb
++       WHERE rb.route_id = r.id AND rb.user_id = auth.uid()
++    ),
++    'created_at', r.created_at
++  )
++  FROM public.routes r
++  LEFT JOIN public.venues v ON v.id = r.venue_id
++    AND (v.is_public = true OR v.user_id = auth.uid() OR public.is_moderator())
++  WHERE (r.is_public = true OR r.user_id = auth.uid() OR public.is_moderator())
++    AND public.is_wall_accessible(r.wall_id)
++    AND public.is_venue_accessible(r.venue_id)
++    AND (venue_filter IS NULL OR r.venue_id = venue_filter)
++    AND (
++      NOT saved_only OR EXISTS (
++        SELECT 1 FROM public.route_bookmarks rb
++         WHERE rb.route_id = r.id AND rb.user_id = auth.uid()
++      )
++    )
++    AND (
++      search_text IS NULL OR trim(search_text) = ''
++      OR r.name ILIKE '%' || trim(search_text) || '%'
++      OR (r.description IS NOT NULL AND r.description ILIKE '%' || trim(search_text) || '%')
++      OR (v.name IS NOT NULL AND v.name ILIKE '%' || trim(search_text) || '%')
++    )
++    AND (
++      (before_created_at IS NULL AND before_id IS NULL)
++      OR (
++        before_created_at IS NOT NULL
++        AND before_id IS NOT NULL
++        AND (r.created_at, r.id) < (before_created_at, before_id)
++      )
++    )
++  ORDER BY r.created_at DESC, r.id DESC
++  LIMIT LEAST(GREATEST(COALESCE(page_size, 30), 1), 100);
++$$;
++
++REVOKE ALL ON FUNCTION public.get_explore_routes(text, uuid, boolean, timestamptz, uuid, integer) FROM PUBLIC;
++GRANT EXECUTE ON FUNCTION public.get_explore_routes(text, uuid, boolean, timestamptz, uuid, integer) TO anon, authenticated;
++
++-- ============================================================================
++-- 14. RPC: search_climbers
++-- ============================================================================
++CREATE OR REPLACE FUNCTION public.search_climbers(
++  search_text TEXT DEFAULT '',
++  page_size INTEGER DEFAULT 30
++)
++RETURNS SETOF JSONB
++LANGUAGE sql
++STABLE
++SECURITY DEFINER
++SET search_path = public, pg_temp
++AS $$
++  SELECT jsonb_build_object(
++    'id', p.id,
++    'username', p.username,
++    'full_name', p.full_name,
++    'avatar_url', p.avatar_url,
++    'bio', p.bio,
++    'home_area', p.home_area,
++    'is_followed', EXISTS (
++      SELECT 1 FROM public.follows f
++       WHERE f.follower_id = auth.uid() AND f.following_id = p.id
++    ),
++    'follower_count', (
++      SELECT count(*)::INTEGER FROM public.follows f
++       WHERE f.following_id = p.id
++    ),
++    'following_count', (
++      SELECT count(*)::INTEGER FROM public.follows f
++       WHERE f.follower_id = p.id
++    )
++  )
++  FROM public.profiles p
++  WHERE (
++    search_text IS NULL OR trim(search_text) = ''
++    OR p.username ILIKE '%' || trim(search_text) || '%'
++    OR (p.full_name IS NOT NULL AND p.full_name ILIKE '%' || trim(search_text) || '%')
++    OR (p.home_area IS NOT NULL AND p.home_area ILIKE '%' || trim(search_text) || '%')
++  )
++  ORDER BY p.username ASC
++  LIMIT LEAST(GREATEST(COALESCE(page_size, 30), 1), 100);
++$$;
++
++REVOKE ALL ON FUNCTION public.search_climbers(text, integer) FROM PUBLIC;
++GRANT EXECUTE ON FUNCTION public.search_climbers(text, integer) TO anon, authenticated;
++
++-- ============================================================================
++-- 15. RPC: get_activity
++-- ============================================================================
++CREATE OR REPLACE FUNCTION public.get_activity(
++  before_created_at TIMESTAMPTZ DEFAULT NULL,
++  before_id UUID DEFAULT NULL,
++  page_size INTEGER DEFAULT 30
++)
++RETURNS SETOF JSONB
++LANGUAGE sql
++STABLE
++SECURITY DEFINER
++SET search_path = public, pg_temp
++AS $$
++  SELECT jsonb_build_object(
++    'id', ae.id,
++    'kind', ae.kind,
++    'actor', jsonb_build_object(
++      'id', p.id,
++      'username', p.username,
++      'full_name', p.full_name,
++      'avatar_url', p.avatar_url,
++      'home_area', p.home_area
++    ),
++    'post_id', ae.post_id,
++    'created_at', ae.created_at,
++    'read_at', ae.read_at
++  )
++  FROM public.activity_events ae
++  JOIN public.profiles p ON p.id = ae.actor_id
++  WHERE ae.recipient_id = auth.uid()
++    AND (
++      (before_created_at IS NULL AND before_id IS NULL)
++      OR (
++        before_created_at IS NOT NULL
++        AND before_id IS NOT NULL
++        AND (ae.created_at, ae.id) < (before_created_at, before_id)
++      )
++    )
++  ORDER BY ae.created_at DESC, ae.id DESC
++  LIMIT LEAST(GREATEST(COALESCE(page_size, 30), 1), 100);
++$$;
++
++REVOKE ALL ON FUNCTION public.get_activity(timestamptz, uuid, integer) FROM PUBLIC;
++GRANT EXECUTE ON FUNCTION public.get_activity(timestamptz, uuid, integer) TO authenticated;
+diff --git a/supabase/tests/migration_014_verification.sql b/supabase/tests/migration_014_verification.sql
+new file mode 100644
+index 0000000000000000000000000000000000000000..9c07bfafa7820e162c638dcbcac44f2a29bf712e
+--- /dev/null
++++ b/supabase/tests/migration_014_verification.sql
+@@ -0,0 +1,300 @@
++\set ON_ERROR_STOP on
++-- migration_014_verification.sql
++-- Standalone SQL verification script for Migration 014 schema, RLS policies,
++-- immutability triggers, parent deletion lifecycle, activity event generation,
++-- snapshot attempt statistics, and community RPCs.
++-- Executable in standard PostgreSQL / psql without requiring GoTrue or PostgREST.
++-- Runs completely inside a transaction and rolls back at the end.
++
++BEGIN;
++
++DO $$
++DECLARE
++  v_user1 UUID := '11111111-1111-4111-8111-111111111111';
++  v_user2 UUID := '22222222-2222-4222-8222-222222222222';
++  v_venue_pub UUID := '33333333-3333-4333-8333-333333333333';
++  v_venue_priv UUID := '44444444-4444-4444-8444-444444444444';
++  v_wall_priv UUID := 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
++  v_route_pub UUID := '55555555-5555-4555-8555-555555555555';
++  v_route_priv UUID := '66666666-6666-4666-8666-666666666666';
++  v_route_pub_priv_wall UUID := 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
++  v_route_pub_priv_venue UUID := 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
++  v_session UUID := '77777777-7777-4777-8777-777777777777';
++  v_attempt UUID := '88888888-8888-4888-8888-888888888888';
++  v_attempt_later UUID := '88888888-8888-4888-8888-888888888889';
++  v_post UUID := '99999999-9999-4999-8999-999999999999';
++  v_post_priv_wall UUID := 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
++  v_session_priv_wall UUID := 'ffffffff-ffff-4fff-8fff-ffffffffffff';
++  v_attempt_priv_wall UUID := '12121212-1212-4212-8212-121212121212';
++  v_comment1 UUID := '13131313-1313-4313-8313-131313131313';
++  v_comment2 UUID := '14141414-1414-4414-8414-141414141414';
++  v_feed_row JSONB;
++  v_explore_row JSONB;
++  v_climber_row JSONB;
++  v_activity_row JSONB;
++  v_count INT;
++  v_next_view INT;
++  v_is_public BOOLEAN;
++BEGIN
++  -- ==========================================================================
++  -- 1. SETUP FIXTURES (AS PRIVILEGED ROLE)
++  -- ==========================================================================
++  INSERT INTO auth.users (id, email)
++  VALUES (v_user1, 'test-user1@example.com'),
++         (v_user2, 'test-user2@example.com')
++  ON CONFLICT (id) DO NOTHING;
++
++  INSERT INTO public.profiles (id, username, full_name, home_area)
++  VALUES (v_user1, 'climber_one', 'Climber One', 'Boulder'),
++         (v_user2, 'climber_two', 'Climber Two', 'Golden')
++  ON CONFLICT (id) DO UPDATE
++    SET username = EXCLUDED.username, full_name = EXCLUDED.full_name, home_area = EXCLUDED.home_area;
++
++  INSERT INTO public.venues (id, user_id, name, kind, area, description, is_public)
++  VALUES (v_venue_pub, v_user1, 'Public Crag', 'crag', 'Boulder Canyon', 'Granite crag', true),
++         (v_venue_priv, v_user2, 'Secret Crag', 'crag', 'Hidden', 'Private spot', false);
++
++  INSERT INTO public.walls (id, user_id, name, description, image_url, is_public)
++  VALUES (v_wall_priv, v_user2, 'Secret Wall', 'Private', 'https://secret.example.com/wall.jpg', false);
++
++  INSERT INTO public.routes (id, user_id, wall_id, name, venue_id, discipline, grade_system, grade_label, height_m, rock_type, terrain, is_public)
++  VALUES (v_route_pub, v_user1, NULL, 'Redpoint Ridge', v_venue_pub, 'sport', 'yds', '5.12a', 27.0, 'Limestone', 'overhang', true),
++         (v_route_priv, v_user2, NULL, 'Hidden Project', v_venue_priv, 'boulder', 'v_scale', 'V10', 4.0, 'Granite', 'roof', false),
++         (v_route_pub_priv_wall, v_user2, v_wall_priv::text, 'Pub Route Priv Wall', NULL, 'board', 'v_scale', 'V4', NULL, NULL, NULL, true),
++         (v_route_pub_priv_venue, v_user2, NULL, 'Pub Route Priv Venue', v_venue_priv, 'boulder', 'v_scale', 'V6', 3.0, 'Sandstone', 'slab', true);
++
++  -- Climbing session and attempt
++  INSERT INTO public.climbing_sessions (id, user_id, venue_name, conditions, notes, started_at, ended_at)
++  VALUES (v_session, v_user1, 'Public Crag', 'Clear, 65F', 'Sent project first go', now() - interval '2 hours', now() - interval '1 hour');
++
++  INSERT INTO public.climb_attempts (id, session_id, user_id, route_id, route_name, discipline, grade_system, grade_label, outcome, attempt_number, occurred_at)
++  VALUES (v_attempt, v_session, v_user1, v_route_pub, 'Redpoint Ridge', 'sport', 'yds', '5.12a', 'sent', 1, now() - interval '90 minutes');
++
++  -- Session Post (publishes session, captures publication snapshot with 1 attempt, 1 send)
++  INSERT INTO public.session_posts (id, user_id, session_id, featured_attempt_id, caption, image_path, image_alt, overlay_style)
++  VALUES (v_post, v_user1, v_session, v_attempt, 'Great day out', v_user1 || '/' || v_post || '.jpg', 'Climbing Redpoint Ridge', 'stats');
++
++  -- Second session/attempt/post on public route with private parent wall
++  INSERT INTO public.climbing_sessions (id, user_id, venue_name, started_at, ended_at)
++  VALUES (v_session_priv_wall, v_user2, 'Secret Wall', now() - interval '1 hour', now());
++
++  INSERT INTO public.climb_attempts (id, session_id, user_id, route_id, route_name, discipline, grade_system, grade_label, outcome, attempt_number, occurred_at)
++  VALUES (v_attempt_priv_wall, v_session_priv_wall, v_user2, v_route_pub_priv_wall, 'Attempt Priv Wall', 'board', 'v_scale', 'V4', 'sent', 1, now());
++
++  INSERT INTO public.session_posts (id, user_id, session_id, featured_attempt_id, caption, image_path, image_alt, overlay_style)
++  VALUES (v_post_priv_wall, v_user2, v_session_priv_wall, v_attempt_priv_wall, 'Post on priv wall', v_user2 || '/' || v_post_priv_wall || '.jpg', 'alt', 'stats');
++
++  -- ==========================================================================
++  -- 2. DEDICATED TRIGGER VALIDATION (DATA-V1-001)
++  -- ==========================================================================
++  -- Updating legitimate fields on climbing_sessions must succeed without "no field session_id" errors
++  UPDATE public.climbing_sessions SET conditions = 'Updated 70F' WHERE id = v_session;
++
++  -- Updating legitimate fields on venues must succeed without missing-field errors
++  UPDATE public.venues SET name = 'Public Crag Renamed' WHERE id = v_venue_pub;
++
++  -- Attempt user_id mutation must be blocked by prevent_climb_attempt_parent_change
++  BEGIN
++    UPDATE public.climb_attempts SET user_id = v_user2 WHERE id = v_attempt;
++    RAISE EXCEPTION 'FAILED: attempt user_id mutation was not blocked';
++  EXCEPTION WHEN SQLSTATE '42501' THEN
++    NULL;
++  END;
++
++  -- Attempt route_id mutation must be blocked
++  BEGIN
++    UPDATE public.climb_attempts SET route_id = v_route_priv WHERE id = v_attempt;
++    RAISE EXCEPTION 'FAILED: attempt route_id mutation was not blocked';
++  EXCEPTION WHEN SQLSTATE '42501' THEN
++    NULL;
++  END;
++
++  -- ==========================================================================
++  -- 3. FOLLOWS & ACTIVITY EVENT GENERATION WITH SERVER TIME (DATA-V1-006)
++  -- ==========================================================================
++  INSERT INTO public.follows (follower_id, following_id)
++  VALUES (v_user2, v_user1);
++
++  -- Verify self-follow check constraint
++  BEGIN
++    INSERT INTO public.follows (follower_id, following_id) VALUES (v_user1, v_user1);
++    RAISE EXCEPTION 'FAILED: self-follow was not blocked by check constraint';
++  EXCEPTION WHEN check_violation THEN
++    NULL;
++  END;
++
++  -- Verify follow activity event was created for v_user1 with server time
++  SELECT count(*) INTO v_count
++    FROM public.activity_events
++   WHERE recipient_id = v_user1 AND actor_id = v_user2 AND kind = 'follow';
++  IF v_count <> 1 THEN
++    RAISE EXCEPTION 'FAILED: follow activity event was not generated by trigger (count = %)', v_count;
++  END IF;
++
++  -- ==========================================================================
++  -- 4. 1:1 COMMENT PROVENANCE & SELECTIVE DELETION (DATA-V1-005)
++  -- ==========================================================================
++  INSERT INTO public.session_post_comments (id, post_id, user_id, content)
++  VALUES (v_comment1, v_post, v_user2, 'First comment'),
++         (v_comment2, v_post, v_user2, 'Second comment');
++
++  SELECT count(*) INTO v_count
++    FROM public.activity_events
++   WHERE recipient_id = v_user1 AND actor_id = v_user2 AND kind = 'comment';
++  IF v_count <> 2 THEN
++    RAISE EXCEPTION 'FAILED: two comments did not create two distinct activity events (count = %)', v_count;
++  END IF;
++
++  -- Deleting comment 1 must remove ONLY comment 1's event, keeping comment 2's event intact
++  DELETE FROM public.session_post_comments WHERE id = v_comment1;
++
++  SELECT count(*) INTO v_count
++    FROM public.activity_events
++   WHERE recipient_id = v_user1 AND actor_id = v_user2 AND kind = 'comment' AND source_id = v_comment1;
++  IF v_count <> 0 THEN
++    RAISE EXCEPTION 'FAILED: deleting comment 1 did not remove its activity event';
++  END IF;
++
++  SELECT count(*) INTO v_count
++    FROM public.activity_events
++   WHERE recipient_id = v_user1 AND actor_id = v_user2 AND kind = 'comment' AND source_id = v_comment2;
++  IF v_count <> 1 THEN
++    RAISE EXCEPTION 'FAILED: deleting comment 1 erroneously removed comment 2 activity event';
++  END IF;
++
++  -- ==========================================================================
++  -- 5. LATER PRIVATE ATTEMPTS DO NOT ALTER FEED PUBLICATION TOTALS (DATA-V1-003)
++  -- ==========================================================================
++  -- Insert a second attempt into the session AFTER publication
++  INSERT INTO public.climb_attempts (id, session_id, user_id, route_id, route_name, discipline, grade_system, grade_label, outcome, attempt_number, occurred_at)
++  VALUES (v_attempt_later, v_session, v_user1, v_route_pub, 'Second Send', 'sport', 'yds', '5.12b', 'sent', 2, now());
++
++  -- get_session_feed must calculate attempt_count and send_count from snapshot (1, 1), not live attempts (2, 2)
++  SELECT f INTO v_feed_row
++    FROM public.get_session_feed(post_filter => v_post, page_size => 1) AS f;
++
++  IF (v_feed_row->'session'->>'attempt_count')::int <> 1 THEN
++    RAISE EXCEPTION 'FAILED: feed attempt_count was %; expected 1 from publication snapshot', (v_feed_row->'session'->>'attempt_count');
++  END IF;
++  IF (v_feed_row->'session'->>'send_count')::int <> 1 THEN
++    RAISE EXCEPTION 'FAILED: feed send_count was %; expected 1 from publication snapshot', (v_feed_row->'session'->>'send_count');
++  END IF;
++
++  -- ==========================================================================
++  -- 6. INCREMENT_ROUTE_VIEW RPC PARENT VISIBILITY (DATA-V1-004)
++  -- ==========================================================================
++  PERFORM set_config('request.jwt.claim.sub', v_user1::text, true);
++
++  -- Incrementing public route on public venue succeeds
++  SELECT public.increment_route_view(v_route_pub) INTO v_next_view;
++  IF v_next_view IS NULL OR v_next_view < 1 THEN
++    RAISE EXCEPTION 'FAILED: increment_route_view failed on accessible route';
++  END IF;
++
++  -- Incrementing public route on private wall returns NULL for non-owner
++  SELECT public.increment_route_view(v_route_pub_priv_wall) INTO v_next_view;
++  IF v_next_view IS NOT NULL THEN
++    RAISE EXCEPTION 'FAILED: increment_route_view did not return NULL for public route on private wall';
++  END IF;
++
++  -- ==========================================================================
++  -- 7. PARENT DELETION PRIVACY LIFECYCLE (DATA-V1-002)
++  -- ==========================================================================
++  -- Create disposable private wall and route to test deletion
++  INSERT INTO public.walls (id, user_id, name, description, image_url, is_public)
++  VALUES ('98989898-9898-4898-8898-989898989898', v_user2, 'Disposable Wall', 'Priv', 'https://secret.example.com/disp.jpg', false);
++
++  INSERT INTO public.routes (id, user_id, wall_id, name, is_public)
++  VALUES ('87878787-8787-4787-8787-878787878787', v_user2, '98989898-9898-4898-8898-989898989898', 'Disp Route', true);
++
++  -- Delete private wall: trigger must privatize child route and record tombstone
++  DELETE FROM public.walls WHERE id = '98989898-9898-4898-8898-989898989898';
++
++  SELECT is_public INTO STRICT v_is_public
++    FROM public.routes WHERE id = '87878787-8787-4787-8787-878787878787';
++  IF v_is_public IS NOT FALSE THEN
++    RAISE EXCEPTION 'FAILED: deleting private wall did not privatize child route';
++  END IF;
++  IF public.is_wall_accessible('98989898-9898-4898-8898-989898989898') IS TRUE THEN
++    RAISE EXCEPTION 'FAILED: deleted private wall tombstone was not marked inaccessible';
++  END IF;
++
++  -- ==========================================================================
++  -- 8. REAL API ROLE AUTHORIZATION (DATA-V1-008) & SCALAR JSONB (DATA-V1-007)
++  -- ==========================================================================
++  -- Switch role to authenticated as v_user1
++  SET LOCAL ROLE authenticated;
++  SET LOCAL "request.jwt.claim.sub" = '11111111-1111-4111-8111-111111111111';
++
++  -- Saving accessible public route succeeds
++  INSERT INTO public.route_bookmarks (user_id, route_id)
++  VALUES (v_user1, v_route_pub);
++
++  -- Saving public route on private wall MUST be rejected by RLS WITH CHECK under authenticated role
++  BEGIN
++    INSERT INTO public.route_bookmarks (user_id, route_id)
++    VALUES (v_user1, v_route_pub_priv_wall);
++    RAISE EXCEPTION 'FAILED: bookmarking public route on private wall was not blocked by RLS';
++  EXCEPTION WHEN SQLSTATE '42501' OR check_violation THEN
++    -- Expected RLS rejection
++    NULL;
++  END;
++
++  -- Saving public route on private venue MUST be rejected by RLS WITH CHECK
++  BEGIN
++    INSERT INTO public.route_bookmarks (user_id, route_id)
++    VALUES (v_user1, v_route_pub_priv_venue);
++    RAISE EXCEPTION 'FAILED: bookmarking public route on private venue was not blocked by RLS';
++  EXCEPTION WHEN SQLSTATE '42501' OR check_violation THEN
++    NULL;
++  END;
++
++  -- Test get_explore_routes as authenticated v_user1:
++  -- Must return v_route_pub, but NEVER v_route_pub_priv_wall or v_route_pub_priv_venue
++  SELECT count(*) INTO v_count
++    FROM public.get_explore_routes(page_size => 50) AS r
++   WHERE (r->>'id')::uuid IN (v_route_pub_priv_wall, v_route_pub_priv_venue);
++  IF v_count <> 0 THEN
++    RAISE EXCEPTION 'FAILED: get_explore_routes leaked public routes on private parents to non-owner';
++  END IF;
++
++  -- Test get_session_feed on post with private parent wall as non-owner v_user1:
++  -- route must be NULL, featured_attempt.route_id must be NULL, and no private image URL leaked
++  SELECT f INTO v_feed_row
++    FROM public.get_session_feed(post_filter => v_post_priv_wall, page_size => 1) AS f;
++
++  IF v_feed_row IS NULL THEN
++    RAISE EXCEPTION 'FAILED: get_session_feed did not return post with private parent wall';
++  END IF;
++
++  -- Check JSON null properly (DATA-V1-007: ->>'route' IS NULL)
++  IF v_feed_row->>'route' IS NOT NULL THEN
++    RAISE EXCEPTION 'FAILED: get_session_feed leaked route object for public route on private wall';
++  END IF;
++
++  IF v_feed_row->'session'->'featured_attempt'->>'route_id' IS NOT NULL THEN
++    RAISE EXCEPTION 'FAILED: get_session_feed leaked route_id for public route on private wall';
++  END IF;
++
++  IF v_feed_row::text LIKE '%https://secret.example.com/wall.jpg%' THEN
++    RAISE EXCEPTION 'FAILED: get_session_feed leaked private wall image URL';
++  END IF;
++
++  -- Test get_activity as authenticated v_user1 (receives follow and comment events)
++  SELECT a INTO v_activity_row
++    FROM public.get_activity(page_size => 1) AS a;
++
++  IF v_activity_row IS NULL THEN
++    RAISE EXCEPTION 'FAILED: get_activity returned no events for recipient';
++  END IF;
++  IF v_activity_row->'actor'->>'username' <> 'climber_two' THEN
++    RAISE EXCEPTION 'FAILED: get_activity did not join actor profile';
++  END IF;
++
++  -- Reset role before rollback
++  RESET ROLE;
++
++  RAISE NOTICE 'SUCCESS: All migration 014 SQL schema, RLS, triggers, provenance, timestamps, and RPC verifications passed.';
++END $$;
++
++ROLLBACK;
+diff --git a/supabase/tests/rls_ownership_harness.py b/supabase/tests/rls_ownership_harness.py
+index 218ef98b1ef2f77b6e2ffac7f653bfa4fb7c53f5..03a5411465ffab769ce8849ba9d0931fe03481bf 100755
+--- a/supabase/tests/rls_ownership_harness.py
++++ b/supabase/tests/rls_ownership_harness.py
+@@ -62,6 +62,18 @@ CANCELLED_MEETUP_ID = "af0d8780-5d47-4db8-90a5-3c5bc73f7c31"
+ FILLER_MEETUP_ID = "b00d8780-5d47-4db8-90a5-3c5bc73f7c31"
+ RACE_MEETUP_ID = "b10d8780-5d47-4db8-90a5-3c5bc73f7c31"
+ PAST_MEETUP_ID = "b20d8780-5d47-4db8-90a5-3c5bc73f7c31"
++PUBLIC_VENUE_ID = "c10d8780-5d47-4db8-90a5-3c5bc73f7c31"
++PRIVATE_VENUE_ID = "c20d8780-5d47-4db8-90a5-3c5bc73f7c31"
++OUTDOOR_ROUTE_ID = "c30d8780-5d47-4db8-90a5-3c5bc73f7c31"
++PRIVATE_ROUTE_ID = "c40d8780-5d47-4db8-90a5-3c5bc73f7c31"
++SECRET_CONDITIONS = "Cloudy, 55F, high humidity"
++PRIVATE_WALL_ID = "c50d8780-5d47-4db8-90a5-3c5bc73f7c31"
++PUBLIC_ROUTE_PRIVATE_WALL_ID = "c60d8780-5d47-4db8-90a5-3c5bc73f7c31"
++PUBLIC_ROUTE_PRIVATE_VENUE_ID = "c70d8780-5d47-4db8-90a5-3c5bc73f7c31"
++OTHER_POST_PRIVATE_PARENT_ID = "c80d8780-5d47-4db8-90a5-3c5bc73f7c31"
++OTHER_ATTEMPT_PRIVATE_PARENT_ID = "c90d8780-5d47-4db8-90a5-3c5bc73f7c31"
++OTHER_SESSION_PRIVATE_PARENT_ID = "ca0d8780-5d47-4db8-90a5-3c5bc73f7c31"
++SECRET_WALL_IMAGE_URL = "https://secret.example.com/private-parent-wall.jpg"
+ 
+ ROUTE_MARKER = "__boarded_rls_harness__"
+ SECRET_NOTES = "__boarded_private_attempt_notes__"
+@@ -225,16 +237,22 @@ def setup_fixtures() -> None:
+     }
+     sql = f"""
+ BEGIN;
++DELETE FROM public.activity_events WHERE recipient_id IN ({user_ids}) OR actor_id IN ({user_ids});
++DELETE FROM public.route_bookmarks WHERE user_id IN ({user_ids});
++DELETE FROM public.follows WHERE follower_id IN ({user_ids}) OR following_id IN ({user_ids});
+ DELETE FROM public.session_post_comments WHERE post_id IN ({sql_quote(OWNER_POST_ID)}, {sql_quote(OTHER_POST_ID)});
+ DELETE FROM public.session_post_likes WHERE post_id IN ({sql_quote(OWNER_POST_ID)}, {sql_quote(OTHER_POST_ID)});
+-DELETE FROM public.session_posts WHERE id IN ({sql_quote(OWNER_POST_ID)}, {sql_quote(OTHER_POST_ID)});
++DELETE FROM public.session_posts WHERE id IN ({sql_quote(OWNER_POST_ID)}, {sql_quote(OTHER_POST_ID)}, {sql_quote(OTHER_POST_PRIVATE_PARENT_ID)});
+ DELETE FROM public.meetup_comments WHERE meetup_id IN ({sql_quote(OWNER_MEETUP_ID)}, {sql_quote(OTHER_MEETUP_ID)}, {sql_quote(CANCELLED_MEETUP_ID)}, {sql_quote(FILLER_MEETUP_ID)}, {sql_quote(RACE_MEETUP_ID)}, {sql_quote(PAST_MEETUP_ID)});
+ DELETE FROM public.meetup_attendees WHERE meetup_id IN ({sql_quote(OWNER_MEETUP_ID)}, {sql_quote(OTHER_MEETUP_ID)}, {sql_quote(CANCELLED_MEETUP_ID)}, {sql_quote(FILLER_MEETUP_ID)}, {sql_quote(RACE_MEETUP_ID)}, {sql_quote(PAST_MEETUP_ID)});
+ DELETE FROM public.meetups WHERE id IN ({sql_quote(OWNER_MEETUP_ID)}, {sql_quote(OTHER_MEETUP_ID)}, {sql_quote(CANCELLED_MEETUP_ID)}, {sql_quote(FILLER_MEETUP_ID)}, {sql_quote(RACE_MEETUP_ID)}, {sql_quote(PAST_MEETUP_ID)});
+ 
+-DELETE FROM public.climb_attempts WHERE id IN ({sql_quote(OWNER_SENT_ATTEMPT_ID)}, {sql_quote(OWNER_FELL_ATTEMPT_ID)}, {sql_quote(OTHER_FELL_ATTEMPT_ID)}, {sql_quote(OTHER_PREPUBLISH_ATTEMPT_ID)}, {sql_quote(OTHER_LATER_ATTEMPT_ID)}, {sql_quote(ACTIVE_ATTEMPT_ID)}, {sql_quote(RACE_ATTEMPT_ID)}, {sql_quote(UNPOSTED_ATTEMPT_ID)});
+-DELETE FROM public.climbing_sessions WHERE id IN ({sql_quote(OWNER_SESSION_ID)}, {sql_quote(OTHER_SESSION_ID)}, {sql_quote(ACTIVE_SESSION_ID)}, {sql_quote(RACE_SESSION_ID)});
+-DELETE FROM public.routes WHERE id = {sql_quote(OWNER_ROUTE_ID)};
++DELETE FROM public.climb_attempts WHERE id IN ({sql_quote(OWNER_SENT_ATTEMPT_ID)}, {sql_quote(OWNER_FELL_ATTEMPT_ID)}, {sql_quote(OTHER_FELL_ATTEMPT_ID)}, {sql_quote(OTHER_PREPUBLISH_ATTEMPT_ID)}, {sql_quote(OTHER_LATER_ATTEMPT_ID)}, {sql_quote(ACTIVE_ATTEMPT_ID)}, {sql_quote(RACE_ATTEMPT_ID)}, {sql_quote(UNPOSTED_ATTEMPT_ID)}, {sql_quote(OTHER_ATTEMPT_PRIVATE_PARENT_ID)});
++DELETE FROM public.climbing_sessions WHERE id IN ({sql_quote(OWNER_SESSION_ID)}, {sql_quote(OTHER_SESSION_ID)}, {sql_quote(ACTIVE_SESSION_ID)}, {sql_quote(RACE_SESSION_ID)}, {sql_quote(OTHER_SESSION_PRIVATE_PARENT_ID)});
++DELETE FROM public.routes WHERE id IN ({sql_quote(OWNER_ROUTE_ID)}, {sql_quote(OUTDOOR_ROUTE_ID)}, {sql_quote(PRIVATE_ROUTE_ID)}, {sql_quote(PUBLIC_ROUTE_PRIVATE_WALL_ID)}, {sql_quote(PUBLIC_ROUTE_PRIVATE_VENUE_ID)});
++DELETE FROM public.walls WHERE id = {sql_quote(PRIVATE_WALL_ID)};
++DELETE FROM public.deleted_private_walls WHERE wall_id = {sql_quote(PRIVATE_WALL_ID)};
++DELETE FROM public.venues WHERE id IN ({sql_quote(PUBLIC_VENUE_ID)}, {sql_quote(PRIVATE_VENUE_ID)});
+ DELETE FROM auth.users WHERE id IN ({user_ids});
+ 
+ INSERT INTO auth.users (instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,confirmation_token,recovery_token,email_change_token_new,email_change,email_change_token_current,phone_change,raw_app_meta_data,raw_user_meta_data,is_super_admin,created_at,updated_at,is_anonymous)
+@@ -254,17 +272,30 @@ INSERT INTO public.profiles (id,username,home_area) VALUES
+  ({sql_quote(OTHER_ID)},'rls-harness-other','Golden'),
+  ({sql_quote(FILLER_ID)},'rls-harness-filler','Denver');
+ 
+-INSERT INTO public.routes (id,user_id,wall_id,name,grade_v,holds,is_public,created_at)
+-VALUES ({sql_quote(OWNER_ROUTE_ID)},{sql_quote(OWNER_ID)},'rls-harness-wall',{sql_quote(ROUTE_MARKER + 'route')},'V3','[]'::jsonb,true,now());
++INSERT INTO public.venues (id, user_id, name, kind, area, description, image_url, is_public, created_at, updated_at)
++VALUES
++ ({sql_quote(PUBLIC_VENUE_ID)}, {sql_quote(OWNER_ID)}, 'Stone Crag', 'crag', 'Boulder Canyon', 'Public granite crag', NULL, true, now(), now()),
++ ({sql_quote(PRIVATE_VENUE_ID)}, {sql_quote(OTHER_ID)}, 'Secret Cave', 'crag', 'Hidden Spot', 'Private crag', NULL, false, now(), now());
++
++INSERT INTO public.walls (id, user_id, name, description, image_url, is_public)
++VALUES ({sql_quote(PRIVATE_WALL_ID)}, {sql_quote(OTHER_ID)}, 'Secret Training Wall', 'Private wall', {sql_quote(SECRET_WALL_IMAGE_URL)}, false);
++INSERT INTO public.routes (id,user_id,wall_id,name,grade_v,holds,is_public,venue_id,discipline,grade_system,grade_label,height_m,rock_type,terrain,created_at)
++VALUES
++ ({sql_quote(OWNER_ROUTE_ID)},{sql_quote(OWNER_ID)},'rls-harness-wall',{sql_quote(ROUTE_MARKER + 'route')},'V3','[]'::jsonb,true,{sql_quote(PUBLIC_VENUE_ID)},'board','v_scale','V3',NULL,NULL,NULL,now()),
++ ({sql_quote(OUTDOOR_ROUTE_ID)},{sql_quote(OWNER_ID)},NULL,{sql_quote(ROUTE_MARKER + 'outdoor')},NULL,'[]'::jsonb,true,{sql_quote(PUBLIC_VENUE_ID)},'sport','yds','5.12a',27.0,'Limestone','overhang',now()),
++ ({sql_quote(PRIVATE_ROUTE_ID)},{sql_quote(OTHER_ID)},NULL,{sql_quote(ROUTE_MARKER + 'private')},NULL,'[]'::jsonb,false,{sql_quote(PRIVATE_VENUE_ID)},'boulder','v_scale','V10',4.0,'Granite','roof',now()),
++ ({sql_quote(PUBLIC_ROUTE_PRIVATE_WALL_ID)},{sql_quote(OTHER_ID)},{sql_quote(PRIVATE_WALL_ID)},{sql_quote(ROUTE_MARKER + 'pub-priv-wall')},'V5','[]'::jsonb,true,NULL,'board','v_scale','V5',NULL,NULL,NULL,now()),
++ ({sql_quote(PUBLIC_ROUTE_PRIVATE_VENUE_ID)},{sql_quote(OTHER_ID)},NULL,{sql_quote(ROUTE_MARKER + 'pub-priv-venue')},NULL,'[]'::jsonb,true,{sql_quote(PRIVATE_VENUE_ID)},'boulder','v_scale','V7',3.5,'Granite','roof',now());
+ 
+-INSERT INTO public.climbing_sessions (id,user_id,venue_name,started_at,ended_at)
++INSERT INTO public.climbing_sessions (id,user_id,venue_name,conditions,notes,started_at,ended_at)
+ VALUES
+- ({sql_quote(OWNER_SESSION_ID)},{sql_quote(OWNER_ID)},'Owner Gym',now()-interval '1 hour',now()),
+- ({sql_quote(OTHER_SESSION_ID)},{sql_quote(OTHER_ID)},'Other Gym',now()-interval '1 hour',now()),
+- ({sql_quote(ACTIVE_SESSION_ID)},{sql_quote(OWNER_ID)},'Active Gym',now()-interval '30 minutes',NULL),
+- ({sql_quote(RACE_SESSION_ID)},{sql_quote(OWNER_ID)},'Race Gym',now()-interval '1 hour',now());
++ ({sql_quote(OWNER_SESSION_ID)},{sql_quote(OWNER_ID)},'Owner Gym',{sql_quote(SECRET_CONDITIONS)},{sql_quote(SECRET_NOTES)},now()-interval '1 hour',now()),
++ ({sql_quote(OTHER_SESSION_ID)},{sql_quote(OTHER_ID)},'Other Gym',NULL,NULL,now()-interval '1 hour',now()),
++ ({sql_quote(ACTIVE_SESSION_ID)},{sql_quote(OWNER_ID)},'Active Gym',NULL,NULL,now()-interval '30 minutes',NULL),
++ ({sql_quote(RACE_SESSION_ID)},{sql_quote(OWNER_ID)},'Race Gym',NULL,NULL,now()-interval '1 hour',now()),
++ ({sql_quote(OTHER_SESSION_PRIVATE_PARENT_ID)},{sql_quote(OTHER_ID)},'Secret Wall Gym',NULL,NULL,now()-interval '1 hour',now());
+ 
+-INSERT INTO public.climb_attempts (id,session_id,user_id,board_route_id,route_name,discipline,grade_system,grade_label,outcome,attempt_number,notes,occurred_at)
++INSERT INTO public.climb_attempts (id,session_id,user_id,route_id,route_name,discipline,grade_system,grade_label,outcome,attempt_number,notes,occurred_at)
+ VALUES
+  ({sql_quote(OWNER_SENT_ATTEMPT_ID)},{sql_quote(OWNER_SESSION_ID)},{sql_quote(OWNER_ID)},{sql_quote(OWNER_ROUTE_ID)},'Harness Send','board','v_scale','V3','sent',1,'owner public-safe note',now()),
+  ({sql_quote(OWNER_FELL_ATTEMPT_ID)},{sql_quote(OWNER_SESSION_ID)},{sql_quote(OWNER_ID)},NULL,'Harness Fell','boulder','v_scale','V4','fell',2,{sql_quote(SECRET_NOTES)},now()),
+@@ -272,12 +303,22 @@ VALUES
+  ({sql_quote(OTHER_FELL_ATTEMPT_ID)},{sql_quote(OTHER_SESSION_ID)},{sql_quote(OTHER_ID)},NULL,'Other Fell','sport','yds','5.10a','fell',1,'other private note',now()),
+  ({sql_quote(OTHER_PREPUBLISH_ATTEMPT_ID)},{sql_quote(OTHER_SESSION_ID)},{sql_quote(OTHER_ID)},NULL,'Other Sent','sport','yds','5.10b','sent',2,'other private note',now()),
+  ({sql_quote(ACTIVE_ATTEMPT_ID)},{sql_quote(ACTIVE_SESSION_ID)},{sql_quote(OWNER_ID)},NULL,'Active Attempt','boulder','v_scale','V2','sent',1,'active note',now()),
+- ({sql_quote(RACE_ATTEMPT_ID)},{sql_quote(RACE_SESSION_ID)},{sql_quote(OWNER_ID)},NULL,'Race Attempt','boulder','v_scale','V6','stopped',1,'race note',now());
++ ({sql_quote(RACE_ATTEMPT_ID)},{sql_quote(RACE_SESSION_ID)},{sql_quote(OWNER_ID)},NULL,'Race Attempt','boulder','v_scale','V6','stopped',1,'race note',now()),
++ ({sql_quote(OTHER_ATTEMPT_PRIVATE_PARENT_ID)},{sql_quote(OTHER_SESSION_PRIVATE_PARENT_ID)},{sql_quote(OTHER_ID)},{sql_quote(PUBLIC_ROUTE_PRIVATE_WALL_ID)},'Pub Priv Wall Attempt','board','v_scale','V5','sent',1,NULL,now());
++
++INSERT INTO public.follows (follower_id, following_id, created_at)
++VALUES
++ ({sql_quote(OWNER_ID)}, {sql_quote(OTHER_ID)}, now());
++
++INSERT INTO public.route_bookmarks (user_id, route_id, created_at)
++VALUES
++ ({sql_quote(OWNER_ID)}, {sql_quote(OUTDOOR_ROUTE_ID)}, now());
+ 
+ INSERT INTO public.session_posts (id,user_id,session_id,featured_attempt_id,caption,image_path,image_alt,overlay_style)
+ VALUES
+  ({sql_quote(OWNER_POST_ID)},{sql_quote(OWNER_ID)},{sql_quote(OWNER_SESSION_ID)},{sql_quote(OWNER_SENT_ATTEMPT_ID)},'Owner session post',{sql_quote(f"{OWNER_ID}/{OWNER_POST_ID}.jpg")},'Owner session image alt','stats'),
+- ({sql_quote(OTHER_POST_ID)},{sql_quote(OTHER_ID)},{sql_quote(OTHER_SESSION_ID)},{sql_quote(OTHER_FELL_ATTEMPT_ID)},'Other session post',{sql_quote(f"{OTHER_ID}/{OTHER_POST_ID}.jpg")},'Other session image alt','attempt_timeline');
++ ({sql_quote(OTHER_POST_ID)},{sql_quote(OTHER_ID)},{sql_quote(OTHER_SESSION_ID)},{sql_quote(OTHER_FELL_ATTEMPT_ID)},'Other session post',{sql_quote(f"{OTHER_ID}/{OTHER_POST_ID}.jpg")},'Other session image alt','attempt_timeline'),
++ ({sql_quote(OTHER_POST_PRIVATE_PARENT_ID)},{sql_quote(OTHER_ID)},{sql_quote(OTHER_SESSION_PRIVATE_PARENT_ID)},{sql_quote(OTHER_ATTEMPT_PRIVATE_PARENT_ID)},'Post with private parent wall',{sql_quote(f"{OTHER_ID}/{OTHER_POST_PRIVATE_PARENT_ID}.jpg")},'Alt text','stats');
+ 
+ INSERT INTO public.meetups (id,organizer_id,title,description,venue_name,area,starts_at,ends_at,capacity,status)
+ VALUES
+@@ -294,10 +335,19 @@ COMMIT;
+ 
+ def cleanup_fixtures() -> None:
+     user_ids = ", ".join(sql_quote(item) for item in (OWNER_ID, OTHER_ID, FILLER_ID))
++    route_ids = ", ".join(sql_quote(item) for item in (OWNER_ROUTE_ID, OUTDOOR_ROUTE_ID, PRIVATE_ROUTE_ID, PUBLIC_ROUTE_PRIVATE_WALL_ID, PUBLIC_ROUTE_PRIVATE_VENUE_ID))
++    venue_ids = ", ".join(sql_quote(item) for item in (PUBLIC_VENUE_ID, PRIVATE_VENUE_ID))
+     run_psql(
+-        f"DELETE FROM storage.objects WHERE bucket_id = 'social-media' AND name LIKE {sql_quote(OWNER_ID + '/rls-harness-%')};"
+-        f" DELETE FROM storage.objects WHERE bucket_id = 'social-media' AND name LIKE {sql_quote(OTHER_ID + '/rls-harness-%')};"
+-        f" DELETE FROM public.routes WHERE id = {sql_quote(OWNER_ROUTE_ID)};"
++        f"DELETE FROM public.session_posts WHERE id = {sql_quote(OTHER_POST_PRIVATE_PARENT_ID)};"
++        f" DELETE FROM public.climb_attempts WHERE id = {sql_quote(OTHER_ATTEMPT_PRIVATE_PARENT_ID)};"
++        f" DELETE FROM public.climbing_sessions WHERE id = {sql_quote(OTHER_SESSION_PRIVATE_PARENT_ID)};"
++        f" DELETE FROM public.walls WHERE id = {sql_quote(PRIVATE_WALL_ID)};"
++        f" DELETE FROM public.deleted_private_walls WHERE wall_id = {sql_quote(PRIVATE_WALL_ID)};"
++        f" DELETE FROM public.activity_events WHERE recipient_id IN ({user_ids}) OR actor_id IN ({user_ids});"
++        f" DELETE FROM public.route_bookmarks WHERE user_id IN ({user_ids});"
++        f" DELETE FROM public.follows WHERE follower_id IN ({user_ids}) OR following_id IN ({user_ids});"
++        f" DELETE FROM public.routes WHERE id IN ({route_ids});"
++        f" DELETE FROM public.venues WHERE id IN ({venue_ids});"
+         f" DELETE FROM auth.users WHERE id IN ({user_ids});"
+     )
+     remaining = run_psql(f"SELECT count(*) FROM auth.users WHERE id IN ({user_ids});")
+@@ -306,7 +356,7 @@ def cleanup_fixtures() -> None:
+ 
+ 
+ def rows(result: ApiResult, description: str) -> list[dict]:
+-    if result.status != 200 or not isinstance(result.body, list):
++    if result.status not in {200, 201} or not isinstance(result.body, list):
+         fail(f"{description} failed: HTTP {result.status} {result.body!r}")
+     return [item for item in result.body if isinstance(item, dict)]
+ 
+@@ -321,6 +371,11 @@ def assert_no_rows(result: ApiResult, description: str) -> None:
+         fail(f"{description} changed a row or returned an error: HTTP {result.status} {result.body!r}")
+ 
+ 
++def assert_mutation_denied(result: ApiResult, description: str) -> None:
++    if 200 <= result.status < 300 and result.body != [] and result.body is not None:
++        fail(f"{description} unexpectedly modified data: HTTP {result.status} {result.body!r}")
++
++
+ def assert_route_ownership(base: str, owner_token: str, other_token: str) -> None:
+     owner_patch = expect_api_result(
+         request_json("PATCH", f"{base}/rest/v1/routes?id=eq.{OWNER_ROUTE_ID}", owner_token, {"name": ROUTE_MARKER + "route-updated"}),
+@@ -343,7 +398,7 @@ def assert_route_ownership(base: str, owner_token: str, other_token: str) -> Non
+     print("PASS: existing Boarded route owner and cross-user RLS remained intact")
+ 
+ 
+-def assert_public_profiles_and_feed(base: str, other_token: str) -> None:
++def assert_public_profiles_and_feed(base: str, owner_token: str, other_token: str) -> None:
+     profile = expect_api_result(
+         request_json("GET", f"{base}/rest/v1/profiles?id=eq.{OWNER_ID}&select=id,username,home_area"),
+         "anonymous public profile read",
+@@ -365,7 +420,7 @@ def assert_public_profiles_and_feed(base: str, other_token: str) -> None:
+         for field in (
+             "id", "user_id", "session_id", "featured_attempt_id", "caption",
+             "image_path", "image_alt", "overlay_style", "created_at", "updated_at",
+-            "like_count", "comment_count", "is_liked",
++            "like_count", "comment_count", "is_liked", "route",
+         ):
+             if field not in item:
+                 fail(f"feed item missing field {field}: {item!r}")
+@@ -376,7 +431,7 @@ def assert_public_profiles_and_feed(base: str, other_token: str) -> None:
+         author = item.get("author")
+         if not isinstance(author, dict):
+             fail(f"feed omitted nested author: {item!r}")
+-        for author_field in ("id", "username", "full_name", "avatar_url", "bio", "home_area"):
++        for author_field in ("id", "username", "full_name", "avatar_url", "bio", "home_area", "is_followed"):
+             if author_field not in author:
+                 fail(f"feed author missing field {author_field}: {author!r}")
+ 
+@@ -386,13 +441,13 @@ def assert_public_profiles_and_feed(base: str, other_token: str) -> None:
+         for session_field in ("id", "venue_name", "started_at", "ended_at", "duration_seconds", "attempt_count", "send_count", "featured_attempt", "attempt_timeline"):
+             if session_field not in session:
+                 fail(f"feed session missing field {session_field}: {session!r}")
+-        if "notes" in session:
+-            fail(f"feed session leaked notes: {session!r}")
++        if any(key in session for key in ("notes", "conditions")):
++            fail(f"feed session leaked notes/conditions: {session!r}")
+ 
+         featured_attempt = session.get("featured_attempt")
+         if not isinstance(featured_attempt, dict):
+             fail(f"feed session omitted featured_attempt: {session!r}")
+-        for attempt_field in ("id", "route_name", "discipline", "grade_system", "grade_label", "outcome", "attempt_number", "occurred_at"):
++        for attempt_field in ("id", "route_name", "discipline", "grade_system", "grade_label", "outcome", "attempt_number", "occurred_at", "route_id"):
+             if attempt_field not in featured_attempt:
+                 fail(f"featured_attempt missing field {attempt_field}: {featured_attempt!r}")
+         if any(key in featured_attempt for key in ("notes", "session_id", "user_id")):
+@@ -416,6 +471,10 @@ def assert_public_profiles_and_feed(base: str, other_token: str) -> None:
+     other_session = other_post.get("session", {})
+     if owner_session.get("attempt_timeline") is not None:
+         fail(f"stats post exposed an attempt timeline: {owner_session!r}")
++    if owner_post.get("route") is None or owner_post.get("route", {}).get("id") != OWNER_ROUTE_ID:
++        fail(f"owner post route expected linked route {OWNER_ROUTE_ID}, got {owner_post.get('route')!r}")
++    if other_post.get("route") is not None:
++        fail(f"other post route without linked route expected None, got {other_post.get('route')!r}")
+     expected_timeline = [
+         {"attempt_number": 1, "outcome": "fell"},
+         {"attempt_number": 2, "outcome": "sent"},
+@@ -493,6 +552,11 @@ def assert_public_profiles_and_feed(base: str, other_token: str) -> None:
+         fail(f"other post disappeared after attempt mutation: {feed_after_mutation!r}")
+     if other_post_after_mutation.get("session", {}).get("attempt_timeline") != expected_timeline:
+         fail(f"attempt timeline changed after later attempt mutation: {other_post_after_mutation!r}")
++    # DATA-V1-003: Later private attempt must not alter published attempt_count or send_count
++    if other_post_after_mutation.get("session", {}).get("attempt_count") != 2:
++        fail(f"published attempt_count changed from 2 to {other_post_after_mutation.get('session', {}).get('attempt_count')}")
++    if other_post_after_mutation.get("session", {}).get("send_count") != 1:
++        fail(f"published send_count changed from 1 to {other_post_after_mutation.get('session', {}).get('send_count')}")
+     owner_post_after_mutation = next((item for item in feed_after_mutation if item.get("id") == OWNER_POST_ID), None)
+     if owner_post_after_mutation and owner_post_after_mutation.get("session", {}).get("attempt_timeline") is not None:
+         fail(f"stats post exposed a timeline after attempt mutation: {owner_post_after_mutation!r}")
+@@ -500,7 +564,7 @@ def assert_public_profiles_and_feed(base: str, other_token: str) -> None:
+     if OTHER_LATER_ATTEMPT_ID in serialized_after_mutation or SECRET_NOTES in serialized_after_mutation:
+         fail(f"feed leaked later/private attempt data after mutation: {serialized_after_mutation}")
+ 
+-    # Verify stable two-page (created_at, id) cursor pagination without duplicates or omissions
++    # Verify stable three-page (created_at, id) cursor pagination without duplicates or omissions
+     feed_page1 = rows(
+         rpc(base, "get_session_feed", payload={"page_size": 1}),
+         "anonymous session feed page 1",
+@@ -508,15 +572,15 @@ def assert_public_profiles_and_feed(base: str, other_token: str) -> None:
+     if len(feed_page1) != 1:
+         fail(f"session feed page 1 expected 1 item, got {feed_page1!r}")
+     item1 = feed_page1[0]
+-    cursor_created_at = item1.get("created_at")
+-    cursor_id = item1.get("id")
+-    if not cursor_created_at or not cursor_id:
++    cursor1_created_at = item1.get("created_at")
++    cursor1_id = item1.get("id")
++    if not cursor1_created_at or not cursor1_id:
+         fail(f"session feed page 1 item missing cursor fields: {item1!r}")
+ 
+     feed_page2 = rows(
+         rpc(base, "get_session_feed", payload={
+-            "before_created_at": cursor_created_at,
+-            "before_id": cursor_id,
++            "before_created_at": cursor1_created_at,
++            "before_id": cursor1_id,
+             "page_size": 1,
+         }),
+         "anonymous session feed page 2",
+@@ -524,24 +588,50 @@ def assert_public_profiles_and_feed(base: str, other_token: str) -> None:
+     if len(feed_page2) != 1:
+         fail(f"session feed page 2 expected 1 item, got {feed_page2!r}")
+     item2 = feed_page2[0]
+-    if item1["id"] == item2["id"]:
+-        fail(f"session feed returned duplicate item across pages: {item1['id']}")
+-    if {item1["id"], item2["id"]} != {OWNER_POST_ID, OTHER_POST_ID}:
+-        fail(f"two-page session feed missed expected posts: {item1['id']}, {item2['id']}")
++    if item2["id"] == item1["id"]:
++        fail(f"session feed returned duplicate item across pages 1 and 2: {item1['id']}")
++    cursor2_created_at = item2.get("created_at")
++    cursor2_id = item2.get("id")
++    if not cursor2_created_at or not cursor2_id:
++        fail(f"session feed page 2 item missing cursor fields: {item2!r}")
+ 
+     feed_page3 = rows(
+         rpc(base, "get_session_feed", payload={
+-            "before_created_at": item2.get("created_at"),
+-            "before_id": item2.get("id"),
++            "before_created_at": cursor2_created_at,
++            "before_id": cursor2_id,
+             "page_size": 1,
+         }),
+-        "anonymous session feed page 3 (past end)",
++        "anonymous session feed page 3",
+     )
+-    if feed_page3:
+-        fail(f"session feed page 3 past end returned unexpected items: {feed_page3!r}")
++    if len(feed_page3) != 1:
++        fail(f"session feed page 3 expected 1 item, got {feed_page3!r}")
++    item3 = feed_page3[0]
++    if item3["id"] in {item1["id"], item2["id"]}:
++        fail(f"session feed returned duplicate item on page 3: {item3['id']}")
++
++    if {item1["id"], item2["id"], item3["id"]} != {OWNER_POST_ID, OTHER_POST_ID, OTHER_POST_PRIVATE_PARENT_ID}:
++        fail(f"three-page session feed missed expected posts: {item1['id']}, {item2['id']}, {item3['id']}")
++
++    feed_page4 = rows(
++        rpc(base, "get_session_feed", payload={
++            "before_created_at": item3.get("created_at"),
++            "before_id": item3.get("id"),
++            "page_size": 1,
++        }),
++        "anonymous session feed page 4 (past end)",
++    )
++    if feed_page4:
++        fail(f"session feed page 4 past end returned unexpected items: {feed_page4!r}")
+     owner_feed = rows(rpc(base, "get_session_feed", payload={"author_filter": OWNER_ID, "page_size": 1}), "filtered session feed")
+     if len(owner_feed) != 1 or owner_feed[0].get("user_id") != OWNER_ID:
+         fail(f"author-filtered feed was wrong: {owner_feed!r}")
++    following_feed = rows(
++        rpc(base, "get_session_feed", owner_token, {"following_only": True, "page_size": 10}),
++        "following-only feed",
++    )
++    following_ids = [item.get("id") for item in following_feed]
++    if OTHER_POST_ID not in following_ids or OWNER_POST_ID in following_ids:
++        fail(f"following-only feed did not filter correctly: {following_ids!r}")
+     print("PASS: anonymous public profile/feed, immutable attempt timeline privacy, nested author/session/featured_attempt, any-outcome featured attempt, and non-leakage verified")
+ 
+ 
+@@ -550,8 +640,8 @@ def assert_private_sessions_and_attempts(base: str, owner_token: str, other_toke
+         expect_api_result(request_json("GET", f"{base}/rest/v1/climbing_sessions?id=eq.{OWNER_SESSION_ID}&select=*", owner_token), "owner session read"),
+         "owner session read",
+     )
+-    if len(owner_sessions) != 1:
+-        fail(f"owner could not read own session: {owner_sessions!r}")
++    if len(owner_sessions) != 1 or owner_sessions[0].get("conditions") != SECRET_CONDITIONS or owner_sessions[0].get("notes") != SECRET_NOTES:
++        fail(f"owner could not read own session conditions/notes: {owner_sessions!r}")
+     other_session = rows(
+         expect_api_result(request_json("GET", f"{base}/rest/v1/climbing_sessions?id=eq.{OWNER_SESSION_ID}&select=*", other_token), "other session read"),
+         "other session read",
+@@ -567,6 +657,8 @@ def assert_private_sessions_and_attempts(base: str, owner_token: str, other_toke
+     )
+     if not any(item.get("id") == OWNER_FELL_ATTEMPT_ID and item.get("notes") == SECRET_NOTES for item in owner_attempts):
+         fail(f"owner could not read private attempt notes: {owner_attempts!r}")
++    if not any(item.get("id") == OWNER_SENT_ATTEMPT_ID and item.get("route_id") == OWNER_ROUTE_ID for item in owner_attempts):
++        fail(f"owner could not read route_id on sent attempt: {owner_attempts!r}")
+     other_attempts = rows(
+         expect_api_result(request_json("GET", f"{base}/rest/v1/climb_attempts?session_id=eq.{OWNER_SESSION_ID}&select=*", other_token), "other attempt read"),
+         "other attempt read",
+@@ -605,8 +697,8 @@ def assert_social_mutations(base: str, owner_token: str, other_token: str) -> No
+     assert_rejected(post("climb_attempts", owner_token, {"session_id": OTHER_SESSION_ID, "user_id": OWNER_ID, "route_name": "cross", "discipline": "board", "grade_system": "v_scale", "grade_label": "V1", "outcome": "fell", "attempt_number": 1, "occurred_at": "2030-01-01T00:00:00Z"}, "attempt in another session"), "attempt in another session")
+     assert_rejected(patch("climb_attempts", f"id=eq.{OWNER_SENT_ATTEMPT_ID}", owner_token, {"user_id": OTHER_ID}, "owner attempt user mutation"), "owner attempt user mutation")
+     assert_rejected(patch("climb_attempts", f"id=eq.{OWNER_SENT_ATTEMPT_ID}", owner_token, {"session_id": OTHER_SESSION_ID}, "owner attempt session mutation"), "owner attempt session mutation")
+-    assert_rejected(patch("climb_attempts", f"id=eq.{OWNER_SENT_ATTEMPT_ID}", owner_token, {"board_route_id": None}, "owner attempt board route mutation"), "owner attempt board route mutation")
+-    assert_rejected(patch("climb_attempts", f"id=eq.{OWNER_SENT_ATTEMPT_ID}", owner_token, {"board_route_id": "c00d8780-5d47-4db8-90a5-3c5bc73f7c31"}, "owner attempt board route reparent"), "owner attempt board route reparent")
++    assert_rejected(patch("climb_attempts", f"id=eq.{OWNER_SENT_ATTEMPT_ID}", owner_token, {"route_id": None}, "owner attempt route mutation"), "owner attempt route mutation")
++    assert_rejected(patch("climb_attempts", f"id=eq.{OWNER_SENT_ATTEMPT_ID}", owner_token, {"route_id": "c00d8780-5d47-4db8-90a5-3c5bc73f7c31"}, "owner attempt route reparent"), "owner attempt route reparent")
+     route_delete = expect_api_result(
+         request_json("DELETE", f"{base}/rest/v1/routes?id=eq.{OWNER_ROUTE_ID}", owner_token),
+         "route owner delete",
+@@ -615,13 +707,13 @@ def assert_social_mutations(base: str, owner_token: str, other_token: str) -> No
+         fail(f"route owner delete failed: HTTP {route_delete.status} {route_delete.body!r}")
+     attempt_after_route_delete = rows(
+         expect_api_result(
+-            request_json("GET", f"{base}/rest/v1/climb_attempts?id=eq.{OWNER_SENT_ATTEMPT_ID}&select=board_route_id", owner_token),
+-            "attempt board_route_id after route delete",
++            request_json("GET", f"{base}/rest/v1/climb_attempts?id=eq.{OWNER_SENT_ATTEMPT_ID}&select=route_id", owner_token),
++            "attempt route_id after route delete",
+         ),
+-        "attempt board_route_id after route delete",
++        "attempt route_id after route delete",
+     )
+-    if len(attempt_after_route_delete) != 1 or attempt_after_route_delete[0].get("board_route_id") is not None:
+-        fail(f"route delete did not null the child board_route_id: {attempt_after_route_delete!r}")
++    if len(attempt_after_route_delete) != 1 or attempt_after_route_delete[0].get("route_id") is not None:
++        fail(f"route delete did not null the child route_id: {attempt_after_route_delete!r}")
+     assert_no_rows(patch("climb_attempts", f"id=eq.{OWNER_SENT_ATTEMPT_ID}", other_token, {"notes": "cross"}, "cross-user attempt update"), "cross-user attempt update")
+ 
+     # 2. Session post validation & rejection tests
+@@ -1053,6 +1145,288 @@ def assert_storage_ownership(base: str, owner_token: str, other_token: str) -> N
+             fail(f"owner social-media cleanup failed: HTTP {deleted.status} {deleted.body!r}")
+     print("PASS: social-media public read and first-path authenticated ownership verified")
+ 
++def assert_community_prerequisites(base: str, owner_token: str, other_token: str) -> None:
++    # 1. Venues RLS & immutability
++    public_venue = rows(expect_api_result(request_json("GET", f"{base}/rest/v1/venues?id=eq.{PUBLIC_VENUE_ID}"), "anon public venue read"), "anon public venue read")
++    if len(public_venue) != 1 or public_venue[0].get("name") != "Stone Crag":
++        fail(f"anonymous read could not see public venue: {public_venue!r}")
++
++    private_venue_anon = expect_api_result(request_json("GET", f"{base}/rest/v1/venues?id=eq.{PRIVATE_VENUE_ID}"), "anon private venue read")
++    if private_venue_anon.status not in {200, 401, 403} or (private_venue_anon.status == 200 and private_venue_anon.body):
++        fail(f"anonymous read leaked private venue: {private_venue_anon.body!r}")
++
++    private_venue_other = rows(expect_api_result(request_json("GET", f"{base}/rest/v1/venues?id=eq.{PRIVATE_VENUE_ID}", other_token), "owner private venue read"), "owner private venue read")
++    if len(private_venue_other) != 1 or private_venue_other[0].get("name") != "Secret Cave":
++        fail(f"owner could not see own private venue: {private_venue_other!r}")
++
++    private_venue_cross = rows(expect_api_result(request_json("GET", f"{base}/rest/v1/venues?id=eq.{PRIVATE_VENUE_ID}", owner_token), "cross-user private venue read"), "cross-user private venue read")
++    if private_venue_cross:
++        fail(f"cross-user read leaked private venue: {private_venue_cross!r}")
++
++    # Cross-user venue update/delete denied
++    assert_no_rows(expect_api_result(request_json("PATCH", f"{base}/rest/v1/venues?id=eq.{PRIVATE_VENUE_ID}", owner_token, {"name": "hacked"}), "cross venue update"), "cross venue update")
++    assert_no_rows(expect_api_result(request_json("DELETE", f"{base}/rest/v1/venues?id=eq.{PRIVATE_VENUE_ID}", owner_token), "cross venue delete"), "cross venue delete")
++
++    # Venue user_id immutability
++    assert_rejected(expect_api_result(request_json("PATCH", f"{base}/rest/v1/venues?id=eq.{PUBLIC_VENUE_ID}", owner_token, {"user_id": OTHER_ID}), "venue user_id mutation"), "venue user_id mutation")
++
++    # 2. Extended Routes RLS & nullable wall_id
++    outdoor_route = rows(expect_api_result(request_json("GET", f"{base}/rest/v1/routes?id=eq.{OUTDOOR_ROUTE_ID}"), "anon outdoor route read"), "anon outdoor route read")
++    if len(outdoor_route) != 1 or outdoor_route[0].get("wall_id") is not None or outdoor_route[0].get("discipline") != "sport":
++        fail(f"outdoor route did not return correct nullable wall_id or discipline: {outdoor_route!r}")
++
++    private_route_anon = expect_api_result(request_json("GET", f"{base}/rest/v1/routes?id=eq.{PRIVATE_ROUTE_ID}"), "anon private route read")
++    if private_route_anon.status not in {200, 401, 403} or (private_route_anon.status == 200 and private_route_anon.body):
++        fail(f"anonymous read leaked private route: {private_route_anon.body!r}")
++
++    private_route_cross = rows(expect_api_result(request_json("GET", f"{base}/rest/v1/routes?id=eq.{PRIVATE_ROUTE_ID}", owner_token), "cross private route read"), "cross private route read")
++    if private_route_cross:
++        fail(f"cross-user read leaked private route: {private_route_cross!r}")
++
++    # 3. Follows table authorization & lifecycle
++    follows_read = rows(expect_api_result(request_json("GET", f"{base}/rest/v1/follows?follower_id=eq.{OWNER_ID}"), "anon follows read"), "anon follows read")
++    if len(follows_read) != 1 or follows_read[0].get("following_id") != OTHER_ID:
++        fail(f"public follows read failed: {follows_read!r}")
++
++    # No self-follow constraint
++    assert_rejected(expect_api_result(request_json("POST", f"{base}/rest/v1/follows", owner_token, {"follower_id": OWNER_ID, "following_id": OWNER_ID}), "self follow rejected"), "self follow rejected")
++
++    # Cross-user follow insertion denied
++    assert_rejected(expect_api_result(request_json("POST", f"{base}/rest/v1/follows", other_token, {"follower_id": OWNER_ID, "following_id": FILLER_ID}), "cross follow insert"), "cross follow insert")
++
++    # Cross-user follow deletion denied
++    assert_no_rows(expect_api_result(request_json("DELETE", f"{base}/rest/v1/follows?follower_id=eq.{OWNER_ID}&following_id=eq.{OTHER_ID}", other_token), "cross follow delete"), "cross follow delete")
++
++    # Follow keys immutable
++    follow_patch = expect_api_result(request_json("PATCH", f"{base}/rest/v1/follows?follower_id=eq.{OWNER_ID}&following_id=eq.{OTHER_ID}", owner_token, {"following_id": FILLER_ID}), "follow key mutation")
++    assert_mutation_denied(follow_patch, "follow key mutation")
++    follows_after = rows(expect_api_result(request_json("GET", f"{base}/rest/v1/follows?follower_id=eq.{OWNER_ID}"), "follows check after patch"), "follows check after patch")
++    if len(follows_after) != 1 or follows_after[0].get("following_id") != OTHER_ID:
++        fail(f"follow key was altered by mutation: {follows_after!r}")
++
++    # 4. Route Bookmarks (owner-only saved routes)
++    anon_bookmarks = expect_api_result(request_json("GET", f"{base}/rest/v1/route_bookmarks"), "anon bookmarks read")
++    if anon_bookmarks.status not in {200, 401, 403} or (anon_bookmarks.status == 200 and anon_bookmarks.body):
++        fail(f"anonymous read leaked bookmarks: {anon_bookmarks.body!r}")
++
++    owner_bookmarks = rows(expect_api_result(request_json("GET", f"{base}/rest/v1/route_bookmarks", owner_token), "owner bookmarks read"), "owner bookmarks read")
++    if len(owner_bookmarks) != 1 or owner_bookmarks[0].get("route_id") != OUTDOOR_ROUTE_ID:
++        fail(f"owner could not read own bookmark: {owner_bookmarks!r}")
++
++    other_bookmarks = rows(expect_api_result(request_json("GET", f"{base}/rest/v1/route_bookmarks", other_token), "other bookmarks read"), "other bookmarks read")
++    if other_bookmarks:
++        fail(f"other user read owner bookmarks: {other_bookmarks!r}")
++
++    # Saving inaccessible private route rejected by WITH CHECK
++    assert_rejected(expect_api_result(request_json("POST", f"{base}/rest/v1/route_bookmarks", owner_token, {"user_id": OWNER_ID, "route_id": PRIVATE_ROUTE_ID}), "saving private route rejected"), "saving private route rejected")
++
++    # Cross-user bookmark insertion rejected
++    assert_rejected(expect_api_result(request_json("POST", f"{base}/rest/v1/route_bookmarks", owner_token, {"user_id": OTHER_ID, "route_id": OUTDOOR_ROUTE_ID}), "cross bookmark insert"), "cross bookmark insert")
++
++    # Bookmark keys immutable
++    bookmark_patch = expect_api_result(request_json("PATCH", f"{base}/rest/v1/route_bookmarks?user_id=eq.{OWNER_ID}&route_id=eq.{OUTDOOR_ROUTE_ID}", owner_token, {"route_id": OWNER_ROUTE_ID}), "bookmark key mutation")
++    assert_mutation_denied(bookmark_patch, "bookmark key mutation")
++    bookmarks_after = rows(expect_api_result(request_json("GET", f"{base}/rest/v1/route_bookmarks", owner_token), "bookmarks check after patch"), "bookmarks check after patch")
++    if len(bookmarks_after) != 1 or bookmarks_after[0].get("route_id") != OUTDOOR_ROUTE_ID:
++        fail(f"bookmark key was altered by mutation: {bookmarks_after!r}")
++
++    # 5. Activity Events (inbox privacy, tampering denial, and trigger execution)
++    anon_activity = expect_api_result(request_json("GET", f"{base}/rest/v1/activity_events"), "anon activity read")
++    if anon_activity.status not in {200, 401, 403} or (anon_activity.status == 200 and anon_activity.body):
++        fail(f"anonymous read leaked activity events: {anon_activity.body!r}")
++
++    # Direct client insert denied
++    assert_rejected(expect_api_result(request_json("POST", f"{base}/rest/v1/activity_events", owner_token, {"recipient_id": OTHER_ID, "actor_id": OWNER_ID, "kind": "follow"}), "client activity forging denied"), "client activity forging denied")
++
++    # Follow trigger generated event for OTHER_ID
++    other_activity = rows(expect_api_result(request_json("GET", f"{base}/rest/v1/activity_events", other_token), "other activity inbox read"), "other activity inbox read")
++    follow_event = next((e for e in other_activity if e.get("kind") == "follow" and e.get("actor_id") == OWNER_ID), None)
++    if not follow_event:
++        fail(f"follow trigger did not create activity event for followed user: {other_activity!r}")
++
++    # Recipient mark-read works
++    mark_read = expect_api_result(request_json("PATCH", f"{base}/rest/v1/activity_events?id=eq.{follow_event['id']}", other_token, {"read_at": datetime.now(timezone.utc).isoformat()}), "mark activity read")
++    if mark_read.status not in {200, 204}:
++        fail(f"recipient could not mark activity read: HTTP {mark_read.status} {mark_read.body!r}")
++
++    # Activity event tampering denied
++    assert_rejected(expect_api_result(request_json("PATCH", f"{base}/rest/v1/activity_events?id=eq.{follow_event['id']}", other_token, {"kind": "like"}), "activity kind tampering"), "activity kind tampering")
++    assert_rejected(expect_api_result(request_json("PATCH", f"{base}/rest/v1/activity_events?id=eq.{follow_event['id']}", other_token, {"actor_id": FILLER_ID}), "activity actor tampering"), "activity actor tampering")
++
++    # Cross-user read/update/delete denied
++    owner_activity = rows(expect_api_result(request_json("GET", f"{base}/rest/v1/activity_events", owner_token), "owner activity read"), "owner activity read")
++    if any(e.get("id") == follow_event["id"] for e in owner_activity):
++        fail(f"owner read other user's activity event: {owner_activity!r}")
++
++    # 6. Community RPCs
++    # get_explore_routes
++    explore_routes = rows(rpc(base, "get_explore_routes", owner_token, {"page_size": 20}), "get_explore_routes")
++    explore_ids = [r.get("id") for r in explore_routes]
++    if OWNER_ROUTE_ID not in explore_ids or OUTDOOR_ROUTE_ID not in explore_ids:
++        fail(f"explore routes missed public routes: {explore_ids!r}")
++    if PRIVATE_ROUTE_ID in explore_ids:
++        fail(f"explore routes leaked private route: {explore_ids!r}")
++
++    # Saved-only filter
++    saved_explore = rows(rpc(base, "get_explore_routes", owner_token, {"saved_only": True, "page_size": 20}), "saved explore routes")
++    if len(saved_explore) != 1 or saved_explore[0].get("id") != OUTDOOR_ROUTE_ID:
++        fail(f"saved-only filter did not return exactly the bookmarked route: {saved_explore!r}")
++
++    # search_climbers
++    climbers = rows(rpc(base, "search_climbers", owner_token, {"search_text": "rls-harness"}), "search_climbers")
++    other_climber = next((c for c in climbers if c.get("id") == OTHER_ID), None)
++    if not other_climber or other_climber.get("is_followed") is not True or other_climber.get("follower_count") != 1:
++        fail(f"search_climbers did not return correct is_followed or follower_count: {other_climber!r}")
++
++    # get_activity RPC
++    activity_rpc = rows(rpc(base, "get_activity", other_token, {"page_size": 20}), "get_activity rpc")
++    if not any(e.get("id") == follow_event["id"] and isinstance(e.get("actor"), dict) for e in activity_rpc):
++        fail(f"get_activity RPC did not return caller inbox event with nested actor: {activity_rpc!r}")
++
++    print("PASS: community prerequisites: venues, outdoor routes, follows, bookmarks, activity inbox, and discovery RPCs verified")
++
++    # 7. Public routes on private parents (underlying wall / venue visibility protection)
++    # Direct route access: non-owners and anon cannot read public routes with private parents
++    anon_pw_route = expect_api_result(request_json("GET", f"{base}/rest/v1/routes?id=eq.{PUBLIC_ROUTE_PRIVATE_WALL_ID}"), "anon pub-route priv-wall read")
++    if anon_pw_route.status not in {200, 401, 403} or (anon_pw_route.status == 200 and anon_pw_route.body):
++        fail(f"anon read leaked public route on private wall: {anon_pw_route.body!r}")
++
++    owner_pw_route = rows(expect_api_result(request_json("GET", f"{base}/rest/v1/routes?id=eq.{PUBLIC_ROUTE_PRIVATE_WALL_ID}", owner_token), "cross pub-route priv-wall read"), "cross pub-route priv-wall read")
++    if owner_pw_route:
++        fail(f"non-owner read leaked public route on private wall: {owner_pw_route!r}")
++
++    other_pw_route = rows(expect_api_result(request_json("GET", f"{base}/rest/v1/routes?id=eq.{PUBLIC_ROUTE_PRIVATE_WALL_ID}", other_token), "owner pub-route priv-wall read"), "owner pub-route priv-wall read")
++    if len(other_pw_route) != 1 or other_pw_route[0].get("id") != PUBLIC_ROUTE_PRIVATE_WALL_ID:
++        fail(f"wall owner could not read own public route on own private wall: {other_pw_route!r}")
++
++    anon_pv_route = expect_api_result(request_json("GET", f"{base}/rest/v1/routes?id=eq.{PUBLIC_ROUTE_PRIVATE_VENUE_ID}"), "anon pub-route priv-venue read")
++    if anon_pv_route.status not in {200, 401, 403} or (anon_pv_route.status == 200 and anon_pv_route.body):
++        fail(f"anon read leaked public route on private venue: {anon_pv_route.body!r}")
++
++    owner_pv_route = rows(expect_api_result(request_json("GET", f"{base}/rest/v1/routes?id=eq.{PUBLIC_ROUTE_PRIVATE_VENUE_ID}", owner_token), "cross pub-route priv-venue read"), "cross pub-route priv-venue read")
++    if owner_pv_route:
++        fail(f"non-owner read leaked public route on private venue: {owner_pv_route!r}")
++
++    # Bookmarking public routes with private parents is rejected for non-owners
++    assert_rejected(expect_api_result(request_json("POST", f"{base}/rest/v1/route_bookmarks", owner_token, {"user_id": OWNER_ID, "route_id": PUBLIC_ROUTE_PRIVATE_WALL_ID}), "bookmark pub-route priv-wall"), "bookmark pub-route priv-wall")
++    assert_rejected(expect_api_result(request_json("POST", f"{base}/rest/v1/route_bookmarks", owner_token, {"user_id": OWNER_ID, "route_id": PUBLIC_ROUTE_PRIVATE_VENUE_ID}), "bookmark pub-route priv-venue"), "bookmark pub-route priv-venue")
++
++    # Explore RPC excludes public routes on private parents for non-owners, and never leaks wall image
++    anon_explore = rows(rpc(base, "get_explore_routes", payload={"page_size": 50}), "anon explore private parents")
++    anon_explore_ids = [r.get("id") for r in anon_explore]
++    if PUBLIC_ROUTE_PRIVATE_WALL_ID in anon_explore_ids or PUBLIC_ROUTE_PRIVATE_VENUE_ID in anon_explore_ids:
++        fail(f"explore leaked public route on private parent: {anon_explore_ids!r}")
++    serialized_explore = json.dumps(anon_explore)
++    if SECRET_WALL_IMAGE_URL in serialized_explore:
++        fail(f"explore leaked private wall image URL: {serialized_explore}")
++
++    other_explore = rows(rpc(base, "get_explore_routes", other_token, {"page_size": 50}), "owner explore private parents")
++    other_explore_ids = [r.get("id") for r in other_explore]
++    if PUBLIC_ROUTE_PRIVATE_WALL_ID not in other_explore_ids or PUBLIC_ROUTE_PRIVATE_VENUE_ID not in other_explore_ids:
++        fail(f"parent owner explore missed own routes: {other_explore_ids!r}")
++
++    # Feed RPC on post featuring attempt on public route with private wall:
++    # Non-owner viewer receives route = None, featured_attempt.route_id = None, and no private wall image URL
++    owner_feed_check = rows(rpc(base, "get_session_feed", owner_token, {"post_filter": OTHER_POST_PRIVATE_PARENT_ID, "page_size": 1}), "owner check feed private parent")
++    if len(owner_feed_check) != 1:
++        fail(f"feed did not return post with private parent: {owner_feed_check!r}")
++    priv_parent_post = owner_feed_check[0]
++    if priv_parent_post.get("route") is not None:
++        fail(f"feed leaked route for public route on private wall: {priv_parent_post.get('route')!r}")
++    if priv_parent_post.get("session", {}).get("featured_attempt", {}).get("route_id") is not None:
++        fail(f"feed leaked route_id for public route on private wall: {priv_parent_post!r}")
++    if SECRET_WALL_IMAGE_URL in json.dumps(priv_parent_post):
++        fail(f"feed leaked private wall image URL: {priv_parent_post!r}")
++
++    # Owner viewer receives route populated with wall image URL
++    other_feed_check = rows(rpc(base, "get_session_feed", other_token, {"post_filter": OTHER_POST_PRIVATE_PARENT_ID, "page_size": 1}), "parent owner feed check")
++    if len(other_feed_check) != 1:
++        fail(f"parent owner feed did not return post: {other_feed_check!r}")
++    owner_view_post = other_feed_check[0]
++    if owner_view_post.get("route") is None or owner_view_post.get("route", {}).get("id") != PUBLIC_ROUTE_PRIVATE_WALL_ID:
++        fail(f"parent owner could not see own route on private wall in feed: {owner_view_post!r}")
++    if owner_view_post.get("route", {}).get("image_url") != SECRET_WALL_IMAGE_URL:
++        fail(f"parent owner expected wall image URL {SECRET_WALL_IMAGE_URL!r}, got {owner_view_post.get('route', {}).get('image_url')!r}")
++
++    # 8. increment_route_view respects parent visibility (DATA-V1-004)
++    owner_view = expect_api_result(rpc(base, "increment_route_view", owner_token, {"target_route_id": OWNER_ROUTE_ID}), "increment route view accessible")
++    if owner_view.status != 200 or not isinstance(owner_view.body, int):
++        fail(f"increment_route_view on accessible route failed: {owner_view!r}")
++    priv_parent_view = expect_api_result(rpc(base, "increment_route_view", owner_token, {"target_route_id": PUBLIC_ROUTE_PRIVATE_WALL_ID}), "increment route view priv parent")
++    if priv_parent_view.status != 200 or priv_parent_view.body is not None:
++        fail(f"increment_route_view on route with private parent expected null, got {priv_parent_view.body!r}")
++
++    # 9. 1:1 comment provenance and selective deletion (DATA-V1-005)
++    c1_id = str(uuid.uuid4())
++    c2_id = str(uuid.uuid4())
++    c1_res = expect_api_result(request_json("POST", f"{base}/rest/v1/session_post_comments", owner_token, {"id": c1_id, "post_id": OTHER_POST_ID, "user_id": OWNER_ID, "content": "Comment 1"}), "comment 1 insert")
++    # Comment id is immutable to prevent stranding activity event provenance
++    assert_rejected(expect_api_result(request_json("PATCH", f"{base}/rest/v1/session_post_comments?id=eq.{c1_id}", owner_token, {"id": str(uuid.uuid4())}), "comment id mutation"), "comment id mutation")
++    c2 = expect_api_result(request_json("POST", f"{base}/rest/v1/session_post_comments", owner_token, {"id": c2_id, "post_id": OTHER_POST_ID, "user_id": OWNER_ID, "content": "Comment 2"}), "comment 2 insert")
++    other_comm_events = rows(expect_api_result(request_json("GET", f"{base}/rest/v1/activity_events?recipient_id=eq.{OTHER_ID}&kind=eq.comment", other_token), "other comment activity read"), "other comment activity read")
++    if len(other_comm_events) < 2:
++        fail(f"two comments did not create two distinct activity events: {other_comm_events!r}")
++    expect_api_result(request_json("DELETE", f"{base}/rest/v1/session_post_comments?id=eq.{c1_id}", owner_token), "delete comment 1")
++    other_after_del = rows(expect_api_result(request_json("GET", f"{base}/rest/v1/activity_events?recipient_id=eq.{OTHER_ID}&kind=eq.comment", other_token), "activity after delete c1"), "activity after delete c1")
++    if len(other_after_del) != len(other_comm_events) - 1:
++        fail(f"deleting comment 1 did not remove exactly one activity event: before={len(other_comm_events)} after={len(other_after_del)}")
++    expect_api_result(request_json("DELETE", f"{base}/rest/v1/session_post_comments?id=eq.{c2_id}", owner_token), "delete comment 2")
++
++    # 10. Parent deletion marks surviving routes private and records tombstones (DATA-V1-002)
++    disp_wall_id = str(uuid.uuid4())
++    disp_route_id = str(uuid.uuid4())
++    run_psql(
++        f"INSERT INTO public.walls (id, user_id, name, description, image_url, is_public) VALUES ({sql_quote(disp_wall_id)}, {sql_quote(OTHER_ID)}, 'Disp Wall', 'Priv', 'https://secret.example.com/disp.jpg', false);"
++        f"INSERT INTO public.routes (id, user_id, wall_id, name, is_public) VALUES ({sql_quote(disp_route_id)}, {sql_quote(OTHER_ID)}, {sql_quote(disp_wall_id)}, 'Disp Route', true);"
++    )
++    expect_api_result(request_json("DELETE", f"{base}/rest/v1/walls?id=eq.{disp_wall_id}", other_token), "delete private wall")
++    disp_route_check = rows(expect_api_result(request_json("GET", f"{base}/rest/v1/routes?id=eq.{disp_route_id}", other_token), "check disp route after wall delete"), "check disp route after wall delete")
++    if len(disp_route_check) != 1 or disp_route_check[0].get("is_public") is not False:
++        fail(f"child route was not privatized after private wall deletion: {disp_route_check!r}")
++    disp_anon = rows(expect_api_result(request_json("GET", f"{base}/rest/v1/routes?id=eq.{disp_route_id}"), "anon read disp route"), "anon read disp route")
++    if disp_anon:
++        fail(f"anonymous read saw child route after private wall deletion: {disp_anon!r}")
++    run_psql(f"DELETE FROM public.routes WHERE id = {sql_quote(disp_route_id)}; DELETE FROM public.deleted_private_walls WHERE wall_id = {sql_quote(disp_wall_id)};")
++
++    # 11. deleted_private_walls table has RLS enabled and all privileges revoked (DATA-V1R-002)
++    anon_tomb = expect_api_result(request_json("GET", f"{base}/rest/v1/deleted_private_walls"), "anon deleted_private_walls read")
++    if anon_tomb.status not in {401, 403, 404} and not (anon_tomb.status == 200 and not anon_tomb.body):
++        fail(f"anon accessed deleted_private_walls: HTTP {anon_tomb.status} {anon_tomb.body!r}")
++    auth_tomb = expect_api_result(request_json("GET", f"{base}/rest/v1/deleted_private_walls", owner_token), "auth deleted_private_walls read")
++    if auth_tomb.status not in {401, 403, 404} and not (auth_tomb.status == 200 and not auth_tomb.body):
++        fail(f"auth accessed deleted_private_walls: HTTP {auth_tomb.status} {auth_tomb.body!r}")
++    assert_rejected(expect_api_result(request_json("POST", f"{base}/rest/v1/deleted_private_walls", owner_token, {"wall_id": "forged"}), "insert deleted_private_walls"), "insert deleted_private_walls")
++
++    # 12. NULL-visibility wall deletion privatizes child routes (DATA-V1-002)
++    disp_null_wall_id = str(uuid.uuid4())
++    disp_null_route_id = str(uuid.uuid4())
++    run_psql(
++        f"INSERT INTO public.walls (id, user_id, name, description, image_url, is_public) VALUES ({sql_quote(disp_null_wall_id)}, {sql_quote(OTHER_ID)}, 'Disp Null Wall', 'Null priv', 'https://secret.example.com/disp-null.jpg', NULL);"
++        f"INSERT INTO public.routes (id, user_id, wall_id, name, is_public) VALUES ({sql_quote(disp_null_route_id)}, {sql_quote(OTHER_ID)}, {sql_quote(disp_null_wall_id)}, 'Disp Null Route', true);"
++    )
++    expect_api_result(request_json("DELETE", f"{base}/rest/v1/walls?id=eq.{disp_null_wall_id}", other_token), "delete null-visibility wall")
++    disp_null_check = rows(expect_api_result(request_json("GET", f"{base}/rest/v1/routes?id=eq.{disp_null_route_id}", other_token), "check disp null route after wall delete"), "check disp null route after wall delete")
++    if len(disp_null_check) != 1 or disp_null_check[0].get("is_public") is not False:
++        fail(f"child route was not privatized after null-visibility wall deletion: {disp_null_check!r}")
++    disp_null_anon = rows(expect_api_result(request_json("GET", f"{base}/rest/v1/routes?id=eq.{disp_null_route_id}"), "anon read disp null route"), "anon read disp null route")
++    if disp_null_anon:
++        fail(f"anonymous read saw child route after null-visibility wall deletion: {disp_null_anon!r}")
++    run_psql(f"DELETE FROM public.routes WHERE id = {sql_quote(disp_null_route_id)}; DELETE FROM public.deleted_private_walls WHERE wall_id = {sql_quote(disp_null_wall_id)};")
++
++    # 13. increment_route_view recovers NULL counter to 1 (DATA-V1R-005)
++    null_view_route_id = str(uuid.uuid4())
++    run_psql(
++        f"INSERT INTO public.routes (id, user_id, wall_id, name, is_public, view_count) VALUES ({sql_quote(null_view_route_id)}, {sql_quote(OWNER_ID)}, 'rls-harness-wall', 'Null Counter Route', true, NULL);"
++    )
++    first_inc = expect_api_result(rpc(base, "increment_route_view", owner_token, {"target_route_id": null_view_route_id}), "first increment null counter")
++    if first_inc.status != 200 or first_inc.body != 1:
++        fail(f"increment_route_view on NULL counter expected 1, got {first_inc!r}")
++    second_inc = expect_api_result(rpc(base, "increment_route_view", owner_token, {"target_route_id": null_view_route_id}), "second increment null counter")
++    if second_inc.status != 200 or second_inc.body != 2:
++        fail(f"increment_route_view on second call expected 2, got {second_inc!r}")
++    run_psql(f"DELETE FROM public.routes WHERE id = {sql_quote(null_view_route_id)};")
++
++
+ 
+ def run() -> None:
+     base = os.environ.get(LOCAL_URL_ENV, DEFAULT_LOCAL_URL).rstrip("/")
+@@ -1061,10 +1435,12 @@ def run() -> None:
+     try:
+         setup_fixtures()
+         owner_token = login(base, User(OWNER_ID, OWNER_EMAIL))
++
+         other_token = login(base, User(OTHER_ID, OTHER_EMAIL))
+         assert_route_ownership(base, owner_token, other_token)
+-        assert_public_profiles_and_feed(base, other_token)
++        assert_public_profiles_and_feed(base, owner_token, other_token)
+         assert_private_sessions_and_attempts(base, owner_token, other_token)
++        assert_community_prerequisites(base, owner_token, other_token)
+         assert_social_mutations(base, owner_token, other_token)
+         assert_concurrent_publish_reopen(base, owner_token)
+         assert_public_meetups_and_joins(base, owner_token, other_token)

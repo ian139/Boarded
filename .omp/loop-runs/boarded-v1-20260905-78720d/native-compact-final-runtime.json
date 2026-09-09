@@ -1,0 +1,9 @@
+{
+  "preview_head": "6d56e21",
+  "driver_head": "f3dc913dc1d2f6f28f20293c6858514f9df5aae1",
+  "result": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/native-preview-derived/Logs/Test/Test-Boarded-2026.09.06_17-06-45--0400.xcresult",
+  "artifact": "artifact://619",
+  "tests": 2,
+  "failures": 0,
+  "attachments": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/native-6d56e21-attachments/manifest.json"
+}

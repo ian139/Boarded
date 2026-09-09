@@ -1,0 +1,18 @@
+{
+  "hashes": [
+    {
+      "hash": "#comments",
+      "focus": "comments",
+      "y": 488
+    },
+    {
+      "hash": "#share",
+      "focus": "share",
+      "y": 488
+    }
+  ],
+  "malformed": {
+    "title": "Send report — Boarded",
+    "heading": "5.12aRedpoint Ridge"
+  }
+}

@@ -1,0 +1,55 @@
+diff --git a/components/boarded/LogFlow.tsx b/components/boarded/LogFlow.tsx
+index 56db1f5d29403663bdcffcdb6abda23b31dddef8..f29f995b86191fc9723c52e647149436b22ad4ee 100644
+--- a/components/boarded/LogFlow.tsx
++++ b/components/boarded/LogFlow.tsx
+@@ -1112,15 +1112,14 @@ export function ProfileScreen() {
+         </div>
+       )}
+ 
+-      {/* Subtabs for My Entries and Saved Routes */}
++      {/* Section filters for My Entries and Saved Routes */}
+       <section className="b-stack">
+-        <div className="flex border-b border-stone-800 gap-4" role="tablist" aria-label="Journal sections">
++        <div className="flex border-b border-stone-800 gap-4" role="group" aria-label="Journal sections">
+           <button
+             type="button"
+-            role="tab"
+-            aria-selected={activeTab === 'entries'}
++            aria-pressed={activeTab === 'entries'}
+             onClick={() => setActiveTab('entries')}
+-            className={`pb-3 text-sm font-semibold border-b-2 transition-colors ${
++            className={`pb-3 min-h-[44px] text-sm font-semibold border-b-2 transition-colors ${
+               activeTab === 'entries'
+                 ? 'border-indigo-500 text-stone-100'
+                 : 'border-transparent text-stone-400 hover:text-stone-200'
+@@ -1130,10 +1129,9 @@ export function ProfileScreen() {
+           </button>
+           <button
+             type="button"
+-            role="tab"
+-            aria-selected={activeTab === 'saved'}
++            aria-pressed={activeTab === 'saved'}
+             onClick={() => setActiveTab('saved')}
+-            className={`pb-3 text-sm font-semibold border-b-2 transition-colors ${
++            className={`pb-3 min-h-[44px] text-sm font-semibold border-b-2 transition-colors ${
+               activeTab === 'saved'
+                 ? 'border-indigo-500 text-stone-100'
+                 : 'border-transparent text-stone-400 hover:text-stone-200'
+@@ -1143,7 +1141,7 @@ export function ProfileScreen() {
+           </button>
+         </div>
+ 
+-        {/* Tab 1: Entries List */}
++        {/* Journal entries section */}
+         {activeTab === 'entries' && (
+           <div className="b-stack">
+             {entries.length === 0 ? (
+@@ -1242,7 +1240,7 @@ export function ProfileScreen() {
+           </div>
+         )}
+ 
+-        {/* Tab 2: Saved Routes */}
++        {/* Saved routes section */}
+         {activeTab === 'saved' && (
+           <div className="b-stack">
+             {savedRoutes.length === 0 ? (

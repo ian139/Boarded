@@ -1,0 +1,41 @@
+{
+  "verdict": "Bounded visual pass for visible composition; mobile Landing model visibility is not established by its screenshot.",
+  "identity": {
+    "composite": "6487578",
+    "runtime": "4e2ff41",
+    "appearance": "dark",
+    "screenshot_root": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/composite-final-production/",
+    "reviewed": [
+      "desktop-Feed.png — 1440×1024",
+      "mobile-Feed.png — 390×844",
+      "desktop-Landing.png — 1440×1024",
+      "mobile-Landing.png — 390×844"
+    ]
+  },
+  "image_backed_findings": [
+    {
+      "screenshot": "desktop-Feed.png",
+      "result": "Climbing photography visibly rendered. Sidebar, feed card, and right-hand panels remain separated, with readable controls and no visible horizontal clipping or developer chrome. Feed continues beyond the bottom capture boundary."
+    },
+    {
+      "screenshot": "mobile-Feed.png",
+      "result": "Climbing photography visibly rendered inside the card; header, tabs, and five-item bottom navigation fit the viewport. The route title reaches the fixed bottom navigation boundary and subsequent card content is outside the visible area; this still does not establish persistent clipping or scroll inaccessibility."
+    },
+    {
+      "screenshot": "desktop-Landing.png",
+      "result": "Complete climbing-wall illustration, colored holds, climber, and supporting feet are visibly present. Hero copy, actions, specification strip, and header fit without visible overlap or unintended clipping. No developer chrome visible."
+    },
+    {
+      "screenshot": "mobile-Landing.png",
+      "result": "Header actions, wrapped hero copy, primary/secondary actions, specification strip, and figure captions fit horizontally. No wall or climber is visible in this initial viewport. Therefore this image cannot independently confirm mobile GLB presentation or distinguish below-fold placement from absent rendering. No visible developer chrome."
+    }
+  ],
+  "evidence_attribution": "Read composite-web-landing-runtime.json and composite-web-landing-asset-binding.json. Navigation clicks, ready states, matching approved served asset hashes, and absence of runtime errors/unknown requests/overflow are Main's recorded evidence, not behavior exercised by this reviewer.",
+  "limitations": [
+    "Static inspection only; no edits, tests, builds, services, or browser interaction.",
+    "No baseline pixel comparison; no claim of unchanged pixels or comprehensive regression absence.",
+    "No assessment of offscreen content, motion, focus behavior, or functional navigation.",
+    "Prior 18-screen web and landing-motion review scope remains untouched.",
+    "No native/Paper parity claim, parity waiver, formal designer approval, or overall mission certification."
+  ]
+}

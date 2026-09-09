@@ -1,0 +1,55 @@
+{
+  "boarded-current-source-review#3": {
+    "verdict": "approved",
+    "overall_correctness": "correct",
+    "findings": [],
+    "confidence": 0.94,
+    "explanation": "Final corrected source chain approved with no remaining actionable findings. This supersedes the earlier landing initialization finding; source approval is not designer or rendered approval.",
+    "packets": [
+      {
+        "packet": "landing",
+        "verdict": "approved",
+        "head_sha": "32eb4262a13c60647077cef09897305535229704",
+        "diff_sha256": "0a911f0eb1d0096c8c9fd1827132f722c5d71edcd4c3b8b75bd3c6dbc950365e",
+        "confidence": 0.97,
+        "evidence": [
+          "Reviewed the exact one-line correction against previously reviewed 4c38560cd943f1a93cf020d4be7b73335e05279f and read the corrected controller.",
+          "The intersecting branch now invokes guarded initialize() after readLayout() and before requestRender(), closing deferred initialization without bypassing lifecycle guards or duplicating initialization.",
+          "Inspected Main's supplied .omp/loop-runs/boarded-v1-20260905-78720d/resume-landing-activation-repro.json. Its nine-field identity matches the corrected packet; the same scenario changes from poster/opacity 0 to ready/opacity 1, hasAscent=true, clipTime=6.9612. No validation rerun.",
+          "Earlier endpoint sampling, backward LoopOnce seeking, 44px header/footer targets and diagnostic-copy findings remain resolved. Reduced-motion guards retain the actual poster without initializing WebGL."
+        ]
+      },
+      {
+        "packet": "blender",
+        "verdict": "approved",
+        "head_sha": "3d05383837d686f04a1873e412e764be3a35fcb4",
+        "diff_sha256": "2f398e849e9f5bd0b6a87209fc99097ce88ddd159d0b86216fed0e754498e7a2",
+        "confidence": 0.88,
+        "evidence": [
+          "Reviewed complete final generator, climber baker, review exporter, metadata and contact report, including the final material correction rather than superseded procedural-material parents.",
+          "Final material construction sets constant linearized Principled base colors and roughness with unsupported procedural input links removed; GLB export includes materials, skin and animation and excludes cameras/lights.",
+          "Producer and landing consumer agree on the existing asset paths and ClimberAscent. Baking spans frames 0–360 at 30fps with LINEAR keys and a 12-second duration. Review exporters consistently use design/blender/review-export.",
+          "Committed final metadata reports 1,909,356 GLB bytes, 13 meshes, 19 materials, 21 primitives, 62,855 triangles, 16 bones, 361 samples and 18 transfers. Committed contact report records minimum three planted contacts, zero target error, approximately 3.63e-7m evaluated rig contact error, and no reported reach violations or capsule-volume intersections. These are inspected committed measurements, not independently rerun measurements.",
+          "Existing final-glb-inspection.json names superseded head 6ac2285 and was not treated as proof of the final binary."
+        ]
+      },
+      {
+        "packet": "design",
+        "verdict": "approved",
+        "head_sha": "f97559561e08852e2f3a0a96291899efc62d004e",
+        "diff_sha256": "38afe10780c1bf32508c90eadd2d938621660eacff019af75d4d8b25615dc0b1",
+        "confidence": 0.96,
+        "evidence": [
+          "Reviewed the full final document, not eb5ddeb.",
+          "All three earlier findings are resolved: public aggregates are published-only while private history/statistics/bookmarks remain owner-only; reduced-motion alternatives cover prescribed motion/loading and the landing still; the exact E6-0 capture/freeze/odiff gate and divider disclosure are restored.",
+          "The final correction specifies the 44×44pt rounded-12 Log action. Five destinations, Indigo agency versus green success, bundled font identity and publication privacy align with the frozen contract."
+        ]
+      }
+    ],
+    "limits": [
+      "Read-only source review; no source/config/docs edits, builds, tests, linters, formatters, services or renders run.",
+      "Diff hashes are the canonical manifest identities.",
+      "Source approval does not grant designer approval, image approval, continuous-animation approval or rendered parity; independent rendered review remains separate."
+    ]
+  }
+}

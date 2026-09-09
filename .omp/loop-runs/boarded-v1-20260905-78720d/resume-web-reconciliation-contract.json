@@ -1,0 +1,36 @@
+{
+  "schema": "boarded.reconcile.v1",
+  "platform": "web",
+  "shared_semantics": "both; unchanged data86923364",
+  "base_sha": "fe6438c359084e5e5e33dbe7e3c58d8e58131034",
+  "authority": "User selected Preserve newer redesign: keep e1114ed visual UI and nested /app routing, reconcile complete real V1 functionality. Existing primary matches e1114ed owned blobs. No primary writes by workers.",
+  "design": "/Users/ian/Projects/.boarded-v1-20260905-78720d/design/docs/design-language.md; active V1ResumeDesigner, no obsolete old UI reintroduction",
+  "data": "Use existing createClient from lib/supabase/client.ts and useUserStore auth. Canonical types/grades from packages/shared now supplied. No second global adapter/repository abstraction; query existing Supabase APIs directly using existing authenticated patterns. No service-role/secret/production writes. Production must never display demo facts as real remote state.",
+  "routes": "Preserve /app/* newer routes and Shell visual structure. Social owner alone owns Flow/Shell/catchall integration. Log/profile exports keep same existing public component signatures consumed by Flow; internal state may change. Explore-to-log uses routeId, routeName, discipline, gradeSystem query fields; journal resolves routeId authoritatively, user edits detach catalog link. Follow/details target actual UUID, not Maya constants.",
+  "shared_boundaries": "Social owns Feed, Community, Details, Flow, Shell and routing/CSS. Journal owns LogFlow and lib/boarded store/journal plus publication/composer/modal utilities. Social removes production dependencies on seeded useJournal/fixture constants; uses canonical remote models and authenticated operations. Journal remains owner of offline journal state and exposes existing UI exports. No sibling file edits. Requests for shared signature changes to Main before mutation.",
+  "verification": "Workers skip all validation while concurrent. Return exact focused behavioral reproduction commands and necessary server request fixtures. Main integrates preview artifacts then risk-selected tests/browser checks and independent source/designer/vision reviews.",
+  "owners": {
+    "web-reconcile-social": [
+      "components/boarded/Feed.tsx",
+      "components/boarded/Community.tsx",
+      "components/boarded/Details.tsx",
+      "components/boarded/Flow.tsx",
+      "components/boarded/Shell.tsx",
+      "components/boarded/Photo.tsx",
+      "components/boarded/flow.css",
+      "app/app/",
+      "app/explore/",
+      "app/activity/"
+    ],
+    "web-reconcile-journal": [
+      "components/boarded/LogFlow.tsx",
+      "lib/boarded/",
+      "lib/utils/composer.ts",
+      "lib/utils/session-publication.ts",
+      "lib/utils/session-publication.test.ts",
+      "components/log/SessionDetailModal.tsx",
+      "app/log/",
+      "app/profile/"
+    ]
+  }
+}

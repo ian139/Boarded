@@ -1,0 +1,71 @@
+{
+  "packet": "web-reconcile-journal",
+  "review_kind": "packet",
+  "identity": {
+    "repo": "/Users/ian/Projects/ClimbingApp",
+    "branch": "loop/boarded-v1-20260905-78720d/web-reconcile-journal",
+    "base_sha": "fe6438c359084e5e5e33dbe7e3c58d8e58131034",
+    "head_sha": "8cda47f3390a654ca8f58af58519b0ce6bde0912",
+    "diff_sha256": "f0637159f05c55b812cd8b04950589cb287b0d64f40397d56f840f65be5accaa",
+    "packet_spec_sha256": "cc48c8cfa19b5e64257b7183391ece86e028e66b06cbb32328300a24c8b09fd2",
+    "dependency_heads": {
+      "data": "869233640a83246f5677587acdb9d4d0b124d632"
+    },
+    "target_snapshot_sha256": "7a1baf10c939dd7a79165f931933987f865e1893a9e0217321c6c0ee5dc28fc2",
+    "confinement_sha256": "480d0b8c56f810fcb9a81a13c90a47019e98eda1faa9ec0878ca031ba9b6dca0"
+  },
+  "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/web-reconcile-journal",
+  "packet_spec": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/web-reconcile-journal-active-packet.json",
+  "changed_paths": [
+    "app/profile/page.tsx",
+    "components/boarded/LogFlow.tsx",
+    "components/log/SessionDetailModal.tsx",
+    "lib/boarded/journal.test.ts",
+    "lib/boarded/journal.ts",
+    "lib/boarded/store.ts",
+    "lib/utils/composer.ts",
+    "lib/utils/session-publication.test.ts",
+    "lib/utils/session-publication.ts"
+  ],
+  "target_snapshot": [
+    {
+      "path": "app/profile/page.tsx",
+      "sha256": null
+    },
+    {
+      "path": "components/boarded/LogFlow.tsx",
+      "sha256": "f5b201a3fb9dae767445b303fb720431b0cb1acb161cf22680f7790f15bd719f"
+    },
+    {
+      "path": "components/log/SessionDetailModal.tsx",
+      "sha256": "4ec67a051ce7394edbf1c360ca141ee34ddb9388d95571896e832fba618811ad"
+    },
+    {
+      "path": "lib/boarded/journal.test.ts",
+      "sha256": "e4caf9f998b731a004fa95591dbffd727d8074f550fd147e9eecfa6c2adddff4"
+    },
+    {
+      "path": "lib/boarded/journal.ts",
+      "sha256": "8fa6bb6b20be149f5097f8e755d6842686c7d6500a095f1c4bb2987329e61fc3"
+    },
+    {
+      "path": "lib/boarded/store.ts",
+      "sha256": "01aea43e5a754f194ea38789a0ac5e1f7de15c3e8725e4871ad84df1dc2f6d21"
+    },
+    {
+      "path": "lib/utils/composer.ts",
+      "sha256": "54ac02c4e441de50762cbd4b2eb330e77c365adc4a0ed4c780ffbf1b6d32cb95"
+    },
+    {
+      "path": "lib/utils/session-publication.test.ts",
+      "sha256": "8849f37e2642febc5e8861ead724ae6fd4938f4fb7244e64855574cf99b492d1"
+    },
+    {
+      "path": "lib/utils/session-publication.ts",
+      "sha256": "5bab27ac879ff88e3248a97c23cd044ca50338643b0774d61ea7c28bf7f8199a"
+    }
+  ],
+  "owned_paths_clean": true,
+  "execution_evidence": [],
+  "designer_verdict": null
+}

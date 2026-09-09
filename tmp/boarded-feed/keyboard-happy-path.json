@@ -1,0 +1,23 @@
+{
+  "url": "http://localhost:3100/app/profile",
+  "title": "Profile — Boarded",
+  "entries": [
+    {
+      "id": "entry-1788679005165-7bz24q",
+      "routeId": "redpoint-ridge",
+      "date": "2026-09-06",
+      "attempts": 6,
+      "conditions": "Cool and dry",
+      "notes": "Keyboard-only send: trust the feet at the crux.",
+      "outcome": "sent",
+      "published": true,
+      "caption": "Keyboard-only send: trust the feet at the crux."
+    }
+  ],
+  "visible": true,
+  "viewport": [
+    390,
+    844,
+    1
+  ]
+}

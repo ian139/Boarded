@@ -1,0 +1,32 @@
+# Hold Factory Spec - WEB PULL -> 3D (pivot from nano-banana)
+# Loop: WEB_PULL (transparent PNG) -> SHAPE_GEN (Hunyuan3D) -> DECIMATE -> REVIEW
+# Unity-qwen constraint: local rig, max 2 concurrent heavy workers - use task-high (deepseek v4) for most work
+batch_size: 5
+total_holds: 20
+colors: [green, blue, red, yellow, purple, orange, black, pink]
+shapes: [jug, sloper, crimp, pinch, foothold]
+background: transparent
+web_pull:
+  tool: web_search + curl
+  query_template: "climbing hold {color} {shape} transparent background png"
+  sources: [pngfind, cleanpng, climbing hold shops with alpha, google images transparent]
+  require_alpha: true
+  validate: PIL alpha histogram + rembg fallback
+  archive_png: true
+shape:
+  tool: tencent/Hunyuan3D-2.1  # HF Space, or local dgrauet/hunyuan3d-2.1-mlx if quota
+  steps: 30
+  guidance_scale: 5.0
+  octree_resolution: 256
+  check_box_rembg: true
+decimate:
+  target_faces: 2000
+  preservenormal: true
+  pbr_baseColor: true
+output:
+  dir: public/walls/generated/batches
+  manifest: public/walls/generated/manifest.json
+concurrency:
+  max_parallel_task_high: 2  # deepseek v4, respects Unity-qwen limit (heavy work on deepseek, not unity)
+  heavy_work_agent: task-high # opencode-go/deepseek-v4 high
+  small_work_agent: smol # only for tiny alpha checks if needed, limit 1 concurrent on unity

@@ -1,0 +1,15 @@
+{
+  "packet": "native-feed-visual",
+  "platform": "iOS",
+  "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/native-feed-visual",
+  "base": "0e43f0fa8325abb45d0ef291639e9f1e198473f5",
+  "designer": "ApprovedModelDesigner through Main",
+  "ownership": ["apps/ios/Boarded/Boarded/Views/Home/", "apps/ios/Boarded/Boarded/RootView.swift"],
+  "evidence": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/native-3e2d03c-feed-hierarchy.txt",
+  "observed": [
+    "Joined preview 3e2d03c UI tests fail on compact and regular: caption identifier absent; post-route button identifier absent. Actual AX hierarchy contains caption text and linked-route buttons but every descendant inherits session-post-card identifier. Fix container accessibility semantics so meaningful child elements retain their own identifiers and actions. Do not weaken tests or special-case fixtures.",
+    "Actual AX tree also exposes five unlabeled native TabBar buttons underneath the five labeled custom tabs. Inspect RootView's native/custom chrome accessibility boundary and remove duplicate unlabeled controls without hiding app content or changing approved pixels. Main-tabs identifier also propagates to every custom button. Preserve existing destinations, selected traits, native safe areas and square Log control."
+  ],
+  "acceptance": "Existing UI capture and navigation regressions can reach caption and post-route controls on compact and regular; labeled custom navigation remains accessible with no duplicate unlabeled controls. Preserve N1-N4, canonical fixed standard layout and Dynamic Type reflow. No other scope, no fake chrome, no screenshot masking or threshold change.",
+  "execution": "Read exact evidence and frozen design contract docs/design-language.md from design worktree. Use absolute allowlisted worktree paths only. Skip builds/tests/linters/formatters/services. Commit one bounded fix and freeze; report exact base/head/changed paths and reason. Main owns verification and independent reviews. No primary writes or model changes."
+}

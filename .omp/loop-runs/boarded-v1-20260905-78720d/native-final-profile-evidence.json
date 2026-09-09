@@ -1,0 +1,30 @@
+{
+  "preview_head": "1ba810e",
+  "app_source_feed": "9e512520324b9c12b410de5e9226854ee44a3ed9",
+  "app_source_journal": "432091811ca886f5bb15e0f1e96c79ce8846cf03",
+  "driver_head": "e0bcbef2c460a5f7184451709bff7749111e2963",
+  "passed": 2,
+  "failed": 0,
+  "artifact": "artifact://671",
+  "attachments": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/native-1ba810e-profile-attachments/manifest.json",
+  "frames": [
+    {
+      "configurationName": "Test Scheme Action",
+      "deviceId": "9DF7A937-1CA0-48B4-9B07-5C8D92D3D1A9",
+      "deviceName": "Boarded V1 Feed 78720d",
+      "exportedFileName": "294EF489-A443-47A5-BC81-A57B6BC69624.png",
+      "isAssociatedWithFailure": false,
+      "suggestedHumanReadableName": "compact-accessibility-large-Profile_0_7FD5E538-2B8B-43AE-B693-6F3602FA3C8E.png",
+      "timestamp": 1788733366.528
+    },
+    {
+      "configurationName": "Test Scheme Action",
+      "deviceId": "9DF7A937-1CA0-48B4-9B07-5C8D92D3D1A9",
+      "deviceName": "Boarded V1 Feed 78720d",
+      "exportedFileName": "45662983-DD7A-4693-B6E9-6F12715F827C.png",
+      "isAssociatedWithFailure": false,
+      "suggestedHumanReadableName": "compact-standard-Profile_0_75D3BD51-AAEC-4F83-A26A-018A9A8EF451.png",
+      "timestamp": 1788733497.902
+    }
+  ]
+}

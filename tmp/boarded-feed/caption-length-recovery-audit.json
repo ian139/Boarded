@@ -1,0 +1,13 @@
+{
+  "rejected": {
+    "length": 400,
+    "published": false,
+    "alerts": [
+      "Caption must be 280 characters or fewer before publishing."
+    ]
+  },
+  "saved": {
+    "caption": "Quiet feet & patient hands — sent! 🧗",
+    "published": true
+  }
+}

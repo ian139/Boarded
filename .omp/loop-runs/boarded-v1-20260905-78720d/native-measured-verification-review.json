@@ -1,0 +1,36 @@
+{
+  "packet": "native-measured-verification",
+  "review_kind": "packet",
+  "identity": {
+    "repo": "/Users/ian/Projects/ClimbingApp",
+    "branch": "loop/boarded-v1-20260905-78720d/native-measured-verification",
+    "base_sha": "6a501f9483d10e70effe54c1eef740ddcac17515",
+    "head_sha": "9050381a75d050d6ebdff64072670e47a8005fde",
+    "diff_sha256": "18033e0fece5f78e2719775cf71dfb04e3cba0d7f49314ce814b238fb10a7a68",
+    "packet_spec_sha256": "8ae930374ad4f5cad2c545461a2603c40e2dca5b3eea9e1562079a11af103885",
+    "dependency_heads": {
+      "native_preview_base": "6a501f9483d10e70effe54c1eef740ddcac17515"
+    },
+    "target_snapshot_sha256": "29ef93293c4f7eaf1dec6f9cb9de60caa6135ba709a81b502befae1c811ecb29",
+    "confinement_sha256": "c135ba87b527c3b6ccd681a4d030d21760cb3829116179d7bbb6e73a244cc24b"
+  },
+  "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/native-measured-verification",
+  "packet_spec": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/native-measured-verification-spec.json",
+  "changed_paths": [
+    "apps/ios/Boarded/Boarded/Services/UITestFixtures.swift",
+    "apps/ios/Boarded/BoardedUITests/BoardedUITests.swift"
+  ],
+  "target_snapshot": [
+    {
+      "path": "apps/ios/Boarded/Boarded/Services/UITestFixtures.swift",
+      "sha256": "78865904a68d05ff82d8feed341ded7f3b3b1469963f838dd8e096b034833885"
+    },
+    {
+      "path": "apps/ios/Boarded/BoardedUITests/BoardedUITests.swift",
+      "sha256": "d17c34b3eca184f138af2e4c6858ebeca9b7faf5db23a378407c70cc57903be1"
+    }
+  ],
+  "owned_paths_clean": true,
+  "execution_evidence": [],
+  "designer_verdict": null
+}

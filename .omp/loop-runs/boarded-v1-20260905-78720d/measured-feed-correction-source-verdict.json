@@ -1,0 +1,6 @@
+{
+  "overall_correctness": "correct",
+  "explanation": "Source-approved head b4548b6a42d1975356a90de5fe354b7c29aae092 against base 9e512520324b9c12b410de5e9226854ee44a3ed9; canonical diff SHA256 799b7ce0a089d0339ce90e470fcf21a6f7beb9c9ca898ddb92272d55477111a6 and exact two-file allowlist verified. All earlier source findings are resolved, superseding the intermediate verdict. No build/render approval is claimed: caption line-box placement, native font metrics, and the unchanged strict 0.5% visual gate remain Main’s measurement responsibility.",
+  "confidence": 0.97,
+  "findings": []
+}

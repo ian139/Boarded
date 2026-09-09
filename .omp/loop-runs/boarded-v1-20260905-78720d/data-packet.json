@@ -1,0 +1,20 @@
+{
+  "packet": "data",
+  "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/data",
+  "base_sha": "9a68ff18ffd612b21bfb5173a50b82ee7c35297e",
+  "contract_path": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/contract.json",
+  "contract_sha256": "9044624142e5214292c49cbf5e0862236d92ad419ce87e1d263ac4b7f446798c",
+  "scope": {
+    "platform": "both",
+    "allow": [
+      "supabase/",
+      "packages/shared/"
+    ],
+    "exclude": [
+      "packages/shared/package.json",
+      "packages/shared/tsconfig.json"
+    ],
+    "role": "SQL/shared domain owner; no client UI writes."
+  },
+  "task": "# Target\nPlatform both. Own supabase/ and packages/shared/ only, excluding package/tsconfig manifests; no UI/client code. Contract and prerequisite maps specify existing database facts. Single canonical additive migration014 for full community prerequisites; update active SQL/test callers for route_id cutover. Main provides isolated local DB verification after authoring.\n# Change\nImplement full contract: catalog venues/routes with honest nullable metadata and outdoor routes, conditions/notes, follows, private route bookmarks, real event-backed Activity/read-state, discovery/climber/feed/activity RPCs, Feed route+relationship links and followed-only/post filtering. Preserve private-session/published-post/storage invariants, exact auth ownership, stable pagination, source-event dedup/delete behavior, never expose hidden linked metadata. Remove replaced RPC overload, no shims. Existing public board ticks remain distinct; no auto-publication of private attempts. Add canonical TS domain shapes and native-equivalent grade ordering/statistics in shared utilities; keep existing active board helpers. Migrate shared consumers you own, identify Web callers for WebV1; LSP references before changed exports. Update existing ownership harness for migration014 and route_id, add focused real authorization/regression assertions defending plausible leaks/forgery/lifecycle bugs. Do not execute migrations or tests now; never read credentials, change live DB or add fake production seeds. Define full actual RPC JSON shape as early handoff to WebV1/NativeV1 without departing contract.\n# Acceptance\nComplete production implementation, clean owned local commit. Send Main exact new SQL/client type contracts, base/head and changed paths, how local harness exercises each meaningful boundary, and genuine risks. No TODO/fake/no-op endpoints. Skip builds/tests/lint/formatters until Main aggregates verification; do not claim unrun tests."
+}

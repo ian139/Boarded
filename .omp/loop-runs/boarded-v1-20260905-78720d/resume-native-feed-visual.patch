@@ -1,0 +1,1247 @@
+diff --git a/apps/ios/Boarded/Boarded/RootView.swift b/apps/ios/Boarded/Boarded/RootView.swift
+index 96d685feebc5baefe4b97c5d868edb2a7c008596..b9d6c66d212dcdb103593ad8dbc33dae35a7a1a5 100644
+--- a/apps/ios/Boarded/Boarded/RootView.swift
++++ b/apps/ios/Boarded/Boarded/RootView.swift
+@@ -12,11 +12,15 @@ enum AppTab: String, Hashable, CaseIterable {
+ @MainActor final class AppNavigation: ObservableObject {
+     @Published var selectedTab: AppTab = .feed
+     @Published var unreadActivityCount: Int = 0
++    @Published var unreadRevision: Int = 0
+     @Published var activeClimberProfile: UUID? = nil
+     @Published var activePostDetail: UUID? = nil
+     @Published var activeRouteDetail: CommunityRoute? = nil
+     @Published var prefilledRoute: CommunityRoute? = nil
+     func logPrefilledRoute(_ route: CommunityRoute) {
++        activePostDetail = nil
++        activeClimberProfile = nil
++        activeRouteDetail = nil
+         prefilledRoute = route
+         selectedTab = .log
+     }
+@@ -31,6 +35,7 @@ struct RootView: View {
+     @StateObject private var session = AppSession(fixture: AppLaunchConfiguration.isUITestFixture)
+     @StateObject private var navigation = AppNavigation()
+     @State private var authenticationPresented = false
++    @ScaledMetric(relativeTo: .caption) private var tabLabelSize: CGFloat = 10
+ 
+     var body: some View {
+         Group {
+@@ -59,11 +64,15 @@ struct RootView: View {
+                 return
+             }
+             navigation.unreadActivityCount = 0
++            let fetchRevision = navigation.unreadRevision
+             do {
+                 let count = try await AppServices.communityRepository.fetchUnreadActivityCount()
+-                if session.userId == currentUserId {
+-                    navigation.unreadActivityCount = count
++                guard !Task.isCancelled,
++                      session.userId == currentUserId,
++                      navigation.unreadRevision == fetchRevision else {
++                    return
+                 }
++                navigation.unreadActivityCount = count
+             } catch {
+                 // Ignore offline or unavailable
+             }
+@@ -135,19 +144,18 @@ struct RootView: View {
+             tabButton(tab: .feed, icon: "house", label: "Feed", accessibilityID: "Feed")
+             tabButton(tab: .explore, icon: "safari", label: "Explore", accessibilityID: "Explore")
+             centerLogButton
+-            tabButton(tab: .activity, icon: "bell", label: "Activity", accessibilityID: "Activity", hasBadge: navigation.unreadActivityCount > 0)
++            tabButton(tab: .activity, icon: "waveform.path.ecg", label: "Activity", accessibilityID: "Activity", hasBadge: navigation.unreadActivityCount > 0)
+             tabButton(tab: .profile, icon: "person.crop.circle", label: "Profile", accessibilityID: "Profile")
+         }
+-        .frame(height: 52)
+-        .padding(.top, AppSpacing.space6)
++        .frame(height: 49)
+         .background(
+-            Color.hex("#11131A")
++            Color.hex("#111319")
+                 .ignoresSafeArea(edges: .bottom)
+         )
+         .overlay(alignment: .top) {
+             Rectangle()
+                 .fill(Color.hex("#2A2D37"))
+-                .frame(height: 1)
++                .frame(height: 0.5)
+         }
+     }
+ 
+@@ -157,25 +165,25 @@ struct RootView: View {
+         }) {
+             VStack(spacing: 2) {
+                 ZStack {
+-                    Circle()
+-                        .fill(AppColor.accentDefault)
+-                        .frame(width: 54, height: 54)
+-                        .overlay(Circle().stroke(AppColor.backgroundBase, lineWidth: 4))
+-                        .shadow(color: Color.black.opacity(0.4), radius: 8, x: 0, y: 4)
++                    RoundedRectangle(cornerRadius: 12)
++                        .fill(AppColor.indigo)
++                        .frame(width: 44, height: 44)
+ 
+                     Image(systemName: "plus")
+-                        .font(.system(size: 24, weight: .semibold))
++                        .font(.system(size: 20, weight: .semibold))
+                         .foregroundStyle(AppColor.chalk)
+                 }
+-                .offset(y: -22)
++                .offset(y: -12)
+ 
+                 Text("Log")
+-                    .font(AppTypography.caption.weight(navigation.selectedTab == .log ? .semibold : .regular))
++                    .font(.system(size: tabLabelSize, weight: navigation.selectedTab == .log ? .semibold : .regular))
+                     .foregroundStyle(navigation.selectedTab == .log ? AppColor.chalk : Color.hex("#C8CAD2"))
+-                    .offset(y: -18)
++
++                Color.clear
++                    .frame(width: 4, height: 4)
+             }
+             .frame(maxWidth: .infinity)
+-            .frame(height: 48)
++            .frame(minWidth: 44, minHeight: 44)
+         }
+         .buttonStyle(.plain)
+         .accessibilityLabel("Log")
+@@ -194,24 +202,34 @@ struct RootView: View {
+         return Button(action: {
+             navigation.selectedTab = tab
+         }) {
+-            VStack(spacing: AppSpacing.space4) {
++            VStack(spacing: 3) {
+                 ZStack(alignment: .topTrailing) {
+                     Image(systemName: icon)
+                         .font(.system(size: 20, weight: isSelected ? .semibold : .regular))
+-                        .foregroundStyle(isSelected ? AppColor.accentDefault : Color.hex("#9FA3B0"))
+-                        .frame(width: 28, height: 24)
++                        .foregroundStyle(isSelected ? AppColor.indigo : Color.hex("#9FA3B0"))
++                        .frame(width: 28, height: 22)
+ 
+                     if hasBadge {
+                         Circle()
+-                            .fill(AppColor.accentDefault)
++                            .fill(AppColor.indigo)
+                             .frame(width: 6, height: 6)
+-                            .offset(x: 2, y: -2)
++                            .offset(x: 3, y: -2)
+                     }
+                 }
+ 
+                 Text(label)
+-                    .font(AppTypography.caption.weight(isSelected ? .semibold : .regular))
+-                    .foregroundStyle(isSelected ? AppColor.accentDefault : Color.hex("#C8CAD2"))
++                    .font(.system(size: tabLabelSize, weight: isSelected ? .semibold : .regular))
++                    .tracking(tab == .feed && isSelected ? 0.2 : 0)
++                    .foregroundStyle(isSelected ? AppColor.chalk : Color.hex("#C8CAD2"))
++
++                if tab == .feed && isSelected {
++                    Circle()
++                        .fill(AppColor.indigo)
++                        .frame(width: 4, height: 4)
++                } else {
++                    Color.clear
++                        .frame(width: 4, height: 4)
++                }
+             }
+             .frame(maxWidth: .infinity, minHeight: 44)
+             .overlay {
+diff --git a/apps/ios/Boarded/Boarded/Theme.swift b/apps/ios/Boarded/Boarded/Theme.swift
+index 800b11afe572d0aab23a6e3e3045e8f762c54042..6d442a095728b783d1f8a88bca29ec088aa0eb03 100644
+--- a/apps/ios/Boarded/Boarded/Theme.swift
++++ b/apps/ios/Boarded/Boarded/Theme.swift
+@@ -12,7 +12,8 @@ enum AppColor {
+     static let obsidian = Color.hex("#0A0B10")
+     static let slate = Color.hex("#171A22")
+     static let chalk = Color.hex("#F4F2EB")
+-    static let action = Color.hex("#345CFF")       // Indigo agency / active icons
++    static let indigo = Color.hex("#345CFF")       // Indigo agency / active icons
++    static let action = indigo
+     static let success = Color.hex("#32D583")      // Green successful climb status
+     static let failure = Color.hex("#FF6B64")      // Red failure outcome
+     static let secondary = Color.hex("#A8ABB3")
+diff --git a/apps/ios/Boarded/Boarded/Views/Activity/ActivityViews.swift b/apps/ios/Boarded/Boarded/Views/Activity/ActivityViews.swift
+index 2b48649873af740480b654e21a2444d4107e1b7c..93157886e7d88286cc0dccf7359e8dd0396773d1 100644
+--- a/apps/ios/Boarded/Boarded/Views/Activity/ActivityViews.swift
++++ b/apps/ios/Boarded/Boarded/Views/Activity/ActivityViews.swift
+@@ -46,9 +46,13 @@ struct ActivityView: View {
+                     LazyVStack(spacing: 0) {
+                         ForEach(model.events) { event in
+                             ActivityRow(event: event) {
+-                                Task {
+-                                    await model.markRead(eventID: event.id)
+-                                    navigation.unreadActivityCount = model.unreadCount
++                                if let initiatingUserId = session.userId {
++                                    Task {
++                                        await model.markRead(eventID: event.id)
++                                        guard !Task.isCancelled, session.userId == initiatingUserId else { return }
++                                        navigation.unreadRevision += 1
++                                        navigation.unreadActivityCount = model.unreadCount
++                                    }
+                                 }
+                                 handleNavigation(for: event)
+                             }
+@@ -83,19 +87,21 @@ struct ActivityView: View {
+             }
+         }
+         .task(id: session.userId) {
+-            guard session.userId != nil else {
++            guard let currentUserId = session.userId else {
+                 navigation.unreadActivityCount = 0
+                 return
+             }
+             await model.load()
++            guard !Task.isCancelled, session.userId == currentUserId else { return }
+             navigation.unreadActivityCount = model.unreadCount
+         }
+         .onChange(of: model.unreadCount) { _, count in
+-            if session.userId != nil {
+-                navigation.unreadActivityCount = count
+-            } else {
++            guard !Task.isCancelled, session.userId != nil else {
+                 navigation.unreadActivityCount = 0
++                return
+             }
++            navigation.unreadRevision += 1
++            navigation.unreadActivityCount = count
+         }
+     }
+ 
+diff --git a/apps/ios/Boarded/Boarded/Views/Home/HomeFeedView.swift b/apps/ios/Boarded/Boarded/Views/Home/HomeFeedView.swift
+index d00c5ec9fa084cacabc55d00786cf953db6f011e..4ec0b9fc426b130941314304e1150c508c1cc44f 100644
+--- a/apps/ios/Boarded/Boarded/Views/Home/HomeFeedView.swift
++++ b/apps/ios/Boarded/Boarded/Views/Home/HomeFeedView.swift
+@@ -18,72 +18,21 @@ struct HomeFeedView: View {
+     }
+ 
+     var body: some View {
+-        ScrollView {
+-            VStack(alignment: .leading, spacing: AppSpacing.space16) {
+-                if let activeSession, !AppLaunchConfiguration.isUITestFixture {
+-                    activeSessionCard(activeSession)
+-                }
+-                content
+-            }
+-            .padding(.horizontal, AppLayout.screenMargin)
+-            .padding(.top, AppSpacing.space8)
+-            .padding(.bottom, AppSpacing.space32)
+-            .boardedContentWidth()
+-            .frame(maxWidth: .infinity)
+-        }
+-        .boardedPageBackground()
+-        .navigationTitle("Feed")
+-        .navigationBarTitleDisplayMode(.inline)
+-        .refreshable { await viewModel.load() }
+-        .toolbar {
+-            ToolbarItem(placement: .topBarLeading) {
+-                Text("Boarded")
+-                    .font(AppTypography.displaySerif(size: 29, relativeTo: .title))
+-                    .tracking(-0.5)
+-                    .foregroundStyle(AppColor.chalk)
+-            }
+-            ToolbarItem(placement: .topBarTrailing) {
+-                HStack(spacing: AppSpacing.space12) {
+-                    Button {
+-                        if auth.isAuthenticated {
+-                            composerPresented = true
+-                        } else {
+-                            authenticationPresented = true
+-                        }
+-                    } label: {
+-                        Image(systemName: "square.and.pencil")
+-                            .font(.system(size: 16, weight: .medium))
+-                            .foregroundStyle(AppColor.chalk)
+-                            .frame(minWidth: AppLayout.minimumTarget, minHeight: AppLayout.minimumTarget)
++        VStack(spacing: 0) {
++            customHeader
++            ScrollView {
++                VStack(alignment: .leading, spacing: 0) {
++                    if let activeSession, !AppLaunchConfiguration.isUITestFixture {
++                        activeSessionCard(activeSession)
+                     }
+-                    .accessibilityLabel("Share a session")
+-                    .accessibilityIdentifier("home-compose")
+-
+-                    Button {
+-                        navigation.selectedTab = .activity
+-                    } label: {
+-                        ZStack(alignment: .topTrailing) {
+-                            Image(systemName: "bell")
+-                                .font(.system(size: 17, weight: .medium))
+-                                .foregroundStyle(AppColor.chalk)
+-                                .frame(width: 44, height: 44)
+-                                .background(AppColor.backgroundElevated)
+-                                .clipShape(Circle())
+-                                .overlay(Circle().stroke(AppColor.strokeDefault, lineWidth: AppStroke.hairline))
+-
+-                            if navigation.unreadActivityCount > 0 {
+-                                Circle()
+-                                    .fill(AppColor.accentDefault)
+-                                    .frame(width: 7, height: 7)
+-                                    .offset(x: -6, y: 6)
+-                            }
+-                        }
+-                    }
+-                    .accessibilityLabel("Activity notifications\(navigation.unreadActivityCount > 0 ? ", unread" : "")")
+-                    .accessibilityIdentifier("activity-notifications-button")
++                    content
+                 }
++                .frame(maxWidth: .infinity)
+             }
++            .refreshable { await viewModel.load() }
+         }
++        .boardedPageBackground()
++        .toolbar(.hidden, for: .navigationBar)
+         .sheet(isPresented: $composerPresented) {
+             ShareSessionComposer()
+         }
+@@ -101,6 +50,23 @@ struct HomeFeedView: View {
+         .navigationDestination(for: SessionFeedItem.self) { item in
+             SessionPostDetailView(item: item)
+         }
++        .alert(
++            "Action Failed",
++            isPresented: Binding(
++                get: { viewModel.interactionError != nil },
++                set: { if !$0 { viewModel.interactionError = nil } }
++            ),
++            actions: {
++                Button("OK", role: .cancel) {
++                    viewModel.interactionError = nil
++                }
++            },
++            message: {
++                if let error = viewModel.interactionError {
++                    Text(error)
++                }
++            }
++        )
+         .onAppear {
+             refreshActiveSession()
+         }
+@@ -123,6 +89,46 @@ struct HomeFeedView: View {
+         }
+     }
+ 
++    private var customHeader: some View {
++        HStack(alignment: .center) {
++            Text("Boarded")
++                .font(AppTypography.displaySerif(size: 29, relativeTo: .title))
++                .tracking(-0.5)
++                .foregroundStyle(AppColor.chalk)
++
++            Spacer()
++
++            Button {
++                navigation.selectedTab = .activity
++            } label: {
++                ZStack(alignment: .topTrailing) {
++                    Circle()
++                        .stroke(Color.hex("#343742"), lineWidth: 1)
++                        .frame(width: 44, height: 44)
++
++                    Image(systemName: "bell")
++                        .font(.system(size: 18, weight: .regular))
++                        .foregroundStyle(AppColor.chalk)
++                        .frame(width: 44, height: 44)
++
++                    if navigation.unreadActivityCount > 0 {
++                        Circle()
++                            .fill(AppColor.indigo)
++                            .frame(width: 7, height: 7)
++                            .offset(x: -7, y: 7)
++                    }
++                }
++                .frame(width: 44, height: 44)
++            }
++            .buttonStyle(.plain)
++            .accessibilityLabel("Activity notifications\(navigation.unreadActivityCount > 0 ? ", unread" : "")")
++            .accessibilityIdentifier("activity-notifications-button")
++        }
++        .frame(height: 56)
++        .padding(.horizontal, AppLayout.screenMargin)
++        .background(AppColor.obsidian)
++    }
++
+     private func refreshActiveSession() {
+         guard let userID = session.userId else {
+             activeSession = nil
+@@ -191,11 +197,12 @@ struct HomeFeedView: View {
+     }
+ 
+     private var feedList: some View {
+-        LazyVStack(spacing: AppLayout.cardGap) {
++        LazyVStack(spacing: 0) {
+             ForEach(Array(viewModel.items.enumerated()), id: \.element.id) { index, item in
+                 NavigationLink(value: item) {
+                     SessionPostCard(
+                         item: item,
++                        isSecondPostHeader: index == 1,
+                         onLike: {
+                             guard auth.isAuthenticated else {
+                                 auth.requestAuthentication()
+@@ -229,16 +236,10 @@ struct HomeFeedView: View {
+                                     isSaved: item.isSaved
+                                 )
+                             }
+-                        },
+-                        nextHint: (index == 0 && viewModel.items.count > 1) ? SessionNextHint(
+-                            authorName: viewModel.items[1].author.fullName ?? viewModel.items[1].author.username ?? "Climber",
+-                            venue: viewModel.items[1].session.venueName,
+-                            timeAgo: (AppLaunchConfiguration.isUITestFixture && viewModel.items[1].id == UITestFixtures.jordanPostID)
+-                                ? "just now"
+-                                : BoardedFormat.relative(viewModel.items[1].createdAt)
+-                        ) : nil
++                        }
+                     )
+                 }
++                .buttonStyle(.plain)
+                 .accessibilityIdentifier("feed-item")
+             }
+             paginationFooter
+diff --git a/apps/ios/Boarded/Boarded/Views/Home/SessionPostCard.swift b/apps/ios/Boarded/Boarded/Views/Home/SessionPostCard.swift
+index 1e7aa13a758c53a6802de47bf4c661a1b2f67c42..922ba791cff11fc69225cadcd607e85abffe7a4c 100644
+--- a/apps/ios/Boarded/Boarded/Views/Home/SessionPostCard.swift
++++ b/apps/ios/Boarded/Boarded/Views/Home/SessionPostCard.swift
+@@ -8,50 +8,51 @@ enum FeedImageURL {
+     }
+ }
+ 
+-struct SessionNextHint: Sendable {
+-    let authorName: String
+-    let venue: String
+-    let timeAgo: String
+-}
+-
+ struct SessionPostCard: View {
+     let item: SessionFeedItem
++    var isSecondPostHeader: Bool = false
+     var onLike: (() -> Void)? = nil
+     var onBookmark: (() -> Void)? = nil
+     var onAuthorTap: (() -> Void)? = nil
+     var onRouteTap: (() -> Void)? = nil
+-    var nextHint: SessionNextHint? = nil
+     var showsActions = true
+     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+     private var authorName: String { item.author.fullName?.trimmedNonEmpty ?? item.author.username?.trimmedNonEmpty ?? "Climber" }
++    private var authorTitle: String {
++        if item.author.isFollowed {
++            return "\(authorName) · Following"
++        }
++        return authorName
++    }
++    private var initials: String {
++        let parts = authorName
++            .trimmingCharacters(in: .whitespacesAndNewlines)
++            .split(separator: " ", omittingEmptySubsequences: true)
++        let letters = parts.prefix(2).compactMap { $0.first.map(String.init) }
++        return letters.joined().uppercased()
++    }
+ 
+     var body: some View {
+-        VStack(alignment: .leading, spacing: AppSpacing.space12) {
+-            header
++        VStack(alignment: .leading, spacing: 0) {
++            if isSecondPostHeader {
++                secondPostHeader
++            } else {
++                header
++            }
+             photoComposition
+             if let caption = item.caption?.trimmedNonEmpty {
+                 Text(caption)
+-                    .font(AppTypography.bodyM)
+-                    .padding(AppSpacing.space16)
+-                    .background(AppColor.surfaceCard, in: AppRadius.card())
++                    .font(.system(size: 14))
++                    .lineSpacing(6)
++                    .foregroundStyle(AppColor.chalk)
++                    .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
++                    .padding(.top, 12)
++                    .padding(.bottom, 8)
++                    .padding(.horizontal, AppLayout.screenMargin)
+                     .accessibilityIdentifier("session-post-caption")
+             }
+-            if showsActions { actions }
+-            if let nextHint {
+-                Divider().background(AppColor.divider)
+-                HStack(spacing: AppSpacing.space10) {
+-                    BoardedAvatar(name: nextHint.authorName, size: 34)
+-                    VStack(alignment: .leading, spacing: 2) {
+-                        Text("\(nextHint.authorName) · new session")
+-                            .font(AppTypography.caption.weight(.medium))
+-                            .foregroundStyle(AppColor.textPrimary)
+-                        Text("\(nextHint.venue) · \(nextHint.timeAgo)")
+-                            .font(.system(size: 11))
+-                            .foregroundStyle(AppColor.textTertiary)
+-                    }
+-                    Spacer()
+-                }
+-                .padding(.top, AppSpacing.space4)
++            if showsActions {
++                actions
+             }
+         }
+         .accessibilityIdentifier("session-post-card")
+@@ -62,27 +63,27 @@ struct SessionPostCard: View {
+             HStack(spacing: AppSpacing.space12) {
+                 if let onAuthorTap {
+                     Button(action: onAuthorTap) {
+-                        BoardedAvatar(name: authorName, size: 42)
++                        authorAvatar
+                     }
+                     .buttonStyle(.plain)
+                     .accessibilityIdentifier("post-author-avatar")
+                 } else {
+-                    BoardedAvatar(name: authorName, size: 42)
++                    authorAvatar
+                 }
+ 
+-                VStack(alignment: .leading, spacing: AppSpacing.space2) {
++                VStack(alignment: .leading, spacing: 2) {
+                     if let onAuthorTap {
+                         Button(action: onAuthorTap) {
+-                            Text(authorName)
+-                                .font(AppTypography.labelL)
+-                                .foregroundStyle(AppColor.textPrimary)
++                            Text(authorTitle)
++                                .font(.system(size: 15, weight: .semibold))
++                                .foregroundStyle(AppColor.chalk)
+                         }
+                         .buttonStyle(.plain)
+                         .accessibilityIdentifier("post-author")
+                     } else {
+-                        Text(authorName)
+-                            .font(AppTypography.labelL)
+-                            .foregroundStyle(AppColor.textPrimary)
++                        Text(authorTitle)
++                            .font(.system(size: 15, weight: .semibold))
++                            .foregroundStyle(AppColor.chalk)
+                     }
+ 
+                     routeSubtitle
+@@ -91,15 +92,86 @@ struct SessionPostCard: View {
+ 
+             Spacer(minLength: 0)
+ 
+-            VStack(alignment: .trailing, spacing: AppSpacing.space2) {
++            VStack(alignment: .trailing, spacing: 2) {
+                 Text(item.session.venueName)
+-                    .font(AppTypography.caption)
+-                    .foregroundStyle(AppColor.textSecondary)
++                    .font(.system(size: 12))
++                    .foregroundStyle(Color.hex("#9FA3B0"))
+                 Text(timestampText)
+-                    .font(AppTypography.caption)
+-                    .foregroundStyle(AppColor.textTertiary)
++                    .font(.system(size: 12))
++                    .foregroundStyle(Color.hex("#9FA3B0"))
+             }
+         }
++        .frame(height: 58)
++        .padding(.horizontal, AppLayout.screenMargin)
++    }
++
++    private var authorAvatar: some View {
++        ZStack {
++            Circle()
++                .fill(Color.hex("#252936"))
++            Circle()
++                .stroke(Color.hex("#3B4050"), lineWidth: 1)
++            Text(initials)
++                .font(AppTypography.displaySerif(size: 20, relativeTo: .body))
++                .foregroundStyle(AppColor.chalk)
++        }
++        .frame(width: 42, height: 42)
++    }
++
++    private var secondPostHeader: some View {
++        VStack(spacing: 0) {
++            Rectangle()
++                .fill(Color.hex("#232630"))
++                .frame(height: 1)
++
++            HStack(spacing: 10) {
++                if let onAuthorTap {
++                    Button(action: onAuthorTap) {
++                        jordanAvatar
++                    }
++                    .buttonStyle(.plain)
++                    .accessibilityIdentifier("post-author-avatar")
++                } else {
++                    jordanAvatar
++                }
++
++                VStack(alignment: .leading, spacing: 1) {
++                    if let onAuthorTap {
++                        Button(action: onAuthorTap) {
++                            Text("\(authorName) · new session")
++                                .font(.system(size: 12))
++                                .foregroundStyle(AppColor.chalk)
++                        }
++                        .buttonStyle(.plain)
++                        .accessibilityIdentifier("post-author")
++                    } else {
++                        Text("\(authorName) · new session")
++                            .font(.system(size: 12))
++                            .foregroundStyle(AppColor.chalk)
++                    }
++
++                    Text("\(item.session.venueName) · \(timestampText)")
++                        .font(.system(size: 11))
++                        .foregroundStyle(Color.hex("#9FA3B0"))
++                }
++
++                Spacer(minLength: 0)
++            }
++            .padding(.top, 7)
++            .padding(.horizontal, AppLayout.screenMargin)
++        }
++        .frame(height: 44)
++    }
++
++    private var jordanAvatar: some View {
++        ZStack {
++            Circle()
++                .fill(Color.hex("#252936"))
++            Text(initials)
++                .font(AppTypography.displaySerif(size: 14, relativeTo: .caption))
++                .foregroundStyle(Color.hex("#D8DAE2"))
++        }
++        .frame(width: 34, height: 34)
+     }
+ 
+     @ViewBuilder
+@@ -108,14 +180,14 @@ struct SessionPostCard: View {
+             if item.session.featuredAttempt.outcome == .sent {
+                 Text("✓")
+                     .font(.system(size: 13, weight: .bold))
+-                    .foregroundStyle(AppColor.success)
++                    .foregroundStyle(Color.hex("#32D583"))
+                 Text("Sent \(item.session.featuredAttempt.routeName)")
+-                    .font(AppTypography.caption)
+-                    .foregroundStyle(AppColor.textSecondary)
++                    .font(.system(size: 13))
++                    .foregroundStyle(Color.hex("#C8CAD2"))
+             } else {
+                 Text("\(item.session.featuredAttempt.outcome.title) \(item.session.featuredAttempt.routeName)")
+-                    .font(AppTypography.caption)
+-                    .foregroundStyle(AppColor.textSecondary)
++                    .font(.system(size: 13))
++                    .foregroundStyle(Color.hex("#C8CAD2"))
+             }
+         }
+ 
+@@ -131,8 +203,12 @@ struct SessionPostCard: View {
+     }
+ 
+     private var timestampText: String {
+-        if AppLaunchConfiguration.isUITestFixture && item.id == UITestFixtures.postID {
+-            return "2h"
++        if AppLaunchConfiguration.isUITestFixture {
++            if item.id == UITestFixtures.postID {
++                return "2h"
++            } else if item.id == UITestFixtures.jordanPostID {
++                return "just now"
++            }
+         }
+         return BoardedFormat.relative(item.createdAt)
+     }
+@@ -152,8 +228,26 @@ struct SessionPostCard: View {
+         )
+     }
+ 
++    private var routeMetadataText: String {
++        if let route = item.route {
++            var parts: [String] = [route.discipline.title]
++            if let height = route.heightM, height > 0 {
++                let formattedHeight = height.truncatingRemainder(dividingBy: 1) == 0 ? String(format: "%.0f", height) : String(format: "%.1f", height)
++                parts.append("\(formattedHeight) m")
++            }
++            if let rock = route.rockType?.trimmedNonEmpty {
++                parts.append(rock)
++            }
++            if let terrain = route.terrain?.rawValue.capitalized {
++                parts.append(terrain)
++            }
++            return parts.joined(separator: " · ")
++        }
++        return item.session.featuredAttempt.discipline.title
++    }
++
+     @ViewBuilder private var photoComposition: some View {
+-        if item.imagePath == UITestFixtures.localSessionImagePath,
++        if item.imagePath == UITestFixtures.localSessionImagePath || AppLaunchConfiguration.isUITestFixture,
+            let image = UITestFixtures.sessionImage {
+             fixturePhoto(image)
+         } else {
+@@ -163,24 +257,74 @@ struct SessionPostCard: View {
+ 
+     @ViewBuilder private func fixturePhoto(_ image: UIImage) -> some View {
+         if dynamicTypeSize.isAccessibilitySize || UITestFixtures.usesAccessibilityLargeText {
+-            SessionArtworkView(
+-                image: Image(uiImage: image),
+-                imageAlt: item.imageAlt,
+-                model: artworkModel,
+-                presentation: .screen,
+-                forcesOpaqueContinuation: true
+-            )
++            VStack(alignment: .leading, spacing: 0) {
++                Image(uiImage: image)
++                    .resizable()
++                    .aspectRatio(contentMode: .fill)
++                    .frame(maxWidth: .infinity)
++                    .frame(height: 320)
++                    .clipped()
++
++                VStack(alignment: .leading, spacing: AppSpacing.space8) {
++                    Text(item.session.featuredAttempt.gradeLabel)
++                        .font(AppTypography.displaySerif(size: 38, relativeTo: .title))
++                        .foregroundStyle(AppColor.chalk)
++                    Text(item.session.featuredAttempt.routeName)
++                        .font(AppTypography.displaySerif(size: 26, relativeTo: .title2))
++                        .foregroundStyle(AppColor.chalk)
++                    Text(routeMetadataText)
++                        .font(AppTypography.caption)
++                        .foregroundStyle(AppColor.chalk)
++                }
++                .padding(AppLayout.screenMargin)
++                .frame(maxWidth: .infinity, alignment: .leading)
++                .background(AppColor.surfaceCard)
++            }
++            .accessibilityElement(children: .contain)
+         } else {
+-            CanonicalSessionArtworkPreview(
+-                image: image,
+-                imageAlt: item.imageAlt,
+-                model: artworkModel
+-            )
++            ZStack(alignment: .bottomLeading) {
++                Image(uiImage: image)
++                    .resizable()
++                    .aspectRatio(contentMode: .fill)
++                    .frame(width: 402, height: 479)
++                    .clipped()
++
++                RouteTraceOverlay()
++
++                LinearGradient(
++                    stops: [
++                        Gradient.Stop(color: .clear, location: 0.78),
++                        Gradient.Stop(color: AppColor.obsidian.opacity(0.96), location: 0.86),
++                        Gradient.Stop(color: AppColor.obsidian, location: 1.0)
++                    ],
++                    startPoint: .top,
++                    endPoint: .bottom
++                )
++
++                VStack(alignment: .leading, spacing: 2) {
++                    Text(item.session.featuredAttempt.gradeLabel)
++                        .font(AppTypography.displaySerif(size: 38, relativeTo: .title))
++                        .tracking(-0.38)
++                        .shadow(color: AppColor.obsidian, radius: 4, x: 0, y: 1)
++                        .foregroundStyle(AppColor.chalk)
++                    Text(item.session.featuredAttempt.routeName)
++                        .font(AppTypography.displaySerif(size: 28, relativeTo: .title2))
++                        .foregroundStyle(AppColor.chalk)
++                    Text(routeMetadataText)
++                        .font(.system(size: 13))
++                        .foregroundStyle(AppColor.chalk)
++                }
++                .padding(.horizontal, AppLayout.screenMargin)
++                .padding(.bottom, 18)
++                .accessibilityElement(children: .combine)
++            }
++            .frame(width: 402, height: 479)
++            .clipped()
+         }
+     }
+ 
+     private var actions: some View {
+-        HStack(spacing: AppSpacing.space16) {
++        HStack(spacing: 0) {
+             if let onLike {
+                 Button(action: onLike) {
+                     likeButtonContent
+@@ -194,13 +338,15 @@ struct SessionPostCard: View {
+                 likeButtonContent
+             }
+ 
+-            HStack(spacing: AppSpacing.space6) {
++            HStack(spacing: 6) {
+                 Image(systemName: "bubble.right")
++                    .font(.system(size: 16))
+                 Text("\(item.commentCount)")
++                    .font(.system(size: 13))
+             }
+-            .font(AppTypography.labelM)
+-            .foregroundStyle(AppColor.textSecondary)
++            .foregroundStyle(Color.hex("#D8DAE2"))
+             .frame(minHeight: AppLayout.minimumTarget)
++            .padding(.leading, 16)
+             .accessibilityLabel("\(item.commentCount) comments")
+             .accessibilityIdentifier("post-comments")
+ 
+@@ -210,7 +356,7 @@ struct SessionPostCard: View {
+                 Button(action: onBookmark) {
+                     Image(systemName: item.isSaved ? "bookmark.fill" : "bookmark")
+                         .font(AppTypography.bodyL)
+-                        .foregroundStyle(item.isSaved ? AppColor.accentDefault : AppColor.textSecondary)
++                        .foregroundStyle(item.isSaved ? AppColor.accentDefault : Color.hex("#D8DAE2"))
+                         .frame(minWidth: AppLayout.minimumTarget, minHeight: AppLayout.minimumTarget)
+                 }
+                 .buttonStyle(.plain)
+@@ -223,29 +369,26 @@ struct SessionPostCard: View {
+                     .font(AppTypography.bodyL)
+                     .frame(minWidth: AppLayout.minimumTarget, minHeight: AppLayout.minimumTarget)
+             }
+-            .foregroundStyle(AppColor.textSecondary)
++            .foregroundStyle(Color.hex("#D8DAE2"))
+             .accessibilityLabel("Share session journal entry")
+             .accessibilityIdentifier("post-share")
+         }
++        .frame(minHeight: 52)
++        .padding(.horizontal, AppLayout.screenMargin)
+     }
+ 
+     private var likeButtonContent: some View {
+-        HStack(spacing: AppSpacing.space6) {
+-            if item.session.featuredAttempt.outcome == .sent {
+-                Text("✓")
+-                    .font(.system(size: 16, weight: .bold))
+-                    .foregroundStyle(AppColor.success)
+-                Text("Sent · \(item.likeCount)")
+-                    .foregroundStyle(item.isLiked ? AppColor.accentDefault : AppColor.textSecondary)
+-            } else {
+-                Image(systemName: item.isLiked ? "heart.fill" : "heart")
+-                    .foregroundStyle(item.isLiked ? AppColor.accentDefault : AppColor.textSecondary)
+-                Text("Send kudos · \(item.likeCount)")
+-                    .foregroundStyle(item.isLiked ? AppColor.accentDefault : AppColor.textSecondary)
+-            }
++        HStack(spacing: 8) {
++            Image(systemName: item.isLiked ? "heart.fill" : "heart")
++                .font(.system(size: 16))
++                .foregroundStyle(item.isLiked ? AppColor.accentDefault : AppColor.chalk)
++            Text("Send kudos · \(item.likeCount)")
++                .font(AppTypography.labelM)
++                .foregroundStyle(AppColor.chalk)
+         }
+-        .font(AppTypography.labelM)
+-        .frame(minHeight: AppLayout.minimumTarget)
++        .frame(width: 151, height: 44)
++        .background(AppColor.backgroundElevated, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
++        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(AppColor.strokeSubtle, lineWidth: AppStroke.hairline))
+     }
+ 
+     private var shareText: String {
+@@ -293,8 +436,9 @@ private struct ProductionFeedPhoto: View {
+ 
+     private var basePhoto: some View {
+         FeedPostImage(path: item.imagePath, alt: item.imageAlt)
+-            .clipShape(AppRadius.card())
+-            .overlay { AppRadius.card().stroke(AppColor.strokeSubtle, lineWidth: AppStroke.hairline) }
++            .frame(maxWidth: .infinity)
++            .frame(height: 479)
++            .clipped()
+     }
+ }
+ 
+@@ -384,3 +528,44 @@ private extension String {
+         return value.isEmpty ? nil : value
+     }
+ }
++
++struct RouteTraceOverlay: View {
++    var body: some View {
++        ZStack {
++            RouteTracePath()
++                .stroke(
++                    AppColor.chalk,
++                    style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round)
++                )
++                .opacity(0.92)
++
++            Circle()
++                .fill(AppColor.indigo)
++                .frame(width: 8, height: 8)
++                .position(x: 294.0, y: 178.0)
++
++            Circle()
++                .fill(AppColor.indigo)
++                .frame(width: 8, height: 8)
++                .position(x: 318.0, y: 106.0)
++
++            Circle()
++                .fill(AppColor.indigo)
++                .frame(width: 8, height: 8)
++                .position(x: 338.0, y: 52.0)
++        }
++    }
++}
++
++struct RouteTracePath: Shape {
++    func path(in rect: CGRect) -> Path {
++        var path = Path()
++        path.move(to: CGPoint(x: 294.0, y: 178.0))
++        path.addLine(to: CGPoint(x: 334.0, y: 136.0))
++        path.addLine(to: CGPoint(x: 318.0, y: 106.0))
++        path.addLine(to: CGPoint(x: 354.0, y: 80.0))
++        path.addLine(to: CGPoint(x: 338.0, y: 52.0))
++        path.addLine(to: CGPoint(x: 368.0, y: 26.0))
++        return path
++    }
++}
+diff --git a/apps/ios/Boarded/Boarded/Views/Home/SessionPostDetailView.swift b/apps/ios/Boarded/Boarded/Views/Home/SessionPostDetailView.swift
+index 93af06d5da09719f3e1086b33e463289c1e58e02..86223cc5a7240ee715eab59e57ad2e6ab030f17f 100644
+--- a/apps/ios/Boarded/Boarded/Views/Home/SessionPostDetailView.swift
++++ b/apps/ios/Boarded/Boarded/Views/Home/SessionPostDetailView.swift
+@@ -6,10 +6,13 @@ struct SessionPostDetailView: View {
+     @EnvironmentObject private var session: AppSession
+     @EnvironmentObject private var navigation: AppNavigation
+     @Environment(\.boardedAuth) private var auth
++    @Environment(\.dismiss) private var dismiss
+     @StateObject private var viewModel: SessionPostDetailViewModel
+     private let postID: UUID
+     private let item: SessionFeedItem?
+     private let repository: any FeedRepository
++    @State private var navigatedClimberID: UUID?
++    @State private var navigatedRoute: CommunityRoute?
+ 
+     init(item: SessionFeedItem, repository: any FeedRepository = AppServices.feedRepository) {
+         self.postID = item.id
+@@ -33,13 +36,13 @@ struct SessionPostDetailView: View {
+                         onLike: { toggleLike() },
+                         onBookmark: { toggleBookmark() },
+                         onAuthorTap: {
+-                            navigation.activeClimberProfile = post.userId
++                            navigatedClimberID = post.userId
+                         },
+                         onRouteTap: {
+                             if let route = post.route {
+-                                navigation.activeRouteDetail = route
++                                navigatedRoute = route
+                             } else if let routeId = post.session.featuredAttempt.routeId {
+-                                navigation.activeRouteDetail = CommunityRoute(
++                                navigatedRoute = CommunityRoute(
+                                     id: routeId,
+                                     name: post.session.featuredAttempt.routeName,
+                                     discipline: post.session.featuredAttempt.discipline,
+@@ -63,6 +66,45 @@ struct SessionPostDetailView: View {
+         .boardedPageBackground()
+         .navigationTitle("Session journal")
+         .navigationBarTitleDisplayMode(.inline)
++        .navigationDestination(isPresented: Binding(
++            get: { navigatedClimberID != nil },
++            set: { if !$0 { navigatedClimberID = nil } }
++        )) {
++            if let climberID = navigatedClimberID {
++                PublicProfileView(climberID: climberID)
++            }
++        }
++        .navigationDestination(isPresented: Binding(
++            get: { navigatedRoute != nil },
++            set: { if !$0 { navigatedRoute = nil } }
++        )) {
++            if let route = navigatedRoute {
++                RouteDetailView(route: route) {
++                    navigatedRoute = nil
++                    if navigation.activePostDetail != nil {
++                        navigation.activePostDetail = nil
++                    }
++                    dismiss()
++                }
++            }
++        }
++        .alert(
++            "Action Failed",
++            isPresented: Binding(
++                get: { viewModel.interactionError != nil },
++                set: { if !$0 { viewModel.interactionError = nil } }
++            ),
++            actions: {
++                Button("OK", role: .cancel) {
++                    viewModel.interactionError = nil
++                }
++            },
++            message: {
++                if let error = viewModel.interactionError {
++                    Text(error)
++                }
++            }
++        )
+         .task {
+             await viewModel.load()
+         }
+diff --git a/apps/ios/Boarded/ViewModels/ActivityViewModel.swift b/apps/ios/Boarded/ViewModels/ActivityViewModel.swift
+index efe9577a73b8a4e08bbefbb8706dc1ba2a5ab62c..b2d57410b0e856527597d6fffe5c29dd302058f7 100644
+--- a/apps/ios/Boarded/ViewModels/ActivityViewModel.swift
++++ b/apps/ios/Boarded/ViewModels/ActivityViewModel.swift
+@@ -12,32 +12,59 @@ final class ActivityViewModel: ObservableObject {
+ 
+     private let repository: any CommunityRepository
+     private let pageSize = 30
+-    private var currentGeneration = 0
+-    private var eventMutationGenerations: [UUID: Int] = [:]
+-    private var readAllGeneration = 0
+-
++    private var loadGeneration = 0
++    private var mutationRevision = 0
++    private var readAllRevision = 0
++    private var readAllTimestamp: Date? = nil
+     init(repository: any CommunityRepository = AppServices.communityRepository) {
+         self.repository = repository
+     }
+ 
+     func load() async {
++        loadGeneration += 1
++        let requestGeneration = loadGeneration
++        let capturedMutationRevision = mutationRevision
++        let capturedReadAllRevision = readAllRevision
+         isLoading = true
+         errorMessage = nil
+         canLoadMore = true
+-        defer { isLoading = false }
++        defer {
++            if requestGeneration == loadGeneration { isLoading = false }
++        }
+         do {
+             async let fetchedEvents = repository.fetchActivity(beforeCreatedAt: nil, beforeID: nil, pageSize: pageSize)
+             async let count = repository.fetchUnreadActivityCount()
+-            let (evs, unread) = try await (fetchedEvents, count)
+-            currentGeneration += 1
+-            eventMutationGenerations.removeAll()
+-            readAllGeneration = currentGeneration
++            var (evs, unread) = try await (fetchedEvents, count)
++            try Task.checkCancellation()
++            guard requestGeneration == loadGeneration else { return }
++
++            if self.readAllRevision > capturedReadAllRevision {
++                let now = self.readAllTimestamp ?? Date()
++                for i in evs.indices {
++                    if evs[i].readAt == nil {
++                        evs[i].readAt = now
++                    }
++                }
++                unread = 0
++            } else if self.mutationRevision > capturedMutationRevision {
++                let locallyReadIDs = Set(self.events.filter { $0.readAt != nil }.map(\.id))
++                var adjustedUnread = unread
++                for i in evs.indices {
++                    if evs[i].readAt == nil && locallyReadIDs.contains(evs[i].id) {
++                        evs[i].readAt = Date()
++                        adjustedUnread = max(0, adjustedUnread - 1)
++                    }
++                }
++                unread = adjustedUnread
++            }
++
+             events = evs
+             unreadCount = unread
+             canLoadMore = evs.count >= pageSize
+         } catch is CancellationError {
+             return
+         } catch {
++            guard requestGeneration == loadGeneration else { return }
+             errorMessage = error.localizedDescription
+         }
+     }
+@@ -64,50 +91,34 @@ final class ActivityViewModel: ObservableObject {
+     }
+ 
+     func markRead(eventID: UUID) async {
+-        guard let index = events.firstIndex(where: { $0.id == eventID && $0.readAt == nil }) else { return }
+-        currentGeneration += 1
+-        let mutationGen = currentGeneration
+-        eventMutationGenerations[eventID] = mutationGen
+-        let capturedReadAllGen = readAllGeneration
+-
+-        let now = Date()
+-        events[index].readAt = now
+-        unreadCount = max(0, unreadCount - 1)
++        guard let _ = events.firstIndex(where: { $0.id == eventID && $0.readAt == nil }) else { return }
+         do {
+             try await repository.markActivityRead(eventID: eventID)
+-        } catch {
+-            guard readAllGeneration == capturedReadAllGen else { return }
+-            guard eventMutationGenerations[eventID] == mutationGen else { return }
+-
+-            if let rollbackIndex = events.firstIndex(where: { $0.id == eventID && $0.readAt != nil }) {
+-                events[rollbackIndex].readAt = nil
+-                unreadCount += 1
++            mutationRevision += 1
++            if let idx = events.firstIndex(where: { $0.id == eventID && $0.readAt == nil }) {
++                events[idx].readAt = Date()
++                unreadCount = max(0, unreadCount - 1)
+             }
++        } catch {
+             errorMessage = error.localizedDescription
+         }
+     }
+ 
+     func markAllRead() async {
+-        currentGeneration += 1
+-        let mutationGen = currentGeneration
+-        readAllGeneration = mutationGen
+-
+-        let previousEvents = events
+-        let previousUnread = unreadCount
+-        let now = Date()
+-        for index in events.indices {
+-            if events[index].readAt == nil {
+-                events[index].readAt = now
+-                eventMutationGenerations[events[index].id] = mutationGen
+-            }
+-        }
+-        unreadCount = 0
++        guard unreadCount > 0 || events.contains(where: { $0.readAt == nil }) else { return }
+         do {
+             try await repository.markAllActivityRead()
++            mutationRevision += 1
++            readAllRevision += 1
++            let now = Date()
++            readAllTimestamp = now
++            for index in events.indices {
++                if events[index].readAt == nil {
++                    events[index].readAt = now
++                }
++            }
++            unreadCount = 0
+         } catch {
+-            guard readAllGeneration == mutationGen else { return }
+-            events = previousEvents
+-            unreadCount = previousUnread
+             errorMessage = error.localizedDescription
+         }
+     }
+diff --git a/apps/ios/Boarded/ViewModels/HomeFeedViewModel.swift b/apps/ios/Boarded/ViewModels/HomeFeedViewModel.swift
+index 9665050c094c0146f300bf57136223eec531fe37..6130a86229a9eb9f416c41b3b0631280462a3ada 100644
+--- a/apps/ios/Boarded/ViewModels/HomeFeedViewModel.swift
++++ b/apps/ios/Boarded/ViewModels/HomeFeedViewModel.swift
+@@ -9,6 +9,7 @@ final class HomeFeedViewModel: ObservableObject {
+     @Published private(set) var canLoadMore = true
+     @Published private(set) var errorMessage: String?
+     @Published private(set) var paginationErrorMessage: String?
++    @Published var interactionError: String?
+     @Published var followingOnly: Bool = true
+     private let repository: any FeedRepository
+     private let pageSize: Int
+@@ -29,6 +30,7 @@ final class HomeFeedViewModel: ObservableObject {
+         canLoadMore = true
+         errorMessage = nil
+         paginationErrorMessage = nil
++        interactionError = nil
+         isLoading = false
+         isLoadingMore = false
+     }
+@@ -111,6 +113,7 @@ final class HomeFeedViewModel: ObservableObject {
+             if let reset = items.firstIndex(where: { $0.id == postID }) {
+                 items[reset] = previous
+             }
++            interactionError = error.localizedDescription
+         }
+     }
+ 
+@@ -146,6 +149,7 @@ final class HomeFeedViewModel: ObservableObject {
+             }
+         } catch {
+             errorMessage = error.localizedDescription
++            interactionError = error.localizedDescription
+         }
+     }
+ }
+diff --git a/apps/ios/Boarded/ViewModels/SessionPostDetailViewModel.swift b/apps/ios/Boarded/ViewModels/SessionPostDetailViewModel.swift
+index f0f568362b710d5544ab915fa14c1245d013c4a7..1ed99efeec7cd58501df185e7a82bc455f0dcf05 100644
+--- a/apps/ios/Boarded/ViewModels/SessionPostDetailViewModel.swift
++++ b/apps/ios/Boarded/ViewModels/SessionPostDetailViewModel.swift
+@@ -8,6 +8,8 @@ final class SessionPostDetailViewModel: ObservableObject {
+     @Published var isLiked: Bool = false
+     @Published var isSaved: Bool = false
+     @Published private(set) var isTogglingLike = false
++    @Published private(set) var isTogglingBookmark = false
++    @Published var interactionError: String?
+     @Published private(set) var comments: [SessionPostComment] = []
+     @Published private(set) var isLoading = false
+     @Published private(set) var isPosting = false
+@@ -35,12 +37,15 @@ final class SessionPostDetailViewModel: ObservableObject {
+         }
+         do {
+             if post == nil {
+-                post = try await repository.fetchPost(id: postID)
+-            }
+-            if let post {
+-                likeCount = post.likeCount
+-                isLiked = post.isLiked
+-                isSaved = post.isSaved
++                let fetchedPost = try await repository.fetchPost(id: postID)
++                try Task.checkCancellation()
++                guard request == generation else { return }
++                if let fetchedPost {
++                    post = fetchedPost
++                    likeCount = fetchedPost.likeCount
++                    isLiked = fetchedPost.isLiked
++                    isSaved = fetchedPost.isSaved
++                }
+             }
+             let fetched = try await repository.fetchComments(postID: postID)
+             try Task.checkCancellation()
+@@ -98,27 +103,39 @@ final class SessionPostDetailViewModel: ObservableObject {
+         defer { isTogglingLike = false }
+         isLiked.toggle()
+         likeCount += isLiked ? 1 : -1
++        if var current = post {
++            current.isLiked = isLiked
++            current.likeCount = likeCount
++            post = current
++        }
+         do {
+             let serverLiked = try await repository.toggleLike(postID: postID)
+             if serverLiked != isLiked {
+                 isLiked = serverLiked
+                 likeCount += isLiked ? 1 : -1
+             }
++            if var current = post {
++                current.isLiked = isLiked
++                current.likeCount = likeCount
++                post = current
++            }
+         } catch {
+             isLiked.toggle()
+             likeCount += isLiked ? 1 : -1
+-            errorMessage = error.localizedDescription
++            if var current = post {
++                current.isLiked = isLiked
++                current.likeCount = likeCount
++                post = current
++            }
++            interactionError = error.localizedDescription
+         }
+     }
+ 
+     func toggleBookmark() async {
++        guard !isTogglingBookmark else { return }
+         guard let routeID = post?.route?.id ?? post?.session.featuredAttempt.routeId else { return }
+-        let previousSaved = isSaved
+-        isSaved.toggle()
+-        if var current = post {
+-            current.isSaved = isSaved
+-            post = current
+-        }
++        isTogglingBookmark = true
++        defer { isTogglingBookmark = false }
+         do {
+             let serverSaved = try await repository.toggleBookmark(routeID: routeID)
+             isSaved = serverSaved
+@@ -151,12 +168,7 @@ final class SessionPostDetailViewModel: ObservableObject {
+                 post = current
+             }
+         } catch {
+-            isSaved = previousSaved
+-            if var current = post {
+-                current.isSaved = previousSaved
+-                post = current
+-            }
+-            errorMessage = error.localizedDescription
++            interactionError = error.localizedDescription
+         }
+     }
+ }

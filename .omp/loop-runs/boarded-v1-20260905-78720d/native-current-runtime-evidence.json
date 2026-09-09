@@ -1,0 +1,65 @@
+{
+  "preview_head": "ea0ce79",
+  "source_heads": {
+    "feed": "a067180bcb63f8754399fee2f3e6902ac6f38e95",
+    "journal": "65c049516d324d718324910b57e64a882fd3cdea"
+  },
+  "test_output": "artifact://520",
+  "result_bundle": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/native-preview-derived/Logs/Test/Test-Boarded-2026.09.06_15-20-45--0400.xcresult",
+  "contract_tests": "75 pass on each of compact and regular",
+  "route_second_card": "passes both devices",
+  "remaining_failures": [
+    "Close double dismissal in RouteDetailView, proven AX/video and source calls dismiss plus binding clear",
+    "capture driver omits required grade selection",
+    "regular accessibility caption reveal oscillates despite visible text"
+  ],
+  "vision": {
+    "scope": "Read-only inspection of the three specified recordings using preview grids and targeted timestamp frames. No source review, edits, builds, or tests.",
+    "findings": [
+      {
+        "recording": "958C4A98-938B-46AF-A051-F9F1EE7BAA74.mp4",
+        "classification": "Close returns to Feed, not the parent post.",
+        "evidence": [
+          "8.0s: Redpoint Ridge route detail, with Close and back controls.",
+          "10.0s: navigation transition shows Feed entering from left while Session journal moves right.",
+          "10.3s: Feed occupies screen: Boarded header and second post below Maya\u2019s card; parent Session journal is gone.",
+          "11.0s: iOS Home screen."
+        ],
+        "limits": "Touch itself was not resolved in sampled frames. Home-screen appearance alone does not establish crash versus test teardown.",
+        "smallest_correction_boundary": "Route-close navigation ownership: retain parent journal and remove only route destination. Exact source path belongs to Scout."
+      },
+      {
+        "recording": "1D1B9891-0FA2-4DC3-A1F7-5C54EA12C9E6.mp4",
+        "classification": "Logger opens successfully; recording stalls in incomplete Attempt form, not an observed save failure.",
+        "evidence": [
+          "21.0s: Home Board active session with Log Attempt.",
+          "24.0s: Attempt form open; Route field contains Green during entry, keyboard visible.",
+          "25.0s: Select grade\u2026 remains unselected; Stopped highlighted; Save Attempt visibly dimmed above keyboard.",
+          "30.0s and 39.0s: Route contains Green Line, keyboard remains up, grade still Select grade\u2026."
+        ],
+        "limits": "No observed validation error, successful grade choice, enabled-save submission, or persistence result. Dimmed save is consistent with incomplete input, not proof of a validation bug.",
+        "smallest_correction_boundary": "Investigate grade-selection/form-interaction path before save implementation; do not weaken required-grade validation."
+      },
+      {
+        "recording": "B7ED8E7D-0547-479A-BFC4-8BC8CA7EFBEA.mp4",
+        "classification": "Caption is visibly reachable; reveal sequence changes scroll position despite visible content.",
+        "evidence": [
+          "8.0s: full first caption visible: Six tries. Quiet feet through the crux, then daylight.",
+          "23.0s: first card scrolled upward; its full caption and second card\u2019s Crisp conditions out on the Buttermilks. caption both visible.",
+          "37.0s: view has returned toward first card; first caption still fully visible."
+        ],
+        "limits": "This supports unnecessary/back-and-forth reveal scrolling, not genuinely unreachable rendered caption. Frames alone cannot prove AX hittability or an exact failing locator; no rubber-band overscroll claim.",
+        "smallest_correction_boundary": "Reveal/AX targeting contract needs Scout diagnosis; no visual evidence justifies caption layout redesign."
+      }
+    ],
+    "coordination": "Concrete sequence and timestamps sent to NativeRuntimeCause."
+  },
+  "canonical_capture": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/native-ea0ce79-compact-large.png",
+  "odiff": {
+    "different_pixels": 125820,
+    "percent": 3.98,
+    "threshold": 0.1,
+    "gate_percent": 0.5,
+    "result": "fail"
+  }
+}

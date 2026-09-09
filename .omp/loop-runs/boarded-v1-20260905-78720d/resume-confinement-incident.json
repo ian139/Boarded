@@ -1,0 +1,9 @@
+{
+  "worker": "boarded-web-preserved-implementation-1",
+  "path": "components/boarded/Flow.tsx",
+  "incident": "Relative-path edit touched primary; worker attempted restoration but left one blank line. Main removed exactly the worker-added blank line using anchored edit.",
+  "baseline_sha256": "9c69e93dba27d72b816393df7838a9d0cce3ad282c2afe89db3cca7c746be5e6",
+  "restored_sha256": "9c69e93dba27d72b816393df7838a9d0cce3ad282c2afe89db3cca7c746be5e6",
+  "preserved": true,
+  "guard": "Worker instructed absolute worktree paths only; no further primary writes"
+}

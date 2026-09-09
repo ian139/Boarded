@@ -1,0 +1,18 @@
+diff --git a/app/board/settings/page.tsx b/app/board/settings/page.tsx
+index 0193574..d46d480 100644
+--- a/app/board/settings/page.tsx
++++ b/app/board/settings/page.tsx
+@@ -97,12 +97,9 @@ export default function BoardSettingsPage() {
+   };
+ 
+   const handleClearData = () => {
++    localStorage.removeItem('boarded-draft');
+     localStorage.removeItem('boarded-routes');
+     localStorage.removeItem('boarded-walls');
+-    localStorage.removeItem('boarded-draft');
+-    localStorage.removeItem('climbset-routes');
+-    localStorage.removeItem('climbset-walls');
+-    localStorage.removeItem('climbset-draft');
+     window.location.reload();
+   };
+ 

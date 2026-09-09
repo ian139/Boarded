@@ -1,0 +1,23 @@
+{
+  "packet": "web",
+  "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/web",
+  "base_sha": "9a68ff18ffd612b21bfb5173a50b82ee7c35297e",
+  "contract_path": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/contract.json",
+  "contract_sha256": "9044624142e5214292c49cbf5e0862236d92ad419ce87e1d263ac4b7f446798c",
+  "scope": {
+    "platform": "web",
+    "allow": [
+      "app/",
+      "components/",
+      "lib/",
+      "public/brand/"
+    ],
+    "exclude": [
+      "app/page.tsx",
+      "app/landing.css",
+      "components/landing/"
+    ],
+    "role": "Web implementation of frozen shared contract; owns app/globals.css token integration and existing web UI/auth/editor cutover. Do not touch landing or Blender."
+  },
+  "task": "# Target\nPlatform web: platform-specific implementation of frozen shared both-platform contract; NativeV1 owns native counterpart. Own app/,components/,lib/,public/brand/ EXCEPT app/page.tsx, app/landing.css, components/landing/; these belong LandingV1. No packages/shared/ (V1Data owns) or SQL edits. V1Designer owns current design contract. Existing user landing changes are preserved baseline, not yours to overwrite.\n# Change\nImplement real Feed /app, Explore /explore, Log /log, Activity /activity, Profile /profile with authentic responsive editorial design and five native-style destinations on compact screens, coherent desktop nav. Use shared TS shapes/RPCs in contract and existing Supabase auth/storage patterns. Feed friends/followed posts, genuine kudos/comments/route save/share/author/profile/route deep links; Explore route/venue/crag/gym/board/climber search/details/follow, real route/venue creation where needed. Keep current board studio/editor/public route sharing/ticks reachable from Explore; don't destroy existing active board domain. New Log reuses private native session/attempt domain, supports conditions/notes/grades/outcomes, finish and real image result composition+publication to social-media/session_posts; don't auto-publicize private attempts. Activity real inbox/read states, Profile progress/bests/history/saved routes and public climber follow pages preserving private boundaries. Reuse existing UI patterns/libs; clean cutover obsolete navigation/callers without aliases. Own globals.css brand tokens, system-sans/control treatment, exact existing editorial font and accessible Indigo actions/green success. Coordinate fixed tokens with LandingV1; landing must not edit globals. Dynamic layouts, 44px targets, keyboard/focus, reduced-motion, loading/error/auth/empty/offline states; no fake production data or no-op links. For deterministic visual capture prefer browser network fixtures or strictly existing dev-only fixtures, not publicly reachable fake product paths. Import new shared types from V1Data; dependency may be absent during authoring, do not duplicate them locally. Send compile dependency questions early to Main/Data.\n# Acceptance\nComplete working routes/actions/cutover, no TODO or mock production flows; owned local commit. Return exact browser scenarios + viewport/state identifiers, API coverage/base/head/changed paths. Skip all validation/build/tests/lint/formatters during authoring. Main will supply reviewed Data dependency, run actual browser mobile/desktop and keyboard path, get V1Designer and vision approval. Do not install packages or read .env/secrets."
+}

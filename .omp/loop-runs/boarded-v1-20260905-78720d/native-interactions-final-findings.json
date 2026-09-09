@@ -1,0 +1,56 @@
+[
+  {
+    "title": "Prevent stale bookmark failures from undoing newer success",
+    "body": "Two rapid bookmark taps can overlap because `toggleBookmark()` has no in-flight guard or mutation generation. Starting unsaved, the first request captures `false`; if the second request successfully saves the route before the first request fails, this new rollback restores `false` even though the server bookmark exists. Serialize mutations or reject stale completions before updating both `isSaved` and `post`, so an older failure cannot overwrite the returned state of a newer success.",
+    "priority": 2,
+    "confidence": 1,
+    "file_path": "apps/ios/Boarded/ViewModels/SessionPostDetailViewModel.swift",
+    "line_start": 153,
+    "line_end": 157
+  },
+  {
+    "title": "Restore single-event rollback when Read All also fails",
+    "body": "With two unread events, start reading one event, then start Read All before that write completes. If Read All fails first and the single-event write fails afterward, Read All restores a snapshot in which that event was already optimistically read, while this new generation guard discards its subsequent rollback because `readAllGeneration` was advanced before success and never restored. The event remains read and the shared badge undercounts despite both server writes failing; distinguish pending from confirmed superseding writes or serialize the operations.",
+    "priority": 2,
+    "confidence": 1,
+    "file_path": "apps/ios/Boarded/ViewModels/ActivityViewModel.swift",
+    "line_start": 79,
+    "line_end": 80
+  },
+  {
+    "title": "Discard root unread snapshots superseded by read mutations",
+    "body": "The new root fetch can read a positive count and deliver its response after Activity has loaded and successfully marked all events read. Because the completion checks only the account ID, it then overwrites the newer shared count of zero with that stale snapshot, restoring the Feed/tab unread badge while Activity and the server are already read. Coordinate this fetch with the same unread-state revision used by Activity, rather than allowing an older response to overwrite a newer mutation.",
+    "priority": 2,
+    "confidence": 0.99,
+    "file_path": "apps/ios/Boarded/Boarded/RootView.swift",
+    "line_start": 63,
+    "line_end": 65
+  },
+  {
+    "title": "Recheck account identity after the Activity load completes",
+    "body": "The new auth-keyed task checks authentication only before awaiting `model.load()`. On an account change SwiftUI cancels that task, but `load()` catches `CancellationError` and returns normally, so its old continuation still publishes `model.unreadCount` into the shared navigation object. In particular, cancelling a reload after Activity already has unread events can restore the old account's badge after the root reset; `.id(session.userId)` does not cancel captured-object writes. Capture the account ID and reject cancelled or mismatched completions before publishing the count.",
+    "priority": 2,
+    "confidence": 0.98,
+    "file_path": "apps/ios/Boarded/Boarded/Views/Activity/ActivityViews.swift",
+    "line_start": 85,
+    "line_end": 91
+  },
+  {
+    "title": "Keep failed-like retries separate from comment submission",
+    "body": "Moving likes into `viewModel.toggleLike()` now sends like failures to the shared `errorMessage`, but its nonempty-comments consumer in `composer` wires Retry to `viewModel.postComment()`. If a user has typed an unsent draft, a failed like followed by Retry publishes that draft instead of retrying the like; without a draft, Retry does nothing and leaves the failure unresolved. Preserve the failed operation when presenting its retry action rather than routing the newly introduced like-error path through the comment composer.",
+    "priority": 2,
+    "confidence": 1,
+    "file_path": "apps/ios/Boarded/Boarded/Views/Home/SessionPostDetailView.swift",
+    "line_start": 106,
+    "line_end": 108
+  },
+  {
+    "title": "Route detail-sheet callbacks through the active presentation",
+    "body": "When Activity opens a post, RootView presents this view through its `activePostDetail` sheet. These new callbacks set `activeClimberProfile` or `activeRouteDetail` while that sheet remains presented, but both destinations are sibling sheet modifiers on the same root TabView, not destinations in the active sheet's NavigationStack. Consequently author/route taps cannot present their destination immediately and may only open it after the post sheet is manually dismissed. Push from the active detail stack or explicitly sequence dismissal before presenting the next destination.",
+    "priority": 2,
+    "confidence": 0.98,
+    "file_path": "apps/ios/Boarded/Boarded/Views/Home/SessionPostDetailView.swift",
+    "line_start": 35,
+    "line_end": 40
+  }
+]

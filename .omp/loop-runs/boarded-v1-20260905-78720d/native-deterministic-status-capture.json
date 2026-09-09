@@ -1,0 +1,13 @@
+{
+  "device": "9DF7A937-1CA0-48B4-9B07-5C8D92D3D1A9",
+  "prior_overrides": {},
+  "observed_prior": "simctlstatus_bar list empty; fullscreen image shows9:41 andgreencharging battery",
+  "requested_native_overrides": {
+    "time": "9:41",
+    "batteryState": "discharging",
+    "batteryLevel": 100
+  },
+  "execution": "Use nonparallel XCTest on exact registered device so native status configuration is not lost to clone. Do not alter pixel comparator/reference or add app-drawn chrome.",
+  "state": "registered_before_native_override",
+  "cleanup": "Task-created simulator remains governed by existing owned-resource cleanup; clear override if device is preserved."
+}

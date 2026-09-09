@@ -1,0 +1,1143 @@
+diff --git a/apps/ios/Boarded/Boarded/Services/ProfileRepository.swift b/apps/ios/Boarded/Boarded/Services/ProfileRepository.swift
+index 138d04df050bf8de8ee626f1b50cf67825727bfd..56ebc93a3f4a842b85396edb2aa7495bc1edc8ca 100644
+--- a/apps/ios/Boarded/Boarded/Services/ProfileRepository.swift
++++ b/apps/ios/Boarded/Boarded/Services/ProfileRepository.swift
+@@ -5,12 +5,28 @@ protocol ProfileRepository: Sendable {
+     func fetchStatistics(userID: UUID) async throws -> ProfileStatistics
+     func createProfile(_ draft: ProfileDraft) async throws -> Profile
+     func updateProfile(userID: UUID, update: ProfileUpdate) async throws -> Profile
+-    func fetchSavedRoutes(userID: UUID) async throws -> [CommunityRoute]
++    func fetchSavedRoutes(userID: UUID, beforeCreatedAt: Date?, beforeID: UUID?, pageSize: Int) async throws -> [CommunityRoute]
+     func fetchClimber(userID: UUID) async throws -> CommunityClimber?
+     func fetchClimberSessions(userID: UUID) async throws -> [SessionFeedItem]
+     func toggleFollow(climberID: UUID) async throws -> Bool
+ }
+ 
++extension ProfileRepository {
++    func fetchSavedRoutes(
++        userID: UUID,
++        beforeCreatedAt: Date? = nil,
++        beforeID: UUID? = nil,
++        pageSize: Int = 30
++    ) async throws -> [CommunityRoute] {
++        try await fetchSavedRoutes(
++            userID: userID,
++            beforeCreatedAt: beforeCreatedAt,
++            beforeID: beforeID,
++            pageSize: pageSize
++        )
++    }
++}
++
+ enum ProfileRepositoryError: LocalizedError, Equatable {
+     case unavailable
+     case invalidUserID
+@@ -48,7 +64,7 @@ final class MockProfileRepository: ProfileRepository, @unchecked Sendable {
+     private var savedRoutes: [CommunityRoute]
+     private var climbers: [UUID: CommunityClimber]
+     private var climberSessions: [UUID: [SessionFeedItem]]
+-    private var followedClimberIDs: Set<UUID>
++    private let fixtureStore: SharedFixtureStore
+ 
+     init(
+         profile: Profile? = nil,
+@@ -56,14 +72,23 @@ final class MockProfileRepository: ProfileRepository, @unchecked Sendable {
+         savedRoutes: [CommunityRoute] = [],
+         climbers: [UUID: CommunityClimber] = [:],
+         climberSessions: [UUID: [SessionFeedItem]] = [:],
+-        followedClimberIDs: Set<UUID> = []
++        followedClimberIDs: Set<UUID> = [],
++        fixtureStore: SharedFixtureStore? = nil
+     ) {
+         self.profile = profile
+         self.statistics = statistics
+         self.savedRoutes = savedRoutes
+         self.climbers = climbers
+         self.climberSessions = climberSessions
+-        self.followedClimberIDs = followedClimberIDs
++        if let fixtureStore {
++            self.fixtureStore = fixtureStore
++        } else {
++            let initialSaved = Set(savedRoutes.map(\.id))
++            self.fixtureStore = SharedFixtureStore(
++                savedRouteIDs: initialSaved.isEmpty ? [UITestFixtures.redpointRidgeID] : initialSaved,
++                followedClimberIDs: followedClimberIDs
++            )
++        }
+     }
+     func createProfile(_ draft: ProfileDraft) async throws -> Profile {
+         let draft = draft.sanitized
+@@ -115,16 +140,37 @@ final class MockProfileRepository: ProfileRepository, @unchecked Sendable {
+         return updated
+     }
+ 
+-    func fetchSavedRoutes(userID: UUID) async throws -> [CommunityRoute] {
++    func fetchSavedRoutes(
++        userID: UUID,
++        beforeCreatedAt: Date? = nil,
++        beforeID: UUID? = nil,
++        pageSize: Int = 30
++    ) async throws -> [CommunityRoute] {
+         lock.lock(); defer { lock.unlock() }
+-        let currentSaved = SharedFixtureStore.shared.savedRouteIDs
+-        return UITestFixtures.exploreRoutes.filter { currentSaved.contains($0.id) }
++        let currentSaved = fixtureStore.currentSavedRouteIDs()
++        let pool = savedRoutes.isEmpty ? UITestFixtures.exploreRoutes : savedRoutes
++        var matching = pool.filter { currentSaved.contains($0.id) || fixtureStore.isSaved($0.id) }
++        matching.sort { a, b in
++            if a.createdAt != b.createdAt {
++                return a.createdAt > b.createdAt
++            }
++            return a.id.uuidString > b.id.uuidString
++        }
++        if let beforeCreatedAt, let beforeID {
++            matching = matching.filter { route in
++                if route.createdAt < beforeCreatedAt { return true }
++                if route.createdAt == beforeCreatedAt { return route.id.uuidString < beforeID.uuidString }
++                return false
++            }
++        }
++        let size = min(max(pageSize, 1), 50)
++        return Array(matching.prefix(size))
+     }
+ 
+     func fetchClimber(userID: UUID) async throws -> CommunityClimber? {
+         lock.lock(); defer { lock.unlock() }
+         if var climber = climbers[userID] {
+-            climber.isFollowed = followedClimberIDs.contains(userID)
++            climber.isFollowed = fixtureStore.isFollowing(userID)
+             return climber
+         }
+         if let profile, profile.id == userID {
+@@ -137,7 +183,7 @@ final class MockProfileRepository: ProfileRepository, @unchecked Sendable {
+                 homeArea: profile.homeArea,
+                 isFollowed: false,
+                 followerCount: 0,
+-                followingCount: followedClimberIDs.count
++                followingCount: fixtureStore.currentFollowedClimberIDs().count
+             )
+         }
+         return nil
+@@ -149,8 +195,7 @@ final class MockProfileRepository: ProfileRepository, @unchecked Sendable {
+     }
+     func toggleFollow(climberID: UUID) async throws -> Bool {
+         lock.lock(); defer { lock.unlock() }
+-        let isFollowing = SharedFixtureStore.shared.toggleFollow(climberID)
+-        followedClimberIDs = SharedFixtureStore.shared.followedClimberIDs
++        let isFollowing = fixtureStore.toggleFollow(climberID)
+         if var climber = climbers[climberID] {
+             climber.isFollowed = isFollowing
+             climber.followerCount += isFollowing ? 1 : -1
+@@ -228,11 +273,24 @@ struct SupabaseProfileRepository: ProfileRepository {
+         guard let row = rows.first else { throw ProfileRepositoryError.invalidUserID }
+         return row
+     }
+-    func fetchSavedRoutes(userID: UUID) async throws -> [CommunityRoute] {
++    func fetchSavedRoutes(
++        userID: UUID,
++        beforeCreatedAt: Date? = nil,
++        beforeID: UUID? = nil,
++        pageSize: Int = 30
++    ) async throws -> [CommunityRoute] {
+         guard let client else { throw ProfileRepositoryError.unavailable }
++        let params = ProfileExploreParams(
++            search_text: "",
++            venue_filter: nil,
++            saved_only: true,
++            before_created_at: beforeCreatedAt,
++            before_id: beforeID,
++            page_size: min(max(pageSize, 1), 50)
++        )
+         let routes: [CommunityRoute] = try await client.rpc(
+             "get_explore_routes",
+-            params: ProfileExploreParams(saved_only: true, page_size: 50)
++            params: params
+         ).execute().value
+         return routes
+     }
+@@ -267,6 +325,9 @@ struct SupabaseProfileRepository: ProfileRepository {
+             id: profile.id,
+             username: profile.username,
+             fullName: profile.fullName,
++            avatarUrl: profile.avatarUrl,
++            bio: profile.bio,
++            homeArea: profile.homeArea,
+             isFollowed: isFollowed,
+             followerCount: followers.count,
+             followingCount: following.count
+@@ -309,7 +370,11 @@ struct SupabaseProfileRepository: ProfileRepository {
+ }
+ 
+ private nonisolated struct ProfileExploreParams: Encodable, Sendable {
++    let search_text: String
++    let venue_filter: UUID?
+     let saved_only: Bool
++    let before_created_at: Date?
++    let before_id: UUID?
+     let page_size: Int
+ }
+ 
+diff --git a/apps/ios/Boarded/Boarded/Services/SessionSyncService.swift b/apps/ios/Boarded/Boarded/Services/SessionSyncService.swift
+index 9e5966a06f5ab6f7f9fc51a7fcef2286ed65393b..8c79b6b8dae044dc66dd1ecc68bc604d4b8af0a2 100644
+--- a/apps/ios/Boarded/Boarded/Services/SessionSyncService.swift
++++ b/apps/ios/Boarded/Boarded/Services/SessionSyncService.swift
+@@ -222,6 +222,92 @@ final class SessionSyncService: ObservableObject {
+     }
+ 
+ 
++    /// Account-scoped completed sessions stored on this device.
++    func completedSessions() -> [PendingSession] {
++        let activeUserID = userID
++        let descriptor = FetchDescriptor<PendingSession>(
++            predicate: #Predicate { $0.userId == activeUserID && $0.endedAt != nil },
++            sortBy: [SortDescriptor(\.startedAt, order: .reverse)]
++        )
++        return (try? modelContext.fetch(descriptor)) ?? []
++    }
++
++    /// Account-scoped attempts for a session stored on this device.
++    func attempts(for sessionID: UUID) -> [PendingAttempt] {
++        let activeUserID = userID
++        let descriptor = FetchDescriptor<PendingAttempt>(
++            predicate: #Predicate { $0.sessionId == sessionID && $0.userId == activeUserID },
++            sortBy: [SortDescriptor(\.occurredAt, order: .reverse)]
++        )
++        return (try? modelContext.fetch(descriptor)) ?? []
++    }
++
++    /// Merges account-scoped local and remote history, preserving pending local edits and failure states.
++    func mergedSessions() async -> (sessions: [ClimbingSession], syncStates: [UUID: SyncState], remoteError: Error?) {
++        let localCompleted = completedSessions()
++        var localMap: [UUID: PendingSession] = [:]
++        var states: [UUID: SyncState] = [:]
++        for s in localCompleted {
++            localMap[s.id] = s
++            states[s.id] = s.syncState
++        }
++
++        var remoteSessions: [ClimbingSession]?
++        var remoteError: Error?
++        do {
++            remoteSessions = try await repository.fetchSessions(userID: userID)
++        } catch {
++            remoteError = error
++        }
++
++        var mergedMap: [UUID: ClimbingSession] = [:]
++        if let remoteSessions {
++            for s in remoteSessions {
++                mergedMap[s.id] = s
++                if states[s.id] == nil {
++                    states[s.id] = .synced
++                }
++            }
++        }
++        for (id, local) in localMap {
++            if local.syncState != .synced || mergedMap[id] == nil {
++                mergedMap[id] = local.remote
++            }
++        }
++        let sorted = Array(mergedMap.values).sorted(by: { $0.startedAt > $1.startedAt })
++        return (sorted, states, remoteError)
++    }
++
++    /// Merges local and remote attempts for a session.
++    func mergedAttempts(for sessionID: UUID) async -> (attempts: [ClimbAttempt], remoteError: Error?) {
++        let localAttempts = attempts(for: sessionID)
++        var localMap: [UUID: PendingAttempt] = [:]
++        for a in localAttempts {
++            localMap[a.id] = a
++        }
++        var remoteAttempts: [ClimbAttempt]?
++        var remoteError: Error?
++        do {
++            remoteAttempts = try await repository.fetchAttempts(sessionID: sessionID)
++        } catch {
++            remoteError = error
++        }
++
++        var mergedMap: [UUID: ClimbAttempt] = [:]
++        if let remoteAttempts {
++            for a in remoteAttempts {
++                mergedMap[a.id] = a
++            }
++        }
++        for (id, local) in localMap {
++            if local.syncState != .synced || mergedMap[id] == nil {
++                mergedMap[id] = local.remote
++            }
++        }
++        let sorted = Array(mergedMap.values).sorted(by: { $0.attemptNumber < $1.attemptNumber })
++        return (sorted, remoteError)
++    }
++
+     /// Persists a draft only after both the flattened image and its source
+     /// companion are durable. A creation marker lets startup reconcile every
+     /// termination window without exposing a half-written pair.
+diff --git a/apps/ios/Boarded/Boarded/Views/Log/LogViews.swift b/apps/ios/Boarded/Boarded/Views/Log/LogViews.swift
+index 9da7a0435e07af827993833855d9523e22d8a6e8..db155ab961870afe45952264df5b1fade8a34f97 100644
+--- a/apps/ios/Boarded/Boarded/Views/Log/LogViews.swift
++++ b/apps/ios/Boarded/Boarded/Views/Log/LogViews.swift
+@@ -54,48 +54,84 @@ struct LogHomeView: View {
+     @State private var notes = ""
+     @State private var active = false
+     @State private var sessionHistory: [ClimbingSession] = []
++    @State private var sessionSyncStates: [UUID: SyncState] = [:]
++    @State private var historyError: String? = nil
++    @State private var selectedSession: ClimbingSession? = nil
+     var body: some View {
+         ScrollView { VStack(alignment: .leading, spacing: AppLayout.sectionGap) {
+             BoardedSyncBanner(isOffline: !syncService.isOnline, state: syncService.state) { Task { await logger.retrySync() } }
+             if logger.isActive { activeCard } else { startCard }
+             BoardedSectionHeading(title: "Session history", subtitle: "Newest sessions appear first after sync.")
+-            if sessionHistory.isEmpty {
++            if let error = historyError {
++                BoardedInlineError(message: error) {
++                    Task { await loadHistory() }
++                }
++            } else if sessionHistory.isEmpty {
+                 Text("No completed sessions yet recorded on this device.")
+                     .font(AppTypography.bodyM)
+                     .foregroundStyle(AppColor.textSecondary)
+             } else {
+                 ForEach(sessionHistory) { sess in
+-                    VStack(alignment: .leading, spacing: AppSpacing.space4) {
+-                        HStack {
+-                            Text(sess.venueName)
+-                                .font(AppTypography.labelL)
+-                                .foregroundStyle(AppColor.textPrimary)
+-                            Spacer()
+-                            Text(BoardedFormat.dateTime(sess.startedAt))
+-                                .font(AppTypography.caption)
+-                                .foregroundStyle(AppColor.textTertiary)
+-                        }
+-                        if let conditions = sess.conditions, !conditions.isEmpty {
+-                            Label(conditions, systemImage: "cloud.sun")
+-                                .font(AppTypography.caption)
+-                                .foregroundStyle(AppColor.textSecondary)
+-                        }
+-                        if let notes = sess.notes, !notes.isEmpty {
+-                            Text(notes)
+-                                .font(AppTypography.caption)
+-                                .foregroundStyle(AppColor.textSecondary)
++                    Button {
++                        selectedSession = sess
++                    } label: {
++                        VStack(alignment: .leading, spacing: AppSpacing.space4) {
++                            HStack {
++                                Text(sess.venueName)
++                                    .font(AppTypography.labelL)
++                                    .foregroundStyle(AppColor.textPrimary)
++                                Spacer()
++                                Text(BoardedFormat.dateTime(sess.startedAt))
++                                    .font(AppTypography.caption)
++                                    .foregroundStyle(AppColor.textTertiary)
++                            }
++                            if let conditions = sess.conditions, !conditions.isEmpty {
++                                Label(conditions, systemImage: "cloud.sun")
++                                    .font(AppTypography.caption)
++                                    .foregroundStyle(AppColor.textSecondary)
++                            }
++                            if let notes = sess.notes, !notes.isEmpty {
++                                Text(notes)
++                                    .font(AppTypography.caption)
++                                    .foregroundStyle(AppColor.textSecondary)
++                            }
++                            if let syncState = sessionSyncStates[sess.id], syncState != .synced {
++                                HStack(spacing: AppSpacing.space6) {
++                                    Image(systemName: syncState == .failed ? "exclamationmark.triangle.fill" : "arrow.triangle.2.circlepath")
++                                    Text(syncState == .failed ? "Sync failed" : "Pending sync")
++                                }
++                                .font(AppTypography.caption.weight(.medium))
++                                .foregroundStyle(syncState == .failed ? AppColor.danger : AppColor.textSecondary)
++                            }
+                         }
++                        .padding(AppLayout.cardPadding)
++                        .boardedSurface(in: AppRadius.card())
+                     }
+-                    .padding(AppLayout.cardPadding)
+-                    .boardedSurface(in: AppRadius.card())
++                    .buttonStyle(.plain)
++                    .accessibilityIdentifier("history-session-card")
+                 }
+             }
+         }.padding(AppLayout.screenMargin).boardedContentWidth().frame(maxWidth: .infinity) }
+         .navigationDestination(isPresented: $active) { ActiveSessionView(logger: logger, syncService: syncService) }
+-        .task {
+-            if let id = session.userId {
+-                sessionHistory = (try? await AppServices.sessionRepository.fetchSessions(userID: id)) ?? []
+-            }
++        .sheet(item: $selectedSession) { sess in
++            PrivateSessionDetailView(climbingSession: sess, syncState: sessionSyncStates[sess.id])
++        }
++        .task(id: session.userId) {
++            await loadHistory()
++        }
++        .onReceive(NotificationCenter.default.publisher(for: .activeSessionDidChange)) { _ in
++            Task { await loadHistory() }
++        }
++    }
++
++    private func loadHistory() async {
++        guard session.userId != nil else { return }
++        historyError = nil
++        let (merged, states, remoteErr) = await syncService.mergedSessions()
++        sessionHistory = merged
++        sessionSyncStates = states
++        if sessionHistory.isEmpty, let remoteErr {
++            historyError = "Unable to load session history: \(remoteErr.localizedDescription)"
+         }
+     }
+     private var startCard: some View {
+@@ -105,10 +141,10 @@ struct LogHomeView: View {
+             BoardedTextField(label: "Venue", prompt: "Gym or crag", text: $venue)
+             BoardedTextField(label: "Conditions", prompt: "e.g. 62°F, crisp, dry (optional)", text: $conditions)
+             BoardedTextEditor(label: "Private Notes", prompt: "Personal notes for this session (optional)", text: $notes)
+-            if conditions.count > 500 {
++            if conditions.unicodeScalars.count > 500 {
+                 Text("Conditions exceeds 500 characters").font(AppTypography.caption).foregroundStyle(AppColor.danger)
+             }
+-            if notes.count > 1000 {
++            if notes.unicodeScalars.count > 1000 {
+                 Text("Notes exceeds 1000 characters").font(AppTypography.caption).foregroundStyle(AppColor.danger)
+             }
+             BoardedPrimaryButton(title: "Start Session", systemImage: "play.fill") {
+@@ -119,7 +155,7 @@ struct LogHomeView: View {
+                 )
+                 active = true
+             }
+-            .disabled(venue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || conditions.count > 500 || notes.count > 1000)
++            .disabled(venue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || conditions.unicodeScalars.count > 500 || notes.unicodeScalars.count > 1000)
+             .accessibilityIdentifier("start-session")
+         }
+         .boardedPanel(padding: AppLayout.featureCardPadding)
+@@ -215,9 +251,25 @@ struct OutcomeSheet: View {
+         _discipline = State(initialValue: routeDiscipline)
+         let routeSystem = prefilledRoute?.gradeSystem ?? .vScale
+         _system = State(initialValue: routeSystem)
+-        let initialGrade = prefilledRoute?.gradeLabel ?? (GradeCatalog.grades(for: routeSystem).first ?? "V0")
++        let initialGrade = prefilledRoute?.gradeLabel?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+         _grade = State(initialValue: initialGrade)
+     }
++
++    private var trimmedRoute: String {
++        route.trimmingCharacters(in: .whitespacesAndNewlines)
++    }
++
++    private var trimmedGrade: String {
++        grade.trimmingCharacters(in: .whitespacesAndNewlines)
++    }
++
++    private var isValidGrade: Bool {
++        if system == .custom {
++            return !trimmedGrade.isEmpty
++        }
++        return !trimmedGrade.isEmpty && GradeCatalog.grades(for: system).contains(trimmedGrade)
++    }
++
+     var body: some View {
+         NavigationStack {
+             ScrollView {
+@@ -226,22 +278,34 @@ struct OutcomeSheet: View {
+                     Picker("Discipline", selection: $discipline) {
+                         ForEach(ClimbDiscipline.allCases, id: \.self) { Text($0.title).tag($0) }
+                     }
+-                    Picker("Grade", selection: $grade) {
+-                        ForEach(GradeCatalog.grades(for: system), id: \.self) { Text($0).tag($0) }
++                    Picker("Grade System", selection: $system) {
++                        ForEach(GradeSystem.allCases, id: \.self) { Text($0.title).tag($0) }
+                     }
+                     .onChange(of: system) { _, newSystem in
+-                        if !GradeCatalog.grades(for: newSystem).contains(grade) {
+-                            grade = GradeCatalog.grades(for: newSystem).first ?? ""
++                        if newSystem == .custom {
++                            // Keep or edit custom label
++                        } else if !GradeCatalog.grades(for: newSystem).contains(grade) {
++                            grade = ""
++                        }
++                    }
++                    if system == .custom {
++                        BoardedTextField(label: "Custom Grade", prompt: "Enter grade label", text: $grade)
++                    } else {
++                        Picker("Grade", selection: $grade) {
++                            if grade.isEmpty || !GradeCatalog.grades(for: system).contains(grade) {
++                                Text("Select grade…").tag("")
++                            }
++                            ForEach(GradeCatalog.grades(for: system), id: \.self) { Text($0).tag($0) }
+                         }
+                     }
+                     BoardedTextEditor(label: "Notes", prompt: "Optional", text: $notes)
+                     outcomeChoices
+                     BoardedPrimaryButton(title: "Save Attempt") {
+-                        let effectiveRouteId = (route == initialPrefilledName) ? routeId : nil
+-                        submit(effectiveRouteId, route, discipline, system, grade, outcome, notes.isEmpty ? nil : notes)
++                        let effectiveRouteId = (trimmedRoute == initialPrefilledName) ? routeId : nil
++                        submit(effectiveRouteId, trimmedRoute, discipline, system, trimmedGrade, outcome, notes.isEmpty ? nil : notes)
+                         dismiss()
+                     }
+-                    .disabled(route.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || grade.isEmpty)
++                    .disabled(trimmedRoute.isEmpty || !isValidGrade)
+                 }
+                 .padding(AppLayout.screenMargin)
+             }
+@@ -273,6 +337,235 @@ struct OutcomeSheet: View {
+     }
+ }
+ 
++struct PrivateSessionDetailView: View {
++    @Environment(\.dismiss) private var dismiss
++    @Environment(\.modelContext) private var modelContext
++    @EnvironmentObject private var session: AppSession
++    let climbingSession: ClimbingSession
++    var syncState: SyncState? = nil
++
++    @State private var attempts: [ClimbAttempt] = []
++    @State private var isLoadingAttempts = true
++    @State private var attemptsError: String?
++
++    private var isOwner: Bool {
++        guard let userId = session.userId else { return false }
++        return userId == climbingSession.userId
++    }
++
++    private var duration: TimeInterval? {
++        guard let endedAt = climbingSession.endedAt else { return nil }
++        return endedAt.timeIntervalSince(climbingSession.startedAt)
++    }
++
++    private var sendCount: Int {
++        attempts.filter { $0.outcome == .sent }.count
++    }
++
++    var body: some View {
++        NavigationStack {
++            ScrollView {
++                VStack(alignment: .leading, spacing: AppLayout.sectionGap) {
++                    if !isOwner {
++                        BoardedInlineError(message: "This private session belongs to another account.")
++                    } else {
++                        sessionMetadataCard
++                        statsCard
++                        attemptsSection
++                    }
++                }
++                .padding(AppLayout.screenMargin)
++                .boardedContentWidth()
++                .frame(maxWidth: .infinity)
++            }
++            .navigationTitle("Private Session")
++            .navigationBarTitleDisplayMode(.inline)
++            .boardedPageBackground()
++            .toolbar {
++                ToolbarItem(placement: .cancellationAction) {
++                    Button("Done") { dismiss() }
++                        .foregroundStyle(AppColor.chalk)
++                }
++            }
++            .task {
++                await loadAttempts()
++            }
++        }
++        .accessibilityIdentifier("private-session-detail")
++    }
++
++    private var sessionMetadataCard: some View {
++        VStack(alignment: .leading, spacing: AppSpacing.space8) {
++            HStack {
++                Text(climbingSession.venueName)
++                    .font(AppTypography.titleM)
++                    .foregroundStyle(AppColor.textPrimary)
++                Spacer()
++                if let syncState, syncState != .synced {
++                    HStack(spacing: AppSpacing.space6) {
++                        Image(systemName: syncState == .failed ? "exclamationmark.triangle.fill" : "arrow.triangle.2.circlepath")
++                        Text(syncState == .failed ? "Sync failed" : "Pending sync")
++                    }
++                    .font(AppTypography.caption.weight(.medium))
++                    .foregroundStyle(syncState == .failed ? AppColor.danger : AppColor.accentDefault)
++                    .padding(.horizontal, AppSpacing.space8)
++                    .padding(.vertical, AppSpacing.space4)
++                    .background(syncState == .failed ? AppColor.danger.opacity(0.15) : AppColor.accentSoft, in: Capsule())
++                }
++            }
++            Text(BoardedFormat.dateTime(climbingSession.startedAt))
++                .font(AppTypography.caption)
++                .foregroundStyle(AppColor.textTertiary)
++            if let conditions = climbingSession.conditions, !conditions.isEmpty {
++                Label(conditions, systemImage: "cloud.sun")
++                    .font(AppTypography.caption)
++                    .foregroundStyle(AppColor.textSecondary)
++            }
++            if let notes = climbingSession.notes, !notes.isEmpty {
++                Text(notes)
++                    .font(AppTypography.bodyM)
++                    .foregroundStyle(AppColor.textSecondary)
++                    .padding(.top, AppSpacing.space4)
++            }
++        }
++        .padding(AppLayout.cardPadding)
++        .boardedSurface(in: AppRadius.card())
++    }
++
++    private var statsCard: some View {
++        HStack(spacing: AppSpacing.space16) {
++            statPill(label: "Attempts", value: "\(attempts.count)")
++            statPill(label: "Sends", value: "\(sendCount)")
++            if let duration {
++                statPill(label: "Duration", value: BoardedFormat.duration(duration))
++            }
++        }
++        .padding(AppLayout.cardPadding)
++        .boardedSurface(in: AppRadius.card())
++    }
++
++    private func statPill(label: String, value: String) -> some View {
++        VStack(alignment: .leading, spacing: AppSpacing.space2) {
++            Text(value)
++                .font(AppTypography.dataM)
++                .foregroundStyle(AppColor.textPrimary)
++            Text(label)
++                .font(AppTypography.caption)
++                .foregroundStyle(AppColor.textSecondary)
++        }
++        .frame(maxWidth: .infinity, alignment: .leading)
++    }
++
++    private var attemptsSection: some View {
++        VStack(alignment: .leading, spacing: AppSpacing.space12) {
++            BoardedSectionHeading(title: "Attempts (\(attempts.count))")
++            if isLoadingAttempts {
++                ProgressView("Loading attempts…")
++                    .frame(maxWidth: .infinity)
++            } else if let error = attemptsError, attempts.isEmpty {
++                BoardedInlineError(message: error) {
++                    Task { await loadAttempts() }
++                }
++            } else if attempts.isEmpty {
++                Text("No attempts recorded in this session.")
++                    .font(AppTypography.bodyM)
++                    .foregroundStyle(AppColor.textSecondary)
++            } else {
++                ForEach(attempts) { attempt in
++                    attemptRow(attempt)
++                }
++            }
++        }
++    }
++
++    private func attemptRow(_ attempt: ClimbAttempt) -> some View {
++        VStack(alignment: .leading, spacing: AppSpacing.space6) {
++            HStack {
++                Text("#\(attempt.attemptNumber)")
++                    .font(AppTypography.caption.weight(.bold))
++                    .foregroundStyle(AppColor.textSecondary)
++                Text(attempt.routeName)
++                    .font(AppTypography.labelL)
++                    .foregroundStyle(AppColor.textPrimary)
++                Spacer()
++                outcomeBadge(attempt.outcome)
++            }
++            HStack(spacing: AppSpacing.space8) {
++                Text("\(attempt.discipline.title) · \(attempt.gradeLabel)")
++                    .font(AppTypography.caption)
++                    .foregroundStyle(AppColor.textSecondary)
++                Spacer()
++                Text(BoardedFormat.timeOnly(attempt.occurredAt))
++                    .font(AppTypography.caption)
++                    .foregroundStyle(AppColor.textTertiary)
++            }
++            if let notes = attempt.notes, !notes.isEmpty {
++                Text(notes)
++                    .font(AppTypography.caption)
++                    .foregroundStyle(AppColor.textSecondary)
++            }
++        }
++        .padding(AppLayout.cardPadding)
++        .boardedSurface(in: AppRadius.card())
++        .accessibilityIdentifier("attempt-row-\(attempt.attemptNumber)")
++    }
++
++    private func outcomeBadge(_ outcome: AttemptOutcome) -> some View {
++        HStack(spacing: 4) {
++            if outcome == .sent {
++                Text("✓").font(.system(size: 12, weight: .bold))
++            }
++            Text(outcome.title)
++        }
++        .font(AppTypography.caption.weight(.semibold))
++        .foregroundStyle(outcome == .sent ? AppColor.success : AppColor.textSecondary)
++        .padding(.horizontal, AppSpacing.space8)
++        .padding(.vertical, AppSpacing.space4)
++        .background(outcome == .sent ? AppColor.success.opacity(0.15) : AppColor.surfaceCard, in: Capsule())
++    }
++
++    private func loadAttempts() async {
++        guard isOwner else {
++            isLoadingAttempts = false
++            return
++        }
++        isLoadingAttempts = true
++        attemptsError = nil
++        defer { isLoadingAttempts = false }
++
++        let sessionID = climbingSession.id
++        let sessionUserID = climbingSession.userId
++        let descriptor = FetchDescriptor<PendingAttempt>(
++            predicate: #Predicate { $0.sessionId == sessionID && $0.userId == sessionUserID },
++            sortBy: [SortDescriptor(\.occurredAt, order: .forward)]
++        )
++        let localAttempts = (try? modelContext.fetch(descriptor)) ?? []
++
++        var remoteAttempts: [ClimbAttempt]?
++        var remoteError: Error?
++        do {
++            remoteAttempts = try await AppServices.sessionRepository.fetchAttempts(sessionID: sessionID)
++        } catch {
++            remoteError = error
++        }
++
++        var merged: [UUID: ClimbAttempt] = [:]
++        if let remoteAttempts {
++            for a in remoteAttempts { merged[a.id] = a }
++        }
++        for a in localAttempts {
++            if a.syncState != .synced || merged[a.id] == nil {
++                merged[a.id] = a.remote
++            }
++        }
++
++        attempts = Array(merged.values).sorted(by: { $0.attemptNumber < $1.attemptNumber })
++        if attempts.isEmpty, let remoteError {
++            attemptsError = "Unable to load attempts: \(remoteError.localizedDescription)"
++        }
++    }
++}
++
+ struct SessionResultView: View {
+     let summary: SessionSummary
+     let done: () -> Void
+diff --git a/apps/ios/Boarded/Boarded/Views/Profile/ProfileViews.swift b/apps/ios/Boarded/Boarded/Views/Profile/ProfileViews.swift
+index d96ddd17b0b4bd4a8b20b9430ee28c44d069cce4..edbe7d72074a9dad3f841553e2fe873ed91a87f3 100644
+--- a/apps/ios/Boarded/Boarded/Views/Profile/ProfileViews.swift
++++ b/apps/ios/Boarded/Boarded/Views/Profile/ProfileViews.swift
+@@ -1,6 +1,7 @@
+ import Combine
+ import SwiftUI
+ import UIKit
++import SwiftData
+ 
+ @MainActor
+ final class ProductProfileViewModel: ObservableObject {
+@@ -8,6 +9,9 @@ final class ProductProfileViewModel: ObservableObject {
+     @Published var posts: [SessionFeedItem] = []
+     @Published var savedRoutes: [CommunityRoute] = []
+     @Published var privateSessions: [ClimbingSession] = []
++    @Published var privateSessionSyncStates: [UUID: SyncState] = [:]
++    @Published var canLoadMoreSavedRoutes = false
++    @Published var isLoadingMoreSavedRoutes = false
+     @Published var loading = true
+     @Published var error: String?
+     private var hasLoaded = false
+@@ -16,35 +20,100 @@ final class ProductProfileViewModel: ObservableObject {
+         hasLoaded && statistics.sessionCount == 0 && statistics.attemptCount == 0 && posts.isEmpty && savedRoutes.isEmpty && privateSessions.isEmpty
+     }
+ 
+-    func load(userID: UUID) async {
++    func load(userID: UUID, modelContext: ModelContext? = nil) async {
+         loading = true
+         error = nil
+         defer { loading = false }
+-        do {
+-            async let stats = AppServices.profileRepository.fetchStatistics(userID: userID)
+-            async let page = AppServices.feedRepository.fetchFeed(cursor: nil, authorFilter: userID, pageSize: 20)
+-            async let saved = AppServices.profileRepository.fetchSavedRoutes(userID: userID)
+-            async let privateSess = AppServices.sessionRepository.fetchSessions(userID: userID)
+-            let (loadedStats, loadedPage, loadedSaved, loadedPrivate) = try await (stats, page, saved, privateSess)
++
++        // Local completed sessions
++        let localCompleted: [PendingSession] = {
++            guard let modelContext else { return [] }
++            let descriptor = FetchDescriptor<PendingSession>(
++                predicate: #Predicate { $0.userId == userID && $0.endedAt != nil },
++                sortBy: [SortDescriptor(\.startedAt, order: .reverse)]
++            )
++            return (try? modelContext.fetch(descriptor)) ?? []
++        }()
++        var states: [UUID: SyncState] = [:]
++        for s in localCompleted {
++            states[s.id] = s.syncState
++        }
++
++        async let statsResult = try? await AppServices.profileRepository.fetchStatistics(userID: userID)
++        async let pageResult = try? await AppServices.feedRepository.fetchFeed(cursor: nil, authorFilter: userID, pageSize: 20)
++        async let savedResult = try? await AppServices.profileRepository.fetchSavedRoutes(userID: userID, beforeCreatedAt: nil, beforeID: nil, pageSize: 30)
++        async let remoteSessionsResult = try? await AppServices.sessionRepository.fetchSessions(userID: userID)
++
++        let (loadedStats, loadedPage, loadedSaved, loadedRemoteSessions) = await (statsResult, pageResult, savedResult, remoteSessionsResult)
++
++        // Merge local and remote sessions
++        var mergedMap: [UUID: ClimbingSession] = [:]
++        if let loadedRemoteSessions {
++            for s in loadedRemoteSessions {
++                mergedMap[s.id] = s
++                if states[s.id] == nil {
++                    states[s.id] = .synced
++                }
++            }
++        }
++        for local in localCompleted {
++            if local.syncState != .synced || mergedMap[local.id] == nil {
++                mergedMap[local.id] = local.remote
++            }
++        }
++
++        privateSessions = Array(mergedMap.values).sorted(by: { $0.startedAt > $1.startedAt })
++        privateSessionSyncStates = states
++
++        if let loadedStats {
+             statistics = loadedStats
++        }
++        if let loadedPage {
+             posts = loadedPage.items
++        }
++        if let loadedSaved {
+             savedRoutes = loadedSaved
+-            privateSessions = loadedPrivate.sorted(by: { $0.startedAt > $1.startedAt })
++            canLoadMoreSavedRoutes = loadedSaved.count >= 30
++        }
++
++        if loadedStats == nil && loadedPage == nil && loadedSaved == nil && loadedRemoteSessions == nil && localCompleted.isEmpty {
++            self.error = "Unable to load profile. Please check your connection."
++        } else {
+             hasLoaded = true
++        }
++    }
++
++    func loadMoreSavedRoutes(userID: UUID) async {
++        guard canLoadMoreSavedRoutes, !isLoadingMoreSavedRoutes, let last = savedRoutes.last else { return }
++        isLoadingMoreSavedRoutes = true
++        defer { isLoadingMoreSavedRoutes = false }
++        do {
++            let older = try await AppServices.profileRepository.fetchSavedRoutes(
++                userID: userID,
++                beforeCreatedAt: last.createdAt,
++                beforeID: last.id,
++                pageSize: 30
++            )
++            let existing = Set(savedRoutes.map(\.id))
++            let additions = older.filter { !existing.contains($0.id) }
++            savedRoutes.append(contentsOf: additions)
++            canLoadMoreSavedRoutes = older.count >= 30
+         } catch {
+-            self.error = error.localizedDescription
++            // Keep existing routes
+         }
+     }
+ }
+ 
+ struct ProfileView: View {
++    @Environment(\.modelContext) private var modelContext
+     @EnvironmentObject private var session: AppSession
++    @EnvironmentObject private var navigation: AppNavigation
+     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+     @StateObject private var model = ProductProfileViewModel()
+     @State private var edit = false
+     @State private var selectedSubTab: ProfileSubTab = .sessions
+     @State private var selectedRoute: CommunityRoute?
+-
++    @State private var selectedPrivateSession: ClimbingSession?
+     enum ProfileSubTab: String, CaseIterable, Identifiable {
+         case sessions = "Sessions"
+         case saved = "Saved Routes"
+@@ -63,7 +132,7 @@ struct ProfileView: View {
+                     .boardedContentWidth()
+                     .frame(maxWidth: .infinity)
+                 }
+-                .task { await model.load(userID: id) }
++                .task { await model.load(userID: id, modelContext: modelContext) }
+             } else {
+                 AuthenticationView(showsDismissButton: false)
+             }
+@@ -71,6 +140,11 @@ struct ProfileView: View {
+         .navigationTitle("Profile")
+         .boardedPageBackground()
+         .sheet(isPresented: $edit) { EditProfileView() }
++        .sheet(item: $selectedPrivateSession) { sess in
++            NavigationStack {
++                PrivateSessionDetailView(climbingSession: sess, syncState: model.privateSessionSyncStates[sess.id])
++            }
++        }
+     }
+ 
+     private func header(_ profile: Profile) -> some View {
+@@ -208,29 +282,43 @@ struct ProfileView: View {
+             if !model.privateSessions.isEmpty {
+                 BoardedSectionHeading(title: "Private session history", subtitle: "Completed sessions recorded on your device.")
+                 ForEach(model.privateSessions) { sess in
+-                    VStack(alignment: .leading, spacing: AppSpacing.space4) {
+-                        HStack {
+-                            Text(sess.venueName)
+-                                .font(AppTypography.labelL)
+-                                .foregroundStyle(AppColor.textPrimary)
+-                            Spacer()
+-                            Text(BoardedFormat.dateTime(sess.startedAt))
+-                                .font(AppTypography.caption)
+-                                .foregroundStyle(AppColor.textTertiary)
+-                        }
+-                        if let conditions = sess.conditions, !conditions.isEmpty {
+-                            Label(conditions, systemImage: "cloud.sun")
+-                                .font(AppTypography.caption)
+-                                .foregroundStyle(AppColor.textSecondary)
+-                        }
+-                        if let notes = sess.notes, !notes.isEmpty {
+-                            Text(notes)
+-                                .font(AppTypography.caption)
+-                                .foregroundStyle(AppColor.textSecondary)
++                    Button {
++                        selectedPrivateSession = sess
++                    } label: {
++                        VStack(alignment: .leading, spacing: AppSpacing.space4) {
++                            HStack {
++                                Text(sess.venueName)
++                                    .font(AppTypography.labelL)
++                                    .foregroundStyle(AppColor.textPrimary)
++                                Spacer()
++                                Text(BoardedFormat.dateTime(sess.startedAt))
++                                    .font(AppTypography.caption)
++                                    .foregroundStyle(AppColor.textTertiary)
++                            }
++                            if let conditions = sess.conditions, !conditions.isEmpty {
++                                Label(conditions, systemImage: "cloud.sun")
++                                    .font(AppTypography.caption)
++                                    .foregroundStyle(AppColor.textSecondary)
++                            }
++                            if let notes = sess.notes, !notes.isEmpty {
++                                Text(notes)
++                                    .font(AppTypography.caption)
++                                    .foregroundStyle(AppColor.textSecondary)
++                            }
++                            if let syncState = model.privateSessionSyncStates[sess.id], syncState != .synced {
++                                HStack(spacing: AppSpacing.space6) {
++                                    Image(systemName: syncState == .failed ? "exclamationmark.triangle.fill" : "arrow.triangle.2.circlepath")
++                                    Text(syncState == .failed ? "Sync failed" : "Pending sync")
++                                }
++                                .font(AppTypography.caption.weight(.medium))
++                                .foregroundStyle(syncState == .failed ? AppColor.danger : AppColor.textSecondary)
++                            }
+                         }
++                        .padding(AppLayout.cardPadding)
++                        .boardedSurface(in: AppRadius.card())
+                     }
+-                    .padding(AppLayout.cardPadding)
+-                    .boardedSurface(in: AppRadius.card())
++                    .buttonStyle(.plain)
++                    .accessibilityIdentifier("profile-private-session-card")
+                 }
+             }
+ 
+@@ -240,7 +328,25 @@ struct ProfileView: View {
+                     .font(AppTypography.bodyM)
+                     .foregroundStyle(AppColor.textSecondary)
+             } else {
+-                ForEach(model.posts) { SessionPostCard(item: $0, showsActions: false) }
++                ForEach(model.posts) { item in
++                    NavigationLink {
++                        SessionPostDetailView(item: item)
++                    } label: {
++                        SessionPostCard(
++                            item: item,
++                            onAuthorTap: {
++                                navigation.activeClimberProfile = item.userId
++                            },
++                            onRouteTap: {
++                                if let route = item.route {
++                                    navigation.activeRouteDetail = route
++                                }
++                            },
++                            showsActions: false
++                        )
++                    }
++                    .buttonStyle(.plain)
++                }
+             }
+         }
+     }
+@@ -271,13 +377,31 @@ struct ProfileView: View {
+                         selectedRoute = route
+                     }, onBookmarkToggle: {
+                         Task {
+-                            _ = try? await AppServices.communityRepository.toggleBookmark(routeID: route.id)
+-                            if let id = session.userId {
+-                                await model.load(userID: id)
++                            let newSaved = (try? await AppServices.communityRepository.toggleBookmark(routeID: route.id)) ?? false
++                            if !newSaved {
++                                model.savedRoutes.removeAll { $0.id == route.id }
+                             }
+                         }
+                     })
+                 }
++                if model.canLoadMoreSavedRoutes, let id = session.userId {
++                    Button {
++                        Task { await model.loadMoreSavedRoutes(userID: id) }
++                    } label: {
++                        if model.isLoadingMoreSavedRoutes {
++                            ProgressView()
++                                .frame(maxWidth: .infinity)
++                        } else {
++                            Text("Load more saved routes")
++                                .font(AppTypography.labelM)
++                                .foregroundStyle(AppColor.accentDefault)
++                                .frame(maxWidth: .infinity)
++                                .padding(.vertical, AppSpacing.space8)
++                        }
++                    }
++                    .buttonStyle(.plain)
++                    .accessibilityIdentifier("profile-saved-routes-load-more")
++                }
+             }
+         }
+         .sheet(item: $selectedRoute) { route in
+@@ -457,13 +581,16 @@ struct PublicProfileView: View {
+     @Environment(\.dismiss) private var dismiss
+     @Environment(\.boardedAuth) private var auth
+     let climberID: UUID
++    @EnvironmentObject private var navigation: AppNavigation
+     @State private var climber: CommunityClimber?
+     @State private var sessions: [SessionFeedItem] = []
+     @State private var isLoading = true
+     @State private var errorMessage: String?
+     @State private var isFollowing = false
+     @State private var isTogglingFollow = false
+-
++    @State private var mutatingLikePostIDs: Set<UUID> = []
++    @State private var mutatingBookmarkRouteIDs: Set<UUID> = []
++    @State private var reactionError: String? = nil
+     private let repository = AppServices.profileRepository
+ 
+     var body: some View {
+@@ -497,11 +624,20 @@ struct PublicProfileView: View {
+                                                 auth.requestAuthentication()
+                                                 return
+                                             }
++                                            guard !mutatingLikePostIDs.contains(item.id) else { return }
++                                            mutatingLikePostIDs.insert(item.id)
+                                             Task {
+-                                                _ = try? await AppServices.feedRepository.toggleLike(postID: item.id)
+-                                                if let idx = sessions.firstIndex(where: { $0.id == item.id }) {
+-                                                    sessions[idx].isLiked.toggle()
+-                                                    sessions[idx].likeCount += sessions[idx].isLiked ? 1 : -1
++                                                defer { mutatingLikePostIDs.remove(item.id) }
++                                                do {
++                                                    let serverLiked = try await AppServices.feedRepository.toggleLike(postID: item.id)
++                                                    if let idx = sessions.firstIndex(where: { $0.id == item.id }) {
++                                                        if sessions[idx].isLiked != serverLiked {
++                                                            sessions[idx].isLiked = serverLiked
++                                                            sessions[idx].likeCount += serverLiked ? 1 : -1
++                                                        }
++                                                    }
++                                                } catch {
++                                                    reactionError = error.localizedDescription
+                                                 }
+                                             }
+                                         },
+@@ -510,14 +646,30 @@ struct PublicProfileView: View {
+                                                 auth.requestAuthentication()
+                                                 return
+                                             }
+-                                            if let routeId = item.route?.id ?? item.session.featuredAttempt.routeId {
+-                                                Task {
+-                                                    _ = try? await AppServices.communityRepository.toggleBookmark(routeID: routeId)
+-                                                    if let idx = sessions.firstIndex(where: { $0.id == item.id }) {
+-                                                        sessions[idx].isSaved.toggle()
++                                            guard let routeId = item.route?.id ?? item.session.featuredAttempt.routeId else { return }
++                                            guard !mutatingBookmarkRouteIDs.contains(routeId) else { return }
++                                            mutatingBookmarkRouteIDs.insert(routeId)
++                                            Task {
++                                                defer { mutatingBookmarkRouteIDs.remove(routeId) }
++                                                do {
++                                                    let serverSaved = try await AppServices.communityRepository.toggleBookmark(routeID: routeId)
++                                                    for idx in sessions.indices {
++                                                        if (sessions[idx].route?.id ?? sessions[idx].session.featuredAttempt.routeId) == routeId {
++                                                            sessions[idx].isSaved = serverSaved
++                                                        }
+                                                     }
++                                                } catch {
++                                                    reactionError = error.localizedDescription
+                                                 }
+                                             }
++                                        },
++                                        onAuthorTap: {
++                                            navigation.activeClimberProfile = item.userId
++                                        },
++                                        onRouteTap: {
++                                            if let route = item.route {
++                                                navigation.activeRouteDetail = route
++                                            }
+                                         }
+                                     )
+                                 }
+@@ -533,6 +685,16 @@ struct PublicProfileView: View {
+         .navigationTitle(climber?.displayName ?? "Climber")
+         .navigationBarTitleDisplayMode(.inline)
+         .boardedPageBackground()
++        .alert("Reaction Failed", isPresented: Binding(
++            get: { reactionError != nil },
++            set: { if !$0 { reactionError = nil } }
++        )) {
++            Button("OK", role: .cancel) {}
++        } message: {
++            if let reactionError {
++                Text(reactionError)
++            }
++        }
+         .task {
+             await load()
+         }
+diff --git a/apps/ios/Boarded/ViewModels/SessionLoggerViewModel.swift b/apps/ios/Boarded/ViewModels/SessionLoggerViewModel.swift
+index 9a812ed73287f392a6ac70c7fcb975f4ce8aa6e8..9038de0316335241108abbf19adc6e65882f2bb6 100644
+--- a/apps/ios/Boarded/ViewModels/SessionLoggerViewModel.swift
++++ b/apps/ios/Boarded/ViewModels/SessionLoggerViewModel.swift
+@@ -46,13 +46,15 @@ final class SessionLoggerViewModel: ObservableObject {
+         guard activeSession == nil else { return }
+         let trimmedVenue = venueName.trimmingCharacters(in: .whitespacesAndNewlines)
+         guard !trimmedVenue.isEmpty else { return }
+-        var validConditions = conditions?.trimmingCharacters(in: .whitespacesAndNewlines)
+-        if let c = validConditions, c.count > 500 {
+-            validConditions = String(c.prefix(500))
++        let validConditions = conditions?.trimmingCharacters(in: .whitespacesAndNewlines)
++        if let c = validConditions, c.unicodeScalars.count > 500 {
++            errorMessage = "Conditions exceeds 500 characters"
++            return
+         }
+-        var validNotes = notes?.trimmingCharacters(in: .whitespacesAndNewlines)
+-        if let n = validNotes, n.count > 1000 {
+-            validNotes = String(n.prefix(1000))
++        let validNotes = notes?.trimmingCharacters(in: .whitespacesAndNewlines)
++        if let n = validNotes, n.unicodeScalars.count > 1000 {
++            errorMessage = "Notes exceeds 1000 characters"
++            return
+         }
+         let session = PendingSession(
+             userId: userId,
+@@ -77,13 +79,15 @@ final class SessionLoggerViewModel: ObservableObject {
+ 
+     func updateSession(conditions: String?, notes: String?) {
+         guard let session = activeSession else { return }
+-        var validConditions = conditions?.trimmingCharacters(in: .whitespacesAndNewlines)
+-        if let c = validConditions, c.count > 500 {
+-            validConditions = String(c.prefix(500))
++        let validConditions = conditions?.trimmingCharacters(in: .whitespacesAndNewlines)
++        if let c = validConditions, c.unicodeScalars.count > 500 {
++            errorMessage = "Conditions exceeds 500 characters"
++            return
+         }
+-        var validNotes = notes?.trimmingCharacters(in: .whitespacesAndNewlines)
+-        if let n = validNotes, n.count > 1000 {
+-            validNotes = String(n.prefix(1000))
++        let validNotes = notes?.trimmingCharacters(in: .whitespacesAndNewlines)
++        if let n = validNotes, n.unicodeScalars.count > 1000 {
++            errorMessage = "Notes exceeds 1000 characters"
++            return
+         }
+         session.conditions = validConditions?.isEmpty == true ? nil : validConditions
+         session.notes = validNotes?.isEmpty == true ? nil : validNotes

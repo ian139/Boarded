@@ -1,0 +1,5 @@
+{
+  "correction": "Confirmed from already-viewed096ed2a regular Profile screenshots: selected Sessions content-filter text and checkmark are indigo/blue, with a blue outline; adjacent Saved Routes text is white. Evidence:5F8D2663-CA4F-4DCB-BF42-09FEC498553C.png standard andB7AEAC9D-17C9-4B1B-8807-6FF4FBE99E9F.png Accessibility Large.",
+  "scope_clarification": "My previous selected-Profile classification addressed the bottom tab and did not answer the designer's Sessions-filter concern. Replace that attribution with this confirmation. No clipping observed in either Sessions chip; intended selected-text color remains designer contract disposition.",
+  "owner": "Main/ApprovedModelDesigner -> existing BoardedFilterControl owner if correction authorized. No additional reads, edits or validation performed."
+}

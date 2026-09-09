@@ -1,0 +1,184 @@
+{
+  "task": "td-c27ec4",
+  "historicalSource": "668e3349b9e6cd7109832ca8abd0c6dcc88fb743",
+  "patches": [
+    {
+      "packet": "editor",
+      "source": "/tmp/original-flow-c27ec4-editor.patch",
+      "sha256": "10323f97b8309505915c61383fad0705a80514fb871b29453c54da87e6607ca0"
+    },
+    {
+      "packet": "profile",
+      "source": "/tmp/original-flow-c27ec4-profile.patch",
+      "sha256": "abb3bded832a886a447032f772bab1c79179b777b02bf1c318f428f0a5da7758"
+    },
+    {
+      "packet": "final",
+      "source": "/tmp/original-flow-c27ec4-final.patch",
+      "sha256": "ee802ecc2e526ee18294242ced52ce99ce0cf483bdee17d7d35574977157d752"
+    }
+  ],
+  "reviewers": {
+    "code": "OriginalFlowCodeReview: approved exact three artifacts",
+    "designer": "OriginalFlowDesigner: approved",
+    "vision": "OriginalCompleteFlowVision: approved 24 screenshots; no independent historical pixel parity claim"
+  },
+  "screenshots": [
+    {
+      "name": "editor-empty-desktop",
+      "viewport": "1440x1000",
+      "origin": "http://localhost:3208"
+    },
+    {
+      "name": "editor-empty-mobile",
+      "viewport": "390x844",
+      "origin": "http://localhost:3208"
+    },
+    {
+      "name": "editor-active-desktop",
+      "viewport": "1440x1000",
+      "origin": "http://localhost:3208"
+    },
+    {
+      "name": "editor-active-mobile",
+      "viewport": "390x844",
+      "origin": "http://localhost:3208"
+    },
+    {
+      "name": "editor-edit-desktop",
+      "viewport": "1440x1000",
+      "origin": "http://localhost:3208"
+    },
+    {
+      "name": "editor-save-desktop",
+      "viewport": "1440x1000",
+      "origin": "http://localhost:3208"
+    },
+    {
+      "name": "editor-save-mobile",
+      "viewport": "390x844",
+      "origin": "http://localhost:3208"
+    },
+    {
+      "name": "editor-dark-desktop",
+      "viewport": "1440x1000",
+      "origin": "http://localhost:3208"
+    },
+    {
+      "name": "editor-dark-mobile",
+      "viewport": "390x844",
+      "origin": "http://localhost:3208"
+    },
+    {
+      "name": "profile-empty-desktop",
+      "viewport": "1440x1000",
+      "origin": "http://localhost:3208"
+    },
+    {
+      "name": "profile-empty-mobile",
+      "viewport": "390x844",
+      "origin": "http://localhost:3208"
+    },
+    {
+      "name": "profile-populated-desktop",
+      "viewport": "1440x1000",
+      "origin": "http://localhost:3208"
+    },
+    {
+      "name": "profile-populated-mobile",
+      "viewport": "390x844",
+      "origin": "http://localhost:3208"
+    },
+    {
+      "name": "profile-populated-mobile-bottom",
+      "viewport": "390x844",
+      "origin": "http://localhost:3208"
+    },
+    {
+      "name": "profile-dark-desktop",
+      "viewport": "1440x1000",
+      "origin": "http://localhost:3208"
+    },
+    {
+      "name": "profile-dark-mobile",
+      "viewport": "390x844",
+      "origin": "http://localhost:3208"
+    },
+    {
+      "name": "settings-desktop",
+      "viewport": "1440x1000",
+      "origin": "http://localhost:3208"
+    },
+    {
+      "name": "settings-mobile",
+      "viewport": "390x844",
+      "origin": "http://localhost:3208"
+    },
+    {
+      "name": "settings-dark-desktop",
+      "viewport": "1440x1000",
+      "origin": "http://localhost:3208"
+    },
+    {
+      "name": "settings-reset-mobile",
+      "viewport": "390x844",
+      "origin": "http://localhost:3208"
+    },
+    {
+      "name": "login-desktop",
+      "viewport": "1440x1000",
+      "origin": "http://localhost:3208"
+    },
+    {
+      "name": "login-mobile",
+      "viewport": "390x844",
+      "origin": "http://localhost:3208"
+    },
+    {
+      "name": "signup-desktop",
+      "viewport": "1440x1000",
+      "origin": "http://localhost:3208"
+    },
+    {
+      "name": "signup-mobile",
+      "viewport": "390x844",
+      "origin": "http://localhost:3208"
+    },
+    {
+      "name": "integrated-editor-mobile",
+      "viewport": "390x844",
+      "origin": "http://localhost:3115"
+    },
+    {
+      "name": "integrated-profile-mobile",
+      "viewport": "390x844",
+      "origin": "http://localhost:3115"
+    }
+  ],
+  "behavior": [
+    "create/save V4 with four hold types",
+    "edit query loads saved route; rename and update returns /board",
+    "mobile canonical tap cycle, long-press deletion, undo and large hold addition; update persists five holds",
+    "profile fixture: three sends, 67% flash rate, three set, V6 best, 20 likes, rating4.0, pyramid/activity",
+    "settings reset clears current route/wall/draft data and reloads",
+    "signup mismatched passwords handled locally",
+    "primary editor->home->profile->settings->login->signup remains /board; redirect preserved",
+    "current /app and landing retain prior titles and no board scope"
+  ],
+  "protectedSourceHashesUnchanged": {
+    "app/page.tsx": true,
+    "app/app/page.tsx": true,
+    "app/editor/page.tsx": true,
+    "app/profile/page.tsx": true,
+    "app/globals.css": true,
+    "app/layout.tsx": true,
+    "components/providers/Providers.tsx": true,
+    "components/shared/BottomNav.tsx": true,
+    "package.json": true
+  },
+  "limitations": [
+    "Cloud authentication and cloud data writes intentionally not exercised",
+    "Exact historical pixel-diff parity not claimed"
+  ],
+  "delivery": "Local integration complete; push/deploy not required"
+}

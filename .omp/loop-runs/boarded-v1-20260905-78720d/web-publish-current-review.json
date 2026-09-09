@@ -1,0 +1,29 @@
+{
+  "review_kind": "packet",
+  "packet": "web-publish",
+  "identity": {
+    "repo": "/Users/ian/Projects/ClimbingApp",
+    "branch": "loop/boarded-v1-20260905-78720d/web-publish",
+    "base_sha": "964882a47f13fcdb09efb5632f41e44328663faf",
+    "head_sha": "0cdfc16a64816d05989c9301c3f7dc72c018e2de",
+    "diff_sha256": "cbfe99d96d57d72a579fd787838005ad725d133b1019da17fd9f05ad8a78877f",
+    "packet_spec_sha256": "0799b852a00496752cce24d3d6ce279d6f8c0fe2a95fa8a206583514efefdf08",
+    "dependency_heads": {
+      "web": "964882a47f13fcdb09efb5632f41e44328663faf"
+    },
+    "target_snapshot_sha256": "c2f0ef17ac8b7b9d4de212d7ab9bce892502a66dfad28ea9138e13564c36d40b",
+    "confinement_sha256": "e5a8227021fea89dc1d5407cb17e571bde29f42a2a694438fb7e7c2d49e37937"
+  },
+  "changed_paths": [
+    "app/log/page.tsx",
+    "components/log/SessionDetailModal.tsx",
+    "lib/utils/composer.ts",
+    "lib/utils/session-publication.test.ts",
+    "lib/utils/session-publication.ts"
+  ],
+  "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/web-publish",
+  "packet_spec": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/web-publish-packet.json",
+  "execution_evidence": [],
+  "review_status": "pending",
+  "designer_verdict": null
+}

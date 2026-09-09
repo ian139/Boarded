@@ -1,0 +1,13 @@
+diff --git a/apps/ios/Boarded/Boarded/RootView.swift b/apps/ios/Boarded/Boarded/RootView.swift
+index 7f1f73d7382b14eede6987d432d8a8d0033bd80e..f35e7d8a6579c2eea756ff88f7f2d24ba90cc545 100644
+--- a/apps/ios/Boarded/Boarded/RootView.swift
++++ b/apps/ios/Boarded/Boarded/RootView.swift
+@@ -214,7 +214,7 @@ struct RootView: View {
+             // Standard: 64pt designer group centered in its equal slot, hit
+             // shape bounded to the group. Nonstandard/AX: fills the full
+             // slot like the prior treatment.
+-            .frame(minWidth: 44, maxWidth: isStandardDynamicType ? 64 : .infinity, minHeight: 44)
++            .frame(minWidth: 44, maxWidth: isStandardDynamicType ? 64 : .infinity, minHeight: 44, alignment: isStandardDynamicType ? .top : .center)
+             .contentShape(RaisedButtonHitShape(overhang: 12))
+             .frame(maxWidth: .infinity)
+         }

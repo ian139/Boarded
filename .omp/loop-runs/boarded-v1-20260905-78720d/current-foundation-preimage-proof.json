@@ -1,0 +1,56 @@
+{
+  "design": [
+    {
+      "path": "docs/design-language.md",
+      "matches_initial": true
+    }
+  ],
+  "landing": [
+    {
+      "path": "app/landing.css",
+      "matches_initial": true
+    },
+    {
+      "path": "app/page.tsx",
+      "matches_initial": true
+    },
+    {
+      "path": "components/landing/ClimbingWallExperience.tsx",
+      "matches_initial": true
+    }
+  ],
+  "blender": [
+    {
+      "path": "design/blender/asset-stats.json",
+      "matches_initial": true
+    },
+    {
+      "path": "design/blender/boarded-wall.blend",
+      "matches_initial": true
+    },
+    {
+      "path": "design/blender/climber-contact-report.json",
+      "matches_initial": true
+    },
+    {
+      "path": "design/blender/climber_ascent.py",
+      "matches_initial": true
+    },
+    {
+      "path": "design/blender/generate_boarded_wall.py",
+      "matches_initial": true
+    },
+    {
+      "path": "design/blender/render_climber_review.py",
+      "matches_initial": true
+    },
+    {
+      "path": "public/walls/generated/boarded-wall-poster.webp",
+      "matches_initial": true
+    },
+    {
+      "path": "public/walls/generated/boarded-wall.glb",
+      "matches_initial": true
+    }
+  ]
+}

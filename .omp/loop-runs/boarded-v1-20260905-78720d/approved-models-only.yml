@@ -1,0 +1,43 @@
+# Campaign-only overlay; does not change global model roles or credentials.
+retry:
+  modelFallback: false
+  usageAwareFallback: false
+  fallbackChains:
+    default: []
+    openai-codex/gpt-6-astra: []
+    cheap: []
+    openai-codex/gpt-5.6-luna: []
+    vision: []
+    plan: []
+    slow: []
+    advisor: []
+    researcher: []
+    reviewer: []
+    security-reviewer: []
+    designer: []
+    task: []
+    task-high: []
+    smol: []
+    scout: []
+    librarian: []
+    commit: []
+    tiny: []
+    Parser: []
+    Computer: []
+    sonic: []
+    ci-loop-diagnostician: []
+advisor:
+  enabled: false
+task:
+  maxRecursionDepth: 2
+  agentModelOverrides:
+    task: google-antigravity/gemini-3.8-flash:medium
+    task-high: google-antigravity/gemini-3.8-flash:high
+    scout: google-antigravity/gemini-3.8-flash:low
+    reviewer: openai-codex/gpt-6-astra:high
+    security-reviewer: openai-codex/gpt-6-astra:high
+    vision: openai-codex/gpt-6-astra:low
+  agentAdvisor:
+    task: "off"
+    task-high: "off"
+    loop-surgeon: "off"

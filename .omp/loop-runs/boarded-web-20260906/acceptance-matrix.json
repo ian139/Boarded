@@ -1,0 +1,746 @@
+{
+  "schema": "omp.acceptance_matrix.v1",
+  "status": "all_37_non_deferred_items_accepted",
+  "original_checklist_items": 61,
+  "reviewed_non_deferred": 37,
+  "deferred_paper": 24,
+  "rows": [
+    {
+      "ordinal": 1,
+      "evidence": [
+        "docs/boarded-web.md",
+        "public/boarded/redpoint-ridge.webp"
+      ],
+      "acceptance": "Canonical local brand and photograph discovered; asset hash68ddc3f050bda94becba80b76eca560bb3247aa84702055ed902aa6991f183a2 preserved.",
+      "disposition": "accepted",
+      "initial_disposition": "accepted_or_pending_packet_gate",
+      "task": "Discover brand assets and source photography",
+      "final_evidence": [
+        "acceptance-final-reviews.json"
+      ],
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 2,
+      "task": "Discover existing web and domain architecture",
+      "disposition": "accepted",
+      "acceptance_basis": "mission-checklist.json; composite-spec.json web-only/local scope; docs/boarded-web.md architecture contract.",
+      "source_paths": [
+        "app/layout.tsx",
+        "app/app/layout.tsx",
+        "app/app/page.tsx",
+        "app/app/[...screen]/page.tsx",
+        "components/providers/Providers.tsx",
+        "components/providers/AuthProvider.tsx",
+        "components/shared/BottomNav.tsx",
+        "components/boarded/Flow.tsx",
+        "lib/boarded/journal.ts",
+        "lib/boarded/store.ts",
+        "package.json"
+      ],
+      "retained_evidence": "WebDesigner-spec.json and JournalEngineer-spec.json separate shell/UI and journal ownership. Current source confirms Next app routing, local Zustand journal, scoped dark shell, and exclusion of legacy auth initialization/navigation within /app.",
+      "unmet_requirement": null,
+      "evidence_file": "acceptance-source-reviews.json",
+      "initial_disposition": "accepted",
+      "final_evidence": [
+        "acceptance-final-reviews.json"
+      ],
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 3,
+      "task": "Discover local state and journal contract requirements",
+      "disposition": "accepted",
+      "acceptance_basis": [
+        "mission-checklist.json, ordinal 3; reconstructed-label provenance explicitly retained",
+        "JournalEngineer-spec.json",
+        "lib/boarded/journal.ts:5-75,226-305",
+        "lib/boarded/store.ts:16-51,233-274"
+      ],
+      "retained_evidence": [
+        "Domain contracts define entries, attempts, comments, saved routes, likes, following, and activity state. Validation specifies known routes, real calendar dates, integer attempts 1–100, and bounded conditions/notes.",
+        "Storage code separates ready/error state from safe hydration and corruption state, with a single persist-before-memory mutation boundary."
+      ],
+      "unmet_requirement": null,
+      "evidence_file": "acceptance-source-reviews.json",
+      "initial_disposition": "approved",
+      "final_evidence": [
+        "acceptance-final-reviews.json"
+      ],
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 25,
+      "task": "Implement CSS theme tokens, typography, and utility classes in app/app/boarded.css",
+      "disposition": "accepted",
+      "acceptance_basis": "docs/boarded-web.md foundations, explicit user-approved Electric Indigo action override, success/send status styling, 44px controls and responsive accessibility rules.",
+      "source_paths": [
+        "app/app/boarded.css",
+        "components/boarded/flow.css",
+        "public/fonts/CormorantGaramond-SemiBoldItalic.ttf"
+      ],
+      "retained_evidence": "Read full stylesheet context; local font exists; scoped semantic tokens, serif/sans roles, spacing/radii, focus rings, forced-color primary labels, minimum control dimensions, and reduced-motion rules are present. No acceptance reopened for stylistic differences or unavailable Paper parity.",
+      "unmet_requirement": null,
+      "evidence_file": "acceptance-source-reviews.json",
+      "initial_disposition": "accepted",
+      "final_evidence": [
+        "acceptance-final-reviews.json"
+      ],
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 26,
+      "task": "Implement root application layout and theme provider in app/app/layout.tsx and components/providers/Providers.tsx",
+      "disposition": "accepted",
+      "acceptance_basis": "Local web-only shell/theme architecture in docs/boarded-web.md and composite-spec.json.",
+      "source_paths": [
+        "app/app/layout.tsx",
+        "app/app/boarded.css",
+        "components/providers/Providers.tsx",
+        "components/providers/AuthProvider.tsx",
+        "app/layout.tsx"
+      ],
+      "retained_evidence": "AppLayout imports scoped CSS and wraps children in Shell; Providers bypasses AuthProvider only on /app and /app/* while preserving the existing provider elsewhere. Root document remains dark; local journal initialization is owned by Shell.",
+      "unmet_requirement": null,
+      "evidence_file": "acceptance-source-reviews.json",
+      "initial_disposition": "accepted",
+      "final_evidence": [
+        "acceptance-final-reviews.json"
+      ],
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 27,
+      "task": "Implement responsive shell with desktop sidebar, mobile bottom nav, and landmark focus in components/boarded/Shell.tsx and components/shared/BottomNav.tsx",
+      "disposition": "accepted",
+      "acceptance_basis": "Five primary destinations, single main landmark, accessible navigation/focus and recovery in docs/boarded-web.md and composite-spec.json.",
+      "source_paths": [
+        "components/boarded/Shell.tsx",
+        "components/shared/BottomNav.tsx",
+        "app/app/boarded.css",
+        "app/app/page.tsx",
+        "app/app/[...screen]/page.tsx"
+      ],
+      "retained_evidence": "Five destinations are shared by desktop/mobile nav; legacy nav is suppressed; skip link and server-rendered data-boarded-path markers feed bounded heading/control restoration. final-history-focus-audit.json confirms the previously exercised heading, Back/Forward and section-fragment cases.",
+      "evidence_file": "acceptance-source-reviews.json",
+      "initial_disposition": "changes_requested",
+      "final_evidence": [
+        "acceptance-focus-verification.json",
+        "acceptance-final-integration.json"
+      ],
+      "resolved_requirement": "UI-1: hash focus handling removes native form controls from subsequent sequential keyboard navigation.",
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 28,
+      "task": "Implement accessible hero photo wrapper with aspect ratio and fallback in components/boarded/Photo.tsx and asset public/boarded/redpoint-ridge.webp",
+      "disposition": "accepted",
+      "acceptance_basis": "docs/boarded-web.md photography/Photo contract.",
+      "source_paths": [
+        "components/boarded/Photo.tsx",
+        "app/app/boarded.css",
+        "public/boarded/redpoint-ridge.webp"
+      ],
+      "retained_evidence": "Photo supplies descriptive alt text, intrinsic 495x600 dimensions, loaded/error states and accessible fallback. image-failure-audit.json records descriptive fallback/alt and overflow=false; canonical acceptance evidence retains the asset hash 68ddc3f050bda94becba80b76eca560bb3247aa84702055ed902aa6991f183a2.",
+      "unmet_requirement": null,
+      "evidence_file": "acceptance-source-reviews.json",
+      "initial_disposition": "accepted",
+      "final_evidence": [
+        "acceptance-final-reviews.json"
+      ],
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 29,
+      "task": "Implement Feed screen with populated seed data, badges, and interactions in components/boarded/Feed.tsx and app/app/page.tsx",
+      "disposition": "accepted",
+      "acceptance_basis": "Feed local social journal contract in docs/boarded-web.md; deterministic populated seed and local published entries.",
+      "source_paths": [
+        "components/boarded/Feed.tsx",
+        "app/app/page.tsx",
+        "lib/boarded/journal.ts",
+        "lib/boarded/store.ts",
+        "components/boarded/Flow.tsx",
+        "components/boarded/Details.tsx"
+      ],
+      "retained_evidence": "Maya seed gives 5.12a Redpoint Ridge, six attempts, 34 base cheers and twelve seeded comments. Feed derives comments/likes/saves, published user entries and following-dependent empty state; valid send/route/hash links have explicit consuming branches and targets. Loading/error states preserve Feed heading.",
+      "unmet_requirement": null,
+      "evidence_file": "acceptance-source-reviews.json",
+      "initial_disposition": "accepted",
+      "final_evidence": [
+        "acceptance-final-reviews.json"
+      ],
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 30,
+      "task": "Implement Route, Boulder, and Climber detail views with specs and topo nodes in components/boarded/Details.tsx",
+      "disposition": "accepted",
+      "acceptance_basis": "Route/boulder/climber destination mechanics and grounded specifications; this reconstructed label does not require an additional /app/boulder URL or moving ClimberProfile between files.",
+      "source_paths": [
+        "components/boarded/Flow.tsx",
+        "components/boarded/Details.tsx",
+        "components/boarded/Community.tsx",
+        "lib/boarded/journal.ts"
+      ],
+      "retained_evidence": "Flow dispatches /app/route/:id to RouteDetail; the Boulder type explicitly renders sit-start/roof/pad/mantle specifications and topology. Explore's Steep Circuit links use /app/route/steep-circuit. Climber links dispatch to ClimberProfile; known Maya/Alex and not-found branches exist. final-corrected-screen-audit.json retains clean route/boulder scenarios at three widths and climber at320.",
+      "unmet_requirement": null,
+      "evidence_file": "acceptance-source-reviews.json",
+      "initial_disposition": "accepted",
+      "final_evidence": [
+        "acceptance-final-reviews.json"
+      ],
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 31,
+      "task": "Implement Explore and Activity community views with search and notifications in components/boarded/Community.tsx",
+      "disposition": "accepted",
+      "acceptance_basis": "Five-destination local discovery/activity flow in composite-spec.json and docs/boarded-web.md.",
+      "source_paths": [
+        "components/boarded/Community.tsx",
+        "components/boarded/Flow.tsx",
+        "lib/boarded/store.ts"
+      ],
+      "retained_evidence": "Search filters routes, venues and climbers; category/reset controls and live result count are implemented. Links dispatch to known route/climber/profile/log destinations. Activity consumes journal comments, likes, following and entries; mark-read handles durable success/error explicitly. final-corrected-screen-audit.json retains clean Explore/Activity desktop/mobile/320 scenarios.",
+      "unmet_requirement": null,
+      "evidence_file": "acceptance-source-reviews.json",
+      "initial_disposition": "accepted",
+      "final_evidence": [
+        "acceptance-final-reviews.json"
+      ],
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 32,
+      "task": "Implement Log attempt composer and session form in components/boarded/LogFlow.tsx",
+      "disposition": "accepted",
+      "acceptance_basis": "Complete local form, preselected route, validation and accessible recovery under composite-spec.json and docs/boarded-web.md.",
+      "source_paths": [
+        "components/boarded/LogFlow.tsx",
+        "components/boarded/Flow.tsx",
+        "components/boarded/Shell.tsx",
+        "lib/boarded/journal.ts",
+        "lib/boarded/store.ts",
+        "components/boarded/Details.tsx"
+      ],
+      "retained_evidence": "Query route selection, deterministic initial date, sessionStorage draft restoration, validation, error summary, preserved failed-submit values and success-only navigation to AttemptDetail are connected. form-validation-storage-recovery.json records invalid-attempt focus, failed write preserving notes/count, and subsequent successful retry.",
+      "evidence_file": "acceptance-source-reviews.json",
+      "initial_disposition": "changes_requested",
+      "final_evidence": [
+        "acceptance-focus-verification.json",
+        "acceptance-final-integration.json"
+      ],
+      "resolved_requirement": "UI-1: using an error-summary link makes the associated native field untabbable for subsequent navigation. The retained audit records summary focus, not activation of its field links.",
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 33,
+      "task": "Implement Share card view with export card preview and action links in components/boarded/Flow.tsx",
+      "disposition": "accepted",
+      "acceptance_basis": "Flow dispatch plus ShareFlow implementation; accessible export/copy recovery and empty-caption preservation in atomic-flow-spec.json/atomic-flow-final.patch.",
+      "source_paths": [
+        "components/boarded/Flow.tsx",
+        "components/boarded/LogFlow.tsx",
+        "components/boarded/Details.tsx",
+        "lib/boarded/store.ts"
+      ],
+      "retained_evidence": "Share route explicitly dispatches to ShareFlow; non-sent/missing entries receive recovery views; publish failures remain inline; caption-length-recovery-audit.json verifies rejection at400 then successful correction; populated-screen-audit.json records default Share surfaces.",
+      "evidence_file": "acceptance-source-reviews.json",
+      "initial_disposition": "changes_requested",
+      "final_evidence": [
+        "acceptance-share-verification.json",
+        "acceptance-export-verification.json",
+        "acceptance-final-integration.json"
+      ],
+      "resolved_requirement": "UI-2: deliberately empty captions are replaced in send/export consumers. UI-3: clipboard-denied fallback textbox lacks an accessible name.",
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 34,
+      "task": "Implement Profile screen with stats, entry history, and deletion dialog in components/boarded/Flow.tsx",
+      "disposition": "accepted",
+      "acceptance_basis": "Profile route dispatch and local journal/profile functionality, including atomic delete/Undo consumer behavior.",
+      "source_paths": [
+        "components/boarded/Flow.tsx",
+        "components/boarded/LogFlow.tsx",
+        "lib/boarded/store.ts",
+        "components/boarded/flow.css"
+      ],
+      "retained_evidence": "Stats derive actual journal entries; entries/saved filters, empty states and entry links are functional. Deletion checks store result before closing/replacing Undo; failed delete retains target/error/dialog. delete-prior-undo-recovery-audit.json records successful delete, failed second delete preserving prior Undo, and restoration with focus on the remounted entry control.",
+      "unmet_requirement": null,
+      "evidence_file": "acceptance-source-reviews.json",
+      "initial_disposition": "accepted",
+      "final_evidence": [
+        "acceptance-final-reviews.json"
+      ],
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 35,
+      "task": "Implement deterministic atomic local journal persistence and validation store in lib/boarded/journal.ts and lib/boarded/store.ts",
+      "disposition": "accepted",
+      "acceptance_basis": [
+        "lib/boarded/journal.ts:238-305",
+        "lib/boarded/store.ts:51-207,209-274,306-654",
+        "components/boarded/LogFlow.tsx:163-214,541-592,996-1029",
+        "components/boarded/Details.tsx:322-345,1089-1097",
+        "components/boarded/Shell.tsx:168-172,433-448"
+      ],
+      "retained_evidence": [
+        "Every state-changing journal mutation routes through applyUpdate, which rejects unread/corrupted storage, writes the full next snapshot synchronously, and commits memory only after successful persistence.",
+        "Initialization and Retry validate before loading; neither silently overwrites malformed storage nor queues/replays failed mutations.",
+        "Form submission consumes the returned id only on success; comment drafts clear only on success; deletion/Undo and mark-sent consumers retain error recovery. Non-form toggles remain backed by store state and the shared Shell storage alert."
+      ],
+      "unmet_requirement": null,
+      "evidence_file": "acceptance-source-reviews.json",
+      "initial_disposition": "approved",
+      "final_evidence": [
+        "acceptance-final-reviews.json"
+      ],
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 36,
+      "evidence": [
+        "acceptance-image-manifest.json",
+        "acceptance-visual-reviews.json"
+      ],
+      "acceptance": "All primary desktop/mobile/reflow retained screenshots reviewed; staticpresentation approved; no Paperclaim.",
+      "disposition": "accepted",
+      "initial_disposition": "accepted_or_pending_packet_gate",
+      "task": "Feed, Explore, Activity, Log, and Profile across Desktop",
+      "final_evidence": [
+        "acceptance-visual-reviews.json"
+      ],
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 37,
+      "evidence": [
+        "acceptance-visual-reviews.json",
+        "acceptance-share-verification.json"
+      ],
+      "acceptance": "All retained detail/flow screenshots reviewed, plus exact changed blankcaption detail/share states at390/1440.",
+      "disposition": "accepted",
+      "initial_disposition": "accepted_or_pending_packet_gate",
+      "task": "Flow details",
+      "final_evidence": [
+        "acceptance-visual-reviews.json"
+      ],
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 38,
+      "evidence": [
+        "acceptance-visual-reviews.json",
+        "acceptance-focus-verification.json"
+      ],
+      "acceptance": "Retained edge states independently reviewed; missing actual390px invalidform evidence replaced with exact changedimplementation captures.",
+      "disposition": "accepted",
+      "initial_disposition": "accepted_or_pending_packet_gate",
+      "task": "Accessibility edge states",
+      "final_evidence": [
+        "acceptance-visual-reviews.json",
+        "acceptance-correction-image-manifest.json",
+        "acceptance-final-designer-verdict.json"
+      ],
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 42,
+      "task": "Automated unit and integration test suite pass",
+      "disposition": "accepted",
+      "acceptance_basis": [
+        "integration-verification.json",
+        "lib/boarded/journal.test.ts:1-909"
+      ],
+      "retained_evidence": [
+        "integration-verification.json records node --test lib/boarded/*.test.ts lib/utils/*.test.ts packages/shared/utils/*.test.ts in the primary checkout: exit 0, 46 tests passed, 12 suites, 0 failures; reviewed HEAD/diff and 20/20 candidate-file parity are recorded.",
+        "Read the complete journal test file. Its observable defenses include invalid dates/types/ranges, sent-before-published, idempotent transitions/restoration, retained durable bytes on corruption, denied-getter recovery with existing data, and exactly-one attempt/comment after failed write → Retry → explicit resubmission."
+      ],
+      "unmet_requirement": null,
+      "evidence_file": "acceptance-source-reviews.json",
+      "initial_disposition": "approved",
+      "final_evidence": [
+        "acceptance-final-reviews.json"
+      ],
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 43,
+      "task": "Next.js production build and TypeScript compilation with zero errors",
+      "disposition": "accepted",
+      "acceptance_basis": "Retain previously passing build/typecheck claims unless concrete source/build evidence contradicts them; no rerun solely for missing historical logs.",
+      "source_paths": [
+        "package.json",
+        "app/app/page.tsx",
+        "app/app/[...screen]/page.tsx",
+        "app/app/layout.tsx",
+        "components/boarded/Flow.tsx"
+      ],
+      "retained_evidence": "td-b387b8.md states npm run build passed with zero errors/warnings; run.json retains npx tsc --noEmit --incremental false passed. No raw build stdout/stderr log was found in the inspected delivery report, loop artifacts, or boarded-feed evidence directory. This is a historical handoff claim, not a newly witnessed build.",
+      "unmet_requirement": null,
+      "additional_check": "None solely to repair provenance. Reported UI behavior defects do not constitute evidence of compilation failure.",
+      "evidence_file": "acceptance-source-reviews.json",
+      "initial_disposition": "accepted_with_historical_provenance_caveat",
+      "final_evidence": [
+        "acceptance-final-reviews.json"
+      ],
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 44,
+      "task": "ESLint check across all web paths with zero warnings",
+      "disposition": "accepted",
+      "acceptance_basis": "Retain the existing successful lint milestone; independent source review is not a lint rerun.",
+      "source_paths": [
+        "package.json",
+        "components/boarded/*",
+        "app/app/*",
+        "components/providers/Providers.tsx",
+        "components/shared/BottomNav.tsx"
+      ],
+      "retained_evidence": "td-b387b8.md states npm run lint passed with zero errors/warnings. Inspected delivery/loop/audit artifacts do not retain raw lint output or an exact logged invocation scope beyond that handoff statement. No new lint claim is made.",
+      "unmet_requirement": null,
+      "additional_check": "None solely for absent historical raw output. Main owns validation after any accepted corrections.",
+      "evidence_file": "acceptance-source-reviews.json",
+      "initial_disposition": "accepted_with_historical_provenance_caveat",
+      "final_evidence": [
+        "acceptance-final-reviews.json"
+      ],
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 45,
+      "evidence": [
+        "tmp/boarded-feed/final-corrected-screen-audit.json"
+      ],
+      "acceptance": "18corrected historical audited scenarios eachhave0axeviolations; narrower newlyfoundconditionalclipboardgap assigned46/33.",
+      "disposition": "accepted",
+      "initial_disposition": "accepted_or_pending_packet_gate",
+      "task": "Scoped axe-core WCAG 2.2 AA audit across 18 screen/viewport scenarios",
+      "final_evidence": [
+        "acceptance-final-reviews.json"
+      ],
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 46,
+      "evidence": [
+        "acceptance-base-reproductions.json",
+        "acceptance-share-verification.json"
+      ],
+      "acceptance": "Deniedclipboard fallback heightfixed34to44px, labeled, both390/1440. Historical18scenario targets preserved.",
+      "disposition": "accepted",
+      "initial_disposition": "accepted_or_pending_packet_gate",
+      "task": "Interactive hit target audit ensuring 0 controls below 44x44 CSS px across all viewports",
+      "final_evidence": [
+        "acceptance-share-verification.json",
+        "acceptance-new-edge-reflow.json"
+      ],
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 47,
+      "evidence": [
+        "tmp/boarded-feed/final-corrected-screen-audit.json",
+        "tmp/boarded-feed/final-feed-capture-contract.json",
+        "acceptance-share-verification.json"
+      ],
+      "acceptance": "Retained320px scenarios0overflow; changed share/fallback states0overflow390/1440.",
+      "disposition": "accepted",
+      "initial_disposition": "accepted_or_pending_packet_gate",
+      "task": "320px viewport reflow and horizontal overflow audit",
+      "final_evidence": [
+        "acceptance-new-edge-reflow.json"
+      ],
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 48,
+      "evidence": [
+        "tmp/boarded-feed/final-text-scaling-evidence.json",
+        "acceptance-visual-reviews.json"
+      ],
+      "acceptance": "115textnodes scaled,0mismatches0overflow; retainedimageindependently reviewed.",
+      "disposition": "accepted",
+      "initial_disposition": "accepted_or_pending_packet_gate",
+      "task": "200% text scaling audit",
+      "final_evidence": [
+        "acceptance-final-reviews.json"
+      ],
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 49,
+      "evidence": [
+        "tmp/boarded-feed/final-forced-colors-evidence.json",
+        "acceptance-visual-reviews.json"
+      ],
+      "acceptance": "Forcedcolors activeand primarylabelblack/systemhighlight; retainedrender independently reviewed.",
+      "disposition": "accepted",
+      "initial_disposition": "accepted_or_pending_packet_gate",
+      "task": "Windows Forced Colors mode audit",
+      "final_evidence": [
+        "acceptance-final-reviews.json"
+      ],
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 50,
+      "task": "Complete pointerless keyboard happy path navigation",
+      "disposition": "accepted",
+      "acceptance_basis": "Previously completed Feed→Send→Route→Log→Attempt/send transition→Share→Profile local happy path; preserve passing checks without unsupported reruns.",
+      "source_paths": [
+        "components/boarded/Feed.tsx",
+        "components/boarded/Flow.tsx",
+        "components/boarded/Details.tsx",
+        "components/boarded/LogFlow.tsx",
+        "components/boarded/Shell.tsx"
+      ],
+      "retained_evidence": "keyboard-happy-path.json records final /app/profile, visible=true, mobile390x844, and one six-attempt sent/published entry containing keyboard-only notes. td-b387b8.md retains the full pointerless path claim. Source has matching links, form submit, sent transition, publish and profile consumers.",
+      "unmet_requirement": null,
+      "additional_check": "JSON is an end-state snapshot, not a raw keyboard-event trace; absence alone does not reopen this happy-path milestone. UI-1 warrants a distinct narrow error-recovery check, not rerunning the passing full path.",
+      "evidence_file": "acceptance-source-reviews.json",
+      "initial_disposition": "accepted_with_historical_provenance_caveat",
+      "final_evidence": [
+        "acceptance-final-reviews.json"
+      ],
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 51,
+      "task": "History navigation and popstate Back/Forward focus restoration with #comments/#share hash targeting",
+      "disposition": "accepted",
+      "acceptance_basis": "Exact named history/section-fragment cases with restored control/heading focus and malformed-hash robustness.",
+      "source_paths": [
+        "components/boarded/Shell.tsx",
+        "app/app/page.tsx",
+        "app/app/[...screen]/page.tsx",
+        "components/boarded/Details.tsx"
+      ],
+      "retained_evidence": "final-history-focus-audit.json records Feed origin link, Send H1 forward focus, Back restoring Maya link, Forward H1 focus, then comments/share focus IDs. hydrated-hash-audit.json separately retains both target IDs and successful malformed-hash page rendering. Source uses destination markers, recorded control descriptors, decoded getElementById, popstate handling and bounded observer cleanup.",
+      "unmet_requirement": null,
+      "additional_check": "Named section targets pass. UI-1 concerns native form-control fragments sharing the same helper and should be corrected without regressing these retained cases.",
+      "evidence_file": "acceptance-source-reviews.json",
+      "initial_disposition": "accepted",
+      "final_evidence": [
+        "acceptance-focus-verification.json",
+        "acceptance-final-integration.json"
+      ],
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 52,
+      "task": "Radix portal dialog focus trapping, Escape dismissal, and return focus restoration",
+      "disposition": "accepted",
+      "acceptance_basis": "Accessible themed Radix deletion dialog and cancellation/success focus restoration.",
+      "source_paths": [
+        "components/boarded/LogFlow.tsx",
+        "components/boarded/flow.css",
+        "app/app/boarded.css",
+        "package.json"
+      ],
+      "retained_evidence": "dialog-keyboard-audit.json retains themed=true, initial Cancel focus,44px buttons, six trapped=true observations, then dialog=false and restored delete-entry-review-sent focus with entry count unchanged. Source uses Radix modal Root/Portal/Content/Title/Description/Close and controlled close handling; successful deletion redirects focus to Undo. Raw cancellation snapshot does not itself identify the dismissal key; Escape support follows Radix behavior plus the historical handoff claim, not a new keypress observation.",
+      "unmet_requirement": null,
+      "additional_check": "No fresh dialog run warranted solely for unavailable historical event/transcript details.",
+      "evidence_file": "acceptance-source-reviews.json",
+      "initial_disposition": "accepted_with_historical_provenance_caveat",
+      "final_evidence": [
+        "acceptance-final-reviews.json"
+      ],
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 53,
+      "task": "Deterministic atomic journal persistence",
+      "disposition": "accepted",
+      "acceptance_basis": [
+        "lib/boarded/store.ts:209-274,411-488,490-654",
+        "lib/boarded/journal.test.ts:471-555,580-605,678-773",
+        "integration-verification.json"
+      ],
+      "retained_evidence": [
+        "Failure updates only error state; entries/comments/deletion remain unchanged until setItem succeeds. Retry re-reads durable state without replaying the rejected operation.",
+        "Tests assert repeated markSent/publish/restore do not duplicate entries, and failed attempt/comment writes followed by Retry and explicit resubmission produce exactly one durable addition.",
+        "form-validation-storage-recovery.json retains the failed draft and original count 1, then shows exactly one additional recovered attempt; comment-storage-recovery.json records failed addition count 0 and recovered addition count 1."
+      ],
+      "unmet_requirement": null,
+      "evidence_file": "acceptance-source-reviews.json",
+      "initial_disposition": "approved",
+      "final_evidence": [
+        "acceptance-final-reviews.json"
+      ],
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 54,
+      "task": "Storage corruption resilience",
+      "disposition": "accepted",
+      "acceptance_basis": [
+        "lib/boarded/store.ts:51-207,240-249,306-488",
+        "lib/boarded/journal.test.ts:630-676,775-909",
+        "storage-hydration-recovery.json"
+      ],
+      "retained_evidence": [
+        "Raw malformed JSON remains exactly '{broken journal' before and after Retry in the browser evidence, with visible recovery alerts.",
+        "Strict hydration rejects malformed entry schemas, unsafe ids, unknown routes, invalid dates/counts/text, nonboolean publication, and published-unsent entries rather than coercing or truncating user data.",
+        "Retained passing tests demonstrate denied initial localStorage getter does not overwrite preexisting journal data; restoring access and Retry recovers the original entry and saved route without changing the raw stored bytes."
+      ],
+      "unmet_requirement": null,
+      "evidence_file": "acceptance-source-reviews.json",
+      "initial_disposition": "approved",
+      "final_evidence": [
+        "acceptance-final-reviews.json"
+      ],
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 55,
+      "task": "Atomic deletion rollback and inline Undo recovery on failed storage writes",
+      "disposition": "accepted",
+      "acceptance_basis": [
+        "lib/boarded/store.ts:233-274,614-652",
+        "components/boarded/LogFlow.tsx:996-1029,1100-1113,1291-1348",
+        "lib/boarded/journal.test.ts:580-605,744-773",
+        "delete-prior-undo-recovery-audit.json"
+      ],
+      "retained_evidence": [
+        "Failed delete cannot remove the in-memory entry because persistence precedes commit. The UI keeps the confirmation dialog and earlier Undo target on failure; successful deletion alone replaces that target.",
+        "Undo uses the same atomic persistence boundary; its failure branch retains lastDeletedEntry and the actionable Undo banner instead of falsely claiming restoration.",
+        "Browser audit records count 1 after successful first deletion, count 1 plus an open dialog and explicit error after blocked second deletion, preserved earlier Undo text, then restoration of review-sent and review-attempt with focus on delete-entry-review-sent."
+      ],
+      "unmet_requirement": null,
+      "evidence_file": "acceptance-source-reviews.json",
+      "initial_disposition": "approved",
+      "final_evidence": [
+        "acceptance-final-reviews.json"
+      ],
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 56,
+      "task": "SVG send card export download and integrity check",
+      "disposition": "accepted",
+      "acceptance_basis": "Downloadable self-contained card, XML/Unicode-safe content and faithful caption/conditions under atomic-flow-spec.json.",
+      "source_paths": [
+        "components/boarded/LogFlow.tsx"
+      ],
+      "retained_evidence": "download-audit.json records completed boarded-redpoint-ridge-result.svg. Read and rasterized /tmp/boarded-web-verification-20260906/downloads/boarded-redpoint-ridge-result.svg: observed600x700 self-contained card, expected route/grade/attempt/date/caption/conditions. unicode-empty-caption-audit.json retains parseErrors=0, emoji=true and allConditions=true, but does not inspect the empty caption's exported text.",
+      "additional_check": "Only an empty-caption export/content comparison is needed for this finding; no reason to repeat the known successful ordinary download.",
+      "evidence_file": "acceptance-source-reviews.json",
+      "initial_disposition": "changes_requested",
+      "final_evidence": [
+        "acceptance-export-verification.json",
+        "acceptance-export-loading.json"
+      ],
+      "resolved_requirement": "UI-2: export inserts a fabricated default quote when the intentionally blank caption/live preview contains none. Existing successful download/XML evidence remains valid and does not cover this semantic mismatch.",
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 57,
+      "task": "Form validation and error recovery",
+      "disposition": "accepted",
+      "acceptance_basis": [
+        "lib/boarded/journal.ts:238-305",
+        "lib/boarded/journal.test.ts:41-177,678-742",
+        "components/boarded/LogFlow.tsx:163-214,244-451,574-592",
+        "components/boarded/Details.tsx:322-345",
+        "form-validation-storage-recovery.json",
+        "comment-storage-recovery.json",
+        "caption-length-recovery-audit.json"
+      ],
+      "retained_evidence": [
+        "Attempt validation rejects invalid route/date/count/text inputs, focuses the error summary, and preserves values on validation or persistence failure. Recovered submission navigates using the successfully persisted entry id.",
+        "Form browser evidence records invalid-attempt aria-invalid=true, focused error summary, unchanged notes 'Preserve <this> & retry.', and a single recovered addition.",
+        "Comment evidence records preserved failed draft 'Atomic comment recovery', no failed addition, then cleared draft and one successful addition.",
+        "Caption evidence records a 400-character value rejected with published=false and a visible length error, followed by successful publication of 'Quiet feet & patient hands — sent! 🧗'."
+      ],
+      "unmet_requirement": null,
+      "evidence_file": "acceptance-source-reviews.json",
+      "initial_disposition": "approved",
+      "final_evidence": [
+        "acceptance-focus-verification.json",
+        "acceptance-final-integration.json"
+      ],
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 58,
+      "evidence": [
+        "acceptance-spec.json",
+        "acceptance-focus-integration.json"
+      ],
+      "acceptance": "Original20filesmatchedcanonicalcandidate; focusapprovedsource/designer/runtimeintegrated; sharing/exportintegrationawaitsgates.",
+      "disposition": "accepted",
+      "initial_disposition": "accepted_or_pending_packet_gate",
+      "task": "Integrate independently reviewed isolated worker packets",
+      "final_evidence": [
+        "acceptance-final-integration.json",
+        "acceptance-final-tuple.json"
+      ],
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 59,
+      "evidence": [
+        "acceptance-source-reviews.json",
+        "acceptance-visual-reviews.json",
+        "acceptance-image-manifest.json",
+        "acceptance-matrix.json"
+      ],
+      "acceptance": "Every37nondeferreditem individuallymapped; durable independentreviewprovenance recoveredthroughnewreviews, pending finalexportgates.",
+      "disposition": "accepted",
+      "initial_disposition": "accepted_or_pending_packet_gate",
+      "task": "Prepare complete human review evidence and report",
+      "final_evidence": [
+        "acceptance-matrix.json",
+        "acceptance-final-reviews.json",
+        "acceptance-final-designer-verdict.json"
+      ],
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 60,
+      "evidence": [
+        "unused-code-cleanup.patch",
+        "photo-cleanup.patch",
+        "cleanup-report.json"
+      ],
+      "acceptance": "Priorunusedimports/scaffoldingcleanup preserved; nofurtherdeadsourcefinding in independent source reviews.",
+      "disposition": "accepted",
+      "initial_disposition": "accepted_or_pending_packet_gate",
+      "task": "Remove task introduced unused code and scaffolding",
+      "final_evidence": [
+        "acceptance-final-reviews.json"
+      ],
+      "final_review": "acceptance-final-reviews.json"
+    },
+    {
+      "ordinal": 61,
+      "evidence": [
+        "cleanup-report.json",
+        "acceptance-runtime-resources.json",
+        "acceptance-fix-packets.json",
+        "acceptance-export-spec.json"
+      ],
+      "acceptance": "Registered task resources and preservation/blockers retained; final allocation cleanupdispositions pending.",
+      "disposition": "accepted",
+      "initial_disposition": "accepted_or_pending_packet_gate",
+      "task": "Record preserved review artifacts and cleanup blockers",
+      "final_evidence": [
+        "cleanup-report.json",
+        "acceptance-cleanup-report.json"
+      ],
+      "final_review": "acceptance-final-reviews.json"
+    }
+  ],
+  "limitations": [
+    "24Paper tasks remain deferred by user, not completed.",
+    "OriginalPhase1-5 labels reconstructed from retained requirements; no added acceptance criteria.",
+    "Existing46tests and original18scenario audit retained rather than redundantly rerun.",
+    "Historical screenshots retain provenance limitations;19 correction/final screenshots have explicit hashes and sourceheads."
+  ],
+  "final_tuple": "acceptance-final-tuple.json"
+}

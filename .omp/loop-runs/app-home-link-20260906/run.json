@@ -1,0 +1,68 @@
+{
+  "scope": "Web only: desktop/mobile app wordmarks link to existing same-origin 3D landing at /. Feed remains /app; no native or landing implementation changes.",
+  "owned_paths": [
+    "components/boarded/Shell.tsx"
+  ],
+  "base_sha": "ebd5b8ceb0f13b7b40f3251e8e11a6fa1eef507d",
+  "target_sha256": "46130e108f2b038a1541642fc62489250c12a28c077cf6ab84851b5f867c116e",
+  "worktree": "/tmp/boarded-app-home-link-20260906",
+  "branch": "loop/app-home-link-20260906",
+  "resources": [
+    {
+      "kind": "worker",
+      "name": "HomeLinkWorker"
+    },
+    {
+      "kind": "designer",
+      "name": "HomeLinkDesigner"
+    },
+    {
+      "kind": "worktree",
+      "path": "/tmp/boarded-app-home-link-20260906"
+    },
+    {
+      "kind": "process",
+      "name": "boarded-home-link-candidate",
+      "port": 3116
+    },
+    {
+      "kind": "process",
+      "name": "boarded-main-preview",
+      "port": 3115
+    },
+    {
+      "kind": "browser",
+      "name": "home-nav-isolated",
+      "reason": "Dedicated browser to avoid shared CDP viewport resets during navigation verification"
+    }
+  ],
+  "cleanup_owner": "Main",
+  "state": "integrated_verified_complete",
+  "identity": {
+    "head": "eebfbc2d8385519a45290289a24a344c1515547d",
+    "base": "ebd5b8ceb0f13b7b40f3251e8e11a6fa1eef507d",
+    "diff_sha256": "2a9d3ed29580a3a88eb5cd264580371dbb065417dbacbcafac98b9278a991650",
+    "file_sha256": "704aee149d69239ad88b3dbc1abbd49066e6f5aa1fe375a3ff9243e79b8a1195",
+    "target_sha256": "46130e108f2b038a1541642fc62489250c12a28c077cf6ab84851b5f867c116e",
+    "paths": [
+      "components/boarded/Shell.tsx"
+    ]
+  },
+  "verification": "candidate-verification.json",
+  "primary_root_observed": {
+    "url": "http://localhost:3115/",
+    "title": "Boarded — A little more within reach.",
+    "climberPoster": "/walls/generated/boarded-wall-poster.webp",
+    "canvas": true
+  },
+  "approval": "approval.json",
+  "integration": "integration-verification.json",
+  "change": "Exactly two wordmark href values changed to /; Feed unchanged.",
+  "cleanup": {
+    "source": "No added code or scaffolding; existing docs unchanged for this bounded href adjustment.",
+    "candidate_preview": "Stopped exit0 after verified integration.",
+    "primary_preview": "Ready at http://localhost:3115/app; preserves current landing and app together.",
+    "worktree": "Preserve reviewed worker commit and evidence",
+    "browser": "Two CDP automation handles released; attached pages preserved. Auto-created native browser workspace became unavailable; identity unresolved, no surface/workspace deletion attempted."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "packet": "native-verification",
+  "platform": "iOS",
+  "base_sha": "ebeb437",
+  "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/native-verification",
+  "ownership": [
+    "apps/ios/Boarded/BoardedTests/NativeContractTests.swift",
+    "apps/ios/Boarded/BoardedUITests/BoardedUITests.swift"
+  ],
+  "failure_evidence": "Both existing capture matrix tests fail on both devices at BoardedUITests.swift59 app.images[fixtureImageAlt].exists. xcresult Test-Boarded-2026.09.06_14-50-59--0400. Full NativeContractTests75 pass; existing Activity test only sequential, not N3 overlapping snapshot bug.",
+  "requirements": [
+    "Update existing screenshot matrix to exercise actual preserved current native UI rather than obsolete image-role/copy/layout selectors. Keep meaningful Feed/detail/timeline/Log/Activity/Profile contracts and screenshots on compact/regular, standard/accessibility. Do not delete substantive behavioral assertions merely to pass. Source changes are outside ownership.",
+    "Add focused regression for post-to-route Close retaining parent and second-feed-card direct route action if existing UI tests do not cover them; reuse fixtures and stable accessible identifiers. These are proven prior regressions, not plumbing.",
+    "Add one deterministic NativeContractTests regression for N3 independent event/count snapshots overlapping single-read mutation: authoritative count1 after reading A with B unread must remain1, not double-decrement0. Use existing mock patterns/continuation barriers, no sleeps.",
+    "Inspect testNativeMediaErrorsUsePlainRecoveryCopy; remove only wording-pinning coverage if that is all it asserts, never repin strings. Preserve meaningful error-contract coverage.",
+    "No production edits, validation, broad tests, formatters, linters, services, provider/model changes or additional delegation. Read full frozen design; active ApprovedModelDesigner through Main. Commit owned files once then freeze; Main builds and exercises UI."
+  ]
+}

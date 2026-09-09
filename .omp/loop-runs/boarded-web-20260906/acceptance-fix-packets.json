@@ -1,0 +1,60 @@
+{
+  "schema": "omp.bounded_fix_packets.v1",
+  "state": "registered_before_allocation",
+  "packets": [
+    {
+      "id": "focus-recovery",
+      "platform": "web",
+      "worktree": "/tmp/boarded-web-acceptance-focus-20260906",
+      "branch": "loop/boarded-web-20260906/acceptance-focus",
+      "base_sha": "e1114ed0422b789e39ccf9b4ec43c88f238eedd8",
+      "owned_paths": [
+        "components/boarded/Shell.tsx"
+      ]
+    },
+    {
+      "id": "share-boundaries",
+      "platform": "web",
+      "worktree": "/tmp/boarded-web-acceptance-share-20260906",
+      "branch": "loop/boarded-web-20260906/acceptance-share",
+      "base_sha": "e1114ed0422b789e39ccf9b4ec43c88f238eedd8",
+      "owned_paths": [
+        "components/boarded/Details.tsx",
+        "components/boarded/LogFlow.tsx"
+      ]
+    }
+  ],
+  "designer": "WebAcceptanceDesigner",
+  "non_goals": [
+    "Paper",
+    "native",
+    "landing",
+    "new features"
+  ],
+  "max_implementation_attempts": 2,
+  "max_review_rounds": 2,
+  "base_reproductions": {
+    "focus": {
+      "beforeTabIndex": 0,
+      "afterErrorLink": -1,
+      "Tab": "log-attempts",
+      "ShiftTab": "log-route"
+    },
+    "caption": {
+      "detail": {
+        "quotes": [
+          "“Private notes should not replace an empty caption.”"
+        ],
+        "notesVisible": true
+      },
+      "exported": {
+        "captionField": "",
+        "svgHasFallback": true
+      },
+      "recovery": {
+        "inputs": [],
+        "alert": []
+      }
+    }
+  }
+}

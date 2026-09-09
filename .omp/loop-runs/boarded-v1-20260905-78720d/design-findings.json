@@ -1,0 +1,34 @@
+{
+  "findings": [
+    {
+      "title": "Keep unpublished session totals out of public profile statistics",
+      "body": "The new profile policy explicitly makes total sessions, sends, send rate, vertical gain, and personal records public, without limiting them to published sessions. For a climber with an unpublished completed session, following this policy would disclose private session information through their public aggregates, contrary to the frozen contract's rule that only explicitly published session fields may cross authors. Distinguish owner-only logbook statistics/history from public statistics derived solely from published sessions, and keep saved bookmarks owner-only.",
+      "priority": 2,
+      "confidence": 0.93,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-design/docs/design-language.md",
+      "line_start": 408,
+      "line_end": 412
+    },
+    {
+      "title": "Preserve reduced-motion behavior for prescribed animations",
+      "body": "The rewrite removes the existing Reduce Motion requirement and its loading-animation fallback, while retaining unconditional pressed scaling here and in the primary-button specification. Consequently, the updated design policy no longer tells either platform to honor reduced-motion preferences, although the frozen design principles require that support and the landing contract requires a reduced-motion still. Restore that accessibility exception alongside the remaining motion guidance rather than deleting it with the obsolete material guidance.",
+      "priority": 2,
+      "confidence": 0.95,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-design/docs/design-language.md",
+      "line_start": 594,
+      "line_end": 601
+    },
+    {
+      "title": "Retain the frozen screenshot gate in the replacement handoff",
+      "body": "This qualitative matrix replaces the screenshot-acceptance section without carrying forward a screenshot requirement or referencing the frozen capture/diff contract. A Feed can satisfy this row while using a different capture size, fixture state, or typography and never undergoing the required comparison. Add an explicit reference to the approved E6-0 baseline and its 402\u00d7874-point @3x capture, frozen locale/time/data/state, settled images/fonts and disabled updates, and odiff threshold of 0.1 with at most 0.5% unmasked difference; preserve disclosure of the known divider discrepancy rather than masking it. This restores the existing Feed gate, not additional screen scope.",
+      "priority": 2,
+      "confidence": 0.96,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-design/docs/design-language.md",
+      "line_start": 637,
+      "line_end": 643
+    }
+  ],
+  "overall_correctness": "incorrect",
+  "explanation": "Changes requested for public-profile privacy, removed reduced-motion guidance, and the missing deterministic screenshot handoff; the palette, five destinations, font, Feed geometry, and no-custom-glass policy otherwise align. Reviewed full head 60cfa93eb5b710a09ed917ee676ace39916179ad and canonical diff SHA-256 9acd52f026c823b84ec0a4330a47ade50e5ba2c26bbf32fe1bb63b824bbec549. No runtime tests are needed or were run for this Markdown-only change; reviewing the approved design images does not establish runtime visual parity.",
+  "confidence": 0.94
+}

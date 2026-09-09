@@ -1,0 +1,458 @@
+{
+  "schema": "omp.mission_checklist.v1",
+  "issue": "td-b387b8",
+  "status": "MVP/WIP verified: all37 nondeferred tasks complete;24Paper tasks deferred by user",
+  "current_scope_complete": true,
+  "original_scope_fully_complete": false,
+  "label_provenance": "Phases1-5 are reconstructed from retained specs and evidence; original verbatim checklist unavailable. Delivery labels retained from this session. No new acceptance criteria implied.",
+  "counts": {
+    "total": 61,
+    "completed": 37,
+    "deferred_paper": 24
+  },
+  "user_decision": "Continue with current progress done but MVP/WIP; retain deferred Paper work rather than mark it complete.",
+  "items": [
+    {
+      "phase": "Discovery",
+      "task": "Discover brand assets and source photography",
+      "status": "completed",
+      "provenance": "reconstructed_from_durable_spec",
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Discovery",
+      "task": "Discover existing web and domain architecture",
+      "status": "completed",
+      "provenance": "reconstructed_from_durable_spec",
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Discovery",
+      "task": "Discover local state and journal contract requirements",
+      "status": "completed",
+      "provenance": "reconstructed_from_durable_spec",
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Paper plan",
+      "task": "Define color token styles",
+      "status": "deferred",
+      "provenance": "reconstructed_from_durable_spec"
+    },
+    {
+      "phase": "Paper plan",
+      "task": "Define typography scale",
+      "status": "deferred",
+      "provenance": "reconstructed_from_durable_spec"
+    },
+    {
+      "phase": "Paper plan",
+      "task": "Define spacing, radius, and elevation tokens",
+      "status": "deferred",
+      "provenance": "reconstructed_from_durable_spec"
+    },
+    {
+      "phase": "Paper plan",
+      "task": "Define component foundations and icon assets",
+      "status": "deferred",
+      "provenance": "reconstructed_from_durable_spec"
+    },
+    {
+      "phase": "Paper plan",
+      "task": "Define responsive layout grid and breakpoints",
+      "status": "deferred",
+      "provenance": "reconstructed_from_durable_spec"
+    },
+    {
+      "phase": "Paper plan",
+      "task": "Desktop Feed artboard",
+      "status": "deferred",
+      "provenance": "reconstructed_from_durable_spec"
+    },
+    {
+      "phase": "Paper plan",
+      "task": "Mobile Feed artboard",
+      "status": "deferred",
+      "provenance": "reconstructed_from_durable_spec"
+    },
+    {
+      "phase": "Paper plan",
+      "task": "Reflow 320px Feed artboard with wrapped metadata and non-overflowing tags",
+      "status": "deferred",
+      "provenance": "reconstructed_from_durable_spec"
+    },
+    {
+      "phase": "Paper plan",
+      "task": "Desktop Send Detail artboard",
+      "status": "deferred",
+      "provenance": "reconstructed_from_durable_spec"
+    },
+    {
+      "phase": "Paper plan",
+      "task": "Mobile Send Detail artboard with inline comments and kudos interaction",
+      "status": "deferred",
+      "provenance": "reconstructed_from_durable_spec"
+    },
+    {
+      "phase": "Paper plan",
+      "task": "Desktop Route Detail artboard",
+      "status": "deferred",
+      "provenance": "reconstructed_from_durable_spec"
+    },
+    {
+      "phase": "Paper plan",
+      "task": "Mobile Route Detail artboard with tick list and log action",
+      "status": "deferred",
+      "provenance": "reconstructed_from_durable_spec"
+    },
+    {
+      "phase": "Paper plan",
+      "task": "Desktop Log Attempt modal/screen",
+      "status": "deferred",
+      "provenance": "reconstructed_from_durable_spec"
+    },
+    {
+      "phase": "Paper plan",
+      "task": "Mobile Log Attempt screen with full-width 44px inputs and validation alerts",
+      "status": "deferred",
+      "provenance": "reconstructed_from_durable_spec"
+    },
+    {
+      "phase": "Paper plan",
+      "task": "Desktop Share Card dialog",
+      "status": "deferred",
+      "provenance": "reconstructed_from_durable_spec"
+    },
+    {
+      "phase": "Paper plan",
+      "task": "Mobile Share Card view with partner picker and copy action",
+      "status": "deferred",
+      "provenance": "reconstructed_from_durable_spec"
+    },
+    {
+      "phase": "Paper plan",
+      "task": "Desktop Profile & Journal artboard",
+      "status": "deferred",
+      "provenance": "reconstructed_from_durable_spec"
+    },
+    {
+      "phase": "Paper plan",
+      "task": "Mobile Profile & Journal artboard with segmented subtabs and empty states",
+      "status": "deferred",
+      "provenance": "reconstructed_from_durable_spec"
+    },
+    {
+      "phase": "Paper plan",
+      "task": "Explore Discovery destination artboard",
+      "status": "deferred",
+      "provenance": "reconstructed_from_durable_spec"
+    },
+    {
+      "phase": "Paper plan",
+      "task": "Activity Stream destination artboard",
+      "status": "deferred",
+      "provenance": "reconstructed_from_durable_spec"
+    },
+    {
+      "phase": "Paper plan",
+      "task": "High-contrast Forced Colors & 200% text enlargement states artboard",
+      "status": "deferred",
+      "provenance": "reconstructed_from_durable_spec"
+    },
+    {
+      "phase": "Implementation",
+      "task": "Implement CSS theme tokens, typography, and utility classes in app/app/boarded.css",
+      "status": "completed",
+      "provenance": "reconstructed_from_durable_spec",
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Implementation",
+      "task": "Implement root application layout and theme provider in app/app/layout.tsx and components/providers/Providers.tsx",
+      "status": "completed",
+      "provenance": "reconstructed_from_durable_spec",
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Implementation",
+      "task": "Implement responsive shell with desktop sidebar, mobile bottom nav, and landmark focus in components/boarded/Shell.tsx and components/shared/BottomNav.tsx",
+      "status": "completed",
+      "provenance": "reconstructed_from_durable_spec",
+      "reopened_reason": "Confirmed UI-1: both hash-focus paths remove native input tab stops.",
+      "acceptance_evidence": [
+        "acceptance-focus-tuple.json",
+        "acceptance-focus-verification.json",
+        "acceptance-packet-reviews.json"
+      ],
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Implementation",
+      "task": "Implement accessible hero photo wrapper with aspect ratio and fallback in components/boarded/Photo.tsx and asset public/boarded/redpoint-ridge.webp",
+      "status": "completed",
+      "provenance": "reconstructed_from_durable_spec",
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Implementation",
+      "task": "Implement Feed screen with populated seed data, badges, and interactions in components/boarded/Feed.tsx and app/app/page.tsx",
+      "status": "completed",
+      "provenance": "reconstructed_from_durable_spec",
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Implementation",
+      "task": "Implement Route, Boulder, and Climber detail views with specs and topo nodes in components/boarded/Details.tsx",
+      "status": "completed",
+      "provenance": "reconstructed_from_durable_spec",
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Implementation",
+      "task": "Implement Explore and Activity community views with search and notifications in components/boarded/Community.tsx",
+      "status": "completed",
+      "provenance": "reconstructed_from_durable_spec",
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Implementation",
+      "task": "Implement Log attempt composer and session form in components/boarded/LogFlow.tsx",
+      "status": "completed",
+      "provenance": "reconstructed_from_durable_spec",
+      "reopened_reason": "Confirmed UI-1: date-error summary link breaks subsequent field keyboard navigation.",
+      "acceptance_evidence": [
+        "acceptance-focus-tuple.json",
+        "acceptance-focus-verification.json",
+        "acceptance-packet-reviews.json"
+      ],
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Implementation",
+      "task": "Implement Share card view with export card preview and action links in components/boarded/Flow.tsx",
+      "status": "completed",
+      "provenance": "reconstructed_from_durable_spec",
+      "reopened_reason": "Confirmed UI-2 empty published caption replaced by notes/default; UI-3 manual copy input unnamed and34px.",
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Implementation",
+      "task": "Implement Profile screen with stats, entry history, and deletion dialog in components/boarded/Flow.tsx",
+      "status": "completed",
+      "provenance": "reconstructed_from_durable_spec",
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Implementation",
+      "task": "Implement deterministic atomic local journal persistence and validation store in lib/boarded/journal.ts and lib/boarded/store.ts",
+      "status": "completed",
+      "provenance": "reconstructed_from_durable_spec",
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Visual verification",
+      "task": "Feed, Explore, Activity, Log, and Profile across Desktop",
+      "status": "completed",
+      "provenance": "reconstructed_from_durable_spec",
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Visual verification",
+      "task": "Flow details",
+      "status": "completed",
+      "provenance": "reconstructed_from_durable_spec",
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Visual verification",
+      "task": "Accessibility edge states",
+      "status": "completed",
+      "provenance": "reconstructed_from_durable_spec",
+      "reopened_reason": "True-mobile invalid-form screenshot missing: retained log-invalid-mobile.png is800px wide. New corrected focus/recovery state needs390px evidence.",
+      "acceptance_evidence": [
+        "acceptance-focus-tuple.json",
+        "acceptance-focus-verification.json",
+        "acceptance-packet-reviews.json"
+      ],
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Visual verification",
+      "task": "Export reference artboards from Paper for pixel-level visual comparison",
+      "status": "deferred",
+      "provenance": "reconstructed_from_durable_spec"
+    },
+    {
+      "phase": "Visual verification",
+      "task": "Run automated image diff",
+      "status": "deferred",
+      "provenance": "reconstructed_from_durable_spec"
+    },
+    {
+      "phase": "Visual verification",
+      "task": "Visual designer review and sign-off on Paper parity",
+      "status": "deferred",
+      "provenance": "reconstructed_from_durable_spec"
+    },
+    {
+      "phase": "Behavioral verification",
+      "task": "Automated unit and integration test suite pass",
+      "status": "completed",
+      "provenance": "reconstructed_from_durable_spec",
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Behavioral verification",
+      "task": "Next.js production build and TypeScript compilation with zero errors",
+      "status": "completed",
+      "provenance": "reconstructed_from_durable_spec",
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Behavioral verification",
+      "task": "ESLint check across all web paths with zero warnings",
+      "status": "completed",
+      "provenance": "reconstructed_from_durable_spec",
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Behavioral verification",
+      "task": "Scoped axe-core WCAG 2.2 AA audit across 18 screen/viewport scenarios",
+      "status": "completed",
+      "provenance": "reconstructed_from_durable_spec",
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Behavioral verification",
+      "task": "Interactive hit target audit ensuring 0 controls below 44x44 CSS px across all viewports",
+      "status": "completed",
+      "provenance": "reconstructed_from_durable_spec",
+      "reopened_reason": "Confirmed clipboard-denied recovery input height34px below44px minimum.",
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Behavioral verification",
+      "task": "320px viewport reflow and horizontal overflow audit",
+      "status": "completed",
+      "provenance": "reconstructed_from_durable_spec",
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Behavioral verification",
+      "task": "200% text scaling audit",
+      "status": "completed",
+      "provenance": "reconstructed_from_durable_spec",
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Behavioral verification",
+      "task": "Windows Forced Colors mode audit",
+      "status": "completed",
+      "provenance": "reconstructed_from_durable_spec",
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Behavioral verification",
+      "task": "Complete pointerless keyboard happy path navigation",
+      "status": "completed",
+      "provenance": "reconstructed_from_durable_spec",
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Behavioral verification",
+      "task": "History navigation and popstate Back/Forward focus restoration with #comments/#share hash targeting",
+      "status": "completed",
+      "provenance": "reconstructed_from_durable_spec",
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Behavioral verification",
+      "task": "Radix portal dialog focus trapping, Escape dismissal, and return focus restoration",
+      "status": "completed",
+      "provenance": "reconstructed_from_durable_spec",
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Behavioral verification",
+      "task": "Deterministic atomic journal persistence",
+      "status": "completed",
+      "provenance": "reconstructed_from_durable_spec",
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Behavioral verification",
+      "task": "Storage corruption resilience",
+      "status": "completed",
+      "provenance": "reconstructed_from_durable_spec",
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Behavioral verification",
+      "task": "Atomic deletion rollback and inline Undo recovery on failed storage writes",
+      "status": "completed",
+      "provenance": "reconstructed_from_durable_spec",
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Behavioral verification",
+      "task": "SVG send card export download and integrity check",
+      "status": "completed",
+      "provenance": "reconstructed_from_durable_spec",
+      "reopened_reason": "Confirmed intentionally empty SVG caption replaced by invented default text.",
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Behavioral verification",
+      "task": "Form validation and error recovery",
+      "status": "completed",
+      "provenance": "reconstructed_from_durable_spec",
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Delivery",
+      "task": "Integrate independently reviewed isolated worker packets",
+      "status": "completed",
+      "provenance": "verbatim_original",
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Delivery",
+      "task": "Prepare complete human review evidence and report",
+      "status": "completed",
+      "provenance": "verbatim_original",
+      "reopened_reason": "Per-item acceptance and durable independent verdicts required; closing confirmed findings.",
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Delivery",
+      "task": "Remove task introduced unused code and scaffolding",
+      "status": "completed",
+      "provenance": "verbatim_original",
+      "acceptance_matrix": "acceptance-matrix.json"
+    },
+    {
+      "phase": "Delivery",
+      "task": "Record preserved review artifacts and cleanup blockers",
+      "status": "completed",
+      "provenance": "verbatim_original",
+      "acceptance_matrix": "acceptance-matrix.json"
+    }
+  ],
+  "final_candidate": {
+    "repo": "/tmp/boarded-web-acceptance-composite-20260906",
+    "branch": "loop/boarded-web-20260906/acceptance-composite",
+    "base_sha": "a86f0b0dfd490ae996a30c3e43d6edfd2a9d8a2e",
+    "head_sha": "ebd5b8ceb0f13b7b40f3251e8e11a6fa1eef507d",
+    "diff_sha256": "dac4943bbed4357eb8e6edb74394f07afafab713c2ce43d2ac3a4a6cd5a12847",
+    "packet_spec_sha256": "a3f01f5d8efaf74997b0ed61d50794136976d3364c0e45c9a475e2342c34115b",
+    "dependency_heads": {
+      "original": "e1114ed0422b789e39ccf9b4ec43c88f238eedd8",
+      "focus": "3db338978994b69850d3b8992538522a617cfced",
+      "share": "e70cc2b5f074aaa512b0d356fe9d69cad11ad2c8",
+      "export": "ab0774aa7f9414b14f8349ded3b602ab5ba84fb8"
+    },
+    "target_snapshot_sha256": "458c12d08674a9480ebdb971d96b7c7fd64d9ed172b3801c4c4bd5b1c3b9c717",
+    "confinement_sha256": "04248ee05ec1311c532314e459ad382f63744114cdc9ec897ed3368dab90f2d2"
+  },
+  "acceptance_matrix": "acceptance-matrix.json"
+}

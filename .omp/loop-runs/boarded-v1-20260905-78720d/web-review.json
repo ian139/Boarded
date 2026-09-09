@@ -1,0 +1,36 @@
+{
+  "review_kind": "packet",
+  "identity": {
+    "repo": "/Users/ian/Projects/ClimbingApp",
+    "branch": "loop/boarded-v1-20260905-78720d/web",
+    "base_sha": "9a68ff18ffd612b21bfb5173a50b82ee7c35297e",
+    "head_sha": "caf256ba3528f21821d15bcf3a64b40b926828bf",
+    "diff_sha256": "2e3b0f7df3b126af7fccb8a6affe83486642682667a1c7410b49f1454b62d016",
+    "packet_spec_sha256": "e2224419bcb6937dd4a39ea54dd04ebe8b2ae78b3811db7a62b56f25864d7498",
+    "dependency_heads": {},
+    "target_snapshot_sha256": "b3f7366f78c9ba7cc20767505caedd8bd6a3429f5b464b67a126612999f05da5",
+    "confinement_sha256": "67b9f576f49bdf44c3e56f5ff7621da36b0a997fc0e98defd935757c823c0690"
+  },
+  "changed_paths": [
+    "app/activity/page.tsx",
+    "app/app/page.tsx",
+    "app/explore/page.tsx",
+    "app/globals.css",
+    "app/layout.tsx",
+    "app/log/page.tsx",
+    "app/profile/page.tsx",
+    "components/explore/NewRouteModal.tsx",
+    "components/explore/NewVenueModal.tsx",
+    "components/feed/CommentsSheet.tsx",
+    "components/feed/FeedCard.tsx",
+    "components/shared/BottomNav.tsx",
+    "components/shared/DesktopNav.tsx",
+    "public/brand/stonegate-hero.png"
+  ],
+  "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/web",
+  "packet_spec": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/web-packet.json",
+  "diff_path": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/web.patch",
+  "execution_evidence": [],
+  "review_status": "pending",
+  "designer_verdict": null
+}

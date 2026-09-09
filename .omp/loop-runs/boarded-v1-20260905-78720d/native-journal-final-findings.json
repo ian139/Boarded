@@ -1,0 +1,65 @@
+[
+  {
+    "title": "Exclude pending deletions from private attempt history",
+    "body": "After undoing an already-synced attempt, SessionSyncService.delete(attempt:) removes its PendingAttempt and records a PendingAttemptDeletion until remote deletion succeeds. If that deletion fails or remains in flight, the new detail loader unconditionally inserts the still-present remote attempt here and never consults the account's tombstones. Reopening the completed session therefore resurrects the undone attempt and includes it in attempt/send totals. Filter remote results against pending deletion IDs in this loader and the equivalent mergedAttempts helper.",
+    "priority": 2,
+    "confidence": 0.99,
+    "file_path": "apps/ios/Boarded/Boarded/Views/Log/LogViews.swift",
+    "line_start": 552,
+    "line_end": 559
+  },
+  {
+    "title": "Snapshot pending precedence before awaiting remote history",
+    "body": "The merge retains live PendingSession references, then checks their syncState after awaiting fetchSessions. endSession schedules replay and a history reload together; a history request can read the old server row, replay can finish and mark the local row synced, and then that stale response can arrive. This branch now chooses the old remote metadata over the newly completed local session, despite it being pending when the fetch began. Preserve the pre-request pending state when deciding precedence; ProductProfileViewModel.load repeats the same race.",
+    "priority": 2,
+    "confidence": 0.94,
+    "file_path": "apps/ios/Boarded/Boarded/Services/SessionSyncService.swift",
+    "line_start": 272,
+    "line_end": 275
+  },
+  {
+    "title": "Bound custom grades to the server's 24-code-point limit",
+    "body": "The new Custom Grade text field accepts arbitrary text, but its validity check only requires a nonempty value. Entering a label longer than 24 Unicode scalars enables Save Attempt and persists it through recordAttempt, while climb_attempts_grade_label_length requires char_length(btrim(grade_label)) between 1 and 24. Replay repeatedly rejects this attempt and publication cannot complete. Validate the custom label's Unicode-scalar length before accepting it and expose the length error.",
+    "priority": 2,
+    "confidence": 1,
+    "file_path": "apps/ios/Boarded/Boarded/Views/Log/LogViews.swift",
+    "line_start": 266,
+    "line_end": 270
+  },
+  {
+    "title": "Preserve saved routes when unbookmarking fails",
+    "body": "When toggleBookmark throws, try? converts the failure to nil and ?? false treats it as a confirmed removal. The new handler immediately removes the route from Profile even though the bookmark remains on the server, without reporting the failure. Keep the row unchanged on error and apply removal only after a successful false result, with the same per-route mutation protection used by PublicProfileView.",
+    "priority": 2,
+    "confidence": 1,
+    "file_path": "apps/ios/Boarded/Boarded/Views/Profile/ProfileViews.swift",
+    "line_start": 379,
+    "line_end": 383
+  },
+  {
+    "title": "Retain the saved-route cursor independently of visible rows",
+    "body": "For an account with more than 30 bookmarks, removing all routes in the loaded first page leaves older bookmarks on the server but makes savedRoutes.last nil. This guard then prevents continuation, and savedRoutesList also hides its load-more button in the empty branch, presenting 'No saved routes yet' despite remaining pages. Store the fetched continuation cursor independently of removable rows and allow continuation whenever another page may exist.",
+    "priority": 2,
+    "confidence": 0.99,
+    "file_path": "apps/ios/Boarded/Boarded/Views/Profile/ProfileViews.swift",
+    "line_start": 86,
+    "line_end": 95
+  },
+  {
+    "title": "Report failed profile sections alongside available history",
+    "body": "All four requests now discard their errors, and this condition reports failure only when every request fails and there are no local sessions. If fetchSessions fails while the feed or saved-route request succeeds, a remote-only private history silently disappears with no error or retry; similarly a failed saved-route request is displayed as an empty collection on first load. Preserve per-section failures while showing successful/local data instead of treating partial failure as a complete successful load.",
+    "priority": 2,
+    "confidence": 0.99,
+    "file_path": "apps/ios/Boarded/Boarded/Views/Profile/ProfileViews.swift",
+    "line_start": 79,
+    "line_end": 83
+  },
+  {
+    "title": "Include newly bookmarked routes in the fixture profile catalog",
+    "body": "The fd6dbc7 AppServices graph passes UITestFixtures.savedRoutes, initially only Redpoint Ridge, together with the shared fixtureStore. This new nonempty-pool branch permanently restricts Profile's candidates to that initial subset. Saving High Plains Drifter through Feed or Explore updates the shared store, but fetchSavedRoutes can never return it because it is absent from pool; the base implementation searched the complete fixture catalog. Keep the catalog separate from the initially saved subset so shared bookmark changes remain visible across surfaces.",
+    "priority": 2,
+    "confidence": 1,
+    "file_path": "apps/ios/Boarded/Boarded/Services/ProfileRepository.swift",
+    "line_start": 150,
+    "line_end": 152
+  }
+]

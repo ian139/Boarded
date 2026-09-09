@@ -1,0 +1,1624 @@
+diff --git a/app/app/[...screen]/page.tsx b/app/app/[...screen]/page.tsx
+index 05750bab9b60dba559c5060dd48271aeeb9770ca..d3c9759feec40f6aa12e986cbe4e1129498f62f6 100644
+--- a/app/app/[...screen]/page.tsx
++++ b/app/app/[...screen]/page.tsx
+@@ -1,11 +1,49 @@
+ import { Suspense } from 'react';
+ import type { Metadata } from 'next';
+ import { Flow } from '@/components/boarded/Flow';
++import { routes } from '@/lib/boarded/journal';
+ 
+-export const metadata: Metadata = {
+-  title: 'Boarded — Climbing Journal',
+-  description: 'Editorial rock climbing journal for logging attempts, tracking sends, and exploring routes.',
+-};
++export async function generateMetadata({
++  params,
++}: {
++  params: Promise<{ screen?: string[] }>;
++}): Promise<Metadata> {
++  const resolved = await params;
++  const screen = resolved?.screen || [];
++  const count = screen.length;
++  const segment = screen[0] || '';
++  const param = screen[1] || '';
++
++  let title = 'Boarded — Climbing Journal';
++
++  if (segment === 'explore' && count === 1) {
++    title = 'Explore — Boarded';
++  } else if (segment === 'log' && count === 1) {
++    title = 'Log an attempt — Boarded';
++  } else if (segment === 'activity' && count === 1) {
++    title = 'Activity — Boarded';
++  } else if (segment === 'profile' && count === 1) {
++    title = 'Profile — Boarded';
++  } else if (segment === 'send' && count === 2 && param) {
++    title = param === 'maya-redpoint' ? "Maya's send — Boarded" : 'Send report — Boarded';
++  } else if (segment === 'route' && count === 2 && param) {
++    const route = routes.find((r) => r.id === param);
++    title = route ? `${route.name} (${route.grade}) — Boarded` : 'Route not found — Boarded';
++  } else if (segment === 'attempt' && count === 2 && param) {
++    title = 'Your attempt — Boarded';
++  } else if (segment === 'share' && count === 2 && param) {
++    title = 'Share your result — Boarded';
++  } else if (segment === 'climber' && count === 2 && param) {
++    title = (param === 'maya' || param === 'maya-k') ? 'Maya K. — Boarded' : 'Climber profile — Boarded';
++  } else {
++    title = 'Page not found — Boarded';
++  }
++
++  return {
++    title,
++    description: 'Editorial rock climbing journal for logging attempts, tracking sends, and exploring routes.',
++  };
++}
+ 
+ export default async function ScreenPage({
+   params,
+diff --git a/components/boarded/Community.tsx b/components/boarded/Community.tsx
+index b7d24eba5102b2bc867fa41cdb6f36caaf95bdf1..251a0ec27187bc0631e2280a66c1448af5fa5806 100644
+--- a/components/boarded/Community.tsx
++++ b/components/boarded/Community.tsx
+@@ -232,7 +232,7 @@ export function ExploreScreen() {
+         {totalResults === 0 && (
+           <div className="b-shelf text-center py-8">
+             <p className="text-stone-300 font-medium">No results found for &ldquo;{searchQuery}&rdquo;</p>
+-            <p className="text-xs text-stone-500 mt-1 mb-3">
++            <p className="text-xs text-stone-400 mt-1 mb-3">
+               Try searching for &quot;Redpoint&quot;, &quot;Limestone&quot;, &quot;Bishop&quot;, or &quot;Maya&quot;.
+             </p>
+             <button
+@@ -266,7 +266,7 @@ export function ExploreScreen() {
+                       </div>
+                       <h3 className="text-lg font-semibold text-stone-100">
+                         <span className="b-serif text-indigo-400 mr-2">{r.grade}</span>
+-                        <Link href={`/app/route/${r.id}`} className="b-serif hover:underline">
++                        <Link href={`/app/route/${r.id}`} className="b-serif hover:underline inline-flex items-center min-h-[44px]">
+                           {r.name}
+                         </Link>
+                       </h3>
+@@ -308,17 +308,16 @@ export function ExploreScreen() {
+                   <div className="max-w-xl">
+                     <div className="b-inline mb-1">
+                       <span className="b-eyebrow text-stone-400">{v.location}</span>
+-                      <span className="text-stone-600">•</span>
++                      <span className="text-stone-600" aria-hidden="true">•</span>
+                       <span className="b-status text-xs">{v.type}</span>
+                     </div>
+                     <h3 className="text-lg font-bold text-stone-100">{v.name}</h3>
+                     <p className="text-xs text-stone-300 font-mono mt-0.5">{v.routesCount}</p>
+                     <p className="text-xs text-stone-400 mt-1.5 leading-relaxed">{v.description}</p>
+-                    <div className="text-xs text-stone-500 mt-1">
++                    <div className="text-xs text-stone-400 mt-1">
+                       Surface: <strong className="text-stone-300">{v.rockOrWall}</strong>
+                     </div>
+                   </div>
+-
+                   {v.featuredRouteId && (
+                     <div className="pt-2">
+                       <Link href={`/app/route/${v.featuredRouteId}`} className="b-button b-button-ghost text-xs">
+@@ -347,10 +346,9 @@ export function ExploreScreen() {
+                       {c.name.slice(0, 2)}
+                     </div>
+                     <div>
+-                      <Link href={c.href} className="font-semibold text-stone-100 hover:text-indigo-400 hover:underline">
++                      <Link href={c.href} className="font-semibold text-stone-100 hover:text-indigo-400 hover:underline inline-flex items-center min-h-[44px]">
+                         {c.name}
+                       </Link>
+-                      <div className="text-xs text-stone-400">{c.role}</div>
+                       <div className="text-xs text-indigo-400 mt-0.5">{c.recentAscent}</div>
+                     </div>
+                   </div>
+@@ -375,12 +373,18 @@ export function ExploreScreen() {
+ export function ActivityScreen() {
+   const { activityRead, markActivityRead, likedPostIds, followingMaya, comments, entries } = useJournal();
+   const [readAnnouncement, setReadAnnouncement] = useState<string | null>(null);
++  const [readError, setReadError] = useState<string | null>(null);
+ 
+   const handleMarkAllRead = () => {
+-    markActivityRead();
+-    setReadAnnouncement('All activity notifications marked as read.');
++    setReadError(null);
++    setReadAnnouncement(null);
++    const res = markActivityRead();
++    if ('error' in res) {
++      setReadError(`Could not mark notifications as read: ${res.error}`);
++    } else {
++      setReadAnnouncement('All activity notifications marked as read.');
++    }
+   };
+-
+   const isLikedMaya = likedPostIds.includes('maya-redpoint');
+   const userCommentsOnMaya = comments.filter((c) => c.postId === 'maya-redpoint' && c.author === 'Alex R.');
+   const recentSeedComments = comments.filter((c) => c.postId === 'maya-redpoint').slice(-3);
+@@ -416,12 +420,16 @@ export function ActivityScreen() {
+           </button>
+         </div>
+ 
++        {readError && (
++          <div role="alert" className="p-3 bg-red-950/60 border border-red-500 rounded text-red-300 text-xs">
++            {readError}
++          </div>
++        )}
+         {readAnnouncement && (
+           <div role="status" aria-live="polite" className="p-3 bg-emerald-950/60 border border-emerald-500 rounded text-emerald-300 text-xs">
+             {readAnnouncement}
+           </div>
+         )}
+-
+         {/* Activity Items List */}
+         <ul className="b-activity-list" role="list">
+           {/* Item 1: Maya's Send */}
+@@ -434,14 +442,13 @@ export function ActivityScreen() {
+             </div>
+             <div className="b-activity-content">
+               <p className="b-activity-text">
+-                <Link href="/app/climber/maya" className="font-semibold text-stone-100 hover:underline">
++                <Link href="/app/climber/maya" className="font-semibold text-stone-100 hover:underline inline-flex items-center min-h-[44px]">
+                   Maya K.
+                 </Link>{' '}
+                 sent{' '}
+-                <Link href="/app/send/maya-redpoint" className="b-serif text-indigo-400 font-semibold hover:underline">
++                <Link href="/app/send/maya-redpoint" className="b-serif text-indigo-400 font-semibold hover:underline inline-flex items-center min-h-[44px]">
+                   Redpoint Ridge (5.12a)
+                 </Link>{' '}
+-                at Stonegate on her 6th try.
+               </p>
+               <div className="b-activity-meta">Sep 6, 2026 · 09:00 UTC · Verified Clean Send</div>
+               <div className="pt-1">
+@@ -517,10 +524,9 @@ export function ActivityScreen() {
+               <div className="b-activity-content">
+                 <p className="b-activity-text">
+                   You logged {e.attempts} attempts on{' '}
+-                  <Link href={`/app/route/${e.routeId}`} className="b-serif font-semibold text-indigo-400 hover:underline">
++                  <Link href={`/app/route/${e.routeId}`} className="b-serif font-semibold text-indigo-400 hover:underline inline-flex items-center min-h-[44px]">
+                     {routes.find((r) => r.id === e.routeId)?.name || e.routeId}
+                   </Link>
+-                  . Outcome: <strong>{e.outcome === 'sent' ? 'Sent!' : 'Attempted'}</strong>
+                 </p>
+                 <div className="b-activity-meta">
+                   {e.date} ·{' '}
+@@ -548,11 +554,89 @@ export interface ClimberProfileProps {
+ export function ClimberProfile({ climberId }: ClimberProfileProps) {
+   const { followingMaya, setFollowing } = useJournal();
+   const isMaya = climberId === 'maya' || climberId === 'maya-k';
++  const isAlex = climberId === 'alex';
++
++  if (!isMaya && !isAlex) {
++    return (
++      <div className="b-page" role="region" aria-labelledby="climber-not-found-heading">
++        <div className="b-page-header">
++          <Link href="/app/explore" className="b-button b-button-ghost">
++            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
++              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
++            </svg>
++            Back to Explore
++          </Link>
++          <span className="b-eyebrow">Climber Not Found</span>
++        </div>
++        <div className="b-panel b-stack">
++          <h1 id="climber-not-found-heading" className="b-serif text-2xl font-bold">
++            Climber profile not found
++          </h1>
++          <p className="b-muted">
++            The climber profile with identifier &quot;{climberId}&quot; does not exist in the local climbing directory.
++          </p>
++          <div className="b-inline">
++            <Link href="/app/explore" className="b-button b-button-primary">
++              Browse Community Directory
++            </Link>
++            <Link href="/app/climber/maya" className="b-button">
++              View Maya K.
++            </Link>
++            <Link href="/app" className="b-button b-button-ghost">
++              Return to Feed
++            </Link>
++          </div>
++        </div>
++      </div>
++    );
++  }
++
++  if (isAlex) {
++    return (
++      <article className="b-page" aria-labelledby="climber-alex-title">
++        <div className="b-page-header">
++          <Link href="/app/explore" className="b-button b-button-ghost">
++            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
++              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
++            </svg>
++            Back to Explore
++          </Link>
++          <span className="b-eyebrow">Your Climber Profile</span>
++        </div>
++        <div className="b-panel b-stack">
++          <div className="flex items-start justify-between flex-wrap gap-4">
++            <div className="flex items-center gap-4">
++              <div className="w-16 h-16 rounded-full bg-slate-800 border-2 border-indigo-500/50 flex items-center justify-center font-bold text-xl text-stone-100">
++                AR
++              </div>
++              <div>
++                <h1 id="climber-alex-title" className="text-2xl font-bold text-stone-100">
++                  Alex R. (You)
++                </h1>
++                <p className="text-xs text-stone-400 mt-0.5">
++                  Local Journal Climber · Home Crag: Stonegate
++                </p>
++              </div>
++            </div>
++            <Link href="/app/profile" className="b-button b-button-primary">
++              Open Full Journal &amp; Profile →
++            </Link>
++          </div>
++          <p className="b-muted text-sm">
++            This is your active journal profile. You can inspect your sessions, saved routes, and logbook in your profile view.
++          </p>
++        </div>
++      </article>
++    );
++  }
+ 
+   return (
+     <article className="b-page" aria-labelledby="climber-title">
+       <div className="b-page-header">
+         <Link href="/app/explore" className="b-button b-button-ghost">
++          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
++            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
++          </svg>
+           Back to Explore
+         </Link>
+         <span className="b-eyebrow">Climber Dossier</span>
+@@ -562,28 +646,26 @@ export function ClimberProfile({ climberId }: ClimberProfileProps) {
+         <div className="flex items-start justify-between flex-wrap gap-4">
+           <div className="flex items-center gap-4">
+             <div className="w-16 h-16 rounded-full bg-slate-800 border-2 border-indigo-500/50 flex items-center justify-center font-bold text-xl text-stone-100">
+-              {isMaya ? 'MK' : 'CL'}
++              MK
+             </div>
+             <div>
+               <h1 id="climber-title" className="text-2xl font-bold text-stone-100">
+-                {isMaya ? 'Maya K.' : 'Guest Climber'}
++                Maya K.
+               </h1>
+               <p className="text-xs text-stone-400 mt-0.5">
+-                {isMaya ? 'Stonegate Local · 5.12 Sport Climber' : 'Community Climber'}
++                Stonegate Local · 5.12 Sport Climber
+               </p>
+             </div>
+           </div>
+ 
+-          {isMaya && (
+-            <button
+-              type="button"
+-              onClick={() => setFollowing(!followingMaya)}
+-              aria-pressed={followingMaya}
+-              className={`b-button ${followingMaya ? 'b-button-ghost' : 'b-button-primary'}`}
+-            >
+-              {followingMaya ? 'Following Maya' : '+ Follow Maya'}
+-            </button>
+-          )}
++          <button
++            type="button"
++            onClick={() => setFollowing(!followingMaya)}
++            aria-pressed={followingMaya}
++            className={`b-button ${followingMaya ? 'b-button-ghost' : 'b-button-primary'}`}
++          >
++            {followingMaya ? 'Following Maya' : '+ Follow Maya'}
++          </button>
+         </div>
+ 
+         <div className="b-shelf">
+@@ -591,37 +673,33 @@ export function ClimberProfile({ climberId }: ClimberProfileProps) {
+             Bio & Background
+           </h2>
+           <p className="text-sm text-stone-300 leading-relaxed m-0">
+-            {isMaya
+-              ? 'Projecting steep limestone in the canyon. Passionate about deliberate footwork, quiet climbing, and long endurance links. Redpointed 5.12a at Stonegate this season.'
+-              : 'Community rock climber tracking ascents, boulder problems, and technical beta on Boarded.'}
++            Projecting steep limestone in the canyon. Passionate about deliberate footwork, quiet climbing, and long endurance links. Redpointed 5.12a at Stonegate this season.
+           </p>
+         </div>
+ 
+         {/* Featured Ascent */}
+-        {isMaya && (
+-          <div className="b-shelf b-stack">
+-            <span className="text-xs font-bold uppercase tracking-wider text-stone-400">
+-              Featured Recent Ascent
+-            </span>
+-            <div className="flex items-start justify-between flex-wrap gap-2">
+-              <div>
+-                <h3 className="text-lg font-semibold text-stone-100">
+-                  <span className="b-serif text-indigo-400 mr-2">5.12a</span>
+-                  <Link href="/app/route/redpoint-ridge" className="b-serif hover:underline">
+-                    Redpoint Ridge
+-                  </Link>
+-                </h3>
+-                <p className="text-xs text-stone-400 mt-0.5">
+-                  Stonegate · Sport · 27 m · 6 attempts · Clean Send
+-                </p>
+-              </div>
+-
+-              <Link href="/app/send/maya-redpoint" className="b-button b-button-primary text-xs">
+-                View Send Report →
+-              </Link>
++        <div className="b-shelf b-stack">
++          <span className="text-xs font-bold uppercase tracking-wider text-stone-400">
++            Featured Recent Ascent
++          </span>
++          <div className="flex items-start justify-between flex-wrap gap-2">
++            <div>
++              <h3 className="text-lg font-semibold text-stone-100">
++                <span className="b-serif text-indigo-400 mr-2">5.12a</span>
++                <Link href="/app/route/redpoint-ridge" className="b-serif hover:underline inline-flex items-center min-h-[44px]">
++                  Redpoint Ridge
++                </Link>
++              </h3>
++              <p className="text-xs text-stone-400 mt-0.5">
++                Stonegate · Sport · 27 m · 6 attempts · Clean Send
++              </p>
+             </div>
++
++            <Link href="/app/send/maya-redpoint" className="b-button b-button-primary text-xs">
++              View Send Report →
++            </Link>
+           </div>
+-        )}
++        </div>
+ 
+         <div className="b-inline pt-2 border-t border-stone-800">
+           <Link href="/app" className="b-button b-button-ghost">
+diff --git a/components/boarded/Details.tsx b/components/boarded/Details.tsx
+index d6578503c0b790a5808b28266188410ba8e6cd07..5b111783cacf59b3257f08bb0f9e2bc2ce293919 100644
+--- a/components/boarded/Details.tsx
++++ b/components/boarded/Details.tsx
+@@ -113,6 +113,7 @@ export function SendDetail({ postId }: SendDetailProps) {
+     followingMaya,
+     setFollowing,
+     entries,
++    ready,
+   } = useJournal();
+ 
+   const isMaya = postId === 'maya-redpoint';
+@@ -153,6 +154,19 @@ export function SendDetail({ postId }: SendDetailProps) {
+     }
+   }, []);
+ 
++  if (!ready && !isMaya && !userEntry) {
++    return (
++      <div className="b-page" aria-busy="true">
++        <div className="b-panel text-center py-16">
++          <div className="inline-block animate-pulse text-stone-300 text-sm font-medium mb-2">
++            Loading climbing journal...
++          </div>
++          <p className="b-muted text-xs">Retrieving send report</p>
++        </div>
++      </div>
++    );
++  }
++
+   if (!isMaya && !userEntry) {
+     return (
+       <div className="b-page" role="region" aria-labelledby="not-found-heading">
+@@ -183,6 +197,125 @@ export function SendDetail({ postId }: SendDetailProps) {
+     );
+   }
+ 
++  // Enforce invariant: Only verified sent entries can display a send report
++  if (userEntry && userEntry.outcome !== 'sent') {
++    return (
++      <article className="b-page" aria-labelledby="unsent-title">
++        <div className="b-page-header">
++          <Link href="/app" className="b-button b-button-ghost">
++            <ArrowLeftIcon />
++            Back to Feed
++          </Link>
++          <span className="b-eyebrow">Attempt In Progress</span>
++        </div>
++        <div className="b-panel b-stack">
++          <div className="b-inline">
++            <span className="b-status b-status-attempt">Attempted / Incomplete</span>
++            <span className="b-eyebrow">Not a Verified Send</span>
++          </div>
++          <h1 id="unsent-title" className="b-serif text-2xl sm:text-3xl font-semibold italic text-stone-100">
++            Send report unavailable
++          </h1>
++          <p className="b-muted">
++            This climb for {route ? route.name : userEntry.routeId} is recorded as an in-progress attempt ({userEntry.attempts} {userEntry.attempts === 1 ? 'try' : 'tries'}), not a verified send. Send reports are only available for completed clean sends.
++          </p>
++          <div className="b-shelf b-stack">
++            <div className="b-facts">
++              <span className="b-fact-item">
++                <strong className="text-stone-300">Date:</strong> {userEntry.date}
++              </span>
++              <span className="text-stone-600" aria-hidden="true">•</span>
++              <span className="b-fact-item">
++                <strong className="text-stone-300">Attempts:</strong> {userEntry.attempts}
++              </span>
++              {route && (
++                <>
++                  <span className="text-stone-600" aria-hidden="true">•</span>
++                  <span className="b-fact-item">
++                    <strong className="text-stone-300">Grade:</strong> {route.grade}
++                  </span>
++                </>
++              )}
++            </div>
++            {userEntry.notes && (
++              <p className="text-xs text-stone-300 italic m-0">&ldquo;{userEntry.notes}&rdquo;</p>
++            )}
++          </div>
++          <div className="b-inline pt-2 border-t border-stone-800">
++            <Link href={`/app/attempt/${userEntry.id}`} className="b-button b-button-primary">
++              View Attempt Log &amp; Beta →
++            </Link>
++            <Link href="/app/profile" className="b-button">
++              View Journal
++            </Link>
++            <Link href="/app" className="b-button b-button-ghost">
++              Return to Feed
++            </Link>
++          </div>
++        </div>
++      </article>
++    );
++  }
++
++  // Enforce invariant: Only published sent entries have public send detail
++  if (userEntry && !userEntry.published) {
++    return (
++      <article className="b-page" aria-labelledby="unpublished-title">
++        <div className="b-page-header">
++          <Link href="/app" className="b-button b-button-ghost">
++            <ArrowLeftIcon />
++            Back to Feed
++          </Link>
++          <span className="b-eyebrow">Private Send</span>
++        </div>
++        <div className="b-panel b-stack">
++          <div className="b-inline">
++            <span className="b-status b-status-sent">
++              <CheckmarkIcon className="w-3.5 h-3.5" />
++              Verified Send
++            </span>
++            <span className="b-status">Private / Unpublished</span>
++          </div>
++          <h1 id="unpublished-title" className="b-serif text-2xl sm:text-3xl font-semibold italic text-stone-100">
++            Send report not yet published
++          </h1>
++          <p className="b-muted">
++            You recorded a clean send on {route ? route.name : userEntry.routeId} in {userEntry.attempts} {userEntry.attempts === 1 ? 'try' : 'tries'} on {userEntry.date}! However, this send report has not yet been published to the community feed.
++          </p>
++          <div className="b-shelf b-stack">
++            <div className="b-facts">
++              <span className="b-fact-item">
++                <strong className="text-stone-300">Climber:</strong> Alex R.
++              </span>
++              <span className="text-stone-600" aria-hidden="true">•</span>
++              <span className="b-fact-item">
++                <strong className="text-stone-300">Attempts:</strong> {userEntry.attempts}
++              </span>
++              <span className="text-stone-600" aria-hidden="true">•</span>
++              <span className="b-fact-item">
++                <strong className="text-stone-300">Date:</strong> {userEntry.date}
++              </span>
++            </div>
++            {userEntry.notes && (
++              <p className="text-xs text-stone-300 italic m-0">&ldquo;{userEntry.notes}&rdquo;</p>
++            )}
++          </div>
++          <div className="b-inline pt-2 border-t border-stone-800">
++            <Link href={`/app/share/${userEntry.id}`} className="b-button b-button-primary">
++              Publish Send Card →
++            </Link>
++            <Link href={`/app/attempt/${userEntry.id}`} className="b-button">
++              View Attempt Record
++            </Link>
++            <Link href="/app" className="b-button b-button-ghost">
++              Return to Feed
++            </Link>
++          </div>
++        </div>
++      </article>
++    );
++  }
++
+   const authorName = isMaya ? mayaPost.author : 'Alex R.';
+   const displayDate = isMaya ? mayaPost.displayTime : userEntry?.date;
+   const attemptsCount = isMaya ? mayaPost.attempts : userEntry?.attempts;
+@@ -282,7 +415,7 @@ export function SendDetail({ postId }: SendDetailProps) {
+               {isMaya ? (
+                 <Link
+                   href="/app/climber/maya"
+-                  className="text-lg font-semibold text-stone-100 hover:text-indigo-400 hover:underline inline-flex items-center gap-1.5"
++                  className="text-lg font-semibold text-stone-100 hover:text-indigo-400 hover:underline inline-flex items-center gap-1.5 min-h-[44px]"
+                 >
+                   {authorName}
+                   <span className="text-xs text-stone-400 font-normal">View climber</span>
+@@ -313,7 +446,7 @@ export function SendDetail({ postId }: SendDetailProps) {
+           <h1 id="send-title" className="text-3xl sm:text-4xl font-semibold italic text-stone-100">
+             <span className="b-serif text-indigo-400 mr-2">{route?.grade || '5.12a'}</span>
+             {route ? (
+-              <Link href={`/app/route/${route.id}`} className="b-serif hover:underline">
++              <Link href={`/app/route/${route.id}`} className="b-serif hover:underline inline-flex items-center min-h-[44px]">
+                 {route.name}
+               </Link>
+             ) : (
+@@ -336,11 +469,11 @@ export function SendDetail({ postId }: SendDetailProps) {
+             <span className="b-fact-item">
+               <strong className="text-stone-200">Attempts:</strong> {attemptsCount}
+             </span>
+-            <span className="text-stone-600">•</span>
++            <span className="text-stone-600" aria-hidden="true">•</span>
+             <span className="b-fact-item">
+               <strong className="text-stone-200">Style:</strong> {route?.style || 'Overhang'}
+             </span>
+-            <span className="text-stone-600">•</span>
++            <span className="text-stone-600" aria-hidden="true">•</span>
+             <span className="b-fact-item">
+               <strong className="text-stone-200">Rock:</strong> {route?.rock || 'Limestone'}
+             </span>
+@@ -511,7 +644,7 @@ export function SendDetail({ postId }: SendDetailProps) {
+           )}
+ 
+           <div className="flex justify-between items-center pt-2">
+-            <span className="text-xs text-stone-500">
++            <span className="text-xs text-stone-400">
+               {commentText.length} / 500 characters
+             </span>
+             <button type="submit" className="b-button b-button-primary">
+@@ -660,22 +793,22 @@ export function RouteDetail({ routeId }: RouteDetailProps) {
+               <span className="text-stone-400">Crag:</span>
+               <strong className="text-stone-200">{route.crag}</strong>
+             </div>
+-            <span className="text-stone-600">•</span>
++            <span className="text-stone-600" aria-hidden="true">•</span>
+             <div className="b-fact-item">
+               <span className="text-stone-400">Discipline:</span>
+               <strong className="text-stone-200">{route.type}</strong>
+             </div>
+-            <span className="text-stone-600">•</span>
++            <span className="text-stone-600" aria-hidden="true">•</span>
+             <div className="b-fact-item">
+               <span className="text-stone-400">Height:</span>
+               <strong className="text-stone-200">{route.height}</strong>
+             </div>
+-            <span className="text-stone-600">•</span>
++            <span className="text-stone-600" aria-hidden="true">•</span>
+             <div className="b-fact-item">
+               <span className="text-stone-400">Rock Type:</span>
+               <strong className="text-stone-200">{route.rock}</strong>
+             </div>
+-            <span className="text-stone-600">•</span>
++            <span className="text-stone-600" aria-hidden="true">•</span>
+             <div className="b-fact-item">
+               <span className="text-stone-400">Style / Profile:</span>
+               <strong className="text-stone-200">{route.style}</strong>
+@@ -692,54 +825,139 @@ export function RouteDetail({ routeId }: RouteDetailProps) {
+           </p>
+         </div>
+ 
+-        {/* Topo Visualizer */}
++        {/* Grounded Boulder Specifications (for Boulder routes) */}
++        {route.type === 'Boulder' && (
++          <div className="b-shelf b-stack">
++            <h2 className="text-xs font-bold uppercase tracking-wider text-stone-400">
++              Grounded Boulder Specifications
++            </h2>
++            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
++              <div>
++                <span className="text-stone-400 block font-semibold">Start Configuration:</span>
++                <span className="text-stone-200">Sit start on low opposing compression flakes</span>
++              </div>
++              <div>
++                <span className="text-stone-400 block font-semibold">Crux Transition:</span>
++                <span className="text-stone-200">Powerful heel hook placement across 40° granite roof</span>
++              </div>
++              <div>
++                <span className="text-stone-400 block font-semibold">Finish / Topout:</span>
++                <span className="text-stone-200">Committed mantle over rounded granite boulder lip (no chains)</span>
++              </div>
++              <div>
++                <span className="text-stone-400 block font-semibold">Protection &amp; Safety:</span>
++                <span className="text-stone-200">2-3 crash pads and attentive spotter required for talus landing</span>
++              </div>
++            </div>
++          </div>
++        )}
++
++        {/* Topo Visualizer (Decorative, grounded by route type) */}
+         <div className="b-topo-wrapper" aria-labelledby="topo-heading">
+           <div className="flex items-center justify-between">
+             <h2 id="topo-heading" className="text-sm font-bold uppercase tracking-wider text-stone-300">
+-              Interactive Topo Sequence
++              Decorative Topo Line
+             </h2>
+-            <span className="text-xs text-stone-400 font-mono">11 Bolts · Single Pitch</span>
++            <span className="text-xs text-stone-400 font-mono">
++              {route.type === 'Boulder'
++                ? 'Roof Line · Pad Landing · Mantle Topout'
++                : route.id === 'redpoint-ridge'
++                ? '11 Bolts · Single Pitch'
++                : 'Bolted Line · Single Pitch'}
++            </span>
+           </div>
+ 
+-          <svg
+-            className="b-topo-svg"
+-            viewBox="0 0 600 200"
+-            fill="none"
+-            xmlns="http://www.w3.org/2000/svg"
+-            role="img"
+-            aria-label={`Topo diagram for ${route.name} showing bolt line and crux location`}
+-          >
+-            <path
+-              d="M0 190 Q150 160 300 170 T600 150 L600 200 L0 200 Z"
+-              fill="#141824"
+-            />
+-            <path
+-              d="M0 120 Q200 80 400 100 T600 70"
+-              stroke="rgba(244, 242, 235, 0.08)"
+-              strokeWidth="2"
+-              strokeDasharray="4 4"
+-            />
+-
+-            <path
+-              d="M 60 180 C 140 150, 180 120, 260 110 S 420 70, 530 30"
+-              stroke="#345CFF"
+-              strokeWidth="4"
+-              strokeLinecap="round"
+-            />
+-
+-            <circle cx="60" cy="180" r="6" fill="#F4F2EB" stroke="#0A0B10" strokeWidth="2" />
+-            <circle cx="150" cy="142" r="5" fill="#345CFF" />
+-            <circle cx="210" cy="122" r="5" fill="#345CFF" />
+-            <circle cx="260" cy="110" r="7" fill="#FF5C5C" stroke="#0A0B10" strokeWidth="2" />
+-            <circle cx="340" cy="92" r="5" fill="#345CFF" />
+-            <circle cx="420" cy="70" r="5" fill="#345CFF" />
+-            <circle cx="470" cy="50" r="5" fill="#345CFF" />
+-            <circle cx="530" cy="30" r="7" fill="#32D583" stroke="#0A0B10" strokeWidth="2" />
+-
+-            <text x="60" y="198" fill="#9ca3af" fontSize="11" textAnchor="middle">Start</text>
+-            <text x="260" y="98" fill="#ff8585" fontSize="11" fontWeight="bold" textAnchor="middle">Crux (Bolt 4)</text>
+-            <text x="530" y="20" fill="#32D583" fontSize="11" fontWeight="bold" textAnchor="middle">Anchor</text>
+-          </svg>
++          {route.type === 'Boulder' ? (
++            <svg
++              className="b-topo-svg"
++              viewBox="0 0 600 200"
++              fill="none"
++              xmlns="http://www.w3.org/2000/svg"
++              role="img"
++              aria-label={`Topo diagram for boulder problem ${route.name} showing sit start, roof crux, and mantle topout`}
++            >
++              <path
++                d="M0 190 Q150 160 300 170 T600 150 L600 200 L0 200 Z"
++                fill="#141824"
++              />
++              {/* Crash pad landing zone */}
++              <line
++                x1="40"
++                y1="190"
++                x2="320"
++                y2="190"
++                stroke="#345CFF"
++                strokeWidth="4"
++                strokeDasharray="6 4"
++              />
++              <text x="180" y="184" fill="#9ca3af" fontSize="11" textAnchor="middle">
++                Crash Pad Landing Zone
++              </text>
++
++              {/* Roof overhang outline */}
++              <path
++                d="M 60 170 C 140 165, 200 135, 280 120 S 420 85, 520 40"
++                stroke="#345CFF"
++                strokeWidth="4"
++                strokeLinecap="round"
++              />
++
++              {/* Low sit start */}
++              <circle cx="60" cy="170" r="7" fill="#F4F2EB" stroke="#0A0B10" strokeWidth="2" />
++              <circle cx="160" cy="150" r="5" fill="#345CFF" />
++              <circle cx="220" cy="135" r="5" fill="#345CFF" />
++              {/* Roof Crux */}
++              <circle cx="280" cy="120" r="8" fill="#FF5C5C" stroke="#0A0B10" strokeWidth="2" />
++              <circle cx="370" cy="95" r="5" fill="#345CFF" />
++              <circle cx="450" cy="65" r="5" fill="#345CFF" />
++              {/* Mantle topout */}
++              <circle cx="520" cy="40" r="8" fill="#32D583" stroke="#0A0B10" strokeWidth="2" />
++
++              <text x="60" y="154" fill="#9ca3af" fontSize="11" textAnchor="middle">Sit Start</text>
++              <text x="280" y="104" fill="#ff8585" fontSize="11" fontWeight="bold" textAnchor="middle">Crux (Compression &amp; Heel Hook)</text>
++              <text x="520" y="24" fill="#32D583" fontSize="11" fontWeight="bold" textAnchor="middle">Mantle Topout</text>
++            </svg>
++          ) : (
++            <svg
++              className="b-topo-svg"
++              viewBox="0 0 600 200"
++              fill="none"
++              xmlns="http://www.w3.org/2000/svg"
++              role="img"
++              aria-label={`Topo diagram for ${route.name} showing bolt line and crux location`}
++            >
++              <path
++                d="M0 190 Q150 160 300 170 T600 150 L600 200 L0 200 Z"
++                fill="#141824"
++              />
++              <path
++                d="M0 120 Q200 80 400 100 T600 70"
++                stroke="rgba(244, 242, 235, 0.08)"
++                strokeWidth="2"
++                strokeDasharray="4 4"
++              />
++
++              <path
++                d="M 60 180 C 140 150, 180 120, 260 110 S 420 70, 530 30"
++                stroke="#345CFF"
++                strokeWidth="4"
++                strokeLinecap="round"
++              />
++
++              <circle cx="60" cy="180" r="6" fill="#F4F2EB" stroke="#0A0B10" strokeWidth="2" />
++              <circle cx="150" cy="142" r="5" fill="#345CFF" />
++              <circle cx="210" cy="122" r="5" fill="#345CFF" />
++              <circle cx="260" cy="110" r="7" fill="#FF5C5C" stroke="#0A0B10" strokeWidth="2" />
++              <circle cx="340" cy="92" r="5" fill="#345CFF" />
++              <circle cx="420" cy="70" r="5" fill="#345CFF" />
++              <circle cx="470" cy="50" r="5" fill="#345CFF" />
++              <circle cx="530" cy="30" r="7" fill="#32D583" stroke="#0A0B10" strokeWidth="2" />
++
++              <text x="60" y="198" fill="#9ca3af" fontSize="11" textAnchor="middle">Start</text>
++              <text x="260" y="98" fill="#ff8585" fontSize="11" fontWeight="bold" textAnchor="middle">Crux (Bolt 4)</text>
++              <text x="530" y="20" fill="#32D583" fontSize="11" fontWeight="bold" textAnchor="middle">Anchor</text>
++            </svg>
++          )}
+ 
+           <div className="b-topo-legend">
+             <div className="b-topo-legend-item">
+@@ -748,11 +966,11 @@ export function RouteDetail({ routeId }: RouteDetailProps) {
+             </div>
+             <div className="b-topo-legend-item">
+               <span className="b-topo-dot bg-red-500" />
+-              <span>Crux Sequence</span>
++              <span>{route.type === 'Boulder' ? 'Roof Crux Moves' : 'Crux Sequence'}</span>
+             </div>
+             <div className="b-topo-legend-item">
+               <span className="b-topo-dot bg-emerald-500" />
+-              <span>Chains / Anchor</span>
++              <span>{route.type === 'Boulder' ? 'Mantle Topout Lip' : 'Chains / Anchor'}</span>
+             </div>
+           </div>
+         </div>
+@@ -838,12 +1056,25 @@ export interface AttemptDetailProps {
+ }
+ 
+ export function AttemptDetail({ entryId }: AttemptDetailProps) {
+-  const { entries, markSent } = useJournal();
++  const { entries, markSent, ready } = useJournal();
+   const entry = entries.find((e) => e.id === entryId);
+   const route = entry ? routes.find((r) => r.id === entry.routeId) : null;
+ 
+   const [transitionError, setTransitionError] = useState<string | null>(null);
+ 
++  if (!ready && !entry) {
++    return (
++      <div className="b-page" aria-busy="true">
++        <div className="b-panel text-center py-16">
++          <div className="inline-block animate-pulse text-stone-300 text-sm font-medium mb-2">
++            Loading climbing journal...
++          </div>
++          <p className="b-muted text-xs">Retrieving attempt record</p>
++        </div>
++      </div>
++    );
++  }
++
+   if (!entry) {
+     return (
+       <div className="b-page" role="region" aria-labelledby="attempt-not-found-heading">
+@@ -902,7 +1133,7 @@ export function AttemptDetail({ entryId }: AttemptDetailProps) {
+             </div>
+             <h1 id="attempt-heading" className="text-3xl font-semibold italic text-stone-100">
+               <span className="b-serif text-indigo-400 mr-2">{route?.grade || 'Project'}</span>
+-              <Link href={`/app/route/${entry.routeId}`} className="b-serif hover:underline">
++              <Link href={`/app/route/${entry.routeId}`} className="b-serif hover:underline inline-flex items-center min-h-[44px]">
+                 {route?.name || entry.routeId}
+               </Link>
+             </h1>
+@@ -928,14 +1159,14 @@ export function AttemptDetail({ entryId }: AttemptDetailProps) {
+               <span className="text-stone-400">Date:</span>
+               <strong className="text-stone-200">{entry.date}</strong>
+             </div>
+-            <span className="text-stone-600">•</span>
++            <span className="text-stone-600" aria-hidden="true">•</span>
+             <div className="b-fact-item">
+               <span className="text-stone-400">Attempts:</span>
+               <strong className="text-stone-200">{entry.attempts}</strong>
+             </div>
+             {route && (
+               <>
+-                <span className="text-stone-600">•</span>
++                <span className="text-stone-600" aria-hidden="true">•</span>
+                 <div className="b-fact-item">
+                   <span className="text-stone-400">Crag:</span>
+                   <strong className="text-stone-200">{route.crag}</strong>
+diff --git a/components/boarded/Flow.tsx b/components/boarded/Flow.tsx
+index a9c69aa0ab4c5096da487987f27663829cb9d011..2b5ebac80f70057231e711bc3e1d644f33aa9b49 100644
+--- a/components/boarded/Flow.tsx
++++ b/components/boarded/Flow.tsx
+@@ -24,54 +24,54 @@ export function Flow({ screen = [], searchParams }: FlowProps) {
+       ? queryRoute[0]
+       : navSearchParams?.get('route') || undefined;
+ 
++  const count = screen.length;
+   const segment = screen[0] || '';
+   const param = screen[1] || '';
+ 
+-  // 1. Explore Screen (/app/explore)
+-  if (segment === 'explore') {
++  // 1. Explore Screen (/app/explore) — requires exactly 1 segment
++  if (segment === 'explore' && count === 1) {
+     return <ExploreScreen />;
+   }
+ 
+-  // 2. Log Attempt Screen (/app/log)
+-  if (segment === 'log') {
++  // 2. Log Attempt Screen (/app/log) — requires exactly 1 segment
++  if (segment === 'log' && count === 1) {
+     return <LogAttemptForm initialRouteId={initialRouteId} />;
+   }
+ 
+-  // 3. Activity Screen (/app/activity)
+-  if (segment === 'activity') {
++  // 3. Activity Screen (/app/activity) — requires exactly 1 segment
++  if (segment === 'activity' && count === 1) {
+     return <ActivityScreen />;
+   }
+ 
+-  // 4. Profile Screen (/app/profile)
+-  if (segment === 'profile') {
++  // 4. Profile Screen (/app/profile) — requires exactly 1 segment
++  if (segment === 'profile' && count === 1) {
+     return <ProfileScreen />;
+   }
+ 
+-  // 5. Send Detail Screen (/app/send/[id])
+-  if (segment === 'send' && param) {
++  // 5. Send Detail Screen (/app/send/[id]) — requires exactly 2 segments
++  if (segment === 'send' && count === 2 && param) {
+     return <SendDetail postId={param} />;
+   }
+ 
+-  // 6. Route Detail Screen (/app/route/[routeId])
+-  if (segment === 'route' && param) {
++  // 6. Route Detail Screen (/app/route/[routeId]) — requires exactly 2 segments
++  if (segment === 'route' && count === 2 && param) {
+     return <RouteDetail routeId={param} />;
+   }
+ 
+-  // 7. Attempt Detail Screen (/app/attempt/[id])
+-  if (segment === 'attempt' && param) {
++  // 7. Attempt Detail Screen (/app/attempt/[id]) — requires exactly 2 segments
++  if (segment === 'attempt' && count === 2 && param) {
+     return <AttemptDetail entryId={param} />;
+   }
+ 
+-  // 8. Share Result Screen (/app/share/[id])
+-  if (segment === 'share' && param) {
++  // 8. Share Result Screen (/app/share/[id]) — requires exactly 2 segments
++  if (segment === 'share' && count === 2 && param) {
+     return <ShareFlow entryId={param} />;
+   }
+ 
+-  // 9. Climber Profile Screen (/app/climber/[id])
+-  if (segment === 'climber' && param) {
++  // 9. Climber Profile Screen (/app/climber/[id]) — requires exactly 2 segments
++  if (segment === 'climber' && count === 2 && param) {
+     return <ClimberProfile climberId={param} />;
+   }
+-
+   // 10. Not Found Recovery
+   const pathDisplay = `/app/${screen.join('/')}`;
+ 
+@@ -84,7 +84,7 @@ export function Flow({ screen = [], searchParams }: FlowProps) {
+           </svg>
+           Back to Feed
+         </Link>
+-        <span className="b-eyebrow">404 · Unrecognized Path</span>
++        <span className="b-eyebrow">404 <span aria-hidden="true">·</span> Unrecognized Path</span>
+       </div>
+ 
+       <div className="b-panel b-stack">
+diff --git a/components/boarded/LogFlow.tsx b/components/boarded/LogFlow.tsx
+index 950fa8cecf49acd2f48db84be8aa5ac3155c5274..d0c96ce0f98778f0797e308b894dc1c3f5d3c661 100644
+--- a/components/boarded/LogFlow.tsx
++++ b/components/boarded/LogFlow.tsx
+@@ -3,6 +3,7 @@
+ import { useState, useEffect, useRef } from 'react';
+ import Link from 'next/link';
+ import { useRouter } from 'next/navigation';
++import * as Dialog from '@radix-ui/react-dialog';
+ import {
+   routes,
+   validateAttempt,
+@@ -79,10 +80,11 @@ export function LogAttemptForm({ initialRouteId }: LogAttemptFormProps) {
+   });
+ 
+   const [date, setDate] = useState<string>('2026-09-06');
+-  const [attempts, setAttempts] = useState<number>(1);
++  const [attempts, setAttempts] = useState<string>('1');
+   const [conditions, setConditions] = useState<string>('');
+   const [notes, setNotes] = useState<string>('');
+-
++  const [isDraftHydrated, setIsDraftHydrated] = useState<boolean>(false);
++  const [unknownRouteNotice, setUnknownRouteNotice] = useState<string | null>(null);
+   // Error states
+   const [errors, setErrors] = useState<Record<string, string>>({});
+   const [submitError, setSubmitError] = useState<string | null>(null);
+@@ -90,7 +92,7 @@ export function LogAttemptForm({ initialRouteId }: LogAttemptFormProps) {
+   // Focus ref for error summary accessibility
+   const errorSummaryRef = useRef<HTMLDivElement>(null);
+ 
+-  // Restore draft from sessionStorage on mount
++  // Restore draft from sessionStorage on mount (gate saving until hydrated)
+   useEffect(() => {
+     try {
+       if (typeof window !== 'undefined' && window.sessionStorage) {
+@@ -98,55 +100,81 @@ export function LogAttemptForm({ initialRouteId }: LogAttemptFormProps) {
+         if (saved) {
+           const parsed = JSON.parse(saved);
+           if (parsed && typeof parsed === 'object') {
+-            if (parsed.routeId && routes.some((r) => r.id === parsed.routeId)) {
+-              // Only override if no initialRouteId was explicitly requested via query param
+-              if (!initialRouteId) {
+-                setRouteId(parsed.routeId);
++            if (initialRouteId) {
++              if (routes.some((r) => r.id === initialRouteId)) {
++                setRouteId(initialRouteId);
++              } else {
++                setUnknownRouteNotice(`Requested route "${initialRouteId}" was not found in directory. Defaulted to ${routes[0]?.name}.`);
++                if (parsed.routeId && routes.some((r) => r.id === parsed.routeId)) {
++                  setRouteId(parsed.routeId);
++                }
+               }
++            } else if (parsed.routeId && routes.some((r) => r.id === parsed.routeId)) {
++              setRouteId(parsed.routeId);
+             }
++
+             if (typeof parsed.date === 'string') setDate(parsed.date);
+-            if (typeof parsed.attempts === 'number') setAttempts(parsed.attempts);
++            if (typeof parsed.attempts === 'number' || typeof parsed.attempts === 'string') {
++              setAttempts(String(parsed.attempts));
++            }
+             if (typeof parsed.conditions === 'string') setConditions(parsed.conditions);
+             if (typeof parsed.notes === 'string') setNotes(parsed.notes);
+           }
++        } else if (initialRouteId) {
++          if (routes.some((r) => r.id === initialRouteId)) {
++            setRouteId(initialRouteId);
++          } else {
++            setUnknownRouteNotice(`Requested route "${initialRouteId}" was not found in directory. Defaulted to ${routes[0]?.name}.`);
++          }
+         }
+       }
+     } catch {
+       // sessionStorage read failure tolerated
++    } finally {
++      setIsDraftHydrated(true);
+     }
+   }, [initialRouteId]);
+ 
+   // Update routeId if initialRouteId prop changes from direct URL reload/navigation
+   useEffect(() => {
+-    if (initialRouteId && routes.some((r) => r.id === initialRouteId)) {
+-      setRouteId(initialRouteId);
++    if (initialRouteId) {
++      if (routes.some((r) => r.id === initialRouteId)) {
++        setRouteId(initialRouteId);
++        setUnknownRouteNotice(null);
++      } else {
++        setUnknownRouteNotice(`Requested route "${initialRouteId}" was not found in directory. Defaulted to ${routes[0]?.name}.`);
++      }
+     }
+   }, [initialRouteId]);
+ 
+-  // Save draft locally to sessionStorage on field changes
++  // Save draft locally to sessionStorage only AFTER initial hydration
+   useEffect(() => {
++    if (!isDraftHydrated) return;
+     try {
+       if (typeof window !== 'undefined' && window.sessionStorage) {
+         const draft = { routeId, date, attempts, conditions, notes };
+         window.sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+       }
+-    } catch {
+-      // Storage failure tolerated
++    } catch (err: unknown) {
++      // Storage failure surfaced without crash
++      console.warn('SessionStorage draft write error:', err);
+     }
+-  }, [routeId, date, attempts, conditions, notes]);
++  }, [isDraftHydrated, routeId, date, attempts, conditions, notes]);
+ 
+   const handleSubmit = (e: React.FormEvent) => {
+     e.preventDefault();
+     setSubmitError(null);
+ 
++    const trimmedAttempts = attempts.trim();
++    const parsedAttempts = trimmedAttempts === '' ? NaN : Number(trimmedAttempts);
++
+     const payload: AttemptInput = {
+       routeId,
+       date: date.trim(),
+-      attempts: Number(attempts),
++      attempts: parsedAttempts,
+       conditions: conditions.trim(),
+       notes: notes.trim(),
+     };
+-
+     const validationErrors = validateAttempt(payload);
+     if (Object.keys(validationErrors).length > 0) {
+       setErrors(validationErrors);
+@@ -207,6 +235,12 @@ export function LogAttemptForm({ initialRouteId }: LogAttemptFormProps) {
+           </p>
+         </div>
+ 
++        {unknownRouteNotice && (
++          <div role="status" className="p-3 bg-amber-950/40 border border-amber-500/40 rounded text-amber-200 text-xs">
++            {unknownRouteNotice}
++          </div>
++        )}
++
+         {/* Accessible Error Summary */}
+         {errorCount > 0 && (
+           <div
+@@ -334,8 +368,7 @@ export function LogAttemptForm({ initialRouteId }: LogAttemptFormProps) {
+               step={1}
+               value={attempts}
+               onChange={(e) => {
+-                const val = parseInt(e.target.value, 10);
+-                setAttempts(isNaN(val) ? 1 : val);
++                setAttempts(e.target.value);
+                 if (errors.attempts) {
+                   const next = { ...errors };
+                   delete next.attempts;
+@@ -350,7 +383,7 @@ export function LogAttemptForm({ initialRouteId }: LogAttemptFormProps) {
+                 {errors.attempts}
+               </span>
+             )}
+-            <span className="text-xs text-stone-500">
++            <span className="text-xs text-stone-400">
+               Enter total tries during this climbing session (1 to 100).
+             </span>
+           </div>
+@@ -380,7 +413,7 @@ export function LogAttemptForm({ initialRouteId }: LogAttemptFormProps) {
+                 {errors.conditions}
+               </span>
+             )}
+-            <span className="text-xs text-stone-500">
++            <span className="text-xs text-stone-400">
+               {conditions.length} / 500 characters
+             </span>
+           </div>
+@@ -411,7 +444,7 @@ export function LogAttemptForm({ initialRouteId }: LogAttemptFormProps) {
+                 {errors.notes}
+               </span>
+             )}
+-            <span className="text-xs text-stone-500">
++            <span className="text-xs text-stone-400">
+               {notes.length} / 1000 characters
+             </span>
+           </div>
+@@ -441,17 +474,41 @@ export interface ShareFlowProps {
+ }
+ 
+ export function ShareFlow({ entryId }: ShareFlowProps) {
+-  const { entries, publish } = useJournal();
++  const { entries, publish, ready } = useJournal();
+   const entry = entries.find((e) => e.id === entryId);
+   const route = entry ? routes.find((r) => r.id === entry.routeId) : null;
+ 
+   const [caption, setCaption] = useState(() => entry?.caption || entry?.notes || 'Clean send on the project!');
++  const isUserEditedRef = useRef(false);
++  const hydratedEntryIdRef = useRef<string | null>(null);
++
++  // Hydrate saved caption from loaded entry on direct reload/navigation without clobbering user edits
++  useEffect(() => {
++    if (entry && !isUserEditedRef.current && hydratedEntryIdRef.current !== entry.id) {
++      hydratedEntryIdRef.current = entry.id;
++      setCaption(entry.caption || entry.notes || 'Clean send on the project!');
++    }
++  }, [entry]);
++
+   const [publishStatus, setPublishStatus] = useState<string | null>(null);
+   const [publishError, setPublishError] = useState<string | null>(null);
+   const [copySuccess, setCopySuccess] = useState<string | null>(null);
+   const [copyError, setCopyError] = useState<string | null>(null);
+   const [manualCopyUrl, setManualCopyUrl] = useState<string | null>(null);
+ 
++  if (!ready && !entry) {
++    return (
++      <div className="b-page" aria-busy="true">
++        <div className="b-panel text-center py-16">
++          <div className="inline-block animate-pulse text-stone-300 text-sm font-medium mb-2">
++            Loading climbing journal...
++          </div>
++          <p className="b-muted text-xs">Retrieving send details</p>
++        </div>
++      </div>
++    );
++  }
++
+   if (!entry) {
+     return (
+       <div className="b-page" role="region" aria-labelledby="share-not-found-heading">
+@@ -520,7 +577,11 @@ export function ShareFlow({ entryId }: ShareFlowProps) {
+     if ('error' in res) {
+       setPublishError(res.error);
+     } else {
+-      setPublishStatus('Send published successfully to local journal and profile!');
++      setPublishStatus(
++        entry.published
++          ? 'Send caption updated successfully in your local journal!'
++          : 'Send published successfully to local journal and profile!'
++      );
+     }
+   };
+ 
+@@ -556,6 +617,92 @@ export function ShareFlow({ entryId }: ShareFlowProps) {
+       .replace(/"/g, '&quot;')
+       .replace(/'/g, '&apos;');
+   }
++
++  // Unicode-safe word and grapheme wrapping to avoid splitting surrogate pairs or emojis
++  function wrapTextUnicode(text: string, maxCharsPerLine = 56): string[] {
++    if (!text) return [];
++    const words = text.split(' ');
++    const lines: string[] = [];
++    let currentLine = '';
++
++    const getLength = (str: string): number => {
++      if (typeof Intl !== 'undefined' && Intl.Segmenter) {
++        const seg = new Intl.Segmenter('en', { granularity: 'grapheme' });
++        return Array.from(seg.segment(str)).length;
++      }
++      return Array.from(str).length;
++    };
++
++    const splitLongWord = (word: string): string[] => {
++      const parts: string[] = [];
++      let chars: string[];
++      if (typeof Intl !== 'undefined' && Intl.Segmenter) {
++        const seg = new Intl.Segmenter('en', { granularity: 'grapheme' });
++        chars = Array.from(seg.segment(word), (s) => s.segment);
++      } else {
++        chars = Array.from(word);
++      }
++      while (chars.length > maxCharsPerLine) {
++        parts.push(chars.splice(0, maxCharsPerLine).join(''));
++      }
++      if (chars.length > 0) {
++        parts.push(chars.join(''));
++      }
++      return parts;
++    };
++
++    for (const word of words) {
++      if (!currentLine) {
++        if (getLength(word) > maxCharsPerLine) {
++          const parts = splitLongWord(word);
++          lines.push(...parts.slice(0, -1));
++          currentLine = parts[parts.length - 1] || '';
++        } else {
++          currentLine = word;
++        }
++      } else {
++        const candidate = `${currentLine} ${word}`;
++        if (getLength(candidate) <= maxCharsPerLine) {
++          currentLine = candidate;
++        } else {
++          lines.push(currentLine);
++          if (getLength(word) > maxCharsPerLine) {
++            const parts = splitLongWord(word);
++            lines.push(...parts.slice(0, -1));
++            currentLine = parts[parts.length - 1] || '';
++          } else {
++            currentLine = word;
++          }
++        }
++      }
++    }
++
++    if (currentLine) {
++      lines.push(currentLine);
++    }
++
++    return lines;
++  }
++
++  const displayCaption = caption || 'Clean send on the project!';
++  const captionLines = wrapTextUnicode(displayCaption, 56);
++  const formattedCaptionLines = captionLines.map((line, idx) => {
++    const isFirst = idx === 0;
++    const isLast = idx === captionLines.length - 1;
++    const prefix = isFirst ? '&#x201C;' : '';
++    const suffix = isLast ? '&#x201D;' : '';
++    return `${prefix}${toSafeXml(line)}${suffix}`;
++  });
++
++  const captionSvgText = formattedCaptionLines
++    .map((lineHtml, idx) => {
++      const y = 412 + idx * 22;
++      return `<text x="80" y="${y}" fill="#d1d5db" font-size="14" font-style="italic">${lineHtml}</text>`;
++    })
++    .join('\n  ');
++
++  const conditionsY = Math.min(560, 412 + formattedCaptionLines.length * 22 + 18);
++
+   const svgCardContent = `
+ <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 700" width="600" height="700" style="background:#0A0B10; font-family:system-ui,-apple-system,sans-serif;">
+   <defs>
+@@ -607,17 +754,10 @@ export function ShareFlow({ entryId }: ShareFlowProps) {
+   <!-- Caption & Beta Notes -->
+   <rect x="56" y="345" width="488" height="240" rx="8" fill="#12141C" stroke="rgba(244,242,235,0.06)" />
+   <text x="80" y="380" fill="#F4F2EB" font-size="13" font-weight="700">CAPTION &amp; NOTES</text>
+-  <text x="80" y="415" fill="#d1d5db" font-size="15" font-style="italic">
+-    &ldquo;${toSafeXml((caption || 'Clean tick recorded!').slice(0, 70))}&rdquo;
+-  </text>
+-  ${
+-    caption.length > 70
+-      ? `<text x="80" y="440" fill="#d1d5db" font-size="15" font-style="italic">&ldquo;${toSafeXml(caption.slice(70, 140))}&rdquo;</text>`
+-      : ''
+-  }
++  ${captionSvgText}
+   ${
+     entry.conditions
+-      ? `<text x="80" y="490" fill="#9ca3af" font-size="12">Conditions: ${toSafeXml(entry.conditions.slice(0, 60))}</text>`
++      ? `<text x="80" y="${conditionsY}" fill="#9ca3af" font-size="12">Conditions: ${toSafeXml(entry.conditions.slice(0, 60))}</text>`
+       : ''
+   }
+ 
+@@ -675,11 +815,11 @@ export function ShareFlow({ entryId }: ShareFlowProps) {
+               <span className="b-fact-item">
+                 <strong className="text-stone-300">Climber:</strong> Alex R.
+               </span>
+-              <span className="text-stone-600">•</span>
++              <span className="text-stone-600" aria-hidden="true">•</span>
+               <span className="b-fact-item">
+                 <strong className="text-stone-300">Attempts:</strong> {entry.attempts}
+               </span>
+-              <span className="text-stone-600">•</span>
++              <span className="text-stone-600" aria-hidden="true">•</span>
+               <span className="b-fact-item">
+                 <strong className="text-stone-300">Date:</strong> {entry.date}
+               </span>
+@@ -704,16 +844,18 @@ export function ShareFlow({ entryId }: ShareFlowProps) {
+               rows={3}
+               maxLength={280}
+               value={caption}
+-              onChange={(e) => setCaption(e.target.value)}
++              onChange={(e) => {
++                isUserEditedRef.current = true;
++                setCaption(e.target.value);
++              }}
+               placeholder="Add your reflections on sticking the crux or finding beta..."
+               className="resize-y"
+             />
+-            <div className="flex justify-between items-center text-xs text-stone-500">
++            <div className="flex justify-between items-center text-xs text-stone-400">
+               <span>Plainly stored: Local demo publish stays on this device.</span>
+               <span>{caption.length} / 280</span>
+             </div>
+           </div>
+-
+           {publishError && (
+             <div role="alert" className="b-errors p-3 bg-red-950/50 border border-red-500 rounded">
+               {publishError}
+@@ -744,7 +886,11 @@ export function ShareFlow({ entryId }: ShareFlowProps) {
+               className="b-button b-button-primary"
+             >
+               <CheckmarkIcon />
+-              {entry.published ? 'Update Published Result' : 'Publish Result'}
++              {!entry.published
++                ? 'Publish Result Card'
++                : entry.caption === caption
++                ? 'Published to Journal'
++                : 'Update Published Caption'}
+             </button>
+ 
+             {/* Downloadable self-contained SVG graphic */}
+@@ -826,44 +972,43 @@ export function ProfileScreen() {
+   // Deletion dialog states
+   const [entryToDelete, setEntryToDelete] = useState<Entry | null>(null);
+   const deleteTriggerBtnRef = useRef<HTMLButtonElement | null>(null);
+-  const cancelBtnRef = useRef<HTMLButtonElement | null>(null);
++  const undoButtonRef = useRef<HTMLButtonElement | null>(null);
++  const justConfirmedRef = useRef(false);
+ 
+   // Undo persistent action state
+   const [lastDeletedEntry, setLastDeletedEntry] = useState<Entry | null>(null);
+   const [undoNotice, setUndoNotice] = useState<string | null>(null);
+ 
+-  // Trap focus & escape in modal
+-  useEffect(() => {
+-    const handleKeyDown = (e: KeyboardEvent) => {
+-      if (e.key === 'Escape' && entryToDelete) {
+-        setEntryToDelete(null);
+-        deleteTriggerBtnRef.current?.focus();
+-      }
+-    };
+-    if (entryToDelete) {
+-      window.addEventListener('keydown', handleKeyDown);
+-      setTimeout(() => cancelBtnRef.current?.focus(), 50);
+-    }
+-    return () => window.removeEventListener('keydown', handleKeyDown);
+-  }, [entryToDelete]);
+-
+   const handleDeleteConfirm = () => {
+     if (!entryToDelete) return;
+     const target = entryToDelete;
++    const routeName = routes.find((r) => r.id === target.routeId)?.name || target.routeId;
++    justConfirmedRef.current = true;
++
+     const res = deleteEntry(target.id);
+-    if ('ok' in res) {
+-      setLastDeletedEntry(target);
+-      setUndoNotice(`Entry for "${target.routeId}" deleted.`);
+-      setEntryToDelete(null);
++    // Deterministic recovery: always retain target for undo!
++    setLastDeletedEntry(target);
++
++    if ('error' in res) {
++      setUndoNotice(`Entry for "${routeName}" removed from session, but storage write failed: ${res.error}. You can undo or retry.`);
++    } else {
++      setUndoNotice(`Entry for "${routeName}" deleted.`);
+     }
++    setEntryToDelete(null);
+   };
+ 
+   const handleUndo = () => {
+     if (!lastDeletedEntry) return;
+-    const res = restoreEntry(lastDeletedEntry);
+-    if ('ok' in res) {
++    const target = lastDeletedEntry;
++    const res = restoreEntry(target);
++    if ('error' in res) {
++      setUndoNotice(`Could not restore entry: ${res.error}`);
++    } else {
+       setUndoNotice(null);
+       setLastDeletedEntry(null);
++      setTimeout(() => {
++        deleteTriggerBtnRef.current?.focus();
++      }, 50);
+     }
+   };
+ 
+@@ -944,6 +1089,7 @@ export function ProfileScreen() {
+           <span>{undoNotice}</span>
+           <button
+             type="button"
++            ref={undoButtonRef}
+             onClick={handleUndo}
+             className="b-button b-button-primary text-xs px-3 py-1.5 min-h-0"
+           >
+@@ -1007,7 +1153,7 @@ export function ProfileScreen() {
+                         <div className="b-eyebrow text-stone-400 mb-0.5">{entry.date}</div>
+                         <h2 className="text-xl font-semibold text-stone-100">
+                           <span className="b-serif text-indigo-400 mr-2">{route?.grade || '5.12'}</span>
+-                          <Link href={`/app/route/${entry.routeId}`} className="b-serif hover:underline">
++                          <Link href={`/app/route/${entry.routeId}`} className="b-serif hover:underline inline-flex items-center min-h-[44px]">
+                             {route?.name || entry.routeId}
+                           </Link>
+                         </h2>
+@@ -1030,11 +1176,11 @@ export function ProfileScreen() {
+                         </span>
+                         {route && (
+                           <>
+-                            <span className="text-stone-600">•</span>
++                            <span className="text-stone-600" aria-hidden="true">•</span>
+                             <span className="b-fact-item">
+                               <strong className="text-stone-300">Crag:</strong> {route.crag}
+                             </span>
+-                            <span className="text-stone-600">•</span>
++                            <span className="text-stone-600" aria-hidden="true">•</span>
+                             <span className="b-fact-item">
+                               <strong className="text-stone-300">Rock:</strong> {route.rock}
+                             </span>
+@@ -1086,7 +1232,7 @@ export function ProfileScreen() {
+             {savedRoutes.length === 0 ? (
+               <div className="b-panel text-center py-8">
+                 <p className="text-stone-300 font-medium">No saved routes in your wishlist.</p>
+-                <p className="text-xs text-stone-500 mt-1 mb-4">
++                <p className="text-xs text-stone-400 mt-1 mb-4">
+                   Browse the crag directory and bookmark routes you want to project.
+                 </p>
+                 <Link href="/app/explore" className="b-button b-button-primary">
+@@ -1102,13 +1248,12 @@ export function ProfileScreen() {
+                     </div>
+                     <h2 className="text-xl font-semibold text-stone-100">
+                       <span className="b-serif text-indigo-400 mr-2">{r.grade}</span>
+-                      <Link href={`/app/route/${r.id}`} className="b-serif hover:underline">
++                      <Link href={`/app/route/${r.id}`} className="b-serif hover:underline inline-flex items-center min-h-[44px]">
+                         {r.name}
+                       </Link>
+                     </h2>
+                     <p className="text-xs text-stone-400 mt-1 max-w-lg">{r.description}</p>
+                   </div>
+-
+                   <div className="b-inline">
+                     <Link href={`/app/log?route=${r.id}`} className="b-button b-button-primary text-xs">
+                       Log Attempt
+@@ -1128,36 +1273,48 @@ export function ProfileScreen() {
+         )}
+       </section>
+ 
+-      {/* Accessible Deletion Confirmation Dialog */}
+-      {entryToDelete && (
+-        <div className="b-modal-overlay" role="presentation">
+-          <div
+-            role="dialog"
+-            aria-modal="true"
+-            aria-labelledby="delete-dialog-title"
+-            aria-describedby="delete-dialog-desc"
++      {/* Radix Accessible Deletion Confirmation Dialog */}
++      <Dialog.Root
++        open={Boolean(entryToDelete)}
++        onOpenChange={(open) => {
++          if (!open) {
++            setEntryToDelete(null);
++          }
++        }}
++      >
++        <Dialog.Portal>
++          <Dialog.Overlay className="b-modal-overlay" />
++          <Dialog.Content
+             className="b-modal-dialog"
++            onCloseAutoFocus={(e) => {
++              if (justConfirmedRef.current) {
++                e.preventDefault();
++                justConfirmedRef.current = false;
++                setTimeout(() => {
++                  undoButtonRef.current?.focus();
++                }, 50);
++              } else {
++                e.preventDefault();
++                deleteTriggerBtnRef.current?.focus();
++              }
++            }}
+           >
+-            <h2 id="delete-dialog-title" className="b-modal-title">
++            <Dialog.Title className="b-modal-title">
+               Delete journal entry?
+-            </h2>
+-            <p id="delete-dialog-desc" className="b-modal-body">
++            </Dialog.Title>
++            <Dialog.Description className="b-modal-body">
+               Are you sure you want to remove this attempt on &ldquo;
+-              {routes.find((r) => r.id === entryToDelete.routeId)?.name || entryToDelete.routeId}
+-              &rdquo; from {entryToDelete.date}? You can undo this action immediately after deleting.
+-            </p>
++              {entryToDelete
++                ? routes.find((r) => r.id === entryToDelete.routeId)?.name || entryToDelete.routeId
++                : 'this climb'}
++              &rdquo; from {entryToDelete?.date}? You can undo this action immediately after deleting.
++            </Dialog.Description>
+             <div className="b-modal-actions">
+-              <button
+-                type="button"
+-                ref={cancelBtnRef}
+-                onClick={() => {
+-                  setEntryToDelete(null);
+-                  deleteTriggerBtnRef.current?.focus();
+-                }}
+-                className="b-button b-button-ghost"
+-              >
+-                Cancel
+-              </button>
++              <Dialog.Close asChild>
++                <button type="button" className="b-button b-button-ghost">
++                  Cancel
++                </button>
++              </Dialog.Close>
+               <button
+                 type="button"
+                 onClick={handleDeleteConfirm}
+@@ -1166,9 +1323,9 @@ export function ProfileScreen() {
+                 Confirm Delete
+               </button>
+             </div>
+-          </div>
+-        </div>
+-      )}
++          </Dialog.Content>
++        </Dialog.Portal>
++      </Dialog.Root>
+     </article>
+   );
+ }
+diff --git a/components/boarded/flow.css b/components/boarded/flow.css
+index d383f360ef780871155b70f369f7f69a6288caa4..e2b9d9f91cf8c7adda6a64c2e2a2d3e698042cde 100644
+--- a/components/boarded/flow.css
++++ b/components/boarded/flow.css
+@@ -271,32 +271,33 @@
+   }
+ }
+ 
+-/* Modal / Dialog Overlay */
++/* Modal / Dialog Overlay & Content (Accessible Radix Dialog) */
+ .b-modal-overlay {
+   position: fixed;
+   inset: 0;
+   background-color: rgba(0, 0, 0, 0.78);
+-  display: flex;
+-  align-items: center;
+-  justify-content: center;
+   z-index: 1000;
+-  padding: var(--space-4);
+   backdrop-filter: blur(2px);
+ }
+ 
+ .b-modal-dialog {
++  position: fixed;
++  top: 50%;
++  left: 50%;
++  transform: translate(-50%, -50%);
+   background-color: var(--color-bg-elevated);
+   border: 1px solid var(--color-border-default);
+   border-radius: var(--radius-lg);
+   max-width: 440px;
+-  width: 100%;
++  width: calc(100% - 32px);
+   padding: var(--space-6);
+   display: flex;
+   flex-direction: column;
+   gap: var(--space-4);
+   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
++  z-index: 1001;
++  outline: none;
+ }
+-
+ .b-modal-title {
+   font-size: 18px;
+   font-weight: 700;
+@@ -361,8 +362,11 @@
+ }
+ 
+ .b-filter-pill {
+-  min-height: 38px;
+-  padding: 6px 14px;
++  min-height: 44px;
++  display: inline-flex;
++  align-items: center;
++  justify-content: center;
++  padding: 8px 16px;
+   border-radius: var(--radius-full);
+   border: 1px solid var(--color-border-subtle);
+   background-color: var(--color-bg-elevated);
+@@ -375,6 +379,13 @@
+   user-select: none;
+ }
+ 
++/* Clickable nav and card identity links touch target guarantee */
++.b-identity-link {
++  min-height: 44px;
++  display: inline-flex;
++  align-items: center;
++}
++
+ .b-filter-pill:hover {
+   background-color: var(--color-bg-subtle);
+   color: var(--color-text-primary);
+diff --git a/package.json b/package.json
+index 3b0dc96ad715ab416d8878963a09e3d8de173183..bff2741aca9db16c39e9da396ef9193fa1a13fe6 100644
+--- a/package.json
++++ b/package.json
+@@ -11,7 +11,7 @@
+     "build": "next build",
+     "start": "next start",
+     "lint": "eslint",
+-    "test": "node --test packages/shared/utils/*.test.ts lib/utils/*.test.ts"
++    "test": "node --test packages/shared/utils/*.test.ts lib/utils/*.test.ts lib/boarded/*.test.ts"
+   },
+   "dependencies": {
+     "@boarded/shared": "*",

@@ -1,0 +1,20 @@
+{
+  "packet": "asset",
+  "owned_paths": [
+    "tools/blender/build_landing_wall.py",
+    "public/walls/landing-climbing-wall.blend",
+    "public/walls/landing-climbing-wall.glb",
+    "public/walls/landing-climbing-wall-poster.webp"
+  ],
+  "requirements": {
+    "wall_dimensions_m": [2.4384, 3.6576],
+    "holds_and_volumes": "24-32 authored elements from 7-9 playful families",
+    "palette": "warm light upper wall, charcoal lower quarter, lemon/coral/blue/green/black holds",
+    "anchors": ["upper yellow scoop", "upper black bean", "central black confetti prism with blue sweep", "right yellow smile disc", "low yellow bowl"],
+    "glb_root": "ClimbingWall",
+    "animation": "WallTurn; linear yaw 0 to 2pi; 4 seconds at 30fps",
+    "budgets": {"triangles_max": 70000, "materials_max": 12, "glb_bytes_max": 1500000},
+    "glb_exclusions": ["cameras", "lights", "external textures"],
+    "poster": "transparent, tight near-front three-quarter polished fallback"
+  }
+}

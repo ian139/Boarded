@@ -1,0 +1,928 @@
+{
+  "schema": "omp.resume-identities.v1",
+  "session": "ses_fa96aa",
+  "packets": {
+    "design": {
+      "packet": "design",
+      "review_kind": "packet",
+      "identity": {
+        "repo": "/Users/ian/Projects/ClimbingApp",
+        "branch": "loop/boarded-v1-20260905-78720d/design",
+        "base_sha": "9a68ff18ffd612b21bfb5173a50b82ee7c35297e",
+        "head_sha": "f97559561e08852e2f3a0a96291899efc62d004e",
+        "diff_sha256": "38afe10780c1bf32508c90eadd2d938621660eacff019af75d4d8b25615dc0b1",
+        "packet_spec_sha256": "2df082e9dcd250cb13bea088f3725a5cb2e81e2ebbfd4bb16bc407db36bb7e9d",
+        "dependency_heads": {},
+        "target_snapshot_sha256": "db42a7f6ed6799d54e63572ca1093c65d91fecbc8eab49bdaac02a36d1d8b8b9",
+        "confinement_sha256": "056ab93457489194114cf7fbef27a6dd090e739c78918abd7f211779739e7796"
+      },
+      "changed_paths": [
+        "docs/design-language.md"
+      ],
+      "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/design",
+      "packet_spec": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/design-packet.json",
+      "target_snapshot": [
+        {
+          "path": "docs/design-language.md",
+          "base_blob": "f6a6eedb2f6ee89c72c9cb75534777f8450aa333"
+        }
+      ],
+      "clean": true
+    },
+    "data": {
+      "packet": "data",
+      "review_kind": "packet",
+      "identity": {
+        "repo": "/Users/ian/Projects/ClimbingApp",
+        "branch": "loop/boarded-v1-20260905-78720d/data",
+        "base_sha": "9a68ff18ffd612b21bfb5173a50b82ee7c35297e",
+        "head_sha": "869233640a83246f5677587acdb9d4d0b124d632",
+        "diff_sha256": "4d41ada99f88f8caff85f8401573efcb0f1290a7da38d27959da47195173700e",
+        "packet_spec_sha256": "26618a74026d02d9a782757430f7f342bcefb339a91cba7c66f2086fb275b3c0",
+        "dependency_heads": {},
+        "target_snapshot_sha256": "c0eb1c9f1b16637f29762279cfa90ac6891aea9030784b6f94965a3de9e5e7f3",
+        "confinement_sha256": "358dc81edb60cc70490be4c08f5fbed71187d99b76e4e6df157d241a094df3fa"
+      },
+      "changed_paths": [
+        "packages/shared/types/index.ts",
+        "packages/shared/utils/grades.test.ts",
+        "packages/shared/utils/grades.ts",
+        "supabase/migrations/014_community_prerequisites.sql",
+        "supabase/tests/migration_014_verification.sql",
+        "supabase/tests/rls_ownership_harness.py"
+      ],
+      "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/data",
+      "packet_spec": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/data-packet.json",
+      "target_snapshot": [
+        {
+          "path": "packages/shared/types/index.ts",
+          "base_blob": "a984c797e663a0353a9dc17b4e64befa09bb295a"
+        },
+        {
+          "path": "packages/shared/utils/grades.test.ts",
+          "base_blob": "5e2728501f57f36bb8c7b9403d109eb610d56b8c"
+        },
+        {
+          "path": "packages/shared/utils/grades.ts",
+          "base_blob": "eabec22f651c3b41de78453d29bd5d62fe584134"
+        },
+        {
+          "path": "supabase/migrations/014_community_prerequisites.sql",
+          "base_blob": null
+        },
+        {
+          "path": "supabase/tests/migration_014_verification.sql",
+          "base_blob": null
+        },
+        {
+          "path": "supabase/tests/rls_ownership_harness.py",
+          "base_blob": "218ef98b1ef2f77b6e2ffac7f653bfa4fb7c53f5"
+        }
+      ],
+      "clean": true
+    },
+    "native": {
+      "packet": "native",
+      "review_kind": "packet",
+      "identity": {
+        "repo": "/Users/ian/Projects/ClimbingApp",
+        "branch": "loop/boarded-v1-20260905-78720d/native",
+        "base_sha": "9a68ff18ffd612b21bfb5173a50b82ee7c35297e",
+        "head_sha": "a178c2c406f8d5b7d35a309471ba24d3775b49fd",
+        "diff_sha256": "44d3c98c003c7a02a1cf454cfe37f35d822528729a9b3f1d2eff335e3423efcb",
+        "packet_spec_sha256": "22238f154206bf45aea03875ac6a235316585ebc17d8cd6e2db0752b528d007b",
+        "dependency_heads": {},
+        "target_snapshot_sha256": "c7a5768f392f7b1625752bdaefde180750f09bf56cc3b2415d9f2e8bbc99a801",
+        "confinement_sha256": "f00efcbdfcf6200b2857d4cbfd16f1a30a2222d5339e2908ab7c6b4fdd21a0fe"
+      },
+      "changed_paths": [
+        "apps/ios/Boarded/Boarded.xcodeproj/project.pbxproj",
+        "apps/ios/Boarded/Boarded/Assets.xcassets/SessionFixtureWall.imageset/SessionFixtureWall.jpg",
+        "apps/ios/Boarded/Boarded/Models/SocialModels.swift",
+        "apps/ios/Boarded/Boarded/Persistence/PendingModels.swift",
+        "apps/ios/Boarded/Boarded/RootView.swift",
+        "apps/ios/Boarded/Boarded/Services/AppServices.swift",
+        "apps/ios/Boarded/Boarded/Services/CommunityRepository.swift",
+        "apps/ios/Boarded/Boarded/Services/FeedRepository.swift",
+        "apps/ios/Boarded/Boarded/Services/MeetupRepository.swift",
+        "apps/ios/Boarded/Boarded/Services/ProfileRepository.swift",
+        "apps/ios/Boarded/Boarded/Services/SessionRepository.swift",
+        "apps/ios/Boarded/Boarded/Services/UITestFixtures.swift",
+        "apps/ios/Boarded/Boarded/Theme.swift",
+        "apps/ios/Boarded/Boarded/Views/Activity/ActivityViews.swift",
+        "apps/ios/Boarded/Boarded/Views/Explore/ExploreViews.swift",
+        "apps/ios/Boarded/Boarded/Views/Home/HomeFeedView.swift",
+        "apps/ios/Boarded/Boarded/Views/Home/SessionPostCard.swift",
+        "apps/ios/Boarded/Boarded/Views/Home/SessionPostDetailView.swift",
+        "apps/ios/Boarded/Boarded/Views/Log/LogViews.swift",
+        "apps/ios/Boarded/Boarded/Views/Meetups/MeetupViews.swift",
+        "apps/ios/Boarded/Boarded/Views/Profile/ProfileViews.swift",
+        "apps/ios/Boarded/Boarded/Views/Shared/Formatting.swift",
+        "apps/ios/Boarded/BoardedTests/NativeContractTests.swift",
+        "apps/ios/Boarded/BoardedTests/ProfileStatisticsTests.swift",
+        "apps/ios/Boarded/BoardedUITests/BoardedUITests.swift",
+        "apps/ios/Boarded/ViewModels/ActivityViewModel.swift",
+        "apps/ios/Boarded/ViewModels/ExploreViewModel.swift",
+        "apps/ios/Boarded/ViewModels/HomeFeedViewModel.swift",
+        "apps/ios/Boarded/ViewModels/MeetupsViewModel.swift",
+        "apps/ios/Boarded/ViewModels/SessionLoggerViewModel.swift",
+        "apps/ios/Boarded/ViewModels/SessionPostDetailViewModel.swift"
+      ],
+      "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/native",
+      "packet_spec": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/native-packet.json",
+      "target_snapshot": [
+        {
+          "path": "apps/ios/Boarded/Boarded.xcodeproj/project.pbxproj",
+          "base_blob": "50988d50ab8b8a9116deb5117d2396ff1b3671dc"
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Assets.xcassets/SessionFixtureWall.imageset/SessionFixtureWall.jpg",
+          "base_blob": "b66bf30b3307b2b190a909ee63033078ae9f1f85"
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Models/SocialModels.swift",
+          "base_blob": "c3f4e710b50bbed08906ea97da99aee189a938f4"
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Persistence/PendingModels.swift",
+          "base_blob": "e3480756a9165aab880998dbe5cebe6fc6d0854e"
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/RootView.swift",
+          "base_blob": "001b0c6967510ea80d5ae43ce1dc8ff775022ab8"
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Services/AppServices.swift",
+          "base_blob": "697c31511b192be2384a31863e8079bc9b919bbb"
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Services/CommunityRepository.swift",
+          "base_blob": null
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Services/FeedRepository.swift",
+          "base_blob": "3a5d63d5bc98c6bc166027c909ec51e283a93c7b"
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Services/MeetupRepository.swift",
+          "base_blob": "f0439a393e4bd7b406356c42abade88c2e39ae9e"
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Services/ProfileRepository.swift",
+          "base_blob": "fac2f25aa56ab752ea6d85e39ee8e31bb4f7bc0b"
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Services/SessionRepository.swift",
+          "base_blob": "c340936078f3a1a13cceb52cd9e2f330cb81160b"
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Services/UITestFixtures.swift",
+          "base_blob": "2c4c5da7f7792b9c614c3b8f49b91b5451600868"
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Theme.swift",
+          "base_blob": "b55cd2cc9727faa7299508b39647373b1a9aefb6"
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Views/Activity/ActivityViews.swift",
+          "base_blob": null
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Views/Explore/ExploreViews.swift",
+          "base_blob": null
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Views/Home/HomeFeedView.swift",
+          "base_blob": "bf883f51edd78500979eb20fd52bdca11064ab7e"
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Views/Home/SessionPostCard.swift",
+          "base_blob": "7f62a62a935507ea1ea9198239e1f0036d100845"
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Views/Home/SessionPostDetailView.swift",
+          "base_blob": "09e228f8f1d110f4c3297cf3bc701a130174b244"
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Views/Log/LogViews.swift",
+          "base_blob": "d84e03198c8d82502b28777eb0bb4f114bfc5916"
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Views/Meetups/MeetupViews.swift",
+          "base_blob": "c5cb5d0dddff8b6d9db8a93d33fd2b76dcbb7c78"
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Views/Profile/ProfileViews.swift",
+          "base_blob": "3aee7f245614288d358b2e7a9334d81f029dcd2d"
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Views/Shared/Formatting.swift",
+          "base_blob": "1be96d7b7964e67354e8ad6e96734b0e3048b378"
+        },
+        {
+          "path": "apps/ios/Boarded/BoardedTests/NativeContractTests.swift",
+          "base_blob": "aae6003ed04ba6ffe144936edf474d97b696201e"
+        },
+        {
+          "path": "apps/ios/Boarded/BoardedTests/ProfileStatisticsTests.swift",
+          "base_blob": "52de0834659d9cd742bedd23959dfb65f05aeb09"
+        },
+        {
+          "path": "apps/ios/Boarded/BoardedUITests/BoardedUITests.swift",
+          "base_blob": "53aa79b9c0fa4d4ab2c9e330fd25a651932c76ce"
+        },
+        {
+          "path": "apps/ios/Boarded/ViewModels/ActivityViewModel.swift",
+          "base_blob": null
+        },
+        {
+          "path": "apps/ios/Boarded/ViewModels/ExploreViewModel.swift",
+          "base_blob": null
+        },
+        {
+          "path": "apps/ios/Boarded/ViewModels/HomeFeedViewModel.swift",
+          "base_blob": "a906fe8311353e8df79ec984f38f9cbc16ea15d5"
+        },
+        {
+          "path": "apps/ios/Boarded/ViewModels/MeetupsViewModel.swift",
+          "base_blob": "b1489fa90705fdf8a49709a9e4668a487bcaed4b"
+        },
+        {
+          "path": "apps/ios/Boarded/ViewModels/SessionLoggerViewModel.swift",
+          "base_blob": "ae8372fccd00b0aeab3ecb2071e62bf77c766bb8"
+        },
+        {
+          "path": "apps/ios/Boarded/ViewModels/SessionPostDetailViewModel.swift",
+          "base_blob": "8ca18479c236278db3075ff2c11b87dba969d468"
+        }
+      ],
+      "clean": true
+    },
+    "web": {
+      "packet": "web",
+      "review_kind": "packet",
+      "identity": {
+        "repo": "/Users/ian/Projects/ClimbingApp",
+        "branch": "loop/boarded-v1-20260905-78720d/web",
+        "base_sha": "9a68ff18ffd612b21bfb5173a50b82ee7c35297e",
+        "head_sha": "964882a47f13fcdb09efb5632f41e44328663faf",
+        "diff_sha256": "a6ff21779800931e863997dec68e48ec8af07a3c1202cfee2f2f1b0e398d6345",
+        "packet_spec_sha256": "e2224419bcb6937dd4a39ea54dd04ebe8b2ae78b3811db7a62b56f25864d7498",
+        "dependency_heads": {},
+        "target_snapshot_sha256": "f6ffefd68d851b033a89abcdb5242eb1fce997b40827f9a2ef817d7579ce4fb5",
+        "confinement_sha256": "59134791df57b4f8f10d03f776c2b8ffda03e90139c090b1532afa8682a099f8"
+      },
+      "changed_paths": [
+        "app/activity/page.tsx",
+        "app/app/page.tsx",
+        "app/explore/page.tsx",
+        "app/globals.css",
+        "app/layout.tsx",
+        "app/log/page.tsx",
+        "app/profile/page.tsx",
+        "components/explore/NewRouteModal.tsx",
+        "components/explore/NewVenueModal.tsx",
+        "components/feed/CommentsSheet.tsx",
+        "components/feed/FeedCard.tsx",
+        "components/log/SessionDetailModal.tsx",
+        "components/route/OutdoorRouteDetailModal.tsx",
+        "components/shared/BottomNav.tsx",
+        "components/shared/DesktopNav.tsx",
+        "lib/utils/composer.ts",
+        "public/brand/stonegate-hero.png"
+      ],
+      "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/web",
+      "packet_spec": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/web-packet.json",
+      "target_snapshot": [
+        {
+          "path": "app/activity/page.tsx",
+          "base_blob": null
+        },
+        {
+          "path": "app/app/page.tsx",
+          "base_blob": "e84db7a88d88cb6984da116e1475ef3a8e1a155b"
+        },
+        {
+          "path": "app/explore/page.tsx",
+          "base_blob": null
+        },
+        {
+          "path": "app/globals.css",
+          "base_blob": "f298350187d11105674c8b34c7d7bed7cab28f32"
+        },
+        {
+          "path": "app/layout.tsx",
+          "base_blob": "ddef64dbb4a26e1061884325902ef98c014a8e7a"
+        },
+        {
+          "path": "app/log/page.tsx",
+          "base_blob": null
+        },
+        {
+          "path": "app/profile/page.tsx",
+          "base_blob": "f697581957938c1ee20abe4fcc9e645a92a6086f"
+        },
+        {
+          "path": "components/explore/NewRouteModal.tsx",
+          "base_blob": null
+        },
+        {
+          "path": "components/explore/NewVenueModal.tsx",
+          "base_blob": null
+        },
+        {
+          "path": "components/feed/CommentsSheet.tsx",
+          "base_blob": null
+        },
+        {
+          "path": "components/feed/FeedCard.tsx",
+          "base_blob": null
+        },
+        {
+          "path": "components/log/SessionDetailModal.tsx",
+          "base_blob": null
+        },
+        {
+          "path": "components/route/OutdoorRouteDetailModal.tsx",
+          "base_blob": null
+        },
+        {
+          "path": "components/shared/BottomNav.tsx",
+          "base_blob": "65f1c7bb04f20270908b274264d508e3cd6edb98"
+        },
+        {
+          "path": "components/shared/DesktopNav.tsx",
+          "base_blob": null
+        },
+        {
+          "path": "lib/utils/composer.ts",
+          "base_blob": null
+        },
+        {
+          "path": "public/brand/stonegate-hero.png",
+          "base_blob": null
+        }
+      ],
+      "clean": true
+    },
+    "landing": {
+      "packet": "landing",
+      "review_kind": "packet",
+      "identity": {
+        "repo": "/Users/ian/Projects/ClimbingApp",
+        "branch": "loop/boarded-v1-20260905-78720d/landing",
+        "base_sha": "9a68ff18ffd612b21bfb5173a50b82ee7c35297e",
+        "head_sha": "32eb4262a13c60647077cef09897305535229704",
+        "diff_sha256": "0a911f0eb1d0096c8c9fd1827132f722c5d71edcd4c3b8b75bd3c6dbc950365e",
+        "packet_spec_sha256": "0f4cc03129ccfc030f7d0d33531ea801bacec285bcfaddd7c28d4ba21d8c261e",
+        "dependency_heads": {},
+        "target_snapshot_sha256": "b2764cce7de2a971eb7e20429aa43e8283fd88cef62dfa89c4d089764945ffba",
+        "confinement_sha256": "5e9dd81ed62697dfbee0e44e169d238127b4c0ae65fcc9a79b96dffdc75b6e01"
+      },
+      "changed_paths": [
+        "app/landing.css",
+        "app/page.tsx",
+        "components/landing/ClimbingWallExperience.tsx"
+      ],
+      "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/landing",
+      "packet_spec": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/landing-packet.json",
+      "target_snapshot": [
+        {
+          "path": "app/landing.css",
+          "base_blob": "9d628c80b8d2bc1564e5cd78b549cc5203efc8f1"
+        },
+        {
+          "path": "app/page.tsx",
+          "base_blob": "97deb0eb0cb2e66e38dd5e76b611a2a8662b1a09"
+        },
+        {
+          "path": "components/landing/ClimbingWallExperience.tsx",
+          "base_blob": "fdc4c519e0287b9cba346554c8833273ec59e184"
+        }
+      ],
+      "clean": true
+    },
+    "blender": {
+      "packet": "blender",
+      "review_kind": "packet",
+      "identity": {
+        "repo": "/Users/ian/Projects/ClimbingApp",
+        "branch": "loop/boarded-v1-20260905-78720d/blender",
+        "base_sha": "9a68ff18ffd612b21bfb5173a50b82ee7c35297e",
+        "head_sha": "3d05383837d686f04a1873e412e764be3a35fcb4",
+        "diff_sha256": "2f398e849e9f5bd0b6a87209fc99097ce88ddd159d0b86216fed0e754498e7a2",
+        "packet_spec_sha256": "71cacae05778d6ae5586ab8c90c39b551eba42ed9221bcf76379eb21ef98f092",
+        "dependency_heads": {},
+        "target_snapshot_sha256": "89f877cb7339ee2b84bcb4be754e8eafb9f5a44f548f77869642a0812d497b73",
+        "confinement_sha256": "03b58b505555c7b1ccfa6b4d37ba3ded5a12f4884390b78509599689e95dce30"
+      },
+      "changed_paths": [
+        "design/blender/asset-stats.json",
+        "design/blender/boarded-wall.blend",
+        "design/blender/climber-contact-report.json",
+        "design/blender/climber_ascent.py",
+        "design/blender/generate_boarded_wall.py",
+        "design/blender/render_climber_review.py",
+        "public/walls/generated/boarded-wall-poster.webp",
+        "public/walls/generated/boarded-wall.glb"
+      ],
+      "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/blender",
+      "packet_spec": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/blender-packet.json",
+      "target_snapshot": [
+        {
+          "path": "design/blender/asset-stats.json",
+          "base_blob": "66d40bebd76956cdd57c6b87f4465accd94ab77b"
+        },
+        {
+          "path": "design/blender/boarded-wall.blend",
+          "base_blob": "87a1d792a19a39c44faefd1bf60b6bbfe125027d"
+        },
+        {
+          "path": "design/blender/climber-contact-report.json",
+          "base_blob": "9cb75cf7b99db2d3881cc35e198b3ad54742636f"
+        },
+        {
+          "path": "design/blender/climber_ascent.py",
+          "base_blob": "1e713c2ef91ff1065e439de5cdbe3ca35eaae3c2"
+        },
+        {
+          "path": "design/blender/generate_boarded_wall.py",
+          "base_blob": "5af1f819a52144b9a72bc9a8657f8d79dd0782e3"
+        },
+        {
+          "path": "design/blender/render_climber_review.py",
+          "base_blob": "9570c572c968c33330a143da6768a712cef2c00c"
+        },
+        {
+          "path": "public/walls/generated/boarded-wall-poster.webp",
+          "base_blob": "e20f2690e5d0814e048b550e86efc4296458769a"
+        },
+        {
+          "path": "public/walls/generated/boarded-wall.glb",
+          "base_blob": "7a5d49e83a9bd9abf29914ba85ce22ecfbdf4075"
+        }
+      ],
+      "clean": true
+    },
+    "web-publish": {
+      "packet": "web-publish",
+      "review_kind": "packet",
+      "identity": {
+        "repo": "/Users/ian/Projects/ClimbingApp",
+        "branch": "loop/boarded-v1-20260905-78720d/web-publish",
+        "base_sha": "964882a47f13fcdb09efb5632f41e44328663faf",
+        "head_sha": "0cdfc16a64816d05989c9301c3f7dc72c018e2de",
+        "diff_sha256": "cbfe99d96d57d72a579fd787838005ad725d133b1019da17fd9f05ad8a78877f",
+        "packet_spec_sha256": "0799b852a00496752cce24d3d6ce279d6f8c0fe2a95fa8a206583514efefdf08",
+        "dependency_heads": {
+          "web": "964882a47f13fcdb09efb5632f41e44328663faf"
+        },
+        "target_snapshot_sha256": "8a66806239ebf28d5ba871fdae5f8139cd893108ed1c1c2ee40336290c91b629",
+        "confinement_sha256": "e5a8227021fea89dc1d5407cb17e571bde29f42a2a694438fb7e7c2d49e37937"
+      },
+      "changed_paths": [
+        "app/log/page.tsx",
+        "components/log/SessionDetailModal.tsx",
+        "lib/utils/composer.ts",
+        "lib/utils/session-publication.test.ts",
+        "lib/utils/session-publication.ts"
+      ],
+      "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/web-publish",
+      "packet_spec": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/web-publish-packet.json",
+      "target_snapshot": [
+        {
+          "path": "app/log/page.tsx",
+          "base_blob": "33e5c029f87fec31140bd5f35fbd78fa87c220f4"
+        },
+        {
+          "path": "components/log/SessionDetailModal.tsx",
+          "base_blob": "d14f17d20235370ec21ecfefa89223195cff358a"
+        },
+        {
+          "path": "lib/utils/composer.ts",
+          "base_blob": "937c39626407792007995fc18ba7b758d5e247cd"
+        },
+        {
+          "path": "lib/utils/session-publication.test.ts",
+          "base_blob": null
+        },
+        {
+          "path": "lib/utils/session-publication.ts",
+          "base_blob": null
+        }
+      ],
+      "clean": true
+    },
+    "web-explore": {
+      "packet": "web-explore",
+      "review_kind": "packet",
+      "identity": {
+        "repo": "/Users/ian/Projects/ClimbingApp",
+        "branch": "loop/boarded-v1-20260905-78720d/web-explore",
+        "base_sha": "964882a47f13fcdb09efb5632f41e44328663faf",
+        "head_sha": "6cb3fdae8081b15c380c7c922e3e108524439529",
+        "diff_sha256": "758743121fd8a4b80957e89ed9412b834862c4dde677cd39798596e71cbec7bc",
+        "packet_spec_sha256": "5513d7e48d96d72d7f0b01c9775697fdf7408fa1f5ee1e9ef7c83c9f6c5fe4e8",
+        "dependency_heads": {
+          "web": "964882a47f13fcdb09efb5632f41e44328663faf"
+        },
+        "target_snapshot_sha256": "6afa31c771a2f413d4d9f47ee1a766891e6604c8cf3781d2da682d674c354baa",
+        "confinement_sha256": "0d17e4f44b5f2ad0f1ffd83f8f5afd7a68b08fbc69212becea39e91e3f95a1bf"
+      },
+      "changed_paths": [
+        "app/explore/page.tsx",
+        "components/explore/NewRouteModal.tsx",
+        "components/explore/NewVenueModal.tsx"
+      ],
+      "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/web-explore",
+      "packet_spec": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/web-explore-packet.json",
+      "target_snapshot": [
+        {
+          "path": "app/explore/page.tsx",
+          "base_blob": "45c1c2456d6151266b7473f56bd25e37826e0f49"
+        },
+        {
+          "path": "components/explore/NewRouteModal.tsx",
+          "base_blob": "664040130e59db1e4deed95447f366d311001286"
+        },
+        {
+          "path": "components/explore/NewVenueModal.tsx",
+          "base_blob": "53ad76d11604f21bc7ae2a48ffbdc2f6723fc53d"
+        }
+      ],
+      "clean": true
+    },
+    "web-profile": {
+      "packet": "web-profile",
+      "review_kind": "packet",
+      "identity": {
+        "repo": "/Users/ian/Projects/ClimbingApp",
+        "branch": "loop/boarded-v1-20260905-78720d/web-profile",
+        "base_sha": "964882a47f13fcdb09efb5632f41e44328663faf",
+        "head_sha": "1dd1fc84fa2b7d6c733cc70e67c33740f148aca0",
+        "diff_sha256": "a4aa816db74388540757bb358ce6272ae77e5af0822de3c4d1f173e18a57ecb6",
+        "packet_spec_sha256": "698f54ceddfa8c07b959afeedb4cd2c7ec2a8a8af6d7b02578b44d3b1984623e",
+        "dependency_heads": {
+          "web": "964882a47f13fcdb09efb5632f41e44328663faf"
+        },
+        "target_snapshot_sha256": "37b3dead6f47ddc23dd362382fea20c0c1ba468c7a9c98875099aa0141db1dac",
+        "confinement_sha256": "17e6a828c2a1ccb3c0e331a9a653cb439ec90376cc3fb8a8903ba2daa6a16e33"
+      },
+      "changed_paths": [
+        "app/profile/page.tsx"
+      ],
+      "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/web-profile",
+      "packet_spec": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/web-profile-packet.json",
+      "target_snapshot": [
+        {
+          "path": "app/profile/page.tsx",
+          "base_blob": "d7b243d5c5625b9e70bf4828f0308adbfda56e5b"
+        }
+      ],
+      "clean": true
+    },
+    "web-social": {
+      "packet": "web-social",
+      "review_kind": "packet",
+      "identity": {
+        "repo": "/Users/ian/Projects/ClimbingApp",
+        "branch": "loop/boarded-v1-20260905-78720d/web-social",
+        "base_sha": "964882a47f13fcdb09efb5632f41e44328663faf",
+        "head_sha": "0c737bdbaabfba400f64305f24acc2b6f8f15e68",
+        "diff_sha256": "7243509266ea4fe18f5ff4de106e2e23604974cbc7416d3ebd118e2b40ad0b8e",
+        "packet_spec_sha256": "5a8b61febfa4be320dd83c30012f06cc70b2b6d5171fc9bb9024811c4e5ab431",
+        "dependency_heads": {
+          "web": "964882a47f13fcdb09efb5632f41e44328663faf"
+        },
+        "target_snapshot_sha256": "747a1728e1f02168ddf8c3b957e6304d8e57d9e0d9e5a929467fc79c483b9a92",
+        "confinement_sha256": "d8a689f608e7ae7aaf3a8920fc0dd942ad6717d500a31dadf7b9adbe98ee78de"
+      },
+      "changed_paths": [
+        "app/activity/page.tsx",
+        "app/app/page.tsx",
+        "components/feed/FeedCard.tsx"
+      ],
+      "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/web-social",
+      "packet_spec": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/web-social-packet.json",
+      "target_snapshot": [
+        {
+          "path": "app/activity/page.tsx",
+          "base_blob": "e487ba82500736ce75207150d2e80cb990f4b6fb"
+        },
+        {
+          "path": "app/app/page.tsx",
+          "base_blob": "19dc26e72b4d401c4d0dbb0acaf296078a8dc635"
+        },
+        {
+          "path": "components/feed/FeedCard.tsx",
+          "base_blob": "976e4a9ce3aa7f63b215905ff682695d5e757f47"
+        }
+      ],
+      "clean": true
+    },
+    "native-interactions": {
+      "packet": "native-interactions",
+      "review_kind": "packet",
+      "identity": {
+        "repo": "/Users/ian/Projects/ClimbingApp",
+        "branch": "loop/boarded-v1-20260905-78720d/native-interactions",
+        "base_sha": "a178c2c406f8d5b7d35a309471ba24d3775b49fd",
+        "head_sha": "e758e514d1afd656163846b2a93d2a23a55ff689",
+        "diff_sha256": "0b0d83dfc277723ce22bcb67c3aef0950cd422fef5695f5866d6cc5931da054b",
+        "packet_spec_sha256": "e0126975b3afd7fc2dbcf3705e7791612495b04192145016aa3121ca9bf76538",
+        "dependency_heads": {
+          "native": "a178c2c406f8d5b7d35a309471ba24d3775b49fd"
+        },
+        "target_snapshot_sha256": "f4ecc6009757e4f6d2cd17cf2c47c9e7575e6f0f5e6b82b2e2342ffe05bfc5a6",
+        "confinement_sha256": "cc7d5f5858783295ea8e0d84449e0daa98d774d7351b0d08ebb4e44b25599003"
+      },
+      "changed_paths": [
+        "apps/ios/Boarded/Boarded/RootView.swift",
+        "apps/ios/Boarded/Boarded/Views/Activity/ActivityViews.swift",
+        "apps/ios/Boarded/Boarded/Views/Home/HomeFeedView.swift",
+        "apps/ios/Boarded/Boarded/Views/Home/SessionPostCard.swift",
+        "apps/ios/Boarded/Boarded/Views/Home/SessionPostDetailView.swift",
+        "apps/ios/Boarded/ViewModels/ActivityViewModel.swift",
+        "apps/ios/Boarded/ViewModels/SessionPostDetailViewModel.swift"
+      ],
+      "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/native-interactions",
+      "packet_spec": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/native-interactions-packet.json",
+      "target_snapshot": [
+        {
+          "path": "apps/ios/Boarded/Boarded/RootView.swift",
+          "base_blob": "9d274bcce170296cd7117549157b6903b6324608"
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Views/Activity/ActivityViews.swift",
+          "base_blob": "38d26fc45b602d94b5302fe7103853a7d77968e7"
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Views/Home/HomeFeedView.swift",
+          "base_blob": "cb7fa1f054e4fe620e24aab8b425a8a7d909659b"
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Views/Home/SessionPostCard.swift",
+          "base_blob": "9bf7b9bddf02648fe2d56f9bdaaa2cdf99288964"
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Views/Home/SessionPostDetailView.swift",
+          "base_blob": "0072a996ede3094a7fc45b6e8bc8371e92c2ccc2"
+        },
+        {
+          "path": "apps/ios/Boarded/ViewModels/ActivityViewModel.swift",
+          "base_blob": "ea231e48109c954a12abe949235981a8b335574f"
+        },
+        {
+          "path": "apps/ios/Boarded/ViewModels/SessionPostDetailViewModel.swift",
+          "base_blob": "dc8637b8aeefe28c54d15760ab53610f1f7892be"
+        }
+      ],
+      "clean": true
+    },
+    "native-journal": {
+      "packet": "native-journal",
+      "review_kind": "packet",
+      "identity": {
+        "repo": "/Users/ian/Projects/ClimbingApp",
+        "branch": "loop/boarded-v1-20260905-78720d/native-journal",
+        "base_sha": "a178c2c406f8d5b7d35a309471ba24d3775b49fd",
+        "head_sha": "6b4cf89e48f54cb54102b32ff8fcbd9b1f2f4c06",
+        "diff_sha256": "0350039d22468804319373fc335b00879b85b0ad747076c05e2bc625883d56e8",
+        "packet_spec_sha256": "81b90ea06c64749e874b6904ead72c55af241c7ad73177ea05ca5889f30ef0f3",
+        "dependency_heads": {
+          "native": "a178c2c406f8d5b7d35a309471ba24d3775b49fd"
+        },
+        "target_snapshot_sha256": "834caec54170b95ce90ddac7eb08b64ee4946f11ec0125e5588f52be1f1388c3",
+        "confinement_sha256": "cb5827e03c3f087011190fd973323a81b56e09f56e907cda55ac7383a8b9b12d"
+      },
+      "changed_paths": [
+        "apps/ios/Boarded/Boarded/Services/ProfileRepository.swift",
+        "apps/ios/Boarded/Boarded/Services/SessionSyncService.swift",
+        "apps/ios/Boarded/Boarded/Views/Log/LogViews.swift",
+        "apps/ios/Boarded/Boarded/Views/Profile/ProfileViews.swift",
+        "apps/ios/Boarded/ViewModels/SessionLoggerViewModel.swift"
+      ],
+      "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/native-journal",
+      "packet_spec": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/native-journal-packet.json",
+      "target_snapshot": [
+        {
+          "path": "apps/ios/Boarded/Boarded/Services/ProfileRepository.swift",
+          "base_blob": "138d04df050bf8de8ee626f1b50cf67825727bfd"
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Services/SessionSyncService.swift",
+          "base_blob": "9e5966a06f5ab6f7f9fc51a7fcef2286ed65393b"
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Views/Log/LogViews.swift",
+          "base_blob": "9da7a0435e07af827993833855d9523e22d8a6e8"
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Views/Profile/ProfileViews.swift",
+          "base_blob": "d96ddd17b0b4bd4a8b20b9430ee28c44d069cce4"
+        },
+        {
+          "path": "apps/ios/Boarded/ViewModels/SessionLoggerViewModel.swift",
+          "base_blob": "9a812ed73287f392a6ac70c7fcb975f4ce8aa6e8"
+        }
+      ],
+      "clean": true
+    },
+    "native-fixtures": {
+      "packet": "native-fixtures",
+      "review_kind": "packet",
+      "identity": {
+        "repo": "/Users/ian/Projects/ClimbingApp",
+        "branch": "loop/boarded-v1-20260905-78720d/native-fixtures",
+        "base_sha": "a178c2c406f8d5b7d35a309471ba24d3775b49fd",
+        "head_sha": "019ab346db58c6bb08c4b7efbaba8fd241c572ee",
+        "diff_sha256": "269e9e83c0bf8b748add7a7e9358c696a0977f6771f4a6d6a8b025f898246f5c",
+        "packet_spec_sha256": "d8d41ba9e6028ff6cefa2f649076c860b15eb1f01b2a54d18304d1223945dbad",
+        "dependency_heads": {
+          "native": "a178c2c406f8d5b7d35a309471ba24d3775b49fd"
+        },
+        "target_snapshot_sha256": "387cd558c9e5000dd5b4b4584224f8b2bdd0360a88f2ab3a3c0599da2f934397",
+        "confinement_sha256": "6bdb2b6c3f17c4b7bb09105101895d48600c84a2fa02a8720db3c0285cc3b37b"
+      },
+      "changed_paths": [
+        "apps/ios/Boarded/Boarded/Services/AppServices.swift",
+        "apps/ios/Boarded/Boarded/Services/CommunityRepository.swift",
+        "apps/ios/Boarded/Boarded/Services/FeedRepository.swift",
+        "apps/ios/Boarded/Boarded/Services/UITestFixtures.swift",
+        "apps/ios/Boarded/BoardedTests/NativeContractTests.swift",
+        "apps/ios/Boarded/ViewModels/ExploreViewModel.swift"
+      ],
+      "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/native-fixtures",
+      "packet_spec": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/native-fixtures-packet.json",
+      "target_snapshot": [
+        {
+          "path": "apps/ios/Boarded/Boarded/Services/AppServices.swift",
+          "base_blob": "e223f5c2eb1363284ce92849b95bf8b32f303eae"
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Services/CommunityRepository.swift",
+          "base_blob": "55b1cab54624bb03bb623ff92a88273ee028a2a0"
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Services/FeedRepository.swift",
+          "base_blob": "ca552d118f3465c3a0dc5912a034ca2749ee7b83"
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Services/UITestFixtures.swift",
+          "base_blob": "9cec15fd458e2b077e3ff120fbcd4cc8a0b32af4"
+        },
+        {
+          "path": "apps/ios/Boarded/BoardedTests/NativeContractTests.swift",
+          "base_blob": "38471a0f99c588332b2c9119947baed75ff4b1a9"
+        },
+        {
+          "path": "apps/ios/Boarded/ViewModels/ExploreViewModel.swift",
+          "base_blob": "c478ebadcfdc89f5d60e885b6c71af4ab465b2f6"
+        }
+      ],
+      "clean": true
+    },
+    "native-feed-visual": {
+      "packet": "native-feed-visual",
+      "review_kind": "packet",
+      "identity": {
+        "repo": "/Users/ian/Projects/ClimbingApp",
+        "branch": "loop/boarded-v1-20260905-78720d/native-feed-visual",
+        "base_sha": "e758e514d1afd656163846b2a93d2a23a55ff689",
+        "head_sha": "c11d0da09093d0d6cf7ef4d8714048caf2721f37",
+        "diff_sha256": "9206bfef1bd0727409513bd0e5e147447408d26566e49c7fadadffaebc8c3969",
+        "packet_spec_sha256": "b042913af184aeeef695a7ede138e2d84d17f9036707ae5d9ffb7f8309cfc8a4",
+        "dependency_heads": {
+          "native-interactions": "e758e514d1afd656163846b2a93d2a23a55ff689"
+        },
+        "target_snapshot_sha256": "a8f04e21c6743ccc9a5ebb3935f9c128b67b3a35ba880f3230d381154a175805",
+        "confinement_sha256": "b75ddcfd562b0d08c07dbd5c4255ff027e8a9277daacef66707868c2a6202959"
+      },
+      "changed_paths": [
+        "apps/ios/Boarded/Boarded/RootView.swift",
+        "apps/ios/Boarded/Boarded/Theme.swift",
+        "apps/ios/Boarded/Boarded/Views/Activity/ActivityViews.swift",
+        "apps/ios/Boarded/Boarded/Views/Home/HomeFeedView.swift",
+        "apps/ios/Boarded/Boarded/Views/Home/SessionPostCard.swift",
+        "apps/ios/Boarded/Boarded/Views/Home/SessionPostDetailView.swift",
+        "apps/ios/Boarded/ViewModels/ActivityViewModel.swift",
+        "apps/ios/Boarded/ViewModels/HomeFeedViewModel.swift",
+        "apps/ios/Boarded/ViewModels/SessionPostDetailViewModel.swift"
+      ],
+      "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/native-feed-visual",
+      "packet_spec": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/native-feed-visual-packet.json",
+      "target_snapshot": [
+        {
+          "path": "apps/ios/Boarded/Boarded/RootView.swift",
+          "base_blob": "96d685feebc5baefe4b97c5d868edb2a7c008596"
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Theme.swift",
+          "base_blob": "800b11afe572d0aab23a6e3e3045e8f762c54042"
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Views/Activity/ActivityViews.swift",
+          "base_blob": "2b48649873af740480b654e21a2444d4107e1b7c"
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Views/Home/HomeFeedView.swift",
+          "base_blob": "d00c5ec9fa084cacabc55d00786cf953db6f011e"
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Views/Home/SessionPostCard.swift",
+          "base_blob": "1e7aa13a758c53a6802de47bf4c661a1b2f67c42"
+        },
+        {
+          "path": "apps/ios/Boarded/Boarded/Views/Home/SessionPostDetailView.swift",
+          "base_blob": "93af06d5da09719f3e1086b33e463289c1e58e02"
+        },
+        {
+          "path": "apps/ios/Boarded/ViewModels/ActivityViewModel.swift",
+          "base_blob": "efe9577a73b8a4e08bbefbb8706dc1ba2a5ab62c"
+        },
+        {
+          "path": "apps/ios/Boarded/ViewModels/HomeFeedViewModel.swift",
+          "base_blob": "9665050c094c0146f300bf57136223eec531fe37"
+        },
+        {
+          "path": "apps/ios/Boarded/ViewModels/SessionPostDetailViewModel.swift",
+          "base_blob": "f0f568362b710d5544ab915fa14c1245d013c4a7"
+        }
+      ],
+      "clean": true
+    },
+    "web-reconcile-social": {
+      "packet": "web-reconcile-social",
+      "head": "cbab87f5ffcd6c3af8d1eda105136a26e02feda4",
+      "confinement_violations": [],
+      "dirty_status": "?? .todos/agent_errors.jsonl\n?? .todos/command_usage.jsonl\n?? .todos/db.lock\n?? .todos/issues.db\n?? .todos/issues.db-journal\n"
+    },
+    "web-reconcile-journal": {
+      "packet": "web-reconcile-journal",
+      "review_kind": "packet",
+      "identity": {
+        "repo": "/Users/ian/Projects/ClimbingApp",
+        "branch": "loop/boarded-v1-20260905-78720d/web-reconcile-journal",
+        "base_sha": "fe6438c359084e5e5e33dbe7e3c58d8e58131034",
+        "head_sha": "73ce82392f906b2b6144684bc39888e5a78a278c",
+        "diff_sha256": "3f7b302a8c16e8c66efb75602d826cc69d05644aa5c7bb0c0613c4b5e8f22c7f",
+        "packet_spec_sha256": "898581255f30540422988c6473f959521bfc9120e80c7d6cbad625d1639b5707",
+        "dependency_heads": {},
+        "target_snapshot_sha256": "f34c6c04f46d9b08215eb028ba33cf5bc34af2049f927eefce47ccd85a8268b2",
+        "confinement_sha256": "3a7731b77d6ebf0d42dc43c08748021e95e4304a598185f9ef6d70935e169aa3"
+      },
+      "changed_paths": [
+        "app/log/page.tsx",
+        "app/profile/page.tsx",
+        "components/boarded/LogFlow.tsx",
+        "components/log/SessionDetailModal.tsx",
+        "lib/boarded/journal.ts",
+        "lib/boarded/store.ts",
+        "lib/utils/composer.ts",
+        "lib/utils/session-publication.test.ts",
+        "lib/utils/session-publication.ts"
+      ],
+      "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/web-reconcile-journal",
+      "packet_spec": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/web-reconcile-journal-packet.json",
+      "target_snapshot": [
+        {
+          "path": "app/log/page.tsx",
+          "base_blob": null
+        },
+        {
+          "path": "app/profile/page.tsx",
+          "base_blob": "f697581957938c1ee20abe4fcc9e645a92a6086f"
+        },
+        {
+          "path": "components/boarded/LogFlow.tsx",
+          "base_blob": "f29f995b86191fc9723c52e647149436b22ad4ee"
+        },
+        {
+          "path": "components/log/SessionDetailModal.tsx",
+          "base_blob": null
+        },
+        {
+          "path": "lib/boarded/journal.ts",
+          "base_blob": "fd6a0539e783c1667926c766d5f734669719637f"
+        },
+        {
+          "path": "lib/boarded/store.ts",
+          "base_blob": "950389219b714924c029fa77c1b36b48e639deee"
+        },
+        {
+          "path": "lib/utils/composer.ts",
+          "base_blob": null
+        },
+        {
+          "path": "lib/utils/session-publication.test.ts",
+          "base_blob": null
+        },
+        {
+          "path": "lib/utils/session-publication.ts",
+          "base_blob": null
+        }
+      ],
+      "clean": true
+    }
+  }
+}

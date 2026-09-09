@@ -1,0 +1,10 @@
+{
+  "id": "focus-recovery",
+  "platform": "web",
+  "worktree": "/tmp/boarded-web-acceptance-focus-20260906",
+  "branch": "loop/boarded-web-20260906/acceptance-focus",
+  "base_sha": "e1114ed0422b789e39ccf9b4ec43c88f238eedd8",
+  "owned_paths": [
+    "components/boarded/Shell.tsx"
+  ]
+}

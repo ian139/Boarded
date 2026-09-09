@@ -1,0 +1,150 @@
+{
+  "schema": "omp.final_acceptance_integration.v1",
+  "tuple": {
+    "repo": "/tmp/boarded-web-acceptance-composite-20260906",
+    "branch": "loop/boarded-web-20260906/acceptance-composite",
+    "base_sha": "a86f0b0dfd490ae996a30c3e43d6edfd2a9d8a2e",
+    "head_sha": "ebd5b8ceb0f13b7b40f3251e8e11a6fa1eef507d",
+    "diff_sha256": "dac4943bbed4357eb8e6edb74394f07afafab713c2ce43d2ac3a4a6cd5a12847",
+    "packet_spec_sha256": "a3f01f5d8efaf74997b0ed61d50794136976d3364c0e45c9a475e2342c34115b",
+    "dependency_heads": {
+      "original": "e1114ed0422b789e39ccf9b4ec43c88f238eedd8",
+      "focus": "3db338978994b69850d3b8992538522a617cfced",
+      "share": "e70cc2b5f074aaa512b0d356fe9d69cad11ad2c8",
+      "export": "ab0774aa7f9414b14f8349ded3b602ab5ba84fb8"
+    },
+    "target_snapshot_sha256": "458c12d08674a9480ebdb971d96b7c7fd64d9ed172b3801c4c4bd5b1c3b9c717",
+    "confinement_sha256": "04248ee05ec1311c532314e459ad382f63744114cdc9ec897ed3368dab90f2d2"
+  },
+  "mutation": "Main gitapply remaining2files; focus previouslyintegrated",
+  "identity": [
+    {
+      "path": "app/app/[...screen]/page.tsx",
+      "sha256": "b01521f343b0e67ff8175e60194b7019a0ca600ef52031e01beee8f667f0ae2b",
+      "matches_final": true
+    },
+    {
+      "path": "app/app/boarded.css",
+      "sha256": "ddbef8a53d765886464717bbb505419124e673d2dae8c71ee01ae5d76ad8b907",
+      "matches_final": true
+    },
+    {
+      "path": "app/app/layout.tsx",
+      "sha256": "f9c4d1b60aa61c555dc4d8aaf047a8d0e677bd96f789dd59bb929ae5abfbbfd6",
+      "matches_final": true
+    },
+    {
+      "path": "app/app/page.tsx",
+      "sha256": "a66a17dccacdd5f0a98c73e17fa3048e6c8d59e8ebe9b640c456c75d2678102d",
+      "matches_final": true
+    },
+    {
+      "path": "components/boarded/Community.tsx",
+      "sha256": "04e97ce3c49a2061947c4450728ef8fe69437db15f36ba160ce446442488ad5b",
+      "matches_final": true
+    },
+    {
+      "path": "components/boarded/Details.tsx",
+      "sha256": "79b740c2f3ffb01cce0b652cfec3a45a3193fff0877c3493cddc4b24c5475f66",
+      "matches_final": true
+    },
+    {
+      "path": "components/boarded/Feed.tsx",
+      "sha256": "0b024b74dd22feb565998e34118dbf46473d76064a666291063940476e1e9401",
+      "matches_final": true
+    },
+    {
+      "path": "components/boarded/Flow.tsx",
+      "sha256": "9c69e93dba27d72b816393df7838a9d0cce3ad282c2afe89db3cca7c746be5e6",
+      "matches_final": true
+    },
+    {
+      "path": "components/boarded/LogFlow.tsx",
+      "sha256": "02da2cf45a2b51447eac0e34e16b9d10b69fd08d0a434e7e70327b2f0c3370ff",
+      "matches_final": true
+    },
+    {
+      "path": "components/boarded/Photo.tsx",
+      "sha256": "3a62ae2abc78d2e1daa40ec9cff17bbd85b28a30fe1348fdc4b893f59b617443",
+      "matches_final": true
+    },
+    {
+      "path": "components/boarded/Shell.tsx",
+      "sha256": "46130e108f2b038a1541642fc62489250c12a28c077cf6ab84851b5f867c116e",
+      "matches_final": true
+    },
+    {
+      "path": "components/boarded/flow.css",
+      "sha256": "a7a6f2c98f078a1c65443110cfe9007268c4ee76b2db71a0e9b44289c396e697",
+      "matches_final": true
+    },
+    {
+      "path": "components/providers/Providers.tsx",
+      "sha256": "91da5bccf3d5e9ee975376603fd5779e35a16cb3d21f2ca0459e257bad918a82",
+      "matches_final": true
+    },
+    {
+      "path": "components/shared/BottomNav.tsx",
+      "sha256": "56250d72792f31622a828e059455d87040c1c6665870ee2ccc02b560bc7ecf71",
+      "matches_final": true
+    },
+    {
+      "path": "docs/boarded-web.md",
+      "sha256": "4c3367729ce8a1fd5c5a7342102715e3a155ad0eb586c38c69c31a7e9d92be5e",
+      "matches_final": true
+    },
+    {
+      "path": "lib/boarded/journal.test.ts",
+      "sha256": "3184c46500ac9bb09627620435ea0772dd9c3078b246a46f466d50fe36d840e2",
+      "matches_final": true
+    },
+    {
+      "path": "lib/boarded/journal.ts",
+      "sha256": "d03f24d68963728b08dd537fee0eb895a876132ff5adc8263c9320484c18d776",
+      "matches_final": true
+    },
+    {
+      "path": "lib/boarded/store.ts",
+      "sha256": "9db106fe29156c3ad198fd4f9330292a49cbe7075192d626d0f3005987be3da9",
+      "matches_final": true
+    },
+    {
+      "path": "package.json",
+      "sha256": "fddb4affbb61f0c930ac944f8de8a9493ff32d129963a445386b4fb6dd576e0a",
+      "matches_final": true
+    },
+    {
+      "path": "public/boarded/redpoint-ridge.webp",
+      "sha256": "68ddc3f050bda94becba80b76eca560bb3247aa84702055ed902aa6991f183a2",
+      "matches_final": true
+    }
+  ],
+  "combined_runtime": {
+    "origin": "http://localhost:3113",
+    "head": "ebd5b8ceb0f13b7b40f3251e8e11a6fa1eef507d",
+    "focus_and_hash": {
+      "status": "Assertions passed before later verification-script selectorerror",
+      "checks": [
+        "Native date tabIndex0; Tab to attempts; ShiftTab back to date",
+        "Initial comments fragment focus",
+        "Same-document share fragment focus"
+      ],
+      "script_error": "Wrong #caption selector in finalmetadataread; only failing share/detail verification step rerun using actual #share-caption. No application failure."
+    },
+    "share": {
+      "caption": "",
+      "label": [
+        "Manual copy link (select all):"
+      ],
+      "height": 44,
+      "downloadReady": true,
+      "overflow": false
+    },
+    "detail": {
+      "notesVisible": false,
+      "quotes": 0
+    }
+  },
+  "unrelated_work": "Notmodified by scopedpatch",
+  "original46tests": "Passing existingevidence reused; nodomain/store changes; notrerun"
+}

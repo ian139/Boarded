@@ -1,0 +1,27 @@
+{
+  "review_kind": "packet",
+  "packet": "web-social",
+  "identity": {
+    "repo": "/Users/ian/Projects/ClimbingApp",
+    "branch": "loop/boarded-v1-20260905-78720d/web-social",
+    "base_sha": "964882a47f13fcdb09efb5632f41e44328663faf",
+    "head_sha": "5429acb7b46a5e2968e5b064b00ace86993b4c03",
+    "diff_sha256": "ea20728f90fbeb99314ca43bcf1134ff14a4b3aaedd06ff778bcdde6e5bbee51",
+    "packet_spec_sha256": "5a8b61febfa4be320dd83c30012f06cc70b2b6d5171fc9bb9024811c4e5ab431",
+    "dependency_heads": {
+      "web": "964882a47f13fcdb09efb5632f41e44328663faf"
+    },
+    "target_snapshot_sha256": "4390b078800f098600056f6be9a7b9fcbf83ee4966ebb2f05eb219ea9e603e50",
+    "confinement_sha256": "d8a689f608e7ae7aaf3a8920fc0dd942ad6717d500a31dadf7b9adbe98ee78de"
+  },
+  "changed_paths": [
+    "app/activity/page.tsx",
+    "app/app/page.tsx",
+    "components/feed/FeedCard.tsx"
+  ],
+  "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/web-social",
+  "packet_spec": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/web-social-packet.json",
+  "execution_evidence": [],
+  "review_status": "pending",
+  "designer_verdict": null
+}

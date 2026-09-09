@@ -1,0 +1,27 @@
+{
+  "invalid": {
+    "focus": "b-error-summary",
+    "summary": "Please correct the 1 error belowAttempts must be an integer of at least 1.",
+    "notes": "Preserve <this> & retry.",
+    "invalid": "true"
+  },
+  "failed": {
+    "url": "/app/log",
+    "notes": "Preserve <this> & retry.",
+    "error": "Please correct the 1 error belowStorage write failed: Blocked for recovery verification",
+    "count": 1
+  },
+  "recovered": {
+    "url": "/app/attempt/entry-1788679086913-zc1fgc",
+    "entries": [
+      {
+        "notes": "Preserve <this> & retry.",
+        "attempts": 3
+      },
+      {
+        "notes": "Keyboard-only send: trust the feet at the crux.",
+        "attempts": 6
+      }
+    ]
+  }
+}

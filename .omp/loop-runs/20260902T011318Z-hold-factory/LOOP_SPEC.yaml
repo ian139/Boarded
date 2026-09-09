@@ -1,0 +1,87 @@
+kind: omp.loop.v1
+id: CHANGE_ME
+title: CHANGE_ME
+owner: human
+mission:
+  goal: CHANGE_ME
+  success:
+    - CHANGE_ME
+  non_goals:
+    - CHANGE_ME
+context:
+  repo_root: "."
+  required_docs:
+    - AGENTS.md
+  external_references: []
+  exemplar_paths: []
+risk:
+  class: medium
+  blast_radius: CHANGE_ME
+planner:
+  require_human_approval: true
+  output_schema: omp.work_plan.v1
+worktree:
+  strategy: one_per_work_packet
+  base_ref: origin/main
+  sync_before_spawn: true
+workers:
+  explorer:
+    permissions: read-only
+    output_schema: omp.evidence_map.v1
+  implementer:
+    permissions: workspace-write-no-network
+    output_schema: omp.implementation_result.v1
+  reviewer:
+    permissions: read-only-plus-tests
+    output_schema: omp.review_verdict.v1
+events:
+  wake_on:
+    - worker.complete
+    - worker.blocked
+    - pr.created
+    - pr.head_changed
+    - pr.review_submitted
+    - ci.completed
+  heartbeat:
+    fallback: true
+    initial: 10m
+    max: 30m
+    backoff: exponential
+budgets:
+  max_wall_clock: 6h
+  max_tokens_total: 3000000
+  max_cost_usd: 50
+  max_parallel_workers: 3
+  max_worker_attempts_per_packet: 3
+  max_review_rounds_per_packet: 3
+  max_ci_retries_per_packet: 2
+
+stale_artifact_policy:
+  review_verdict_must_match:
+    - current_pr_head_sha
+    - artifact_hash
+  invalidate_review_on:
+    - pr.head_changed
+    - base_ref_changed
+approval_policy:
+  push_requires_human: true
+  merge_requires_human: true
+  release_requires_human: true
+  high_risk_change_requires_human: true
+evidence:
+  require:
+    - project_scan
+    - work_packet_plan
+    - diff_summary
+    - tests_run
+    - review_verdict_current_head
+    - ci_status
+    - open_risks
+escalation:
+  on:
+    - budget_exceeded
+    - repeated_failure
+    - unreproduced_bug
+    - security_or_data_risk
+    - unresolved_merge_conflict
+    - parity_uncertainty_high_impact

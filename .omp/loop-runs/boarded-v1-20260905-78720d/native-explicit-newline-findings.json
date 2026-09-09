@@ -1,0 +1,16 @@
+{
+  "findings": [
+    {
+      "title": "Preserve captions containing explicit line breaks",
+      "body": "At ordinary Dynamic Type sizes, a caption such as \"Good session\\nSecond attempt\" reaches this modifier through `Text(caption)` (lines 75–81). The composer accepts multiline captions through `BoardedTextEditor` and preserves internal newlines when saving. The first candidate already applies `.lineLimit(1)`, so its ideal width fits for short paragraphs even though the complete caption requires multiple lines; the horizontal-only fit check therefore selects the truncated candidate instead of the natural-height fallback. Previously, the caption used only a minimum height and retained those lines. Determine whether the unrestricted content genuinely fits one line before selecting the measured-height branch, preserving the fallback for explicit line breaks as well as width overflow.",
+      "priority": 2,
+      "confidence": 0.94,
+      "file_path": "apps/ios/Boarded/Boarded/Views/Home/SessionPostCard.swift",
+      "line_start": 623,
+      "line_end": 629
+    }
+  ],
+  "overall_correctness": "incorrect",
+  "explanation": "Source approval withheld: the scaled UIFont calculation resolves the prior caption-leading finding and the natural fallback addresses width-driven wrapping, but the correction introduces explicit-newline caption truncation. Bound identity: repo=/Users/ian/Projects/ClimbingApp; branch=loop/boarded-v1-20260905-78720d/native-feed-visual; base_sha=b4548b6a42d1975356a90de5fe354b7c29aae092; head_sha=472d785e7e18fa88a587a400e94e9db75582795b; diff_sha256=7c3fbc8eb0f1ef296d9520c19336f72a5f2f7c3ae92448be7e4793d8ceb9da12; packet_spec_sha256=99f251c2acc14ff355613e24ef55ae4cdd01c0ee5fb183571c4201dffc9f1ea7; dependency_heads.native_preview_base=6a501f9483d10e70effe54c1eef740ddcac17515; target_snapshot_sha256=9060051081138adfe82308963af285e4764f7980d826bbc92fc7f68103ed92fc; confinement_sha256=812f909ffe6e9eb63421f018ac9097d9a03d274478050e141d528c33353711ea. Verified clean bound worktree, canonical full-index diff and patch hash, spec hash, target file hashes and canonical target-snapshot hash, with changed paths confined exactly to apps/ios/Boarded/Boarded/Views/Home/HomeFeedView.swift and apps/ios/Boarded/Boarded/Views/Home/SessionPostCard.swift; no Root review, broader audit, builds, tests, runtime execution, captures, raster comparison, or visual approval.",
+  "confidence": 0.94
+}

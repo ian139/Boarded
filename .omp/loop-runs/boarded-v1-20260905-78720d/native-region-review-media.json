@@ -1,0 +1,18 @@
+{
+  "boarded-measured-region-review#1": {
+    "scope": "Media only, y176–655pt; preview 87b6f49, home source 2150a323, navigation source 2a16c299.",
+    "evidence": {
+      "current": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/native-87b6f49-measured-attachments/3D4E2F2C-92E5-4E2C-B471-BFB0C350AD9D.png",
+      "frozen": "/tmp/boarded-paper-designer-20260905-e7a6c3/10-feed-final-v3-3x.png",
+      "diff": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/native-measured-second-feed-diff.png",
+      "measurement": "native-measured-second-diff.json reports 8,605 differing media pixels, 0.2721% of whole image; unmasked comparison, threshold 0.1."
+    },
+    "findings": [
+      "Photography and gradient: climber, rope, rock features, image top edge, and lower fade occupy visually corresponding locations. The diff shows no broad photographic-edge doubling or large highlighted gradient area in this region. A broad media translation/crop displacement is not supported; subthreshold tonal differences are not excluded.",
+      "Grade/title: residual red is localized to glyph contours in “5.12a” and “Redpoint Ridge,” not a displaced text-block background or changed wrapping. Their overall anchors and occupied areas look closely corresponding. This supports a glyph-placement/raster contour discrepancy rather than evidence that the entire media or title group needs moving; the images do not establish its implementation cause.",
+      "Metadata: “Sport · 27 m · Limestone · Overhang” has prominent residual highlighting along the text across the line. It remains a single line in the same lower-left area; the mismatch is localized to lettering rather than photography.",
+      "Route trace: residuals concentrate around the two blue markers, green starting marker, and portions of the neighboring white segments, particularly near the middle blue junction. The overall zigzag and top endpoint remain in corresponding locations. This is localized marker/segment geometry or contour disagreement, not visible translation of the complete trace."
+    ],
+    "conclusion": "Remaining visible media discrepancies are dominated by overlay text and localized route-trace details, not broad photo/gradient displacement. No corrective constants, font replacement, or overall approval inferred."
+  }
+}

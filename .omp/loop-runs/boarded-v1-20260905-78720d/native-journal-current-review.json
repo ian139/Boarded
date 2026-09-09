@@ -1,0 +1,29 @@
+{
+  "review_kind": "packet",
+  "packet": "native-journal",
+  "identity": {
+    "repo": "/Users/ian/Projects/ClimbingApp",
+    "branch": "loop/boarded-v1-20260905-78720d/native-journal",
+    "base_sha": "a178c2c406f8d5b7d35a309471ba24d3775b49fd",
+    "head_sha": "e079891964f532b082de5d47333dec2c107df171",
+    "diff_sha256": "31e37e93596924419fe85324b5588fde85a8b49fd61fc0d912ef775af5f91d84",
+    "packet_spec_sha256": "81b90ea06c64749e874b6904ead72c55af241c7ad73177ea05ca5889f30ef0f3",
+    "dependency_heads": {
+      "native": "a178c2c406f8d5b7d35a309471ba24d3775b49fd"
+    },
+    "target_snapshot_sha256": "e6eec0c78bcaf6c0ea098b7869ecc595076dbc8445381fe0adc4c0de042bbfdc",
+    "confinement_sha256": "cb5827e03c3f087011190fd973323a81b56e09f56e907cda55ac7383a8b9b12d"
+  },
+  "changed_paths": [
+    "apps/ios/Boarded/Boarded/Services/ProfileRepository.swift",
+    "apps/ios/Boarded/Boarded/Services/SessionSyncService.swift",
+    "apps/ios/Boarded/Boarded/Views/Log/LogViews.swift",
+    "apps/ios/Boarded/Boarded/Views/Profile/ProfileViews.swift",
+    "apps/ios/Boarded/ViewModels/SessionLoggerViewModel.swift"
+  ],
+  "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/native-journal",
+  "packet_spec": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/native-journal-packet.json",
+  "execution_evidence": [],
+  "review_status": "pending",
+  "designer_verdict": null
+}

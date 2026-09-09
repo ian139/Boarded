@@ -1,0 +1,332 @@
+diff --git a/app/app/boarded.css b/app/app/boarded.css
+index 4cf4110e735eeb090d6ca5ed95f4f6ed1572e87f..8730dd20425ade80f3c3bf6df80d231f48900cf2 100644
+--- a/app/app/boarded.css
++++ b/app/app/boarded.css
+@@ -170,6 +170,24 @@
+   letter-spacing: -0.015em;
+ }
+ 
++.boarded .b-grade-hero {
++  font-family: var(--font-serif);
++  font-size: 48px;
++  line-height: 1;
++  font-weight: 600;
++  font-style: italic;
++  letter-spacing: -0.02em;
++  color: var(--color-text-primary);
++  flex-shrink: 0;
++}
++
++@media (min-width: 768px) {
++  .boarded .b-grade-hero {
++    font-size: 64px;
++    line-height: 1;
++  }
++}
++
+ .boarded .b-eyebrow {
+   font-family: var(--font-sans);
+   font-size: 11px;
+@@ -359,6 +377,8 @@
+   border: 1px solid var(--color-border-default);
+   background-color: rgba(244, 242, 235, 0.06);
+   color: var(--color-text-primary);
++  white-space: nowrap;
++  flex-shrink: 0;
+ }
+ 
+ .boarded .b-status-sent {
+@@ -446,8 +466,9 @@
+ .boarded .b-photo img {
+   width: 100%;
+   height: auto;
+-  max-height: 520px;
++  max-height: 640px;
+   object-fit: cover;
++  object-position: top center;
+   display: block;
+ }
+ 
+@@ -642,6 +663,35 @@
+ .boarded .b-mobile-nav-link:hover {
+   color: var(--color-text-primary);
+ }
++
++.boarded .b-mobile-nav-link[data-primary="true"],
++.boarded .b-mobile-nav-primary {
++  background-color: var(--color-action-primary);
++  color: #F4F2EB;
++  border-radius: var(--radius-md);
++  font-weight: 700;
++  border: 1px solid rgba(244, 242, 235, 0.3);
++  box-shadow: 0 2px 8px rgba(52, 92, 255, 0.45);
++}
++
++.boarded .b-mobile-nav-link[data-primary="true"] .b-nav-icon,
++.boarded .b-mobile-nav-primary .b-nav-icon {
++  color: #F4F2EB;
++}
++
++.boarded .b-mobile-nav-link[data-primary="true"]:hover,
++.boarded .b-mobile-nav-primary:hover {
++  background-color: var(--color-action-hover);
++  color: #FFFFFF;
++}
++
++.boarded .b-mobile-nav-link[data-primary="true"][aria-current="page"],
++.boarded .b-mobile-nav-primary[aria-current="page"] {
++  background-color: var(--color-action-hover);
++  border-color: #FFFFFF;
++  box-shadow: 0 0 0 2px var(--color-action-primary), 0 4px 12px rgba(52, 92, 255, 0.55);
++}
++
+ /* ==========================================================================
+    High Contrast & Reduced Motion Media Queries
+    ========================================================================== */
+@@ -654,10 +704,13 @@
+   .boarded .b-button,
+   .boarded .b-status,
+   .boarded .b-action-chip,
+-  .boarded .b-nav-link {
++  .boarded .b-nav-link,
++  .boarded .b-mobile-nav-link {
+     border: 1px solid ButtonText;
+   }
+-  .boarded .b-button-primary {
++  .boarded .b-button-primary,
++  .boarded .b-mobile-nav-link[data-primary="true"],
++  .boarded .b-mobile-nav-primary {
+     background-color: Highlight;
+     color: HighlightText;
+   }
+diff --git a/components/boarded/Feed.tsx b/components/boarded/Feed.tsx
+index 17b4527079a695dcb472ccc8e9ae4942e8de2d4a..95424be9a134d867ee05957c35eb050d49a55442 100644
+--- a/components/boarded/Feed.tsx
++++ b/components/boarded/Feed.tsx
+@@ -160,25 +160,27 @@ export function Feed() {
+               <article className="b-panel" aria-labelledby="post-maya-heading">
+                 {/* Climber & Post Meta Header */}
+                 <div className="flex items-center justify-between gap-3">
+-                  <div className="flex items-center gap-3">
+-                    <div className="w-10 h-10 rounded-full bg-stone-800 border border-[rgba(244,242,235,0.18)] flex items-center justify-center text-sm font-semibold text-[#F4F2EB]">
++                  <div className="flex items-center gap-3 min-w-0 flex-1">
++                    <div className="w-10 h-10 rounded-full bg-stone-800 border border-[rgba(244,242,235,0.18)] flex items-center justify-center text-sm font-semibold text-[#F4F2EB] flex-shrink-0">
+                       MK
+                     </div>
+-                    <div>
++                    <div className="min-w-0 flex-1">
+                       <Link
+                         href="/app/send/maya-redpoint"
+-                        className="font-semibold text-sm text-[#F4F2EB] hover:underline focus:underline inline-flex items-center min-h-[44px]"
++                        className="font-semibold text-sm text-[#F4F2EB] hover:underline focus:underline inline-flex items-center min-h-[44px] truncate"
+                       >
+                         {mayaPost.author}
+                       </Link>
+-                      <div className="b-tertiary text-xs">
++                      <div className="b-tertiary text-xs truncate">
+                         <time dateTime={mayaPost.timestamp}>{mayaPost.displayTime}</time> · {mayaPost.crag}
+                       </div>
+                     </div>
+                   </div>
+ 
+                   {/* Sent Badge (Send Green strictly reserved for sends) */}
+-                  <SentBadge />
++                  <div className="flex-shrink-0">
++                    <SentBadge />
++                  </div>
+                 </div>
+ 
+                 {/* Hero Outdoor Limestone Photograph */}
+@@ -195,12 +197,12 @@ export function Feed() {
+                 </Link>
+ 
+                 {/* Route Grade & Editorial Headline */}
+-                <div className="flex flex-col gap-1">
+-                  <div className="flex items-baseline gap-3 flex-wrap">
+-                    <span className="b-serif text-3xl md:text-4xl text-[#F4F2EB]" aria-label={`Grade ${mayaPost.grade}`}>
++                <div className="flex flex-col gap-2">
++                  <div className="flex items-baseline gap-3 sm:gap-4 flex-wrap">
++                    <span className="b-grade-hero" aria-label={`Grade ${mayaPost.grade}`}>
+                       {mayaPost.grade}
+                     </span>
+-                    <h2 className="b-serif text-2xl md:text-3xl text-[#F4F2EB] font-normal m-0 inline">
++                    <h2 className="b-serif text-2xl sm:text-3xl md:text-4xl text-[#F4F2EB] font-normal m-0 inline">
+                       <Link
+                         href="/app/route/redpoint-ridge"
+                         id="post-maya-heading"
+@@ -302,33 +304,35 @@ export function Feed() {
+               return (
+                 <article key={entry.id} className="b-panel" aria-labelledby={`entry-${entry.id}-heading`}>
+                   <div className="flex items-center justify-between gap-3">
+-                    <div className="flex items-center gap-3">
+-                      <div className="w-10 h-10 rounded-full bg-[#1F232D] border border-[rgba(244,242,235,0.18)] flex items-center justify-center text-sm font-semibold text-[#F4F2EB]">
++                    <div className="flex items-center gap-3 min-w-0 flex-1">
++                      <div className="w-10 h-10 rounded-full bg-[#1F232D] border border-[rgba(244,242,235,0.18)] flex items-center justify-center text-sm font-semibold text-[#F4F2EB] flex-shrink-0">
+                         AR
+                       </div>
+-                      <div>
+-                        <div className="font-semibold text-sm text-[#F4F2EB]">
++                      <div className="min-w-0 flex-1">
++                        <div className="font-semibold text-sm text-[#F4F2EB] truncate">
+                           Alex R. <span className="b-tertiary text-xs font-normal">(You)</span>
+                         </div>
+-                        <div className="b-tertiary text-xs">
++                        <div className="b-tertiary text-xs truncate">
+                           <time dateTime={entry.date}>{entry.date}</time> · {route?.crag || 'Local Crag'}
+                         </div>
+                       </div>
+                     </div>
+ 
+-                    {entry.outcome === 'sent' ? (
+-                      <SentBadge />
+-                    ) : (
+-                      <AttemptBadge />
+-                    )}
++                    <div className="flex-shrink-0">
++                      {entry.outcome === 'sent' ? (
++                        <SentBadge />
++                      ) : (
++                        <AttemptBadge />
++                      )}
++                    </div>
+                   </div>
+ 
+-                  <div className="flex flex-col gap-1">
+-                    <div className="flex items-baseline gap-3 flex-wrap">
+-                      <span className="b-serif text-3xl text-[#F4F2EB]">
++                  <div className="flex flex-col gap-2">
++                    <div className="flex items-baseline gap-3 sm:gap-4 flex-wrap">
++                      <span className="b-grade-hero" aria-label={`Grade ${route?.grade || '5.10'}`}>
+                         {route?.grade || '5.10'}
+                       </span>
+-                      <h2 className="b-serif text-2xl text-[#F4F2EB] font-normal m-0 inline">
++                      <h2 className="b-serif text-2xl sm:text-3xl text-[#F4F2EB] font-normal m-0 inline">
+                         <Link
+                           href={route ? `/app/route/${route.id}` : '#'}
+                           id={`entry-${entry.id}-heading`}
+@@ -450,8 +454,8 @@ export function Feed() {
+         {/* Actionable Next Route Project Hint */}
+         <div className="b-panel">
+           <span className="b-eyebrow">Next Route Project</span>
+-          <div className="flex items-baseline gap-2 mt-1">
+-            <span className="b-serif text-3xl text-[#F4F2EB]" aria-label={`Grade ${nextProjectRoute.grade}`}>
++          <div className="flex items-baseline gap-3 mt-1">
++            <span className="b-grade-hero text-4xl sm:text-5xl" aria-label={`Grade ${nextProjectRoute.grade}`}>
+               {nextProjectRoute.grade}
+             </span>
+             <h2 className="b-serif text-2xl text-[#F4F2EB] font-normal m-0 inline">
+diff --git a/components/boarded/Shell.tsx b/components/boarded/Shell.tsx
+index 5de3ceedef7170fcc190a80ab7a17ede26f76e0d..6b4bfe0af61aed3b81b5b2bbfb3e5b5f77e48b9b 100644
+--- a/components/boarded/Shell.tsx
++++ b/components/boarded/Shell.tsx
+@@ -59,20 +59,67 @@ const NAV_ITEMS: NavItem[] = [
+   },
+ ];
+ 
++function getRouteTitle(pathname: string): string {
++  if (!pathname || pathname === '/app') return 'Feed — Boarded';
++  if (pathname === '/app/explore') return 'Explore Routes — Boarded';
++  if (pathname === '/app/log') return 'Log Attempt — Boarded';
++  if (pathname === '/app/activity') return 'Activity — Boarded';
++  if (pathname === '/app/profile') return 'Profile & Journal — Boarded';
++  if (pathname.startsWith('/app/send/')) return 'Send Report — Boarded';
++  if (pathname.startsWith('/app/route/')) return 'Route Beta & Topo — Boarded';
++  if (pathname.startsWith('/app/attempt/')) return 'Attempt Details — Boarded';
++  if (pathname.startsWith('/app/share/')) return 'Share Send Card — Boarded';
++  if (pathname.startsWith('/app/climber/')) return 'Climber Profile — Boarded';
++  return 'Boarded — Climbing Journal';
++}
++
++function getElementByHash(hash: string): HTMLElement | null {
++  if (!hash || hash.length <= 1) return null;
++  const rawId = hash.startsWith('#') ? hash.slice(1) : hash;
++  try {
++    const decodedId = decodeURIComponent(rawId);
++    return document.getElementById(decodedId);
++  } catch {
++    return null;
++  }
++}
++
+ export function Shell({ children }: { children: React.ReactNode }) {
+   const pathname = usePathname();
+   const mainRef = useRef<HTMLElement>(null);
++  const isPopstateRef = useRef<boolean>(false);
+   const { initialize, error, retryStorage } = useJournal();
+-
+   useEffect(() => {
+     initialize();
+   }, [initialize]);
+ 
++  // Set route-derived descriptive title
++  useEffect(() => {
++    if (typeof document !== 'undefined') {
++      document.title = getRouteTitle(pathname);
++    }
++  }, [pathname]);
++
++  // Track popstate (browser back/forward) to prevent clobbering browser focus restoration
++  useEffect(() => {
++    const handlePopstate = () => {
++      isPopstateRef.current = true;
++    };
++    window.addEventListener('popstate', handlePopstate);
++    return () => window.removeEventListener('popstate', handlePopstate);
++  }, []);
++
+   // Route focus announcement and management
+   useEffect(() => {
++    // If navigating via browser Back/Forward (popstate), do not clobber browser's focus/scroll restoration
++    if (isPopstateRef.current) {
++      isPopstateRef.current = false;
++      return;
++    }
++
+     // If navigating to a hash target, let hash target handle focus/scroll without overriding
+     if (typeof window !== 'undefined' && window.location.hash) {
+-      const hashEl = document.querySelector<HTMLElement>(window.location.hash);
++      const hashEl = getElementByHash(window.location.hash);
+       if (hashEl) {
+         hashEl.setAttribute('tabIndex', '-1');
+         hashEl.focus({ preventScroll: false });
+@@ -95,7 +142,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
+   useEffect(() => {
+     const handleHash = () => {
+       if (typeof window !== 'undefined' && window.location.hash) {
+-        const hashEl = document.querySelector<HTMLElement>(window.location.hash);
++        const hashEl = getElementByHash(window.location.hash);
+         if (hashEl) {
+           hashEl.setAttribute('tabIndex', '-1');
+           hashEl.focus({ preventScroll: false });
+@@ -186,14 +233,16 @@ export function Shell({ children }: { children: React.ReactNode }) {
+       <nav className="b-mobile-nav" aria-label="Mobile navigation">
+         {NAV_ITEMS.map((item) => {
+           const isActive = pathname === item.href;
++          const isPrimary = item.href === '/app/log';
+           return (
+             <Link
+               key={item.href}
+               href={item.href}
+-              className="b-mobile-nav-link"
++              className={`b-mobile-nav-link ${isPrimary ? 'b-mobile-nav-primary' : ''}`}
++              data-primary={isPrimary ? 'true' : undefined}
+               aria-current={isActive ? 'page' : undefined}
+             >
+-              {item.icon(isActive)}
++              {item.icon(isActive || isPrimary)}
+               <span className="b-mobile-nav-label">{item.label}</span>
+             </Link>
+           );
+diff --git a/docs/boarded-web.md b/docs/boarded-web.md
+index f95cf11189bd570e344d3c43a50b03776a99013d..7301bb695e8dd6466d8392b9ec3e3a1aa6f6d40c 100644
+--- a/docs/boarded-web.md
++++ b/docs/boarded-web.md
+@@ -422,3 +422,8 @@ The following contract corrections were implemented across `app/app/boarded.css`
+ 9. **Clean Export Contract:** Removed redundant `export default` aliases from `Feed.tsx`, `Shell.tsx`, and `Photo.tsx`, enforcing the standard named export contract.
+ 10. **Desktop Context Refinement:** Replaced inert fake crew status list with an actionable "Next Route Project" card (`Golden Hour 5.11c` from `routes`), linking directly to route inspection and attempt logging.
+ 11. **Outcome Badge Parity:** Implemented `AttemptBadge` with a circular attempt icon, establishing visual balance with `SentBadge` while strictly reserving Send Green for sends.
++12. **Editorial Grade Focal Point:** Implemented `.b-grade-hero` display scale (`48px` mobile, `64px` desktop) providing the requested commanding visual hierarchy beneath the photo, distinct from the route title.
++13. **Mobile Sent Badge Single-Line Integrity:** Enforced `white-space: nowrap; flex-shrink: 0;` on `.b-status` alongside `flex-shrink-0` header containment, eliminating awkward "SEN" / "T" wrapping on narrow viewports while preserving author metadata room.
++14. **Mobile Log Primary Visual Emphasis:** Styled mobile navigation Log action (`/app/log`) with solid Electric Indigo fill and elevated prominence while maintaining the accessible five-destination navigation structure.
++15. **Climber Photography Top-Anchored Crop:** Configured `.b-photo img` with `object-position: top center;` and `max-height: 640px;` ensuring the climber's raised hand reaching to clip the quickdraw is visible without clipping on desktop viewports.
++16. **Dynamic Route Titles & Selector Safety:** Integrated `getRouteTitle` in `Shell.tsx` for route-derived descriptive document titles; guarded hash targeting using decoded `getElementById` to avoid selector syntax exceptions on malformed hashes; and integrated popstate detection to safeguard native browser back/forward focus restoration.

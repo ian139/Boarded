@@ -1,0 +1,16 @@
+{
+  "designer": "ApprovedModelDesigner",
+  "head": "f89681d79966375397ef5234094f9162f5cb6f9b",
+  "transport_response": "native-third-verdict-final",
+  "verdict": "changes requested: resolve the reference/native-chrome acceptance incompatibility before whole-Feed approval; no supported chrome source correction is currently identified.",
+  "scope": "Observed f89681d capture only, not proof that every possible native capture must fail.",
+  "known_source_correction": null,
+  "preserve": [
+    "square Log",
+    "22pt kudos radius",
+    "required unread Activity dot",
+    "original reference",
+    "unmasked 0.5 percent gate"
+  ],
+  "remaining": "Text/trace contours unresolved, not proven positional bugs or rasterization-only differences."
+}

@@ -1,0 +1,17 @@
+{
+  "packet": "landing",
+  "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/landing",
+  "base_sha": "9a68ff18ffd612b21bfb5173a50b82ee7c35297e",
+  "contract_path": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/contract.json",
+  "contract_sha256": "9044624142e5214292c49cbf5e0862236d92ad419ce87e1d263ac4b7f446798c",
+  "scope": {
+    "platform": "web",
+    "allow": [
+      "app/page.tsx",
+      "app/landing.css",
+      "components/landing/"
+    ],
+    "role": "Landing layout/controller only; asset output path/12secclip fixed; no globals.css edits."
+  },
+  "task": "# Target\nPlatform web only; this is public-marketing layout/motion mechanics with no iOS-screen counterpart. Own app/page.tsx,app/landing.css,components/landing/ only. V1Designer owns design contract; WebV1 owns globals.css; BlenderV1 produces the existing exact asset paths+ClimberAscent12s clip. No asset/Blender/global CSS edits.\n# Change\nPolish current user-authored landing, not replacement generic scaffold: editorial brandkit composition, Cormorant major type, precise negative space, restrained borders, Obsidian/Slate/Chalk with Indigo agency, concise true feature story and functioning sign-up/app actions. Smooth intuitive scroll-driven climbing sequence: normalized time mapping, frame-rate independent motion, clean start/end holds, responsive framing/resize, forward/reverse scrub parity, touch usability, efficient offscreen/lifecycle pause, no extra mixer.update racing setTime, reduced-motion static poster and accessible text. Preserve clip/path/coordinate contract from JSON; loading must not hide essential actions; graceful genuine WebGL unavailable handling with existing real poster (not fake rendering). Prune superseded live code you replace, not unrelated archived user assets or docs. Coordinate with BlenderV1 for contact/pose/framing evidence and V1Designer for screenshot feedback.\n# Acceptance\nOwned local commit with complete functioning landing/controller, explicit browser scroll/reversal/mobile/desktop/reduced-motion scenarios and any genuine unresolved asset dependency. No placeholder links/claims. Skip all tests/build/lint/formatters/render verification until Main's joint browser review. No package installs. Independent rendered vision + V1Designer verdict required before Main integration."
+}

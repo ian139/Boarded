@@ -1,0 +1,89 @@
+{
+  "packet": "web-profile",
+  "platform": "web",
+  "parent": "web",
+  "base_sha": "964882a47f13fcdb09efb5632f41e44328663faf",
+  "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/web-profile",
+  "ownership": {
+    "platform": "web",
+    "allow": [
+      "app/profile/page.tsx"
+    ],
+    "role": "Bounded correction of existing web V1 mechanics only"
+  },
+  "findings": [
+    {
+      "title": "Break the Profile posts effect's self-triggering fetch loop",
+      "body": "fetchUserPosts depends on userPosts, while the effect at lines 305\u2013309 depends on fetchUserPosts and calls it with true. Every response creates a new posts array, recreates the callback, and starts another first-page request; errors also assign a fresh empty array. The default posts tab continuously requests data, and loading older posts immediately triggers a reset to page one.",
+      "priority": 1,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/profile/page.tsx",
+      "line_start": 240,
+      "line_end": 246
+    },
+    {
+      "title": "Close private Profile inspectors when the viewer changes",
+      "body": "Logout clears the session arrays but not inspectingSession, and SessionDetailModal remains mounted solely according to that retained object. Opening a private session and signing out in another tab therefore leaves its notes, conditions, and loaded attempts visible. Direct account switches also skip this entire clearing branch, retaining the previous owner's private statistics and selections. Clear identity-scoped selections and require the current owner when rendering them.",
+      "priority": 1,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/profile/page.tsx",
+      "line_start": 96,
+      "line_end": 105
+    },
+    {
+      "title": "Finish pagination for saved routes and publishable session history",
+      "body": "Profile still requests only the first 30 saved routes and provides no continuation control, so older bookmarks remain inaccessible from Saved. Log likewise caps pastSessions at 20 without continuation, which also limits the only page that supplies the session publication callback. Complete these bounded lists rather than treating their first page as the full journal or ticklist.",
+      "priority": 2,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/profile/page.tsx",
+      "line_start": 285,
+      "line_end": 289
+    },
+    {
+      "title": "Load private progress independently of the selected Profile tab",
+      "body": "ownerPrivateAttempts is populated only when the user selects Private Sessions, but Best Send, Total Sends, and the grade distribution consume it on the other tabs as well. The default Posts tab therefore shows zero private sends and no private best, and the values change merely by visiting another tab. Fetch the owner's progress data when the profile loads rather than gating it behind session-history navigation.",
+      "priority": 2,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/profile/page.tsx",
+      "line_start": 305,
+      "line_end": 309
+    },
+    {
+      "title": "Rank private grades within their canonical grading systems",
+      "body": "The new private send labels are sorted with gradeToNumber, which accepts only V-scale values and returns -1 for every YDS or Font grade. For a sport-only climber with 5.10a and 5.13a sends, Best Send follows query order rather than difficulty; mixed disciplines are also collapsed into one incomparable ranking. Use the canonical system-aware grade/statistics utilities and keep bests separated by the appropriate system.",
+      "priority": 2,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/profile/page.tsx",
+      "line_start": 421,
+      "line_end": 429
+    },
+    {
+      "title": "Keep the flash-rate numerator and denominator in the same domain",
+      "body": "The numerator counts only public ascent ticks marked flashed, while the new denominator includes every private attempt. A climber with one flashed public tick has 100% until merely loading ten unrelated private attempts, which changes the same public flash rate to about 9%. Keep public tick flash rate separate from private session send statistics unless both numerator and denominator have matching supported semantics.",
+      "priority": 2,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/profile/page.tsx",
+      "line_start": 395,
+      "line_end": 399
+    },
+    {
+      "title": "Scope all Profile completions to the current profile target",
+      "body": "The profile lookup has a generation guard, but fetchUserPosts and this follow-error rollback do not. Following A, navigating to B, and receiving A's delayed failure restores A's entire otherProfile object beneath B's URL; a delayed posts response can likewise replace B's posts with A's. Apply target/identity guards to mutation rollback and post-loading completions, not only the initial identity query.",
+      "priority": 2,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/profile/page.tsx",
+      "line_start": 343,
+      "line_end": 349
+    },
+    {
+      "title": "Make private session inspection keyboard-operable",
+      "body": "Profile's only session-inspection action is an onClick on a div with no keyboard semantics, and its trailing Inspect Tries indicator is a span. Log's past-session Details action has the same structure. Keyboard and switch users therefore cannot reopen saved attempt history even though pointer users can; use semantic inspection controls without swallowing the separate Publish action.",
+      "priority": 2,
+      "confidence": 1,
+      "file_path": "/Users/ian/Projects/.boarded-v1-20260905-78720d/review-web/app/profile/page.tsx",
+      "line_start": 716,
+      "line_end": 719
+    }
+  ],
+  "shared_contract": "Existing canonical contract.json remains. Grade handoff adds gradeSystem alongside current routeId,routeName,discipline,grade. Explorer emits and Log consumes real canonical enum. Feed Beta navigates /explore?routeId=<id> rather than independent board fallback. SessionDetailModal optional onPublish(session) remains unchanged; Log loads selected session attempts by ID. Profile only consumes modal for private inspection. No backend API change. Designer V1Designer owns all UI interpretation."
+}

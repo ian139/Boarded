@@ -1,0 +1,37 @@
+{
+  "run": "landing-wall-20260903",
+  "issue": "td-a33414",
+  "repo": "/Users/ian/Projects/ClimbingApp",
+  "base_sha": "a86f0b0",
+  "target_snapshot": {
+    "path": "public/walls/3dWallTemplate.jpg",
+    "sha256": "f5919b0eddd75c35b6a7f39294e76b0a3a9b566eb83440f8fa7161843f240c8c"
+  },
+  "platform": "web",
+  "ios_impact": "none: public Next.js route, Three.js runtime, and GLB/WebP assets have no Swift consumer",
+  "status": "implementing",
+  "active_designer": "LandingDesigner",
+  "resources": [
+    {"id": "WallAssetDesigner", "kind": "isolated-agent-worktree", "path": "/Users/ian/.omp/wt/teaae11f95/m", "branch": "loop/landing-wall-20260903/asset", "owner": "Main", "status": "superseded"},
+    {"id": "WallAssetVisualFix", "kind": "isolated-agent-worktree", "path": "/Users/ian/.omp/wt/t611454032/m", "branch": "loop/landing-wall-20260903/asset-v2", "owner": "Main", "status": "active"},
+    {"id": "LandingLayoutDesigner", "kind": "isolated-agent-worktree", "path": "/Users/ian/.omp/wt/t1769ea35a/m", "branch": "loop/landing-wall-20260903/layout", "owner": "Main", "status": "superseded"},
+    {"id": "LandingGlassCorrection", "kind": "isolated-agent-worktree", "path": "/Users/ian/.omp/wt/t47d971f94/m", "branch": "loop/landing-wall-20260903/layout-glass", "owner": "Main", "status": "superseded"},
+    {"id": "GlassTintDesignerFix", "kind": "isolated-agent-worktree", "path": "/Users/ian/.omp/wt/t2844982e0/m", "branch": "loop/landing-wall-20260903/layout-tint", "owner": "Main", "status": "superseded"},
+    {"id": "LayoutGutterFix", "kind": "isolated-agent-worktree", "branch": "loop/landing-wall-20260903/layout-gutter", "owner": "Main", "status": "active"},
+    {"id": "WallRuntimeSurgeon", "kind": "isolated-agent-worktree", "path": "/Users/ian/.omp/wt/t7795672da/m", "branch": "loop/landing-wall-20260903/runtime", "owner": "Main", "status": "superseded"},
+    {"id": "RuntimeReviewFix", "kind": "isolated-agent-worktree", "path": "/Users/ian/.omp/wt/t162e1abb2/m", "branch": "loop/landing-wall-20260903/runtime-fix", "owner": "Main", "status": "complete"},
+    {"id": "landing-wall-20260903-composite", "kind": "git-worktree", "path": "/Users/ian/Projects/ClimbingApp-worktrees/landing-wall-20260903-composite", "branch": "loop/landing-wall-20260903/composite", "owner": "Main", "status": "active"},
+    {"id": "landing-wall-20260903-layout-review", "kind": "git-worktree", "path": "/Users/ian/Projects/ClimbingApp-worktrees/landing-wall-20260903-layout-review", "branch": "loop/landing-wall-20260903/layout-review", "owner": "Main", "status": "complete"},
+    {"id": "landing-wall-20260903-runtime-review", "kind": "git-worktree", "path": "/Users/ian/Projects/ClimbingApp-worktrees/landing-wall-20260903-runtime-review", "branch": "loop/landing-wall-20260903/runtime-review", "owner": "Main", "status": "complete"},
+    {"id": "landing-wall-20260903-asset-review", "kind": "git-worktree", "path": "/Users/ian/Projects/ClimbingApp-worktrees/landing-wall-20260903-asset-review", "branch": "loop/landing-wall-20260903/asset-review", "owner": "Main", "status": "allocated"}
+  ],
+  "structural_events": [
+    {"event": "STRUCTURAL_CHANGE", "interface": "worktree-ownership", "impact": "dispatch", "action": "stop-writing-and-report-worktree-branch"},
+    {"event": "STRUCTURAL_ACK", "agent": "LandingDesigner", "disposition": "no-impact", "reason": "read-only design review"},
+    {"event": "STRUCTURAL_ACK", "agent": "WallAssetDesigner", "disposition": "no-impact", "branch": "loop/landing-wall-20260903/asset"},
+    {"event": "STRUCTURAL_ACK", "agent": "LandingLayoutDesigner", "disposition": "no-impact", "branch": "loop/landing-wall-20260903/layout"},
+    {"event": "STRUCTURAL_ACK", "agent": "WallRuntimeSurgeon", "disposition": "resync-required", "original_branch": "main"},
+    {"event": "STRUCTURAL_ACK", "agent": "WallRuntimeSurgeon", "disposition": "no-impact", "branch": "loop/landing-wall-20260903/runtime"},
+    {"event": "STRUCTURAL_RESUME", "interface": "worktree-ownership", "action": "continue-on-dedicated-branches"}
+  ]
+}

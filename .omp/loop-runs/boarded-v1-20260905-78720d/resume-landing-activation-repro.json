@@ -1,0 +1,67 @@
+{
+  "before": {
+    "before": {
+      "scrollY": 3912,
+      "story": {
+        "x": 0,
+        "y": -3912,
+        "width": 390,
+        "height": 3782.921875,
+        "top": -3912,
+        "right": 390,
+        "bottom": -129.078125,
+        "left": 0
+      },
+      "anchor": {
+        "state": "poster",
+        "progress": "1.00000",
+        "targetProgress": "1.00000",
+        "opacity": "0",
+        "phase": "gone"
+      }
+    },
+    "after": {
+      "scrollY": 859,
+      "anchor": {
+        "state": "poster",
+        "progress": "0.41066",
+        "targetProgress": "0.41066",
+        "opacity": "0",
+        "phase": "gone"
+      },
+      "canvas": true
+    }
+  },
+  "after": {
+    "before": {
+      "state": "poster",
+      "progress": "1.00000",
+      "targetProgress": "1.00000",
+      "opacity": "0",
+      "phase": "gone"
+    },
+    "after": {
+      "state": "ready",
+      "progress": "0.41066",
+      "targetProgress": "0.41066",
+      "opacity": "1.0000",
+      "phase": "climb",
+      "hasAscent": "true",
+      "yaw": "0.00232",
+      "scale": "1.0000",
+      "ascent": "0.58010",
+      "clipTime": "6.9612"
+    }
+  },
+  "identity": {
+    "repo": "/Users/ian/Projects/ClimbingApp",
+    "branch": "loop/boarded-v1-20260905-78720d/landing",
+    "base_sha": "9a68ff18ffd612b21bfb5173a50b82ee7c35297e",
+    "head_sha": "32eb4262a13c60647077cef09897305535229704",
+    "diff_sha256": "0a911f0eb1d0096c8c9fd1827132f722c5d71edcd4c3b8b75bd3c6dbc950365e",
+    "packet_spec_sha256": "0f4cc03129ccfc030f7d0d33531ea801bacec285bcfaddd7c28d4ba21d8c261e",
+    "dependency_heads": {},
+    "target_snapshot_sha256": "b2764cce7de2a971eb7e20429aa43e8283fd88cef62dfa89c4d089764945ffba",
+    "confinement_sha256": "5e9dd81ed62697dfbee0e44e169d238127b4c0ae65fcc9a79b96dffdc75b6e01"
+  }
+}
