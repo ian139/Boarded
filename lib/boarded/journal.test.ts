@@ -101,6 +101,37 @@ describe('Domain validation: validateAttempt', () => {
     assert.equal(valid.date, undefined, 'Valid YYYY-MM-DD must pass');
   });
 
+  it('handles Gregorian leap, century, and year boundaries', () => {
+    const validDates = ['2024-02-29', '2000-02-29', '0100-02-28'];
+    for (const date of validDates) {
+      assert.equal(
+        validateAttempt({
+          routeId: 'redpoint-ridge',
+          date,
+          attempts: 1,
+          conditions: '',
+          notes: '',
+        }).date,
+        undefined,
+        `${date} should be accepted`
+      );
+    }
+
+    const invalidDates = ['1900-02-29', '0099-12-31'];
+    for (const date of invalidDates) {
+      assert.ok(
+        validateAttempt({
+          routeId: 'redpoint-ridge',
+          date,
+          attempts: 1,
+          conditions: '',
+          notes: '',
+        }).date,
+        `${date} should be rejected`
+      );
+    }
+  });
+
   it('enforces positive integer attempts bounded within 1..100', () => {
     assert.ok(
       validateAttempt({

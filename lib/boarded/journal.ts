@@ -257,17 +257,23 @@ export function validateAttempt(input: AttemptInput): Record<string, string> {
   } else if (!DATE_REGEX.test(dateStr)) {
     errors.date = 'Date must be formatted as YYYY-MM-DD.';
   } else {
-    const [yearStr, monthStr, dayStr] = dateStr.split('-');
-    const year = Number(yearStr);
-    const month = Number(monthStr);
-    const day = Number(dayStr);
-    const parsed = new Date(Date.UTC(year, month - 1, day));
-    if (
-      isNaN(parsed.getTime()) ||
-      parsed.getUTCFullYear() !== year ||
-      parsed.getUTCMonth() + 1 !== month ||
-      parsed.getUTCDate() !== day
-    ) {
+    const year =
+      (dateStr.charCodeAt(0) - 48) * 1000 +
+      (dateStr.charCodeAt(1) - 48) * 100 +
+      (dateStr.charCodeAt(2) - 48) * 10 +
+      (dateStr.charCodeAt(3) - 48);
+    const month = (dateStr.charCodeAt(5) - 48) * 10 + dateStr.charCodeAt(6) - 48;
+    const day = (dateStr.charCodeAt(8) - 48) * 10 + dateStr.charCodeAt(9) - 48;
+    const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+    const daysInMonth =
+      month === 2
+        ? leapYear
+          ? 29
+          : 28
+        : month === 4 || month === 6 || month === 9 || month === 11
+          ? 30
+          : 31;
+    if (year < 100 || day > daysInMonth) {
       errors.date = 'Invalid calendar date.';
     }
   }
