@@ -98,6 +98,17 @@ export function validateAndSanitizeData(data: unknown): JournalData | null {
     const conditions = typeof entryObj.conditions === 'string' ? entryObj.conditions : '';
     const notes = typeof entryObj.notes === 'string' ? entryObj.notes : '';
 
+    const attemptErrors = validateAttempt({
+      routeId: entryObj.routeId,
+      date: entryObj.date,
+      attempts: entryObj.attempts,
+      conditions,
+      notes,
+    });
+    if (Object.keys(attemptErrors).length > 0) {
+      return null;
+    }
+
     // 4. outcome: explicit union
     if (entryObj.outcome !== 'attempted' && entryObj.outcome !== 'sent') {
       return null;
@@ -123,7 +134,7 @@ export function validateAndSanitizeData(data: unknown): JournalData | null {
     const caption = typeof entryObj.caption === 'string' ? entryObj.caption : '';
 
     // Preserve accepted fields exactly without truncation or loss
-    const entry: Entry = {
+    entries.push({
       id: entryObj.id,
       routeId: entryObj.routeId,
       date: entryObj.date,
@@ -133,13 +144,7 @@ export function validateAndSanitizeData(data: unknown): JournalData | null {
       outcome: entryObj.outcome,
       published: entryObj.published,
       caption,
-    };
-    const attemptErrors = validateAttempt(entry);
-    if (Object.keys(attemptErrors).length > 0) {
-      return null;
-    }
-
-    entries.push(entry);
+    });
   }
 
   const savedRouteIds: string[] = [];
