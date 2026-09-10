@@ -434,9 +434,3 @@ body:has(.board-original.dark) [data-sonner-toaster] {
   --radius: 1rem;
 }
 
-/* Shared root BottomNav (dark-styled, /app links) is replaced by the
-   route-local historical replica; suppressed only while the board scope is
-   mounted — no shared file is edited. */
-body:has(.board-original) nav[aria-label='Primary navigation']:not(.board-nav) {
-  display: none !important;
-}

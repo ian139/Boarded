@@ -1,10 +1,57 @@
 'use client';
 
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
-import { SendDetail, RouteDetail, AttemptDetail } from '@/components/boarded/Details';
-import { LogAttemptForm, ShareFlow, ProfileScreen } from '@/components/boarded/LogFlow';
-import { ExploreScreen, ActivityScreen, ClimberProfile } from '@/components/boarded/Community';
+
+// Route-specific screens load per route (F10): the /app index no longer pays
+// for Details + LogFlow + Community in one chunk. `loading` mirrors the
+// Suspense fallback in app/app/[...screen]/page.tsx.
+const screenLoading = () => (
+  <div className="b-page" aria-busy="true">
+    <div className="b-panel text-center py-12">
+      <p className="b-muted text-sm">Loading climbing journal...</p>
+    </div>
+  </div>
+);
+
+const SendDetail = dynamic(
+  () => import('@/components/boarded/Details').then((m) => m.SendDetail),
+  { loading: screenLoading }
+);
+const RouteDetail = dynamic(
+  () => import('@/components/boarded/Details').then((m) => m.RouteDetail),
+  { loading: screenLoading }
+);
+const AttemptDetail = dynamic(
+  () => import('@/components/boarded/Details').then((m) => m.AttemptDetail),
+  { loading: screenLoading }
+);
+const LogAttemptForm = dynamic(
+  () => import('@/components/boarded/LogFlow').then((m) => m.LogAttemptForm),
+  { loading: screenLoading }
+);
+const ShareFlow = dynamic(
+  () => import('@/components/boarded/LogFlow').then((m) => m.ShareFlow),
+  { loading: screenLoading }
+);
+const ProfileScreen = dynamic(
+  () => import('@/components/boarded/LogFlow').then((m) => m.ProfileScreen),
+  { loading: screenLoading }
+);
+const ExploreScreen = dynamic(
+  () => import('@/components/boarded/Community').then((m) => m.ExploreScreen),
+  { loading: screenLoading }
+);
+const ActivityScreen = dynamic(
+  () => import('@/components/boarded/Community').then((m) => m.ActivityScreen),
+  { loading: screenLoading }
+);
+const ClimberProfile = dynamic(
+  () => import('@/components/boarded/Community').then((m) => m.ClimberProfile),
+  { loading: screenLoading }
+);
+
 import './flow.css';
 
 export interface FlowProps {

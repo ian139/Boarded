@@ -46,6 +46,22 @@ services:
       GOTRUE_DISABLE_SIGNUP: "${DISABLE_SIGNUP:-false}"
       GOTRUE_EXTERNAL_EMAIL_ENABLED: "${ENABLE_EMAIL_SIGNUP:-true}"
       GOTRUE_MAILER_AUTOCONFIRM: "${ENABLE_EMAIL_AUTOCONFIRM:-false}"
+      # Outgoing confirmation/recovery/invite mail. Empty SMTP_HOST makes GoTrue
+      # fall back to a no-op mail client: signups succeed but every email is
+      # silently discarded. SMTP_PORT defaults to 587 (GoTrue's own default).
+      GOTRUE_SMTP_ADMIN_EMAIL: "${SMTP_ADMIN_EMAIL:-}"
+      GOTRUE_SMTP_HOST: "${SMTP_HOST:-}"
+      GOTRUE_SMTP_PORT: "${SMTP_PORT:-587}"
+      GOTRUE_SMTP_USER: "${SMTP_USER:-}"
+      GOTRUE_SMTP_PASS: "${SMTP_PASS:-}"
+      GOTRUE_SMTP_SENDER_NAME: "${SMTP_SENDER_NAME:-}"
+      # Email action links are built as API_EXTERNAL_URL + <URL path>; the
+      # upstream default /verify would resolve outside /auth/v1/ and 404 at the
+      # gateway, so pin the gateway-prefixed path like the upstream env file.
+      GOTRUE_MAILER_URLPATHS_INVITE: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_CONFIRMATION: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_RECOVERY: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: /auth/v1/verify
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:9999/health"]
       interval: 5s

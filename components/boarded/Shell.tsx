@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useJournal } from '@/lib/boarded/store';
+import { getRouteTitle } from '@/lib/boarded/titles';
 
 interface NavItem {
   href: string;
@@ -59,19 +60,8 @@ const NAV_ITEMS: NavItem[] = [
   },
 ];
 
-function getRouteTitle(pathname: string): string {
-  if (!pathname || pathname === '/app') return 'Feed — Boarded';
-  if (pathname === '/app/explore') return 'Explore Routes — Boarded';
-  if (pathname === '/app/log') return 'Log Attempt — Boarded';
-  if (pathname === '/app/activity') return 'Activity — Boarded';
-  if (pathname === '/app/profile') return 'Profile & Journal — Boarded';
-  if (pathname.startsWith('/app/send/')) return 'Send Report — Boarded';
-  if (pathname.startsWith('/app/route/')) return 'Route Beta & Topo — Boarded';
-  if (pathname.startsWith('/app/attempt/')) return 'Attempt Details — Boarded';
-  if (pathname.startsWith('/app/share/')) return 'Share Send Card — Boarded';
-  if (pathname.startsWith('/app/climber/')) return 'Climber Profile — Boarded';
-  return 'Boarded — Climbing Journal';
-}
+// Route titles come from the shared map (lib/boarded/titles.ts) also used by
+// generateMetadata, so client navigation never discards dynamic server titles.
 
 interface FocusDescriptor {
   id?: string;
@@ -167,6 +157,15 @@ function resolveControlDescriptor(desc: FocusDescriptor, scope: HTMLElement): HT
   return null;
 }
 
+/** Focus the destination heading (accessible route-entry focus target). */
+function focusDestinationHeading(marker: HTMLElement): boolean {
+  const heading = marker.querySelector<HTMLElement>('h1');
+  if (!heading) return false; // Still waiting for heading in marker
+  heading.setAttribute('tabIndex', '-1');
+  heading.focus({ preventScroll: true });
+  return true;
+}
+
 export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const mainRef = useRef<HTMLElement>(null);
@@ -174,7 +173,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const userInteractedRef = useRef<boolean>(false);
   const locationFocusMapRef = useRef<Map<string, FocusDescriptor>>(new Map());
   const lastPathnameRef = useRef<string>(pathname);
-  const { initialize, error, retryStorage } = useJournal();
+  const initialize = useJournal((s) => s.initialize);
+  const error = useJournal((s) => s.error);
+  const retryStorage = useJournal((s) => s.retryStorage);
 
   useEffect(() => {
     initialize();
@@ -294,25 +295,14 @@ export function Shell({ children }: { children: React.ReactNode }) {
             return true;
           }
         }
-        // If no stored control or control not mounted, use destination h1
-        const heading = marker.querySelector<HTMLElement>('h1');
-        if (heading) {
-          heading.setAttribute('tabIndex', '-1');
-          heading.focus({ preventScroll: true });
-          return true;
-        }
-        return false; // Still waiting for heading in marker
+        if (!focusDestinationHeading(marker)) return false;
+        return true;
       }
 
       // Forward / standard navigation
       if (typeof window === 'undefined' || !window.location.hash) {
-        const heading = marker.querySelector<HTMLElement>('h1');
-        if (heading) {
-          heading.setAttribute('tabIndex', '-1');
-          heading.focus({ preventScroll: true });
-          return true;
-        }
-        return false; // Still waiting for heading in marker
+        if (!focusDestinationHeading(marker)) return false;
+        return true;
       }
 
       return false;

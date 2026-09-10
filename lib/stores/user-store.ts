@@ -299,7 +299,7 @@ export const useUserStore = create<UserState>()(
               full_name: currentUser.displayName,
               avatar_url: null,
               bio: null,
-              is_public: true,
+              home_area: null,
             })
             .select('*')
             .single();

@@ -10,9 +10,205 @@ import {
   type Entry,
   type AttemptInput,
 } from '@/lib/boarded/journal';
+import type { Route } from '@/lib/boarded/journal';
+import { useShallow } from 'zustand/react/shallow';
 import { useJournal } from '@/lib/boarded/store';
 
 const DRAFT_STORAGE_KEY = 'boarded-attempt-draft-v1';
+
+// Shared grapheme segmenter (F11): one instance reused by card-text wrapping
+// instead of a fresh Intl.Segmenter per word.
+const graphemeSegmenter =
+  typeof Intl !== 'undefined' && Intl.Segmenter
+    ? new Intl.Segmenter('en', { granularity: 'grapheme' })
+    : null;
+
+function graphemeLength(str: string): number {
+  if (graphemeSegmenter) return Array.from(graphemeSegmenter.segment(str)).length;
+  return Array.from(str).length;
+}
+
+function toSafeXml(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+// Unicode-safe word and grapheme wrapping to avoid splitting surrogate pairs or emojis
+function wrapTextUnicode(text: string, maxCharsPerLine = 56): string[] {
+  if (!text) return [];
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let currentLine = '';
+
+  const splitLongWord = (word: string): string[] => {
+    const parts: string[] = [];
+    // Same segmenter (or Array.from fallback) the length check uses, so
+    // splitting never disagrees with measuring grapheme boundaries.
+    const chars = graphemeSegmenter
+      ? Array.from(graphemeSegmenter.segment(word), (s) => s.segment)
+      : Array.from(word);
+    while (chars.length > maxCharsPerLine) {
+      parts.push(chars.splice(0, maxCharsPerLine).join(''));
+    }
+    if (chars.length > 0) {
+      parts.push(chars.join(''));
+    }
+    return parts;
+  };
+
+  for (const word of words) {
+    if (currentLine) {
+      const candidate = `${currentLine} ${word}`;
+      if (graphemeLength(candidate) <= maxCharsPerLine) {
+        currentLine = candidate;
+        continue;
+      }
+      lines.push(currentLine);
+    }
+    if (graphemeLength(word) > maxCharsPerLine) {
+      const parts = splitLongWord(word);
+      lines.push(...parts.slice(0, -1));
+      currentLine = parts[parts.length - 1] || '';
+    } else {
+      currentLine = word;
+    }
+  }
+
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+
+  return lines;
+}
+
+// Downloadable SVG result card: built only when the user clicks download (F11),
+// never on every caption keystroke.
+function buildResultCardSvg(
+  entry: Entry,
+  route: Route | null,
+  caption: string,
+  fontDataUrl: string
+): string {
+  const hasCaption = Boolean(caption && caption.trim().length > 0);
+  const captionLines = hasCaption ? wrapTextUnicode(caption, 56) : [];
+  const formattedCaptionLines = captionLines.map((line, idx) => {
+    const isFirst = idx === 0;
+    const isLast = idx === captionLines.length - 1;
+    const prefix = isFirst ? '&#x201C;' : '';
+    const suffix = isLast ? '&#x201D;' : '';
+    return `${prefix}${toSafeXml(line)}${suffix}`;
+  });
+
+  const captionStartY = 412;
+  const captionSvgText = formattedCaptionLines
+    .map((lineHtml, idx) => {
+      const y = captionStartY + idx * 22;
+      return `<text x="80" y="${y}" fill="#d1d5db" font-size="14" font-style="italic">${lineHtml}</text>`;
+    })
+    .join('\n  ');
+  const captionEndY = hasCaption ? captionStartY + captionLines.length * 22 : captionStartY;
+  const conditionsLines = wrapTextUnicode(entry.conditions || '', 56);
+  const conditionsY = conditionsLines.length > 0 ? (hasCaption ? captionEndY + 18 : captionStartY) : 0;
+  const conditionsEndY = conditionsLines.length > 0 ? conditionsY + conditionsLines.length * 18 : 0;
+  const captionBoxBottom = Math.max(585, conditionsEndY + 24, hasCaption ? captionEndY + 24 : 0);
+  const svgHeight = Math.max(700, captionBoxBottom + 85);
+  const footerY = svgHeight - 60;
+  const conditionsSvgText = conditionsLines.map((line, idx) => {
+    const prefix = idx === 0 ? 'Conditions: ' : '';
+    return `<text x="80" y="${conditionsY + idx * 18}" fill="#9ca3af" font-size="12">${prefix}${toSafeXml(line)}</text>`;
+  }).join('\n  ');
+
+  return `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 ${svgHeight}" width="600" height="${svgHeight}" style="background:#0A0B10; font-family:system-ui,-apple-system,sans-serif;">
+  <defs>
+    <style><![CDATA[
+      @font-face {
+        font-family: 'CormorantGaramond';
+        font-style: italic;
+        font-weight: 600;
+        src: url('${fontDataUrl}') format('truetype');
+      }
+    ]]></style>
+  </defs>
+
+  <!-- Background Canvas -->
+  <rect width="600" height="${svgHeight}" fill="#0A0B10" />
+  <rect x="24" y="24" width="552" height="${svgHeight - 48}" rx="16" fill="#171A22" stroke="#2A2F3A" stroke-width="2" />
+
+  <!-- Brand Mark Header -->
+  <text x="56" y="70" fill="#F4F2EB" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="800" letter-spacing="2">BOARDED CLIMBING JOURNAL</text>
+  <text x="544" y="70" fill="#32D583" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="700" text-anchor="end" letter-spacing="1">VERIFIED SEND</text>
+
+  <line x1="56" y1="90" x2="544" y2="90" stroke="#3A3F4A" stroke-width="1" />
+
+  <!-- Grade Display (Serif) -->
+  <text x="56" y="150" fill="#F4F2EB" font-family="CormorantGaramond,serif" font-size="52" font-weight="600" font-style="italic">
+    ${toSafeXml(route?.grade || '5.12')}
+  </text>
+
+  <!-- Route Title -->
+  <text x="56" y="195" fill="#F4F2EB" font-family="CormorantGaramond,serif" font-size="28" font-weight="600" font-style="italic">
+    ${toSafeXml(route?.name || entry.routeId)}
+  </text>
+
+  <!-- Crag & Attributes -->
+  <text x="56" y="225" fill="#9ca3af" font-family="system-ui,-apple-system,sans-serif" font-size="14">
+    ${toSafeXml(`${route?.crag || 'Outdoor Crag'} · ${route?.type || 'Sport'} · ${route?.height || '27 m'} · ${route?.rock || 'Limestone'}`)}
+  </text>
+
+  <!-- Status Shelf -->
+  <rect x="56" y="255" width="488" height="68" rx="8" fill="#12141C" stroke="#2A2F3A" />
+  <text x="76" y="285" fill="#9ca3af" font-family="system-ui,-apple-system,sans-serif" font-size="11" font-weight="700" letter-spacing="1">CLIMBER</text>
+  <text x="76" y="307" fill="#F4F2EB" font-family="system-ui,-apple-system,sans-serif" font-size="14" font-weight="600">Alex R.</text>
+  <text x="210" y="285" fill="#9ca3af" font-family="system-ui,-apple-system,sans-serif" font-size="11" font-weight="700" letter-spacing="1">ATTEMPTS</text>
+  <text x="210" y="307" fill="#F4F2EB" font-family="system-ui,-apple-system,sans-serif" font-size="14" font-weight="600">${entry.attempts} tries</text>
+  <text x="340" y="285" fill="#9ca3af" font-family="system-ui,-apple-system,sans-serif" font-size="11" font-weight="700" letter-spacing="1">DATE</text>
+  <text x="340" y="307" fill="#F4F2EB" font-family="system-ui,-apple-system,sans-serif" font-size="14" font-weight="600">${toSafeXml(entry.date)}</text>
+  <text x="470" y="285" fill="#32D583" font-family="system-ui,-apple-system,sans-serif" font-size="11" font-weight="700" letter-spacing="1">OUTCOME</text>
+  <text x="470" y="307" fill="#32D583" font-family="system-ui,-apple-system,sans-serif" font-size="14" font-weight="700">SENT</text>
+
+  <!-- Caption & Beta Notes -->
+  <rect x="56" y="345" width="488" height="${captionBoxBottom - 345}" rx="8" fill="#0F1118" stroke="#252A34" />
+  <text x="80" y="380" fill="#F4F2EB" font-family="system-ui,-apple-system,sans-serif" font-size="13" font-weight="700">CAPTION &amp; NOTES</text>
+  ${captionSvgText}
+  ${conditionsSvgText}
+
+  <!-- Footer Seal -->
+  <text x="300" y="${footerY}" fill="#6b7280" font-family="system-ui,-apple-system,sans-serif" font-size="11" text-anchor="middle">
+    Verified Local Record · Boarded Editorial Journal
+  </text>
+</svg>
+`.trim();
+}
+
+// Result-card font bytes as a data URL, fetched once per session (F11).
+let resultCardFontPromise: Promise<string> | null = null;
+
+async function fetchResultCardFontDataUrl(): Promise<string> {
+  const response = await fetch('/fonts/CormorantGaramond-SemiBoldItalic.ttf');
+  if (!response.ok) {
+    throw new Error(`Font request failed (${response.status})`);
+  }
+  const fontBlob = await response.blob();
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') resolve(reader.result);
+      else reject(new Error('Font data was not readable.'));
+    };
+    reader.onerror = () => reject(reader.error ?? new Error('Font data could not be read.'));
+    reader.readAsDataURL(fontBlob);
+  });
+}
+
+function loadResultCardFontDataUrl(): Promise<string> {
+  resultCardFontPromise ??= fetchResultCardFontDataUrl();
+  return resultCardFontPromise;
+}
 
 /* ==========================================================================
    Shared Reusable Icons
@@ -68,7 +264,8 @@ export interface LogAttemptFormProps {
 
 export function LogAttemptForm({ initialRouteId }: LogAttemptFormProps) {
   const router = useRouter();
-  const { recordAttempt } = useJournal();
+  // Selective subscription (F13).
+  const recordAttempt = useJournal((s) => s.recordAttempt);
 
   // Form input states
   const [routeId, setRouteId] = useState<string>(() => {
@@ -147,12 +344,16 @@ export function LogAttemptForm({ initialRouteId }: LogAttemptFormProps) {
   }, [initialRouteId]);
 
   // Save draft locally to sessionStorage only AFTER initial hydration
+  const draftClearedRef = useRef(false);
+
   useEffect(() => {
-    if (!isDraftHydrated) return;
+    if (!isDraftHydrated || draftClearedRef.current) return;
     try {
       if (typeof window !== 'undefined' && window.sessionStorage) {
-        const draft = { routeId, date, attempts, conditions, notes };
-        window.sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+        window.sessionStorage.setItem(
+          DRAFT_STORAGE_KEY,
+          JSON.stringify({ routeId, date, attempts, conditions, notes })
+        );
       }
     } catch (err: unknown) {
       // Storage failure surfaced without crash
@@ -196,7 +397,9 @@ export function LogAttemptForm({ initialRouteId }: LogAttemptFormProps) {
       return;
     }
 
-    // Clean up draft storage on successful submission
+    // Clean up draft storage on successful submission; the immediate draft
+    // writer must not resurrect the cleared draft afterwards.
+    draftClearedRef.current = true;
     try {
       if (typeof window !== 'undefined' && window.sessionStorage) {
         window.sessionStorage.removeItem(DRAFT_STORAGE_KEY);
@@ -473,9 +676,12 @@ export interface ShareFlowProps {
 }
 
 export function ShareFlow({ entryId }: ShareFlowProps) {
-  const { entries, publish, ready } = useJournal();
+  // Selective subscription (F13).
+  const { entries, publish, ready } = useJournal(
+    useShallow((s) => ({ entries: s.entries, publish: s.publish, ready: s.ready }))
+  );
   const entry = entries.find((e) => e.id === entryId);
-  const route = entry ? routes.find((r) => r.id === entry.routeId) : null;
+  const route = entry ? routes.find((r) => r.id === entry.routeId) ?? null : null;
 
   const [caption, setCaption] = useState(() =>
     entry?.published ? (entry.caption ?? '') : entry?.notes || 'Clean send on the project!'
@@ -616,192 +822,15 @@ export function ShareFlow({ entryId }: ShareFlowProps) {
     }
   };
 
-  // Construct self-contained, downloadable SVG result card
-  function toSafeXml(str: string): string {
-    if (!str) return '';
-    return str
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&apos;');
-  }
-
-  // Unicode-safe word and grapheme wrapping to avoid splitting surrogate pairs or emojis
-  function wrapTextUnicode(text: string, maxCharsPerLine = 56): string[] {
-    if (!text) return [];
-    const words = text.split(' ');
-    const lines: string[] = [];
-    let currentLine = '';
-
-    const getLength = (str: string): number => {
-      if (typeof Intl !== 'undefined' && Intl.Segmenter) {
-        const seg = new Intl.Segmenter('en', { granularity: 'grapheme' });
-        return Array.from(seg.segment(str)).length;
-      }
-      return Array.from(str).length;
-    };
-
-    const splitLongWord = (word: string): string[] => {
-      const parts: string[] = [];
-      let chars: string[];
-      if (typeof Intl !== 'undefined' && Intl.Segmenter) {
-        const seg = new Intl.Segmenter('en', { granularity: 'grapheme' });
-        chars = Array.from(seg.segment(word), (s) => s.segment);
-      } else {
-        chars = Array.from(word);
-      }
-      while (chars.length > maxCharsPerLine) {
-        parts.push(chars.splice(0, maxCharsPerLine).join(''));
-      }
-      if (chars.length > 0) {
-        parts.push(chars.join(''));
-      }
-      return parts;
-    };
-
-    for (const word of words) {
-      if (!currentLine) {
-        if (getLength(word) > maxCharsPerLine) {
-          const parts = splitLongWord(word);
-          lines.push(...parts.slice(0, -1));
-          currentLine = parts[parts.length - 1] || '';
-        } else {
-          currentLine = word;
-        }
-      } else {
-        const candidate = `${currentLine} ${word}`;
-        if (getLength(candidate) <= maxCharsPerLine) {
-          currentLine = candidate;
-        } else {
-          lines.push(currentLine);
-          if (getLength(word) > maxCharsPerLine) {
-            const parts = splitLongWord(word);
-            lines.push(...parts.slice(0, -1));
-            currentLine = parts[parts.length - 1] || '';
-          } else {
-            currentLine = word;
-          }
-        }
-      }
-    }
-
-    if (currentLine) {
-      lines.push(currentLine);
-    }
-
-    return lines;
-  }
-
-  const hasCaption = Boolean(caption && caption.trim().length > 0);
-  const captionLines = hasCaption ? wrapTextUnicode(caption, 56) : [];
-  const formattedCaptionLines = captionLines.map((line, idx) => {
-    const isFirst = idx === 0;
-    const isLast = idx === captionLines.length - 1;
-    const prefix = isFirst ? '&#x201C;' : '';
-    const suffix = isLast ? '&#x201D;' : '';
-    return `${prefix}${toSafeXml(line)}${suffix}`;
-  });
-
-  const captionStartY = 412;
-  const captionSvgText = formattedCaptionLines
-    .map((lineHtml, idx) => {
-      const y = captionStartY + idx * 22;
-      return `<text x="80" y="${y}" fill="#d1d5db" font-size="14" font-style="italic">${lineHtml}</text>`;
-    })
-    .join('\n  ');
-  const captionEndY = hasCaption ? captionStartY + captionLines.length * 22 : captionStartY;
-  const conditionsLines = wrapTextUnicode(entry.conditions || '', 56);
-  const conditionsY = conditionsLines.length > 0 ? (hasCaption ? captionEndY + 18 : captionStartY) : 0;
-  const conditionsEndY = conditionsLines.length > 0 ? conditionsY + conditionsLines.length * 18 : 0;
-  const captionBoxBottom = Math.max(585, conditionsEndY + 24, hasCaption ? captionEndY + 24 : 0);
-  const svgHeight = Math.max(700, captionBoxBottom + 85);
-  const footerY = svgHeight - 60;
-  const conditionsSvgText = conditionsLines.map((line, idx) => {
-    const prefix = idx === 0 ? 'Conditions: ' : '';
-    return `<text x="80" y="${conditionsY + idx * 18}" fill="#9ca3af" font-size="12">${prefix}${toSafeXml(line)}</text>`;
-  }).join('\n  ');
-
   const handleDownload = async () => {
     setDownloadError(null);
     setDownloadState('loading');
     try {
-      const response = await fetch('/fonts/CormorantGaramond-SemiBoldItalic.ttf');
-      if (!response.ok) {
-        throw new Error(`Font request failed (${response.status})`);
-      }
-      const fontBlob = await response.blob();
-      const fontDataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          if (typeof reader.result === 'string') resolve(reader.result);
-          else reject(new Error('Font data was not readable.'));
-        };
-        reader.onerror = () => reject(reader.error ?? new Error('Font data could not be read.'));
-        reader.readAsDataURL(fontBlob);
+      const fontDataUrl = await loadResultCardFontDataUrl().catch((error) => {
+        resultCardFontPromise = null; // allow a fresh fetch on the next attempt
+        throw error;
       });
-
-      const svgCardContent = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 ${svgHeight}" width="600" height="${svgHeight}" style="background:#0A0B10; font-family:system-ui,-apple-system,sans-serif;">
-  <defs>
-    <style><![CDATA[
-      @font-face {
-        font-family: 'CormorantGaramond';
-        font-style: italic;
-        font-weight: 600;
-        src: url('${fontDataUrl}') format('truetype');
-      }
-    ]]></style>
-  </defs>
-
-  <!-- Background Canvas -->
-  <rect width="600" height="${svgHeight}" fill="#0A0B10" />
-  <rect x="24" y="24" width="552" height="${svgHeight - 48}" rx="16" fill="#171A22" stroke="#2A2F3A" stroke-width="2" />
-
-  <!-- Brand Mark Header -->
-  <text x="56" y="70" fill="#F4F2EB" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="800" letter-spacing="2">BOARDED CLIMBING JOURNAL</text>
-  <text x="544" y="70" fill="#32D583" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="700" text-anchor="end" letter-spacing="1">VERIFIED SEND</text>
-
-  <line x1="56" y1="90" x2="544" y2="90" stroke="#3A3F4A" stroke-width="1" />
-
-  <!-- Grade Display (Serif) -->
-  <text x="56" y="150" fill="#F4F2EB" font-family="CormorantGaramond,serif" font-size="52" font-weight="600" font-style="italic">
-    ${toSafeXml(route?.grade || '5.12')}
-  </text>
-
-  <!-- Route Title -->
-  <text x="56" y="195" fill="#F4F2EB" font-family="CormorantGaramond,serif" font-size="28" font-weight="600" font-style="italic">
-    ${toSafeXml(route?.name || entry.routeId)}
-  </text>
-
-  <!-- Crag & Attributes -->
-  <text x="56" y="225" fill="#9ca3af" font-family="system-ui,-apple-system,sans-serif" font-size="14">
-    ${toSafeXml(`${route?.crag || 'Outdoor Crag'} · ${route?.type || 'Sport'} · ${route?.height || '27 m'} · ${route?.rock || 'Limestone'}`)}
-  </text>
-
-  <!-- Status Shelf -->
-  <rect x="56" y="255" width="488" height="68" rx="8" fill="#12141C" stroke="#2A2F3A" />
-  <text x="76" y="285" fill="#9ca3af" font-family="system-ui,-apple-system,sans-serif" font-size="11" font-weight="700" letter-spacing="1">CLIMBER</text>
-  <text x="76" y="307" fill="#F4F2EB" font-family="system-ui,-apple-system,sans-serif" font-size="14" font-weight="600">Alex R.</text>
-  <text x="210" y="285" fill="#9ca3af" font-family="system-ui,-apple-system,sans-serif" font-size="11" font-weight="700" letter-spacing="1">ATTEMPTS</text>
-  <text x="210" y="307" fill="#F4F2EB" font-family="system-ui,-apple-system,sans-serif" font-size="14" font-weight="600">${entry.attempts} tries</text>
-  <text x="340" y="285" fill="#9ca3af" font-family="system-ui,-apple-system,sans-serif" font-size="11" font-weight="700" letter-spacing="1">DATE</text>
-  <text x="340" y="307" fill="#F4F2EB" font-family="system-ui,-apple-system,sans-serif" font-size="14" font-weight="600">${toSafeXml(entry.date)}</text>
-  <text x="470" y="285" fill="#32D583" font-family="system-ui,-apple-system,sans-serif" font-size="11" font-weight="700" letter-spacing="1">OUTCOME</text>
-  <text x="470" y="307" fill="#32D583" font-family="system-ui,-apple-system,sans-serif" font-size="14" font-weight="700">SENT</text>
-
-  <!-- Caption & Beta Notes -->
-  <rect x="56" y="345" width="488" height="${captionBoxBottom - 345}" rx="8" fill="#0F1118" stroke="#252A34" />
-  <text x="80" y="380" fill="#F4F2EB" font-family="system-ui,-apple-system,sans-serif" font-size="13" font-weight="700">CAPTION &amp; NOTES</text>
-  ${captionSvgText}
-  ${conditionsSvgText}
-
-  <!-- Footer Seal -->
-  <text x="300" y="${footerY}" fill="#6b7280" font-family="system-ui,-apple-system,sans-serif" font-size="11" text-anchor="middle">
-    Verified Local Record · Boarded Editorial Journal
-  </text>
-</svg>
-`.trim();
+      const svgCardContent = buildResultCardSvg(entry, route, caption, fontDataUrl);
       const svgBlob = new Blob([svgCardContent], { type: 'image/svg+xml;charset=utf-8' });
       const objectUrl = URL.createObjectURL(svgBlob);
       try {
@@ -1019,6 +1048,7 @@ export function ShareFlow({ entryId }: ShareFlowProps) {
    ========================================================================== */
 
 export function ProfileScreen() {
+  // Selective subscription (F13).
   const {
     entries,
     savedRouteIds,
@@ -1027,7 +1057,17 @@ export function ProfileScreen() {
     restoreEntry,
     followingMaya,
     setFollowing,
-  } = useJournal();
+  } = useJournal(
+    useShallow((s) => ({
+      entries: s.entries,
+      savedRouteIds: s.savedRouteIds,
+      toggleSave: s.toggleSave,
+      deleteEntry: s.deleteEntry,
+      restoreEntry: s.restoreEntry,
+      followingMaya: s.followingMaya,
+      setFollowing: s.setFollowing,
+    }))
+  );
 
   const [activeTab, setActiveTab] = useState<'entries' | 'saved'>('entries');
 

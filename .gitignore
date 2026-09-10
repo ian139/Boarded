@@ -52,3 +52,10 @@ Thumbs.db
 __pycache__/
 *.pyc
 .todos/
+
+# Review scratch artifacts
+.review-scratch/
+
+# Supabase CLI local cache
+supabase/.temp/
+/.omp/loop-runs/repo-efficiency-20260909/

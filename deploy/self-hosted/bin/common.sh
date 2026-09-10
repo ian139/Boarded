@@ -307,7 +307,7 @@ valid_url_path() {
   fi
 }
 valid_origin() { valid_url_path "$1" ''; }
-MANAGED_ENV_VARS='POSTGRES_PASSWORD AUTHENTICATOR_DB_PASSWORD SUPABASE_AUTH_ADMIN_PASSWORD SUPABASE_STORAGE_ADMIN_PASSWORD SUPABASE_FUNCTIONS_ADMIN_PASSWORD PGBOUNCER_PASSWORD JWT_SECRET ANON_KEY SERVICE_ROLE_KEY API_PORT API_EXTERNAL_URL SITE_URL ADDITIONAL_REDIRECT_URLS JWT_EXPIRY DISABLE_SIGNUP ENABLE_EMAIL_SIGNUP ENABLE_EMAIL_AUTOCONFIRM PGRST_DB_SCHEMAS'
+MANAGED_ENV_VARS='POSTGRES_PASSWORD AUTHENTICATOR_DB_PASSWORD SUPABASE_AUTH_ADMIN_PASSWORD SUPABASE_STORAGE_ADMIN_PASSWORD SUPABASE_FUNCTIONS_ADMIN_PASSWORD PGBOUNCER_PASSWORD JWT_SECRET ANON_KEY SERVICE_ROLE_KEY API_PORT API_EXTERNAL_URL SITE_URL ADDITIONAL_REDIRECT_URLS JWT_EXPIRY DISABLE_SIGNUP ENABLE_EMAIL_SIGNUP ENABLE_EMAIL_AUTOCONFIRM PGRST_DB_SCHEMAS SMTP_ADMIN_EMAIL SMTP_HOST SMTP_PORT SMTP_USER SMTP_PASS SMTP_SENDER_NAME'
 env_error() { printf '%s\n' "$1" >&2; exit 1; }
 clear_managed_env() {
   for _name in $MANAGED_ENV_VARS; do
@@ -324,7 +324,19 @@ load_env_file() {
     case "$_name" in [0-9]*) env_error "Invalid env variable name: $_name";; esac
     case " $MANAGED_ENV_VARS " in *" $_name "*) ;; *) env_error "Unmanaged env variable name: $_name";; esac
     _value=${_line#*=}
-    case "$_value" in *[!A-Za-z0-9_.,:/-]*) env_error "Unsafe or unsupported value for $_name";; esac
+    # SMTP values are consumed only by Compose interpolation. The only parser
+    # delta is `@` for the two SMTP addresses (a From/credentials email cannot
+    # be written without it); every other SMTP name and all passwords keep the
+    # exact existing strict value charset. `$` (Compose variable expansion),
+    # whitespace, quotes, backticks, and shell metacharacters stay forbidden.
+    case "$_name" in
+      SMTP_ADMIN_EMAIL|SMTP_USER)
+        case "$_value" in *[!A-Za-z0-9_.,:/@-]*) env_error "Unsafe or unsupported value for $_name";; esac
+        ;;
+      *)
+        case "$_value" in *[!A-Za-z0-9_.,:/-]*) env_error "Unsafe or unsupported value for $_name";; esac
+        ;;
+    esac
     export "$_name=$_value"
   done < "$_file"
 }
@@ -348,6 +360,15 @@ validate_env() {
   [ "$API_PORT" -ge 1 ] && [ "$API_PORT" -le 65535 ] || env_error 'API_PORT out of range'
   valid_url_path "$API_EXTERNAL_URL" '/auth/v1' || env_error 'API_EXTERNAL_URL must be a valid HTTPS origin plus exactly /auth/v1 (HTTP loopback with an explicit valid port allowed)'
   valid_origin "$SITE_URL" || env_error 'SITE_URL must be a valid pathless HTTPS origin (HTTP loopback with an explicit valid port allowed)'
+  if [ -n "${SMTP_HOST:-}" ]; then
+    [ -n "${SMTP_ADMIN_EMAIL:-}" ] || env_error 'SMTP_ADMIN_EMAIL is required when SMTP_HOST is set'
+  fi
+  # Unconditional: Compose always interpolates GOTRUE_SMTP_PORT, even with an
+  # empty SMTP_HOST, and GoTrue rejects a non-integer port at startup.
+  # ${SMTP_PORT:-587} mirrors Compose exactly: absent and empty both default
+  # to 587; any other value must be a valid port.
+  case "${SMTP_PORT:-587}" in *[!0-9]*) env_error 'SMTP_PORT must be numeric';; esac
+  [ "${SMTP_PORT:-587}" -ge 1 ] && [ "${SMTP_PORT:-587}" -le 65535 ] || env_error 'SMTP_PORT out of range'
 }
 require_env() {
   [ -f "$ENV_FILE" ] && [ ! -L "$ENV_FILE" ] || env_error "Missing or unsafe $ENV_FILE"

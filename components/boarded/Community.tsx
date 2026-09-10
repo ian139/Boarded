@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { routes } from '@/lib/boarded/journal';
+import { useShallow } from 'zustand/react/shallow';
 import { useJournal } from '@/lib/boarded/store';
 
 interface VenueItem {
@@ -56,7 +57,10 @@ const VENUES: VenueItem[] = [
    ========================================================================== */
 
 export function ExploreScreen() {
-  const { savedRouteIds, toggleSave } = useJournal();
+  // Selective subscription (F13).
+  const { savedRouteIds, toggleSave } = useJournal(
+    useShallow((s) => ({ savedRouteIds: s.savedRouteIds, toggleSave: s.toggleSave }))
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'routes' | 'venues' | 'climbers'>('all');
 
@@ -372,7 +376,24 @@ export function ExploreScreen() {
    ========================================================================== */
 
 export function ActivityScreen() {
-  const { activityRead, markActivityRead, likedPostIds, followingMaya, comments, entries } = useJournal();
+  // Selective subscription (F13).
+  const {
+    activityRead,
+    markActivityRead,
+    likedPostIds,
+    followingMaya,
+    comments,
+    entries,
+  } = useJournal(
+    useShallow((s) => ({
+      activityRead: s.activityRead,
+      markActivityRead: s.markActivityRead,
+      likedPostIds: s.likedPostIds,
+      followingMaya: s.followingMaya,
+      comments: s.comments,
+      entries: s.entries,
+    }))
+  );
   const [readAnnouncement, setReadAnnouncement] = useState<string | null>(null);
   const [readError, setReadError] = useState<string | null>(null);
 
@@ -552,7 +573,10 @@ export interface ClimberProfileProps {
 }
 
 export function ClimberProfile({ climberId }: ClimberProfileProps) {
-  const { followingMaya, setFollowing } = useJournal();
+  // Selective subscription (F13).
+  const { followingMaya, setFollowing } = useJournal(
+    useShallow((s) => ({ followingMaya: s.followingMaya, setFollowing: s.setFollowing }))
+  );
   const isMaya = climberId === 'maya' || climberId === 'maya-k';
   const isAlex = climberId === 'alex';
 

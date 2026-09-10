@@ -1,11 +1,3 @@
-@font-face {
-  font-family: "Cormorant Garamond";
-  src: url("/fonts/CormorantGaramond-SemiBoldItalic.ttf") format("truetype");
-  font-weight: 600;
-  font-style: italic;
-  font-display: swap;
-}
-
 /* ==========================================================================
    Root Theme Container & Tokens
    ========================================================================== */

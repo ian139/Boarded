@@ -7,6 +7,7 @@ import {
   routes,
   mayaPost,
 } from '@/lib/boarded/journal';
+import { useShallow } from 'zustand/react/shallow';
 import { useJournal } from '@/lib/boarded/store';
 
 /* ==========================================================================
@@ -100,6 +101,7 @@ export interface SendDetailProps {
 }
 
 export function SendDetail({ postId }: SendDetailProps) {
+  // Selective subscription (F13): re-render only when the slices used here change.
   const {
     likedPostIds,
     toggleLike,
@@ -111,7 +113,20 @@ export function SendDetail({ postId }: SendDetailProps) {
     setFollowing,
     entries,
     ready,
-  } = useJournal();
+  } = useJournal(
+    useShallow((s) => ({
+      likedPostIds: s.likedPostIds,
+      toggleLike: s.toggleLike,
+      savedRouteIds: s.savedRouteIds,
+      toggleSave: s.toggleSave,
+      comments: s.comments,
+      addComment: s.addComment,
+      followingMaya: s.followingMaya,
+      setFollowing: s.setFollowing,
+      entries: s.entries,
+      ready: s.ready,
+    }))
+  );
 
   const isMaya = postId === 'maya-redpoint';
   const userEntry = !isMaya ? entries.find((e) => e.id === postId) : null;
@@ -647,7 +662,14 @@ export interface RouteDetailProps {
 }
 
 export function RouteDetail({ routeId }: RouteDetailProps) {
-  const { savedRouteIds, toggleSave, entries } = useJournal();
+  // Selective subscription (F13).
+  const { savedRouteIds, toggleSave, entries } = useJournal(
+    useShallow((s) => ({
+      savedRouteIds: s.savedRouteIds,
+      toggleSave: s.toggleSave,
+      entries: s.entries,
+    }))
+  );
   const route = routes.find((r) => r.id === routeId);
 
   if (!route) {
@@ -1037,7 +1059,14 @@ export interface AttemptDetailProps {
 }
 
 export function AttemptDetail({ entryId }: AttemptDetailProps) {
-  const { entries, markSent, ready } = useJournal();
+  // Selective subscription (F13).
+  const { entries, markSent, ready } = useJournal(
+    useShallow((s) => ({
+      entries: s.entries,
+      markSent: s.markSent,
+      ready: s.ready,
+    }))
+  );
   const entry = entries.find((e) => e.id === entryId);
   const route = entry ? routes.find((r) => r.id === entry.routeId) : null;
 

@@ -37,7 +37,10 @@ const navItems = [
 export function BottomNav() {
   const pathname = usePathname();
 
-  if (pathname === '/' || pathname?.startsWith('/app')) {
+  // Hidden on the journal (/app), the marketing landing (/), and /board —
+  // /board mounts its own historical replica nav (F1: hide lives here now,
+  // replacing the board-original.css body:has suppression).
+  if (pathname === '/' || pathname?.startsWith('/app') || pathname?.startsWith('/board')) {
     return null;
   }
 

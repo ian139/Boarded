@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useShallow } from 'zustand/react/shallow';
 import { useJournal } from '@/lib/boarded/store';
 import { mayaPost, routes, type Entry } from '@/lib/boarded/journal';
 import { Photo } from './Photo';
@@ -28,7 +29,20 @@ function AttemptBadge() {
   );
 }
 
+function FeedHeader() {
+  return (
+    <header className="b-page-header">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-[#F4F2EB]">Feed</h1>
+        <p className="b-muted text-xs mt-0.5">Dispatches from Stonegate &amp; the crag</p>
+      </div>
+      <span className="b-eyebrow">Autumn Season 2026</span>
+    </header>
+  );
+}
+
 export function Feed() {
+  // Selective subscription (F13): re-render only when the slices used here change.
   const {
     entries,
     savedRouteIds,
@@ -40,7 +54,20 @@ export function Feed() {
     retryStorage,
     toggleLike,
     toggleSave,
-  } = useJournal();
+  } = useJournal(
+    useShallow((s) => ({
+      entries: s.entries,
+      savedRouteIds: s.savedRouteIds,
+      likedPostIds: s.likedPostIds,
+      comments: s.comments,
+      followingMaya: s.followingMaya,
+      ready: s.ready,
+      error: s.error,
+      retryStorage: s.retryStorage,
+      toggleLike: s.toggleLike,
+      toggleSave: s.toggleSave,
+    }))
+  );
 
   const [announcement, setAnnouncement] = useState<string>('');
 
@@ -48,13 +75,7 @@ export function Feed() {
     return (
       <div className="w-full max-w-6xl mx-auto flex flex-col lg:flex-row items-start gap-8" aria-busy="true">
         <div className="b-page flex-1">
-          <header className="b-page-header">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-[#F4F2EB]">Feed</h1>
-              <p className="b-muted text-xs mt-0.5">Dispatches from Stonegate &amp; the crag</p>
-            </div>
-            <span className="b-eyebrow">Autumn Season 2026</span>
-          </header>
+          <FeedHeader />
           <div className="b-panel text-center py-16">
             <div className="inline-block animate-pulse text-stone-300 text-sm font-medium mb-2">
               Loading climbing journal...
@@ -70,13 +91,7 @@ export function Feed() {
     return (
       <div className="w-full max-w-6xl mx-auto flex flex-col lg:flex-row items-start gap-8">
         <div className="b-page flex-1">
-          <header className="b-page-header">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-[#F4F2EB]">Feed</h1>
-              <p className="b-muted text-xs mt-0.5">Dispatches from Stonegate &amp; the crag</p>
-            </div>
-            <span className="b-eyebrow">Autumn Season 2026</span>
-          </header>
+          <FeedHeader />
           <div className="b-panel text-center py-12">
             <h2 className="text-lg font-semibold text-[#FF5C5C] mb-2">Storage unavailable</h2>
             <p className="b-muted text-sm mb-6">{error}</p>
@@ -129,13 +144,7 @@ export function Feed() {
       {/* Primary Central Column */}
       <div className="b-page flex-1">
         {/* Page Header */}
-        <header className="b-page-header">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-[#F4F2EB]">Feed</h1>
-            <p className="b-muted text-xs mt-0.5">Dispatches from Stonegate &amp; the crag</p>
-          </div>
-          <span className="b-eyebrow">Autumn Season 2026</span>
-        </header>
+        <FeedHeader />
 
         {/* Empty State */}
         {isFeedEmpty ? (

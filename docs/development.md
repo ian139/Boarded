@@ -85,7 +85,7 @@ For a device build or run, select a development team/signing destination in Xcod
 <a id="supabase"></a>
 ## Supabase migrations and local harness
 
-The complete checked-in migration history runs from `supabase/migrations/001_initial_schema.sql` through `013_social_graph.sql`. Apply every migration **once, in numeric order** using the Supabase Dashboard SQL Editor, or use a separately linked Supabase CLI workflow that you maintain for the target project.
+The complete checked-in migration history runs from `supabase/migrations/001_initial_schema.sql` through `013_mobile_social.sql`. Apply every migration **once, in numeric order** using the Supabase Dashboard SQL Editor, or use a separately linked Supabase CLI workflow that you maintain for the target project.
 
 This repository does **not** contain `supabase/config.toml`. Consequently, do not claim that this checkout can run `supabase start`, and do not assume a local CLI workflow is configured here. A separately linked CLI may be used only when its project configuration and credentials are maintained outside this repository.
 
