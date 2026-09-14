@@ -1,9 +1,10 @@
 const versionParam = new URL(self.location.href).searchParams.get('v') || 'dev';
-const CACHE_NAME = `boarded-shell-${versionParam}`;
-const IMAGE_CACHE_NAME = `boarded-images-${versionParam}`;
-const SHELL_ROUTES = ['/', '/app', '/editor', '/profile', '/settings', '/login', '/signup'];
+const CACHE_NAME = `boarded-shell-standalone-v1-${versionParam}`;
+const IMAGE_CACHE_NAME = `boarded-images-standalone-v1-${versionParam}`;
+const SHELL_ROUTES = ['/', '/editor', '/profile', '/settings', '/login', '/signup'];
 const IMMUTABLE_ASSETS = new Set([
   '/manifest.json',
+  '/icon.png',
   '/apple-touch-icon.png',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
@@ -39,17 +40,6 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
   if (request.mode === 'navigate') {
-    const isAppIntent =
-      url.pathname === '/app' ||
-      url.pathname.startsWith('/app/') ||
-      url.pathname === '/editor' ||
-      url.pathname.startsWith('/editor/') ||
-      url.pathname === '/profile' ||
-      url.pathname.startsWith('/profile/') ||
-      url.pathname === '/settings' ||
-      url.pathname.startsWith('/settings/');
-    const fallbackRoute = isAppIntent ? '/app' : '/';
-
     event.respondWith(
       caches.open(CACHE_NAME).then((cache) =>
         fetch(request)
@@ -60,7 +50,7 @@ self.addEventListener('fetch', (event) => {
           .catch(() =>
             cache.match(request)
               .then((cached) => cached || cache.match(url.pathname))
-              .then((cached) => cached || cache.match(fallbackRoute))
+              .then((cached) => cached || cache.match('/'))
               .then((cached) => cached || Response.error())
           )
       )

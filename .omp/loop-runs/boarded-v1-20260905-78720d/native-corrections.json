@@ -1,9 +1,0 @@
-{
-  "packet": "native",
-  "attempt": "consolidated-correction",
-  "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/native",
-  "base_review": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/native-review.json",
-  "findings": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/native-findings.json",
-  "extra": "Resolve ALL 28 canonical findings, not only the 26-item author mapping. Explicitly include private session-history detail (not ownPosts or an inert heading) and coherent shared fixture relationships/bookmarks across Feed/Explore/Profile. Fix confirmed compiler and all stale test witnesses. Preserve real NSLock synchronization using safe synchronous scopes, never silence Sendable checks. Match true safe-area inset, Dynamic Type and selected VoiceOver state. No fabricated grade/terrain/unread or missing-target controls. Preserve exact Maya-first2h/Jordan-nextjustnow capture with honest clock injection; pause only timestamp mapping pending Main shared clarification, not other corrections. Do not add arbitrary spacing aliases merely to hide wrong layout; use contract geometry/existing scale or justified micro-spacing.",
-  "constraints": "Same owned allowlist. Skip builds/tests/lint/formatters while authoring. Main runs focused verification after complete handoff; no self approval, no integration. Return actual tool-derived head and a complete finding-to-change coverage map, not claims of unrun tests."
-}

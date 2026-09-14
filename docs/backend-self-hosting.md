@@ -1,8 +1,37 @@
 # Self-hosted backend operations
 
+This deployment remains independently operable for the standalone legacy Boarded route setter. The Boarded deployment identity and all SQL, security, backup, restore, and deployment implementation files are unchanged by the repository split. No database, Auth user, session, Storage object, or browser-local data migration has been performed.
+
+Retain the complete ordered migration chain, `001_initial_schema.sql` through `013_mobile_social.sql`, even though the journal and native clients are not shipped here. The legacy profile upsert writes `home_area`, which migration 013 adds. Do not trim or rewrite the historical chain, and do not apply already-recorded migrations again.
+
+## Setup and client configuration
+
+Run the relative `bin/...` commands in this guide from `deploy/self-hosted`. Docker with Compose, Python 3, OpenSSL, and a supported SHA-256 utility are prerequisites. For a **new, empty backend**:
+
+```sh
+cd deploy/self-hosted
+bin/generate-secrets .env
+```
+
+Edit that generated private file for the intended API, web origin, and SMTP relay before running:
+
+```sh
+bin/preflight
+bin/bootstrap empty
+bin/health
+```
+
+Secret generation refuses to overwrite an existing file. The helpers normally use `deploy/self-hosted/.env`; an explicit relative output such as `.env` is relative to the caller's working directory. Do not copy another deployment's secrets or use empty bootstrap as a data-transfer procedure.
+
+`SITE_URL` is the frontend origin. `API_EXTERNAL_URL` is the Auth service URL and must end in `/auth/v1`; the generated local defaults are `http://localhost:3000` and `http://localhost:8000/auth/v1`, respectively. The web client's `NEXT_PUBLIC_SUPABASE_URL` instead uses the API **base origin**, such as `http://localhost:8000`, without `/auth/v1`. Its `NEXT_PUBLIC_SUPABASE_ANON_KEY` is this deployment's public `ANON_KEY`. Never expose `SERVICE_ROLE_KEY` to the browser. For public use, configure the browser-reachable HTTPS API and frontend origins, publish the gateway through the intended reverse proxy/tunnel, configure mail, and rebuild the web client with the matching public values.
+
+A hosted Supabase project is an alternative; see the [hosted setup](development.md#supabase). The `bootstrap managed` command below consumes this tooling's authenticated backup format, not an arbitrary hosted-project export. Restore can rewrite backend Storage URLs in profile avatars, route wall images, and walls, but does not move browser-local state or rewrite previously copied frontend share links. See [persistence and origins](development.md#persistence-and-origins) before a cutover.
+
+## Operations and security
+
 The deployment under `deploy/self-hosted` runs five services: private PostgreSQL, Auth, PostgREST, Storage, and the loopback-only nginx gateway. Images are pinned by tag and digest. The gateway exposes only Auth, REST, Storage, and `/health`; it has no PostgreSQL metadata or administrative route. The gateway resolves the Auth, REST, and Storage service names through Docker's embedded DNS and re-resolves them dynamically, so recreated service containers are picked up without a gateway restart while the `/auth/v1/`, `/rest/v1/`, and `/storage/v1/` prefix stripping and the 404 allowlist are unchanged.
 
-The architecture is the five-service self-hosted Supabase data plane on PostgreSQL, not SQLite: the current web and iOS clients depend on GoTrue, PostgREST, Storage, and PostgreSQL RLS, grants, and `SECURITY DEFINER` contracts. Adopting SQLite would require replacing those server contracts and both clients. The initial target is one 2-vCPU, 4-GB RAM, 40-GB home PC or low-cost Hetzner node. Only loopback nginx is exposed, optionally published through Cloudflare Tunnel or a reverse proxy; PostgreSQL remains private. When load warrants, move Storage objects to S3-compatible storage first, then add backup/standby capacity and stateless API replicas.
+The architecture is the five-service self-hosted Supabase data plane on PostgreSQL, not SQLite: the legacy route-setting web client depends on GoTrue, PostgREST, Storage, and PostgreSQL RLS, grants, and `SECURITY DEFINER` contracts. Adopting SQLite would require replacing those server contracts and the client integration. The initial target is one 2-vCPU, 4-GB RAM, 40-GB home PC or low-cost Hetzner node. Only loopback nginx is exposed, optionally published through Cloudflare Tunnel or a reverse proxy; PostgreSQL remains private. When load warrants, move Storage objects to S3-compatible storage first, then add backup/standby capacity and stateless API replicas.
 
 Python 3 and OpenSSL are host prerequisites. Run `bin/generate-secrets .env` to create a mode-0600 environment file without printing secrets or exposing the JWT secret through process arguments or environment, then use `bin/preflight`. The environment file must be a non-symlink regular file owned by the current effective user with exact mode 0600, and every ancestor of its canonical path must be owned by the current effective user or root and not group- or world-writable; shared or foreign-owned locations are rejected before the file is read. Before the file is read, preflight clears every project-managed variable (`POSTGRES_PASSWORD`, `JWT_SECRET`, `ANON_KEY`, `SERVICE_ROLE_KEY`, `API_PORT`, `API_EXTERNAL_URL`, `SITE_URL`, and the other Compose-managed names) from the environment, so an ambient JWT, password, URL, or port value can never satisfy a missing key or override a file value. Preflight loads the environment file with a strict dotenv parser that accepts only `NAME=value` assignments whose names are shell-safe identifiers and whose values contain no shell metacharacters, command substitution, quoting, or redirection; any other line is rejected before it is sourced or evaluated. `require_env` then loads those exact validated file values into the invoking shell, so Compose interpolation uses only the validated environment file and never ambient overrides; unrelated environment such as `DOCKER_HOST` is preserved. Clean cutovers require freshly generated, independent URL-safe passwords for PostgreSQL and each of `authenticator`, `supabase_auth_admin`, `supabase_storage_admin`, `supabase_functions_admin`, and `pgbouncer`; preflight rejects missing, short, non-URL-safe, or duplicate values. Auth, PostgREST, and Storage receive only their own role credentials, never the PostgreSQL superuser password or another service's password. Both nginx and Storage enforce one fixed upload limit of 50 MiB; this limit is intentionally not configurable.
 

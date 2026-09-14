@@ -1,11 +1,13 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useBoardTheme, type BoardTheme } from '@/components/original-board/theme';
 import { useRoutesStore } from '@/lib/stores/routes-store';
 import { useWallsStore } from '@/lib/stores/walls-store';
 import { useUserStore } from '@/lib/stores/user-store';
 import { toast } from 'sonner';
-import { useRouter } from 'next/navigation';
 import {
   Dialog,
   DialogContent,
@@ -13,11 +15,11 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+} from '@/components/original-board/ui/dialog';
+import { Button } from '@/components/original-board/ui/button';
+import { Input } from '@/components/original-board/ui/input';
 import { Label } from '@/components/ui/label';
-import { useEffect, useState } from 'react';
+import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getWallStoragePathFromUrl, intersectStoragePaths } from '@/lib/utils/storage';
@@ -26,6 +28,7 @@ interface StorageFolderSize {
   totalBytes: number;
   latestTs: string | null;
 }
+
 const listWallStorageFolder = async (supabase: SupabaseClient, prefix: string) => {
   const items = [];
   let offset = 0;
@@ -44,9 +47,9 @@ const listWallStorageFolder = async (supabase: SupabaseClient, prefix: string) =
   return items;
 };
 
-
-export default function SettingsPage() {
+export default function BoardSettingsPage() {
   const router = useRouter();
+  const { theme, setTheme } = useBoardTheme();
   const routes = useRoutesStore((state) => state.routes);
   const walls = useWallsStore((state) => state.walls);
   const { user, isAuthenticated, logout, isModerator, login } = useUserStore();
@@ -54,7 +57,9 @@ export default function SettingsPage() {
   const [storageBytes, setStorageBytes] = useState<number | null>(null);
   const [storageLoading, setStorageLoading] = useState(false);
   const [storageError, setStorageError] = useState<string | null>(null);
-  const [storageByWall, setStorageByWall] = useState<Array<{ wallId: string; bytes: number; latestTs: string | null }>>([]);
+  const [storageByWall, setStorageByWall] = useState<
+    Array<{ wallId: string; bytes: number; latestTs: string | null }>
+  >([]);
   const [storageHistory, setStorageHistory] = useState<Array<{ ts: string; bytes: number }>>([]);
   const [showCleanup, setShowCleanup] = useState(false);
   const [isCleaning, setIsCleaning] = useState(false);
@@ -99,8 +104,10 @@ export default function SettingsPage() {
   };
 
   useEffect(() => {
-
-    const listFolderSize = async (supabase: SupabaseClient, folder: string): Promise<StorageFolderSize> => {
+    const listFolderSize = async (
+      supabase: SupabaseClient,
+      folder: string
+    ): Promise<StorageFolderSize> => {
       let totalBytes = 0;
       let latestTs: string | null = null;
       const items = await listWallStorageFolder(supabase, folder);
@@ -109,7 +116,10 @@ export default function SettingsPage() {
         if (!item.metadata) {
           const child = await listFolderSize(supabase, `${folder}/${item.name}`);
           totalBytes += child.totalBytes;
-          if (child.latestTs && (!latestTs || new Date(child.latestTs).getTime() > new Date(latestTs).getTime())) {
+          if (
+            child.latestTs &&
+            (!latestTs || new Date(child.latestTs).getTime() > new Date(latestTs).getTime())
+          ) {
             latestTs = child.latestTs;
           }
           continue;
@@ -118,7 +128,10 @@ export default function SettingsPage() {
         const size = item.metadata.size;
         if (typeof size === 'number') totalBytes += size;
         const updatedAt = item.updated_at || item.created_at;
-        if (updatedAt && (!latestTs || new Date(updatedAt).getTime() > new Date(latestTs).getTime())) {
+        if (
+          updatedAt &&
+          (!latestTs || new Date(updatedAt).getTime() > new Date(latestTs).getTime())
+        ) {
           latestTs = updatedAt;
         }
       }
@@ -168,9 +181,10 @@ export default function SettingsPage() {
         const last = history[history.length - 1];
         const lastTs = last ? new Date(last.ts).getTime() : 0;
         const twelveHours = 12 * 60 * 60 * 1000;
-        const nextHistory = (now.getTime() - lastTs > twelveHours)
-          ? [...history, { ts: nowIso, bytes: totalBytes }].slice(-30)
-          : history;
+        const nextHistory =
+          now.getTime() - lastTs > twelveHours
+            ? [...history, { ts: nowIso, bytes: totalBytes }].slice(-30)
+            : history;
         localStorage.setItem(historyKey, JSON.stringify(nextHistory));
         setStorageHistory(nextHistory);
       } catch (error) {
@@ -192,7 +206,6 @@ export default function SettingsPage() {
     const gb = mb / 1024;
     return `${gb.toFixed(2)} GB`;
   };
-
 
   const getCleanupCandidates = async () => {
     const supabase = createClient();
@@ -242,13 +255,16 @@ export default function SettingsPage() {
       return Date.now() - new Date(ts).getTime() > SEVEN_DAYS;
     };
 
-
     const collectStorageCandidates = async () => {
       const candidates: string[] = [];
-      const rootFolders = (await listWallStorageFolder(supabase, '')).filter((item) => !item.metadata);
+      const rootFolders = (await listWallStorageFolder(supabase, '')).filter(
+        (item) => !item.metadata
+      );
       for (const rootFolder of rootFolders) {
         const rootPrefix = rootFolder.name;
-        const wallFolders = (await listWallStorageFolder(supabase, rootPrefix)).filter((item) => !item.metadata);
+        const wallFolders = (await listWallStorageFolder(supabase, rootPrefix)).filter(
+          (item) => !item.metadata
+        );
         for (const wallFolder of wallFolders) {
           const wallPrefix = `${rootPrefix}/${wallFolder.name}`;
           const wallItems = await listWallStorageFolder(supabase, wallPrefix);
@@ -293,7 +309,11 @@ export default function SettingsPage() {
         if (error) throw error;
       }
 
-      toast.success(deletions.length > 0 ? `Deleted ${deletions.length} unused images` : 'No unused images found');
+      toast.success(
+        deletions.length > 0
+          ? `Deleted ${deletions.length} unused images`
+          : 'No unused images found'
+      );
       setCleanupPreview([]);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to clean up storage');
@@ -326,8 +346,8 @@ export default function SettingsPage() {
       <header className="page-header px-6 pt-5 pb-5">
         <div className="flex items-center gap-3">
           <Link
-            href="/app"
-            aria-label="Back to home"
+            href="/profile"
+            aria-label="Back to profile"
             className="size-10 rounded-xl bg-muted/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -341,7 +361,9 @@ export default function SettingsPage() {
       <main className="page-frame max-w-3xl px-6 py-8 space-y-10">
         {/* Account */}
         <section>
-          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">Account</h2>
+          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">
+            Account
+          </h2>
 
           {isAuthenticated && user ? (
             <div className="space-y-4">
@@ -369,13 +391,13 @@ export default function SettingsPage() {
           ) : (
             <div className="flex gap-3">
               <Link
-                href="/login"
+                href="/login?redirect=/settings"
                 className="flex-1 py-2.5 px-4 rounded-xl bg-muted/50 text-center text-sm font-medium hover:bg-muted transition-colors"
               >
                 Log In
               </Link>
               <Link
-                href="/signup"
+                href="/signup?redirect=/settings"
                 className="flex-1 py-2.5 px-4 rounded-xl bg-primary text-primary-foreground text-center text-sm font-medium hover:opacity-90 transition-opacity"
               >
                 Sign Up
@@ -384,20 +406,63 @@ export default function SettingsPage() {
           )}
         </section>
 
+        {/* Appearance */}
         <section>
-          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">Appearance</h2>
-          <div className="surface-panel flex items-center justify-between gap-4 p-4">
-            <div>
-              <p className="font-medium">Boarded dark</p>
-              <p className="mt-1 text-sm text-muted-foreground">A fixed high-contrast field palette for every device.</p>
-            </div>
-            <span className="text-sm font-semibold text-primary" aria-label="Dark appearance is active">Active</span>
+          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">
+            Appearance
+          </h2>
+          <div className="flex gap-2">
+            {[
+              {
+                value: 'light' as BoardTheme,
+                label: 'Light',
+                icon: (
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
+                  </svg>
+                ),
+              },
+              {
+                value: 'dark' as BoardTheme,
+                label: 'Dark',
+                icon: (
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+                  </svg>
+                ),
+              },
+              {
+                value: 'system' as BoardTheme,
+                label: 'Auto',
+                icon: (
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25" />
+                  </svg>
+                ),
+              },
+            ].map((option) => (
+              <button
+                key={option.value}
+                onClick={() => setTheme(option.value)}
+                className={cn(
+                  'flex-1 flex flex-col items-center gap-2 py-3 px-4 rounded-xl transition-all',
+                  theme === option.value
+                    ? 'bg-primary/10 text-primary'
+                    : 'bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                )}
+              >
+                {option.icon}
+                <span className="text-xs font-medium">{option.label}</span>
+              </button>
+            ))}
           </div>
         </section>
 
         {/* Data */}
         <section>
-          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">Data</h2>
+          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">
+            Data
+          </h2>
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
               <span className="font-medium text-foreground">{routes.length}</span> routes saved
@@ -417,7 +482,9 @@ export default function SettingsPage() {
             </div>
             {!storageLoading && !storageError && storageByWall.length > 0 && (
               <div className="rounded-xl border border-border/50 p-3 space-y-2">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Storage By Wall (size • last upload)</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Storage By Wall (size • last upload)
+                </p>
                 {storageByWall.map((entry) => {
                   const wallName = walls.find((w) => w.id === entry.wallId)?.name || entry.wallId;
                   return (
@@ -438,7 +505,9 @@ export default function SettingsPage() {
             )}
             {storageHistory.length > 1 && (
               <div className="rounded-xl border border-border/50 p-3 space-y-2">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Storage Trend</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Storage Trend
+                </p>
                 {storageHistory.slice(-7).map((entry) => (
                   <div key={entry.ts} className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">
@@ -475,9 +544,11 @@ export default function SettingsPage() {
         {/* Moderator */}
         {(isModerator || !isAuthenticated) && (
           <section>
-            <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">Admin</h2>
+            <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">
+              Admin
+            </h2>
             {isModerator ? (
-              <div className="flex items-center gap-2 text-sm text-primary">
+              <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
                 </svg>
@@ -496,7 +567,9 @@ export default function SettingsPage() {
 
         {/* Danger Zone */}
         <section>
-          <h2 className="text-xs font-medium text-destructive/70 uppercase tracking-wider mb-4">Danger Zone</h2>
+          <h2 className="text-xs font-medium text-destructive/70 uppercase tracking-wider mb-4">
+            Danger Zone
+          </h2>
           <button
             onClick={() => setShowClearData(true)}
             className="text-sm text-destructive hover:text-destructive/80 transition-colors"
@@ -564,9 +637,7 @@ export default function SettingsPage() {
                 disabled={modLoading}
               />
             </div>
-            {modError && (
-              <p className="text-sm text-destructive">{modError}</p>
-            )}
+            {modError && <p className="text-sm text-destructive">{modError}</p>}
           </div>
 
           <DialogFooter>
@@ -602,13 +673,17 @@ export default function SettingsPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Preview</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Preview
+            </p>
             <div className="max-h-48 overflow-y-auto rounded-lg border border-border/50 p-2 text-sm text-muted-foreground">
               {isPreviewLoading ? (
                 <p>Loading preview...</p>
               ) : cleanupPreview.length > 0 ? (
                 cleanupPreview.map((path) => (
-                  <div key={path} className="truncate">{path}</div>
+                  <div key={path} className="truncate">
+                    {path}
+                  </div>
                 ))
               ) : (
                 <p>No unused images older than 7 days.</p>

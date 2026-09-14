@@ -1,6 +1,0 @@
-{
-  "overall_correctness": "correct",
-  "explanation": "Source-approved for the refreshed canonical native-measured-verification-review.json tuple: base 6a501f9483d10e70effe54c1eef740ddcac17515, final head 9050381a75d050d6ebdff64072670e47a8005fde, diff SHA-256 18033e0fece5f78e2719775cf71dfb04e3cba0d7f49314ce814b238fb10a7a68. The correction compares actual revealed control and long-content frames at the same explicit Large Dynamic Type, preserves content assertions, and leaves fixtures and the upper-strip test unchanged. No actionable findings; read-only source inspection only, with no tests/builds or runtime/design approval.",
-  "confidence": 0.98,
-  "findings": []
-}

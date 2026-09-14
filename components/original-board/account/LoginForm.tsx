@@ -8,6 +8,7 @@ import { Button } from '@/components/original-board/ui/button';
 import { Input } from '@/components/original-board/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { boardRedirect } from '@/lib/utils';
 
 export function LoginForm() {
   const router = useRouter();
@@ -18,9 +19,8 @@ export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const redirectParam = searchParams.get('redirect');
-  const targetUrl =
-    redirectParam && redirectParam.startsWith('/board') ? redirectParam : '/board/profile';
+  const redirectParam = boardRedirect(searchParams.get('redirect'), '');
+  const targetUrl = redirectParam || '/profile';
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -51,8 +51,8 @@ export function LoginForm() {
   };
 
   const signupHref = redirectParam
-    ? `/board/signup?redirect=${encodeURIComponent(redirectParam)}`
-    : '/board/signup';
+    ? `/signup?redirect=${encodeURIComponent(redirectParam)}`
+    : '/signup';
 
   return (
     <form onSubmit={handleSubmit} className="auth-card w-full space-y-5 max-w-md">

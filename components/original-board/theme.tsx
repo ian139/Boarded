@@ -1,17 +1,10 @@
 'use client';
 
 /**
- * Route-local theme provider for /board, restored from the 668e334 baseline.
- *
- * The historical app used next-themes (attribute="class", defaultTheme="system",
- * enableSystem) at the root. The current root forces dark and must not be
- * mutated, so the board keeps its own equivalent: state initialized from
- * `prefers-color-scheme`, persisted to localStorage, applied as a scoped
- * wrapper class (`board-original dark`) that portal roots (dialogs, select
- * popovers) also carry so tokens resolve everywhere. Toasts stay consumed by
- * the single root-layout Toaster, which /board re-themes with route-presence
- * CSS (see board-original.css) — a second live Toaster would double-consume
- * the shared toast store (hidden timers dismissing visible toasts).
+ * Standalone board theme, persisted with the existing board preference key.
+ * The wrapper and portal roots carry the same scope so dialogs and selects
+ * resolve the warm palette consistently. A single root Toaster consumes the
+ * shared toast store; board-original.css supplies its matching theme.
  */
 
 import {

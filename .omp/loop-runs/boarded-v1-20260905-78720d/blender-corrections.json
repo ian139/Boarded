@@ -1,9 +1,0 @@
-{
-  "packet": "blender",
-  "attempt": "consolidated-correction",
-  "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/blender",
-  "base_review": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/blender-review.json",
-  "findings": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/blender-findings.json",
-  "extra": "Resolve VisionBlenderV1 visible toy/molded appearance finding, using V1Designer concrete shoulder/clothing/material/shading requirements communicated via Hub. Retain existing wall/holds/timber/14deg composition and12sec kinematic timings; refine existing climber silhouette/material differentiation, no new generated concept. All preview output ONLY registered own path design/blender/review-export/ (do not commit raw review PNGs); Main will preserve/move artifacts before cleanliness gate. Existing Main-owned Blender MCP9876 remains available; confirm owned scene path before writes. No other outside-allowlist output/services.",
-  "constraints": "Same owned allowlist. Skip builds/tests/lint/formatters while authoring. Main runs focused verification after complete handoff; no self approval, no integration. Return actual tool-derived head and a complete finding-to-change coverage map, not claims of unrun tests."
-}

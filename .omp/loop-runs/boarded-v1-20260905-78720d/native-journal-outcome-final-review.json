@@ -1,6 +1,0 @@
-{
-  "overall_correctness": "correct",
-  "explanation": "Approved for the bounded 87100a→4320918 color correction: changed outcome controls map Sent to success and Fell/Stopped to danger, including shared facts consumed by canonical preview and flattened JPEG export; neutral ACTIVE SESSION and prior source approval remain unchanged. No writes, execution checks, or rendered approval. Binding: review_kind=packet; packet=native-journal; platform=iOS; repo=/Users/ian/Projects/ClimbingApp; branch=loop/boarded-v1-20260905-78720d/native-journal; base_sha=a178c2c406f8d5b7d35a309471ba24d3775b49fd; head_sha=432091811ca886f5bb15e0f1e96c79ce8846cf03; diff_sha256=0c01cdc6bf2584fa6a034b1715e2e3f6d51001ceedac19bae06dd884d69694e6; packet_spec_sha256=fe915f1e21de30d4c5b5b912f5b210491a0e18c55578f04eed280bdae6201971; dependency_heads.native=a178c2c406f8d5b7d35a309471ba24d3775b49fd; target_snapshot_sha256=30f15f1829da3149b3784933e4f5170f6f5de58deefa9d475e49e82871cd6501; confinement_sha256=79e72eb51d521ba271e08cbed834b8b287f1bf0c63a64da46d71e4f075339e90.",
-  "confidence": 0.99,
-  "findings": []
-}

@@ -1,9 +1,0 @@
-{
-  "packet": "design",
-  "attempt": "consolidated-correction",
-  "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/design",
-  "base_review": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/design-review.json",
-  "findings": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/design-findings.json",
-  "extra": "Resolve ALL 3 ReviewDesignV1 findings: owner-only private progress/history and saved bookmarks versus public published-only aggregates; restore reduced-motion handling for all prescribed motion/loading and landing still; restore full exact E6-0 screenshot gate with known divider disclosure. Keep active design lane for peer reviews. No extra screen/design scope.",
-  "constraints": "Same owned allowlist. Skip builds/tests/lint/formatters while authoring. Main runs focused verification after complete handoff; no self approval, no integration. Return actual tool-derived head and a complete finding-to-change coverage map, not claims of unrun tests."
-}

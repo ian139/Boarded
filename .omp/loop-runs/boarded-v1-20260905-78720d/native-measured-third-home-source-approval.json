@@ -1,6 +1,0 @@
-{
-  "overall_correctness": "correct",
-  "explanation": "Approved source closure for 2150a323d428bb5f006fa20cf5c54023ef4e15f3 → d6b17522c281ba7f8cd6e22e228a3a2c29736c15; verified diff SHA-256 eac05a88045935086ed909723d764c5c50ae0e9a9bd20e224cd5404d9cfe7104, clean worktree, and unchanged two-file confinement. The previously reported finding is resolved by frame → compositingGroup → shadow → opacity → offset, with no remaining source findings. Runtime validation and designer approval remain separate; this recheck covered only the closure.",
-  "confidence": 0.96,
-  "findings": []
-}

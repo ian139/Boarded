@@ -8,7 +8,7 @@ interface AuthHeaderProps {
 
 export function AuthHeader({
   title,
-  backHref = '/board',
+  backHref = '/',
   backLabel = 'Back to home',
 }: AuthHeaderProps) {
   return (

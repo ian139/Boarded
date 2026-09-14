@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 
 const navItems = [
   {
-    href: '/board',
+    href: '/',
     label: 'Home',
     icon: (active: boolean) => (
       <svg className="w-6 h-6" fill={active ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 1.5}>
@@ -15,7 +15,7 @@ const navItems = [
     ),
   },
   {
-    href: '/board/editor',
+    href: '/editor',
     label: 'Create',
     icon: (active: boolean) => (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.5 : 1.5}>
@@ -24,7 +24,7 @@ const navItems = [
     ),
   },
   {
-    href: '/board/profile',
+    href: '/profile',
     label: 'Profile',
     icon: (active: boolean) => (
       <svg className="w-6 h-6" fill={active ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 1.5}>
@@ -44,8 +44,8 @@ export function BottomNav() {
       <div className="relative flex items-center justify-evenly px-2 py-2 pb-safe">
         {navItems.map((item) => {
           const isActive =
-            item.href === '/board'
-              ? pathname === '/board'
+            item.href === '/'
+              ? pathname === '/'
               : pathname === item.href || (pathname?.startsWith(item.href + '/') ?? false);
 
           return (

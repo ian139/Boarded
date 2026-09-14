@@ -1,8 +1,0 @@
-{
-  "verdict": "Mobile Landing model-visibility uncertainty closed; original four-image bounded visual pass retained.",
-  "supplement": "/Users/ian/Projects/.boarded-v1-20260905-78720d/evidence/composite-final-production/mobile-Landing-model.png",
-  "identity": "6487578; 390×844, DPR1, dark; recorded scrollY 641.",
-  "direct_observation": "The climbing wall, colored holds, triangular volumes, climber, and supporting feet are visibly rendered and fully contained horizontally. Figure captions and practice-wall description are visible. No model clipping or developer chrome is visible.",
-  "attribution": "Read composite-mobile-model-runtime.json. Scroll position, pre-scroll below-fold geometry, WebGL ready state, opacity, and overflow result are Main's recorded evidence; I inspected only the supplied image and record.",
-  "scope": "Supplement closes only mobile model visibility. Prior four-PNG findings and limitations remain otherwise unchanged. No motion/interaction verification, broader audit, native/Paper parity claim, or formal designer approval."
-}

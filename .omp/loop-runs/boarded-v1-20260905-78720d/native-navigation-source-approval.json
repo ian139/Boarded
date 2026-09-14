@@ -1,6 +1,0 @@
-{
-  "overall_correctness": "correct",
-  "explanation": "Source-approved for corrected head 2a16c2996f24ef357e0b2d1609a7b676bafd6d17: the increment from b62bc122ee8ed0ed9ff65185c82258b53b45131f resolves both findings through the inclusive RaisedButtonHitShape and conditional 11-point label boxes; prior SVG, routing, state, unread-indicator, and clearance approvals are preserved. Exact nine-field binding: repo=/Users/ian/Projects/ClimbingApp; branch=loop/boarded-v1-20260905-78720d/native-navigation-measured; base_sha=6a501f9483d10e70effe54c1eef740ddcac17515; head_sha=2a16c2996f24ef357e0b2d1609a7b676bafd6d17; diff_sha256=772e98db72d026070baa8706ea8f4ae1e7c6eef9a7430d88645442b9472c058b; packet_spec_sha256=99f251c2acc14ff355613e24ef55ae4cdd01c0ee5fb183571c4201dffc9f1ea7; dependency_heads.native_preview_base=6a501f9483d10e70effe54c1eef740ddcac17515; target_snapshot_sha256=11ccb384ea2a257eb3380180f22ce1d8eda52fd7eaa790b7a2fdbc7f8d7433ec; confinement_sha256=0ac5fb13524ab8cffa4c14f98e281ed1c46d2080665843e5912f459276354cf7. Confirmed clean isolated worktree, exact HEAD, sole changed path apps/ios/Boarded/Boarded/RootView.swift, matching canonical diff hash, and target-file SHA256 e44ce3b0d10ad2b4d24f8be73ccc96ff9fa685e4260a5eb9c91599cf1e6ac172; no tests/builds/runtime validation, Home review, or visual approval performed.",
-  "confidence": 0.98,
-  "findings": []
-}

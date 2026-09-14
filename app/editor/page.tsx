@@ -7,15 +7,15 @@ import { useRouter } from 'next/navigation';
 import { useHolds } from '@/lib/hooks/useHolds';
 import { HoldType, Route, V_GRADES, HOLD_COLORS, HOLD_BORDER_WIDTH, Hold } from '@boarded/shared/types';
 import { getNextHoldType, getNextHoldSize, pixelToPercentage } from '@boarded/shared/utils/holds';
-import { HoldMarker } from '@/components/wall/HoldMarker';
+import { HoldMarker } from '@/components/original-board/wall/HoldMarker';
 import { nanoid } from 'nanoid';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/original-board/ui/dialog';
+import { Button } from '@/components/original-board/ui/button';
+import { Input } from '@/components/original-board/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/original-board/ui/select';
 import { useWallsStore, DEFAULT_WALL } from '@/lib/stores/walls-store';
 import { useRoutesStore } from '@/lib/stores/routes-store';
 import { useUserStore } from '@/lib/stores/user-store';
@@ -26,14 +26,20 @@ export default function EditorPage() {
 
   useEffect(() => {
     let active = true;
-    const search = new URLSearchParams(window.location.search).get('edit');
-    queueMicrotask(() => {
-      if (!active) return;
-      setEditRouteId(search);
-      setParamsReady(true);
-    });
+    const updateSearch = () => {
+      const search = new URLSearchParams(window.location.search).get('edit');
+      queueMicrotask(() => {
+        if (!active) return;
+        setEditRouteId(search);
+        setParamsReady(true);
+      });
+    };
+
+    updateSearch();
+    window.addEventListener('popstate', updateSearch);
     return () => {
       active = false;
+      window.removeEventListener('popstate', updateSearch);
     };
   }, []);
 
@@ -80,7 +86,6 @@ function FullBleedCanvas({
   const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
   const isLongPressRef = useRef(false);
   const ignoreNextClickRef = useRef(false);
-
 
   useEffect(() => {
     setAspectRatio(metadataAspectRatio);
@@ -315,7 +320,7 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
       if (!canEditRoute(route)) {
         setEditResolution('error');
         toast.error('You do not have permission to edit this route');
-        router.push('/app');
+        router.push('/');
         return;
       }
       setEditingRoute(route);
@@ -343,12 +348,12 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
       }
       setEditResolution('error');
       toast.error('Route not found');
-      router.push('/app');
+      router.push('/');
     }).catch(() => {
       if (!active) return;
       setEditResolution('error');
       toast.error('Unable to load this route');
-      router.push('/app');
+      router.push('/');
     });
 
     return () => {
@@ -391,7 +396,7 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
         });
         if (!updated) throw new Error('Unable to update this route. Check your permissions and try again.');
         toast.success('Route updated!');
-        router.push('/app');
+        router.push('/');
       } else {
         const route: Route = {
           id: crypto.randomUUID(),
@@ -457,7 +462,6 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
   const previewSize = 16;
   const previewBorderWidth = HOLD_BORDER_WIDTH[selectedSize];
 
-
   const handleSaveDialogChange = (open: boolean) => {
     setShowSaveDialog(open);
 
@@ -488,7 +492,7 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
   }
 
   return (
-    <div className="relative w-full h-dvh overflow-hidden bg-background">
+    <div className="relative w-full h-dvh overflow-hidden bg-background select-none">
       {/* Full-bleed wall canvas */}
       <FullBleedCanvas
         wallImageWidth={canvasWall.image_width}
@@ -502,12 +506,12 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
       />
 
       {/* Header - translucent blurred overlay */}
-      <header className="fixed top-0 left-0 right-0 z-40 border-b border-divider bg-background px-4 pt-[max(env(safe-area-inset-top),1rem)] pb-4">
+      <header className="fixed top-0 left-0 right-0 z-40 px-4 pt-[max(env(safe-area-inset-top),1rem)] pb-4 bg-card/40 backdrop-blur-2xl border-b border-border/10">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link
-            href="/app"
+            href="/"
             aria-label="Back to home"
-            className="size-11 rounded-lg border border-border bg-card flex items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+            className="size-10 rounded-xl bg-card/60 backdrop-blur-xl border border-border/20 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-card/80 transition-colors"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
@@ -519,7 +523,7 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
               onClick={undo}
               disabled={!canUndo}
               aria-label="Undo"
-              className="size-11 rounded-lg border border-border bg-card flex items-center justify-center text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+              className="size-10 rounded-xl bg-card/60 backdrop-blur-xl border border-border/20 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-card/80 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
@@ -529,7 +533,7 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
               onClick={redo}
               disabled={!canRedo}
               aria-label="Redo"
-              className="size-11 rounded-lg border border-border bg-card flex items-center justify-center text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+              className="size-10 rounded-xl bg-card/60 backdrop-blur-xl border border-border/20 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-card/80 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 15l6-6m0 0l-6-6m6 6H9a6 6 0 000 12h3" />
@@ -547,7 +551,7 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
       </header>
 
       {/* Floating instructional hint pill */}
-      <p className="pointer-events-none fixed left-1/2 top-20 z-30 -translate-x-1/2 rounded-lg border border-border bg-card px-4 py-1.5 text-center text-xs font-medium text-muted-foreground">
+      <p className="pointer-events-none fixed left-1/2 top-20 z-30 -translate-x-1/2 rounded-full border border-border/20 bg-card/60 px-4 py-1.5 text-center text-xs font-medium text-muted-foreground backdrop-blur-xl">
         Tap the wall to place holds · tap a hold to change its type
       </p>
 
@@ -555,7 +559,7 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
       <div className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none">
         {/* Mobile: Bottom controls elevated above fixed bottom nav */}
         <div className="md:hidden pb-[calc(84px+env(safe-area-inset-bottom))] px-4 pointer-events-auto">
-          <div className="rounded-xl border border-border bg-card p-3">
+          <div className="bg-card/75 backdrop-blur-2xl border border-border/20 rounded-2xl p-3">
             <div className="flex items-center justify-between gap-2">
               <button
                 onClick={() => setSelectedType(getNextHoldType(selectedType))}
@@ -636,12 +640,12 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
         <div className="hidden md:block pb-safe p-4 pointer-events-auto">
           <div className="relative max-w-5xl mx-auto">
             <div className="absolute -top-10 left-1/2 -translate-x-1/2">
-              <span className="text-xs font-medium text-foreground bg-card border border-border px-3 py-1.5 rounded-lg">
+              <span className="text-xs font-medium text-foreground bg-card/80 backdrop-blur-xl border border-border/20 px-3 py-1.5 rounded-lg">
                 {holds.length} holds
               </span>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-2">
+            <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border/20 bg-card/80 backdrop-blur-2xl p-2">
               <div className="flex min-w-[22rem] flex-1 gap-1 max-lg:basis-full">
                 {holdTypes.map((type) => (
                   <button
@@ -735,7 +739,7 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
 
       {/* Save / Edit Dialog */}
       <Dialog open={showSaveDialog} onOpenChange={handleSaveDialogChange}>
-        <DialogContent className="border-border bg-card">
+        <DialogContent className="bg-card/95 backdrop-blur-2xl border-border/20">
           <DialogHeader>
             <DialogTitle>{isEditMode ? 'Update Route' : 'Save Route'}</DialogTitle>
           </DialogHeader>

@@ -1,9 +1,0 @@
-{
-  "packet": "landing",
-  "attempt": "consolidated-correction",
-  "worktree": "/Users/ian/Projects/.boarded-v1-20260905-78720d/landing",
-  "base_review": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/landing-review.json",
-  "findings": "/Users/ian/Projects/ClimbingApp/.omp/loop-runs/boarded-v1-20260905-78720d/landing-findings.json",
-  "extra": "Resolve both source-review findings (exact settled endpoint sampling despite tolerance; actual44px anchor targets every width) plus V1Designer actual SSR copy findings: remove visible ClimberAscent/Normalized scrub debug caption, canonical-role/security-boundary/color-rule jargon. Designer authors editorial copy. Preserve exact asset clip/path12sec and real forward/reverse behavior; no user-visible diagnostics. Browser gate remains required after fixes.",
-  "constraints": "Same owned allowlist. Skip builds/tests/lint/formatters while authoring. Main runs focused verification after complete handoff; no self approval, no integration. Return actual tool-derived head and a complete finding-to-change coverage map, not claims of unrun tests."
-}

@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { Route } from '@boarded/shared/types';
 import { calculateDisplayGrade, normalizeRouteGrades } from '@boarded/shared/utils/grades';
-import { RouteViewer } from '@/components/wall/RouteViewer';
+import { RouteViewer } from '@/components/original-board/wall/RouteViewer';
 import { DEFAULT_WALL } from '@/lib/stores/walls-store';
 
 export default function SharePage() {
@@ -64,7 +64,7 @@ export default function SharePage() {
   }, [token]);
 
   return (
-    <div className="app-shell min-h-dvh">
+    <div className="app-shell min-h-dvh pb-[calc(7rem+env(safe-area-inset-bottom))] md:pb-0">
       <header className="page-header px-4 md:px-8 pt-5 pb-4">
         <div className="flex items-center gap-3">
           <Link
@@ -95,6 +95,7 @@ export default function SharePage() {
             grade={calculateDisplayGrade(route.grade_v, route.ascents)}
             setterName={route.user_name}
             routeId={route.id}
+            route={route}
             comments={route.comments || []}
           />
         ) : null}

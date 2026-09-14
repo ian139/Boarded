@@ -10,40 +10,27 @@
   <a href="https://github.com/Ian139/Boarded/releases">Releases</a>
 </p>
 
-<img src="docs/assets/boarded-hero.webp" alt="Boarded route editor with colored route markers placed across a climbing wall" width="100%">
-
 </div>
 
 ## About
 
-Boarded is a climbing route-setting app for creating routes on real walls and keeping the climbing experience organized across web and iOS.
+Boarded is the standalone legacy climbing route setter: a Next.js web app for placing holds on wall photos, saving walls and routes, logging climbs, and sharing routes. This repository does not include the journal app, native iOS app, or 3D landing experience.
 
-### Core capabilities
+### Routes
 
-- Build routes visually by placing and editing holds on a wall.
-- Save walls and routes for later sessions.
-- Share routes with other climbers.
-- Keep route and climbing activity connected to a profile.
-
-## Apps
-
-| App | Location | Purpose |
-| --- | --- | --- |
-| Web | Repository root | Browser-based route setting and route management |
-| iOS | [`apps/ios/`](apps/ios/) | Native SwiftUI experience for iPhone and iPad |
+| Path | Purpose |
+| --- | --- |
+| `/` | Browse walls and routes |
+| `/editor` | Create and edit routes |
+| `/profile` | Identity, route statistics, and climb history |
+| `/settings` | Preferences and local data controls |
+| `/login` | Sign in |
+| `/signup` | Create an account |
+| `/share/[token]` | View a shared route |
 
 ## Local development
 
-> [!NOTE]
-> This repository documents source development, not hosted deployment. To use Boarded without a local environment, open the [live web app](https://climbing-app-ashy.vercel.app).
-
-### Requirements
-
-- Node.js 20.9 or newer and npm
-- Supabase project credentials for cloud-backed features
-- Xcode with the iOS 18 SDK for iOS development
-
-### Web quick start
+Use Node.js 22.18 or newer and npm; the utility tests use Node's built-in TypeScript support. Cloud-backed features require a Supabase-compatible backend.
 
 ```bash
 npm install
@@ -51,21 +38,24 @@ cp .env.local.example .env.local
 npm run dev
 ```
 
-Add your own Supabase credentials to `.env.local`. Never commit that file or a service-role key.
+Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in your local copy, then open <http://localhost:3000>. Only use a public anonymous/publishable key in the browser; never commit `.env.local` or expose a service-role key.
 
-### iOS
+## Backend and data continuity
 
-See the [iOS development guide](docs/development.md#ios) for project setup and configuration.
+Use a hosted Supabase project or the independent deployment tools in `deploy/self-hosted`. Follow the [development guide](docs/development.md#supabase) for the hosted setup and the [self-hosted backend guide](docs/backend-self-hosting.md) for operations.
+
+The complete SQL history, migrations 001–013, is retained unchanged. The legacy profile upsert writes `home_area`, introduced in migration 013; removing the later migrations would break that contract. Apply the whole chain once in numeric order on a new backend. This repository split performs no data migration and does not change the default Boarded deployment identity.
+
+Browser-local data and sessions do not automatically move to a different origin or backend. Keep the existing origin and backend for continuity; see [persistence and origins](docs/development.md#persistence-and-origins) before changing either. Shared links also depend on their original hostname and backend records.
 
 ## Documentation
 
-The [development guide](docs/development.md) is the single reference for:
-
-- [Web development](docs/development.md#web)
-- [iOS development](docs/development.md#ios)
-- [Supabase and migrations](docs/development.md#supabase)
+- [Web setup and commands](docs/development.md#web)
+- [Supabase migrations](docs/development.md#supabase)
+- [Persistence and origins](docs/development.md#persistence-and-origins)
 - [Validation](docs/development.md#validation)
 - [Repository map](docs/development.md#repository-map)
+- [Self-hosted backend operations](docs/backend-self-hosting.md)
 
 ## Releases
 

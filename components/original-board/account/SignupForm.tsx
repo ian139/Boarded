@@ -8,6 +8,7 @@ import { Button } from '@/components/original-board/ui/button';
 import { Input } from '@/components/original-board/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { boardRedirect } from '@/lib/utils';
 
 export function SignupForm() {
   const router = useRouter();
@@ -20,9 +21,8 @@ export function SignupForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const redirectParam = searchParams.get('redirect');
-  const targetUrl =
-    redirectParam && redirectParam.startsWith('/board') ? redirectParam : '/board/profile';
+  const redirectParam = boardRedirect(searchParams.get('redirect'), '');
+  const targetUrl = redirectParam || '/profile';
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -53,8 +53,8 @@ export function SignupForm() {
         toast.success('Check your email to confirm your account.');
         router.push(
           redirectParam
-            ? `/board/login?redirect=${encodeURIComponent(redirectParam)}`
-            : '/board/login'
+            ? `/login?redirect=${encodeURIComponent(redirectParam)}`
+            : '/login'
         );
       } else {
         toast.success('Account created!');
@@ -68,8 +68,8 @@ export function SignupForm() {
   };
 
   const loginHref = redirectParam
-    ? `/board/login?redirect=${encodeURIComponent(redirectParam)}`
-    : '/board/login';
+    ? `/login?redirect=${encodeURIComponent(redirectParam)}`
+    : '/login';
 
   return (
     <form onSubmit={handleSubmit} className="auth-card w-full space-y-5 max-w-md">

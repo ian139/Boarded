@@ -1,6 +1,0 @@
-{
-  "overall_correctness": "correct",
-  "explanation": "Source-only approved: commit f3dc913dc1d2f6f28f20293c6858514f9df5aae1; incremental file-diff SHA256 1e7c52a2d014538a4a5713d2e6ef6b899c4d05cc15e0dfd0b994fdd50fffec73. Keyboard clipping uses consistent screen coordinates, correctly converts to window-relative offsets, and retains real drag gestures inside unobscured bounds; Stopped/save, outcome, and navigation assertions remain unchanged, with no product-source changes. Reviewed native-096ed2a-vision-review.json for failure context; no execution or rendered approval is given.",
-  "confidence": 0.98,
-  "findings": []
-}
