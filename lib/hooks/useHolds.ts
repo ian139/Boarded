@@ -12,20 +12,22 @@ import {
 
 const STORAGE_KEY = 'boarded-draft';
 
-export function useHolds() {
-	const getStoredHolds = () => {
-		if (typeof window === 'undefined') return [];
-		const saved = localStorage.getItem(STORAGE_KEY);
-		if (!saved) return [];
-		try {
-			const parsed = JSON.parse(saved);
-			return Array.isArray(parsed) ? parsed : [];
-		} catch {
-			return [];
-		}
-	};
+function getStoredHolds(storageKey: string | null): Hold[] | null {
+	if (typeof window === 'undefined' || !storageKey) return null;
+	try {
+		const saved = localStorage.getItem(storageKey);
+		if (!saved) return null;
+		const parsed = JSON.parse(saved);
+		return Array.isArray(parsed) ? parsed : null;
+	} catch {
+		return null;
+	}
+}
 
-	const [holds, setHolds] = useState<Hold[]>(getStoredHolds);
+export function useHolds(initialStorageKey: string | null = STORAGE_KEY) {
+	const storageKeyRef = useRef(initialStorageKey);
+	const clearedDraftRef = useRef<Hold[] | null>(null);
+	const [holds, setHolds] = useState<Hold[]>(() => getStoredHolds(initialStorageKey) ?? []);
 	const [selectedType, setSelectedType] = useState<HoldType>('hand');
 	const [selectedSize, setSelectedSize] = useState<HoldSize>('medium');
 	const [showSequence, setShowSequence] = useState(false);
@@ -38,8 +40,8 @@ export function useHolds() {
 
 	// Save to localStorage whenever holds change
 	useEffect(() => {
-		if (typeof window !== 'undefined') {
-			localStorage.setItem(STORAGE_KEY, JSON.stringify(holds));
+		if (typeof window !== 'undefined' && storageKeyRef.current && holds !== clearedDraftRef.current) {
+			localStorage.setItem(storageKeyRef.current, JSON.stringify(holds));
 		}
 	}, [holds]);
 
@@ -121,12 +123,21 @@ export function useHolds() {
 		setHistoryMeta({ index: 0, length: 1 });
 	}, []);
 
+	// Editing starts without persistence until the route and account are resolved.
+	const loadDraft = useCallback((storageKey: string, fallbackHolds: Hold[]) => {
+		const storedHolds = getStoredHolds(storageKey);
+		storageKeyRef.current = storageKey;
+		setAllHolds(storedHolds ?? fallbackHolds);
+	}, [setAllHolds]);
+
 	// Clear draft from localStorage
 	const clearDraft = useCallback(() => {
-		if (typeof window !== 'undefined') {
-			localStorage.removeItem(STORAGE_KEY);
+		if (typeof window !== 'undefined' && storageKeyRef.current) {
+			localStorage.removeItem(storageKeyRef.current);
 		}
-		setHolds([]);
+		const emptyHolds: Hold[] = [];
+		clearedDraftRef.current = emptyHolds;
+		setHolds(emptyHolds);
 		historyRef.current = [[]];
 		historyIndexRef.current = 0;
 		setHistoryMeta({ index: 0, length: 1 });
@@ -177,7 +188,7 @@ export function useHolds() {
 		removeHold,
 		handleTap,
 		clearHolds,
-		setAllHolds,
+		loadDraft,
 		clearDraft,
 		undo,
 		redo,

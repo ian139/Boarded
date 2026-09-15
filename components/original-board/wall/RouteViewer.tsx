@@ -93,6 +93,16 @@ export function RouteViewer({
   const { routes, toggleLike, isLikedByUser, getLikeCount, updateRoute, syncLocalRoutes, fetchRouteById } = useRoutesStore();
   const { user, isModerator } = useUserStore();
   const currentUserId = user?.id;
+  const accountRevision = useRef(0);
+  useEffect(() => {
+    const unsubscribe = useUserStore.subscribe((state, previous) => {
+      if (state.user?.id !== previous.user?.id) accountRevision.current += 1;
+    });
+    return () => {
+      accountRevision.current += 1;
+      unsubscribe();
+    };
+  }, []);
 
   const updateViewportSize = useCallback(() => {
     const viewport = viewportRef.current;
@@ -451,6 +461,10 @@ export function RouteViewer({
   }, [routeForActions, routeId, toggleLike, currentUserId]);
 
   const handleShare = useCallback(async () => {
+    const revision = accountRevision.current;
+    const isCurrentAccount = () =>
+      accountRevision.current === revision && useUserStore.getState().user?.id === currentUserId;
+    if (!isCurrentAccount()) return;
     let shareRoute = routeForActions;
     if (!shareRoute) {
       toast.error('Unable to share this route.');
@@ -466,9 +480,11 @@ export function RouteViewer({
       try {
         await syncLocalRoutes();
       } catch {
+        if (!isCurrentAccount()) return;
         toast.error('Unable to sync this route before sharing');
         return;
       }
+      if (!isCurrentAccount()) return;
       const syncedRoute = useRoutesStore.getState().routes.find((candidate) => candidate.id === shareRouteId);
       if (!syncedRoute || syncedRoute.user_id === 'local-user' || hasPendingCreate(syncedRoute)) {
         toast.error('Unable to sync this route before sharing');
@@ -478,9 +494,11 @@ export function RouteViewer({
       try {
         verifiedRoute = await fetchRouteById(shareRouteId);
       } catch {
+        if (!isCurrentAccount()) return;
         toast.error('Unable to verify this route before sharing');
         return;
       }
+      if (!isCurrentAccount()) return;
       if (!verifiedRoute || verifiedRoute.user_id !== currentUserId || hasPendingCreate(verifiedRoute)) {
         toast.error('Unable to verify this route before sharing');
         return;
@@ -506,6 +524,7 @@ export function RouteViewer({
       } catch {
         persisted = false;
       }
+      if (!isCurrentAccount()) return;
       if (!persisted) {
         toast.error('Unable to persist a share link right now');
         return;
@@ -523,8 +542,10 @@ export function RouteViewer({
       }
       if (!navigator.clipboard) throw new Error('Clipboard unavailable');
       await navigator.clipboard.writeText(shareUrl);
+      if (!isCurrentAccount()) return;
       toast.success('Share link copied.');
     } catch (error) {
+      if (!isCurrentAccount()) return;
       if (error instanceof DOMException && error.name === 'AbortError') return;
       toast.error('Unable to share this route.');
     }
@@ -580,6 +601,7 @@ export function RouteViewer({
               }}
             >
               <Image
+                unoptimized
                 src={wallImageUrl}
                 alt="Climbing wall"
                 width={wallImageWidth || naturalSize.width}

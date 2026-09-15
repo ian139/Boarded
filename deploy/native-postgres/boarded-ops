@@ -1,0 +1,540 @@
+#!/usr/bin/python3
+"""Explicit, single-host Boarded operations. Ubuntu 26.04 / PostgreSQL 18."""
+import argparse
+import contextlib
+import fcntl
+import hashlib
+import json
+import os
+from pathlib import Path
+import pwd
+import re
+import secrets
+import shlex
+import shutil
+import stat
+import subprocess
+import sys
+import tempfile
+import time
+import urllib.parse
+import urllib.request
+
+BASE = Path('/srv/boarded')
+CONFIG = Path('/etc/boarded')
+STATE = Path('/var/lib/boarded')
+UNIT = 'boarded.service'
+SAFE_ENV = {'PATH': '/usr/bin:/bin', 'LANG': 'C.UTF-8', 'HOME': '/nonexistent'}
+
+
+def run(argv, *, data=None, env=None, user=None, capture=False, cwd=None):
+    def demote():
+        account = pwd.getpwnam(user)
+        os.initgroups(user, account.pw_gid)
+        os.setgid(account.pw_gid)
+        os.setuid(account.pw_uid)
+    return subprocess.run(argv, input=data, check=True, cwd=cwd,
+                          env={**SAFE_ENV, **(env or {})},
+                          preexec_fn=demote if user else None,
+                          stdout=subprocess.PIPE if capture else None,
+                          stderr=subprocess.PIPE if capture else None).stdout
+
+
+def require_root():
+    if os.geteuid() != 0:
+        raise ValueError('This operation requires the approved administrator/root helper; no sudo fallback is attempted.')
+
+
+def trusted(path, *, private=False):
+    path = Path(path).absolute()
+    for part in [*reversed(path.parents), path]:
+        s = part.lstat()
+        if stat.S_ISLNK(s.st_mode) or s.st_uid != 0 or s.st_mode & 0o022:
+            raise ValueError(f'Not a root-controlled, non-symlink path: {part}')
+    if private and stat.S_IMODE(path.stat().st_mode) != 0o600:
+        raise ValueError(f'Expected private mode 0600: {path}')
+    return path
+
+
+def new_file(path, data, mode=0o600):
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, mode)
+    with os.fdopen(fd, 'w') as stream:
+        stream.write(data)
+
+
+def env_text(values):
+    lines = []
+    for key, value in values.items():
+        text = str(value)
+        if any(char in text for char in ('\n', '\r', '\0')):
+            raise ValueError('Environment values must be single-line and contain no NUL')
+        escaped = text.replace('\\', '\\\\').replace('"', '\\"')
+        lines.append(f'{key}="{escaped}"\n')
+    return ''.join(lines)
+
+
+def load_env(path):
+    path = trusted(path, private=True)
+    values = {}
+    for line in path.read_text().splitlines():
+        if not line.strip() or line.lstrip().startswith('#'):
+            continue
+        key, separator, value = line.partition('=')
+        if not separator or not re.fullmatch(r'[A-Z][A-Z0-9_]*', key):
+            raise ValueError('Invalid environment assignment')
+        tokens = shlex.split(value, comments=False)
+        if len(tokens) != 1 or key in values:
+            raise ValueError(f'Invalid or duplicate environment value: {key}')
+        values[key] = tokens[0]
+    return values
+
+
+def sql(statement, database='postgres', capture=False):
+    output = run(['/usr/bin/psql', '-X', '--no-password', '-v', 'ON_ERROR_STOP=1',
+                  '-At', '-d', database], data=statement.encode(), user='postgres', capture=True)
+    return output if capture else None
+
+
+def quote(value):
+    return "'" + value.replace("'", "''") + "'"
+
+
+def sql_identifier(value):
+    return '"' + value.replace('"', '""') + '"'
+
+
+def runtime_grants():
+    query = """
+    SELECT COALESCE(json_agg(g), '[]'::json) FROM (
+      SELECT 'SCHEMA' AS kind, n.nspname AS schema, '' AS name, a.privilege_type AS privilege
+      FROM pg_namespace n CROSS JOIN LATERAL aclexplode(n.nspacl) a
+      WHERE a.grantee = (SELECT oid FROM pg_roles WHERE rolname='boarded_app')
+      UNION ALL
+      SELECT CASE WHEN c.relkind='S' THEN 'SEQUENCE' ELSE 'TABLE' END,
+             n.nspname, c.relname, a.privilege_type
+      FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+      CROSS JOIN LATERAL aclexplode(c.relacl) a
+      WHERE a.grantee = (SELECT oid FROM pg_roles WHERE rolname='boarded_app')
+    ) g;
+    """
+    return json.loads(sql(query, database='boarded', capture=True))
+
+
+def role(name, password):
+    return (f'CREATE ROLE {name} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE '
+            f'NOINHERIT NOREPLICATION NOBYPASSRLS PASSWORD {quote(password)};\n')
+
+
+def database_url(database, username, password):
+    return f'postgresql://{username}:{urllib.parse.quote(password, safe="")}@127.0.0.1:5432/{database}'
+
+
+@contextlib.contextmanager
+def lock():
+    require_root()
+    trusted(CONFIG)
+    fd = os.open(CONFIG / 'operation.lock', os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        yield
+    finally:
+        os.close(fd)
+
+
+def confirm(actual, expected):
+    if actual != expected:
+        raise ValueError(f'Explicit approval required: --confirm {expected}')
+
+
+def release_path(name):
+    if not re.fullmatch(r'[0-9a-f]{40}', name):
+        raise ValueError('Release ID must be the full Git commit SHA')
+    return BASE / 'releases' / name
+
+
+def active_release():
+    target = (BASE / 'current').resolve(strict=True)
+    if target.parent != BASE / 'releases':
+        raise ValueError('Active release points outside releases')
+    trusted(target)
+    trusted(target / '.installed')
+    return target
+
+
+def check_health():
+    for _ in range(30):
+        try:
+            with urllib.request.urlopen('http://127.0.0.1:3000/api/health', timeout=2) as response:
+                if response.status == 200:
+                    print('Boarded readiness returned HTTP 200')
+                    return
+        except (OSError, urllib.error.URLError):
+            pass
+        time.sleep(2)
+    raise ValueError('Boarded readiness failed; inspect journalctl -u boarded.service. No automatic database rollback.')
+
+
+def initialize(args):
+    require_root()
+    confirm(args.confirm, 'initialize-empty-boarded')
+    origin = urllib.parse.urlsplit(args.origin)
+    if origin.scheme != 'https' or not origin.hostname or origin.path not in ('', '/') or origin.query or origin.fragment or origin.username:
+        raise ValueError('Use the canonical HTTPS origin, without a path or credentials')
+    for path in (CONFIG, BASE, STATE, Path('/var/cache/boarded')):
+        if path.exists() or path.is_symlink():
+            raise ValueError(f'Refusing an existing target: {path}')
+    existing = sql("SELECT rolname FROM pg_roles WHERE rolname IN ('boarded_app','boarded_migrator'); SELECT datname FROM pg_database WHERE datname='boarded';", capture=True)
+    if existing.strip():
+        raise ValueError('Boarded database or roles already exist; inspect them, never overwrite')
+    for name in ('boarded', 'boarded-migrate', 'boarded-restore'):
+        try:
+            pwd.getpwnam(name)
+        except KeyError:
+            continue
+        raise ValueError(f'Account {name} already exists; inspect ownership before provisioning')
+    for name in ('boarded', 'boarded-migrate', 'boarded-restore'):
+        run(['/usr/sbin/useradd', '--system', '--user-group', '--no-create-home', '--home-dir', '/nonexistent', '--shell', '/usr/sbin/nologin', name])
+    for path, mode in ((CONFIG, 0o700), (BASE, 0o755), (BASE / 'releases', 0o755),
+                       (STATE, 0o755), (STATE / 'uploads', 0o700),
+                       (STATE / 'restore', 0o711), (Path('/var/cache/boarded'), 0o700)):
+        path.mkdir(mode=mode)
+        os.chmod(path, mode)
+    account = pwd.getpwnam('boarded')
+    for path in (STATE / 'uploads', Path('/var/cache/boarded')):
+        os.chown(path, account.pw_uid, account.pw_gid)
+    app_password, migration_password = secrets.token_urlsafe(36), secrets.token_urlsafe(36)
+    runtime = {
+        'DATABASE_URL': database_url('boarded', 'boarded_app', app_password),
+        'APP_ORIGIN': args.origin.rstrip('/'),
+        'BETTER_AUTH_SECRET': secrets.token_urlsafe(48),
+        'UPLOAD_DIR': str(STATE / 'uploads'),
+        'SMTP_HOST': 'configure-a-real-relay-before-starting', 'SMTP_PORT': '587',
+        'SMTP_SECURE': 'false', 'SMTP_USER': 'configure-relay-user',
+        'SMTP_PASSWORD': 'configure-relay-password', 'SMTP_FROM': 'configure-verified-sender',
+    }
+    new_file(CONFIG / 'runtime.env', env_text(runtime))
+    new_file(CONFIG / 'migration.env', env_text({'DATABASE_MIGRATION_URL': database_url('boarded', 'boarded_migrator', migration_password)}))
+    sql(role('boarded_migrator', migration_password) + role('boarded_app', app_password))
+    sql('CREATE DATABASE boarded OWNER boarded_migrator; REVOKE ALL ON DATABASE boarded FROM PUBLIC; GRANT CONNECT ON DATABASE boarded TO boarded_app;')
+    sql('REVOKE CREATE ON SCHEMA public FROM PUBLIC;', database='boarded')
+    print('Empty database and private configuration created. Configure SMTP, build/install, migrate, and install reviewed units before starting. Partial failures require administrator inspection; never delete existing data to retry.')
+
+
+def build(args):
+    if os.geteuid() == 0:
+        raise ValueError('Build as an unprivileged deployment account, never root')
+    if sys.platform != 'linux':
+        raise ValueError('Build on Linux for the deployment architecture, not macOS')
+    node_version = run(['/usr/bin/node', '--version'], capture=True).decode().strip()
+    version = re.fullmatch(r'v([0-9]+)\.([0-9]+)\.([0-9]+)', node_version)
+    if not version or int(version[1]) != 22 or int(version[2]) < 18:
+        raise ValueError('Use the installed supported Node22 release, version 22.18 or newer')
+    source, destination = Path(args.source).resolve(strict=True), Path(args.destination).absolute()
+    if destination.exists() or destination.is_symlink():
+        raise ValueError('Build destination must not exist')
+    commit = run(['git', 'rev-parse', 'HEAD'], cwd=source, capture=True).decode().strip()
+    if not re.fullmatch(r'[0-9a-f]{40}', commit):
+        raise ValueError('Expected a complete Git commit')
+    # Clone only committed state; local uncommitted secrets/build products are excluded.
+    run(['git', 'clone', '--no-hardlinks', '--no-checkout', str(source), str(destination)])
+    run(['git', 'checkout', '--detach', commit], cwd=destination)
+    tracked = run(['git', 'ls-files', '-z'], cwd=destination, capture=True).decode().split('\0')
+    if any(Path(p).name.startswith('.env') and not p.endswith('.example') for p in tracked if p):
+        raise ValueError('Refusing a release containing a tracked private environment file')
+    env = {'HOME': str(Path.home()), 'NEXT_PUBLIC_BUILD_ID': commit}
+    run(['npm', 'ci'], cwd=destination, env=env)
+    run(['npm', 'run', 'build'], cwd=destination, env=env)
+    standalone = destination / '.next/standalone'
+    if not (standalone / 'server.js').is_file():
+        raise ValueError('Build must produce .next/standalone/server.js')
+    shutil.copytree(destination / 'public', standalone / 'public', dirs_exist_ok=True)
+    shutil.copytree(destination / '.next/static', standalone / '.next/static', dirs_exist_ok=True)
+    # Replace only this newly built release's disposable cache with the fixed runtime cache.
+    cache = standalone / '.next/cache'
+    if cache.is_symlink():
+        raise ValueError('Unexpected cache symlink in build')
+    if cache.exists():
+        shutil.rmtree(cache)
+    cache.symlink_to('/var/cache/boarded')
+    new_file(destination / 'release.json', json.dumps({'commit': commit, 'node': node_version,
+             'platform': sys.platform, 'machine': os.uname().machine}, indent=2) + '\n', 0o644)
+    print(f'Built {commit}; source includes migration runner/dependencies. Review and install with install-release.')
+
+
+def install(args):
+    with lock():
+        source = Path(args.source).resolve(strict=True)
+        meta = json.loads((source / 'release.json').read_text())
+        if meta.get('platform') != 'linux' or meta.get('machine') != os.uname().machine:
+            raise ValueError('Release must be built for this Linux architecture')
+        if meta['node'].split('.')[0] != run(['/usr/bin/node', '--version'], capture=True).decode().strip().split('.')[0]:
+            raise ValueError('Build/runtime Node major versions differ')
+        destination = release_path(meta['commit'])
+        confirm(args.confirm, f'install-{meta["commit"]}')
+        if destination.exists() or destination.is_symlink():
+            raise ValueError('Immutable release already exists; never overwrite it')
+        trusted(destination.parent)
+        # Keep the copied tree inaccessible until ownership and link validation finish.
+        stage = Path(tempfile.mkdtemp(prefix='.install-', dir=destination.parent))
+        payload = stage / 'release'
+        shutil.copytree(source, payload, symlinks=True, ignore=shutil.ignore_patterns('.git'))
+        for current, dirs, files in os.walk(payload, followlinks=False):
+            os.chown(current, 0, 0)
+            os.chmod(current, 0o755)
+            for name in dirs + files:
+                path = Path(current) / name
+                os.chown(path, 0, 0, follow_symlinks=False)
+                if path.is_symlink():
+                    target = Path(os.readlink(path))
+                    if path.relative_to(payload) == Path('.next/standalone/.next/cache') and str(target) == '/var/cache/boarded':
+                        continue
+                    if target.is_absolute() or not path.resolve(strict=True).is_relative_to(payload):
+                        raise ValueError(f'Release dependency escapes its immutable tree: {path.relative_to(payload)}')
+                else:
+                    os.chmod(path, 0o755 if path.is_dir() or path.stat().st_mode & 0o111 else 0o644)
+        if json.loads((payload / 'release.json').read_text()) != meta:
+            raise ValueError('Source release metadata changed during installation')
+        if not (payload / '.next/standalone/server.js').is_file():
+            raise ValueError('Standalone server missing')
+        new_file(payload / '.installed', meta['commit'] + '\n', 0o644)
+        os.rename(payload, destination)
+        stage.rmdir()
+        print(f'Installed immutable {destination}; not migrated or activated')
+
+
+def migrate(args):
+    confirm(args.confirm, f'migrate-{args.release}')
+    with lock():
+        release = trusted(release_path(args.release))
+        trusted(release / '.installed')
+        # An explicit stop cancels pending automatic restarts as well as running processes.
+        run(['/usr/bin/systemctl', 'stop', UNIT])
+        run(['/usr/bin/npm', 'run', 'db:migrate'], cwd=release,
+            env=load_env(CONFIG / 'migration.env'), user='boarded-migrate')
+
+
+def activate(args):
+    confirm(args.confirm, f'activate-{args.release}')
+    with lock():
+        release = trusted(release_path(args.release))
+        trusted(release / '.installed')
+        load_env(CONFIG / 'runtime.env')
+        current = BASE / 'current'
+        if current.exists() and not current.is_symlink():
+            raise ValueError('Refusing to replace a non-symlink current path')
+        link = BASE / 'current.next'
+        if link.exists() or link.is_symlink():
+            raise ValueError('Stale current.next path; inspect before retry')
+        link.symlink_to(release)
+        os.replace(link, BASE / 'current')
+        run(['/usr/bin/systemctl', 'restart', UNIT])
+        check_health()
+
+
+def digest(path):
+    checksum = hashlib.sha256()
+    with path.open('rb') as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b''):
+            checksum.update(chunk)
+    return checksum.hexdigest()
+
+
+def inventory(root):
+    if not stat.S_ISDIR(root.lstat().st_mode):
+        raise ValueError(f'Expected a real upload directory: {root}')
+    result = {}
+    for current, dirs, files in os.walk(root, followlinks=False):
+        for name in dirs + files:
+            path = Path(current) / name
+            mode = path.lstat().st_mode
+            if not stat.S_ISDIR(mode) and not stat.S_ISREG(mode):
+                raise ValueError(f'Unsupported upload object: {path}')
+            if stat.S_ISREG(mode):
+                result[str(path.relative_to(root))] = {'size': path.stat().st_size, 'sha256': digest(path)}
+    return result
+
+
+def is_active():
+    state = run(['/usr/bin/systemctl', 'show', '--property=ActiveState', '--value', UNIT], capture=True).decode().strip()
+    if state not in ('active', 'inactive', 'failed'):
+        raise ValueError('Service is transitioning or awaiting automatic restart; wait for a stable state or explicitly stop it before backup')
+    return state == 'active'
+
+
+def backup(args):
+    confirm(args.confirm, 'pause-boarded-and-backup')
+    with lock():
+        destination = Path(args.destination).absolute()
+        trusted(destination.parent)
+        if destination.exists() or destination.is_symlink():
+            raise ValueError('Backup destination must be new')
+        runtime = load_env(CONFIG / 'runtime.env')
+        if runtime['UPLOAD_DIR'] != str(STATE / 'uploads'):
+            raise ValueError('Only the fixed production upload root is supported')
+        release = active_release()
+        if sql("SELECT rolcanlogin FROM pg_roles WHERE rolname='boarded_app';", capture=True).strip() != b't':
+            raise ValueError('Runtime role already cannot login; investigate before backup')
+        destination.mkdir(mode=0o700)
+        new_file(destination / 'INCOMPLETE', 'Do not restore until manifest.json exists.\n')
+        was_active = is_active()
+        blocked = False
+        try:
+            run(['/usr/bin/systemctl', 'stop', UNIT])
+            sql('ALTER ROLE boarded_app NOLOGIN;')
+            blocked = True
+            sql("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='boarded' AND usename='boarded_app' AND pid <> pg_backend_pid();")
+            # Root opens the destination; only pg_dump runs as the local database administrator.
+            with (destination / 'database.dump').open('xb') as stream:
+                proc = subprocess.Popen(['/usr/sbin/runuser', '-u', 'postgres', '--', '/usr/bin/pg_dump', '--no-password', '--format=custom', '--no-owner', '--no-acl', '--dbname=boarded'], stdout=stream, env=SAFE_ENV)
+                if proc.wait() != 0:
+                    raise ValueError('Database dump failed')
+            inventory(STATE / 'uploads')
+            shutil.copytree(STATE / 'uploads', destination / 'uploads', symlinks=False)
+            payload = inventory(destination / 'uploads')
+            manifest = {'format': 1, 'database': 'boarded', 'release': release.name,
+                        'created_at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+                        'database_sha256': digest(destination / 'database.dump'), 'files': payload,
+                        'runtime_config_sha256': digest(CONFIG / 'runtime.env'),
+                        'runtime_grants': runtime_grants()}
+            # Secrets are deliberately NOT included; escrow them separately with restricted custody.
+            new_file(destination / 'manifest.json', json.dumps(manifest, sort_keys=True, indent=2) + '\n')
+            (destination / 'INCOMPLETE').unlink()
+            print(f'Coherent database/files backup complete: {destination}')
+        finally:
+            if blocked:
+                sql('ALTER ROLE boarded_app LOGIN;')
+            if was_active:
+                run(['/usr/bin/systemctl', 'start', UNIT])
+                check_health()
+            print('Backup destination retained, including partial payloads on failure. Inspect manifest/INCOMPLETE; no automatic deletion.')
+
+
+def restore(args):
+    name = args.name
+    if not re.fullmatch(r'boarded_restore_[a-z0-9_]{1,24}', name):
+        raise ValueError('Restore name must be boarded_restore_ plus 1–24 lowercase letters, digits or underscores')
+    confirm(args.confirm, f'create-isolated-{name}')
+    with lock():
+        source = trusted(Path(args.backup).absolute())
+        if (source / 'INCOMPLETE').exists():
+            raise ValueError('Incomplete backup cannot be restored')
+        trusted(source / 'manifest.json', private=True)
+        trusted(source / 'database.dump')
+        trusted(source / 'uploads')
+        manifest = json.loads((source / 'manifest.json').read_text())
+        if manifest.get('format') != 1 or manifest.get('database') != 'boarded':
+            raise ValueError('Unsupported backup format')
+        if digest(source / 'database.dump') != manifest['database_sha256'] or inventory(source / 'uploads') != manifest['files']:
+            raise ValueError('Backup checksum/inventory mismatch')
+        destination = STATE / 'restore' / name
+        owner, app = name + '_owner', name + '_app'
+        release = trusted(release_path(manifest['release']))
+        trusted(release / '.installed')
+        production = load_env(CONFIG / 'runtime.env')
+        runtime = load_env(args.runtime_env)
+        required = ('APP_ORIGIN', 'SMTP_HOST', 'SMTP_PORT', 'SMTP_SECURE', 'SMTP_USER', 'SMTP_PASSWORD', 'SMTP_FROM')
+        if any(not runtime.get(key) for key in required):
+            raise ValueError('Restore configuration needs a separate HTTPS origin and authenticated TLS mail-capture relay')
+        origin = urllib.parse.urlsplit(runtime['APP_ORIGIN'])
+        if origin.scheme != 'https' or not origin.hostname or origin.path not in ('', '/') or origin.query or origin.fragment or origin.username:
+            raise ValueError('Restore APP_ORIGIN must be a canonical HTTPS origin')
+        if runtime['APP_ORIGIN'].rstrip('/') == production['APP_ORIGIN'].rstrip('/') or runtime['SMTP_HOST'].lower() == production['SMTP_HOST'].lower():
+            raise ValueError('Restore origin and mail-capture host must differ from production')
+        port = runtime['SMTP_PORT']
+        if not re.fullmatch(r'[0-9]+', port) or not 1 <= int(port) <= 65535:
+            raise ValueError('SMTP_PORT must be an integer from 1 through 65535')
+        if runtime['SMTP_SECURE'] not in ('true', 'false'):
+            raise ValueError('SMTP_SECURE must explicitly select true (implicit TLS) or false (required STARTTLS)')
+        runtime = {key: runtime[key] for key in required}
+        grants = []
+        permitted = {'SCHEMA': {'USAGE'}, 'TABLE': {'SELECT', 'INSERT', 'UPDATE', 'DELETE'}, 'SEQUENCE': {'USAGE', 'SELECT'}}
+        for grant in manifest['runtime_grants']:
+            kind, privilege = grant['kind'], grant['privilege']
+            if kind not in permitted or privilege not in permitted[kind]:
+                raise ValueError('Unexpected runtime privilege in backup; review before restoring')
+            identifier = sql_identifier(grant['schema'])
+            if kind != 'SCHEMA':
+                identifier += '.' + sql_identifier(grant['name'])
+            grants.append(f'GRANT {privilege} ON {kind} {identifier} TO {app};')
+        if destination.exists() or destination.is_symlink():
+            raise ValueError('Restore destination already exists')
+        exists = sql(f'SELECT datname FROM pg_database WHERE datname={quote(name)}; SELECT rolname FROM pg_roles WHERE rolname IN ({quote(owner)},{quote(app)});', capture=True)
+        if exists.strip():
+            raise ValueError('Restore database/role already exists; never overwrite')
+        migration_password, app_password = secrets.token_urlsafe(36), secrets.token_urlsafe(36)
+        destination.mkdir(mode=0o711)
+        os.chmod(destination, 0o711)
+        new_file(destination / 'INCOMPLETE', 'Restore incomplete; never start an application against this target.\n')
+        sql(role(owner, migration_password) + role(app, app_password))
+        sql(f'CREATE DATABASE {name} OWNER {owner}; REVOKE ALL ON DATABASE {name} FROM PUBLIC; GRANT CONNECT ON DATABASE {name} TO {app};')
+        # Pipe custom-format dump through stdin; postgres need not read the root-private backup.
+        with (source / 'database.dump').open('rb') as stream:
+            process = subprocess.Popen(['/usr/sbin/runuser', '-u', 'postgres', '--', '/usr/bin/pg_restore', '--no-password', '--exit-on-error', '--single-transaction', '--no-owner', '--no-acl', f'--role={owner}', f'--dbname={name}'], stdin=stream, env=SAFE_ENV)
+            if process.wait() != 0:
+                raise ValueError('Isolated restore failed; target preserved for inspection')
+        schemas = sql("SELECT nspname FROM pg_namespace WHERE nspname NOT LIKE 'pg_%' AND nspname <> 'information_schema';", database=name, capture=True).decode().splitlines()
+        for schema in schemas:
+            identifier = sql_identifier(schema)
+            sql(f'REVOKE ALL ON SCHEMA {identifier} FROM PUBLIC; REVOKE ALL ON ALL TABLES IN SCHEMA {identifier} FROM PUBLIC; REVOKE ALL ON ALL SEQUENCES IN SCHEMA {identifier} FROM PUBLIC; REVOKE ALL ON ALL FUNCTIONS IN SCHEMA {identifier} FROM PUBLIC;', database=name)
+        sql('\n'.join(grants), database=name)
+        shutil.copytree(source / 'uploads', destination / 'uploads')
+        account = pwd.getpwnam('boarded-restore')
+        for current, dirs, files in os.walk(destination / 'uploads'):
+            os.chown(current, account.pw_uid, account.pw_gid)
+            os.chmod(current, 0o700)
+            for filename in files:
+                path = Path(current) / filename
+                os.chown(path, account.pw_uid, account.pw_gid)
+                os.chmod(path, 0o600)
+        # Only explicitly reviewed capture-mail settings are used; production SMTP is never copied.
+        runtime.update({'DATABASE_URL': database_url(name, app, app_password),
+                        'UPLOAD_DIR': str(destination / 'uploads'),
+                        'BETTER_AUTH_SECRET': secrets.token_urlsafe(48)})
+        new_file(destination / 'runtime.env', env_text(runtime))
+        new_file(destination / 'migration.env', env_text({'DATABASE_MIGRATION_URL': database_url(name, owner, migration_password)}))
+        new_file(destination / 'release.json', json.dumps({'release': manifest['release'], 'source_created_at': manifest['created_at']}) + '\n')
+        (destination / 'release').symlink_to(release)
+        (destination / 'INCOMPLETE').unlink()
+        print(f'Isolated database/files restored to {destination}; NO service started, NO production symlink/DNS changed. Configure separate restore unit/mail sink before functional checks.')
+
+
+def main():
+    os.umask(0o077)
+    parser = argparse.ArgumentParser(description=__doc__)
+    sub = parser.add_subparsers(dest='command', required=True)
+    init = sub.add_parser('initialize')
+    init.add_argument('--origin', required=True)
+    init.add_argument('--confirm', required=True)
+    b = sub.add_parser('build-release')
+    b.add_argument('source')
+    b.add_argument('destination')
+    i = sub.add_parser('install-release')
+    i.add_argument('source')
+    i.add_argument('--confirm', required=True)
+    for command in ('migrate', 'activate'):
+        p = sub.add_parser(command)
+        p.add_argument('release')
+        p.add_argument('--confirm', required=True)
+    sub.add_parser('health')
+    b = sub.add_parser('backup')
+    b.add_argument('destination')
+    b.add_argument('--confirm', required=True)
+    r = sub.add_parser('restore-isolated')
+    r.add_argument('backup')
+    r.add_argument('name')
+    r.add_argument('--runtime-env', required=True, help='Root-owned 0600 staging HTTPS/mail-capture configuration, never production')
+    r.add_argument('--confirm', required=True)
+    args = parser.parse_args()
+    actions = {'initialize': initialize, 'build-release': build, 'install-release': install,
+               'migrate': migrate, 'activate': activate, 'backup': backup, 'restore-isolated': restore,
+               'health': lambda _: check_health()}
+    actions[args.command](args)
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except (ValueError, OSError, KeyError, subprocess.CalledProcessError) as error:
+        # Never dump subprocess environment or SQL/password input on errors.
+        print(f'Operation stopped: {error}', file=sys.stderr)
+        sys.exit(1)

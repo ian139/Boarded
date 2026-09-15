@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { resourceAPI } from '@/lib/api/client';
 import type { Route } from '@boarded/shared/types';
 import { calculateDisplayGrade, normalizeRouteGrades } from '@boarded/shared/utils/grades';
 import { RouteViewer } from '@/components/original-board/wall/RouteViewer';
@@ -17,6 +17,11 @@ export default function SharePage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
+    setRoute(null);
+    setError(null);
+    setIsLoading(true);
+
     const load = async () => {
       if (!token) {
         setError('Invalid share link');
@@ -25,42 +30,34 @@ export default function SharePage() {
       }
 
       try {
-        const supabase = createClient();
-        let result = await supabase
-          .from('routes')
-          .select('*, ascents (*), comments (*)')
-          .eq('share_token', token)
-          .eq('is_public', true)
-          .limit(1)
-          .single();
-
-        if (result.error) {
-          result = await supabase
-            .from('routes')
-            .select('*, ascents (*)')
-            .eq('share_token', token)
-            .eq('is_public', true)
-            .limit(1)
-            .single();
-        }
-
-        if (result.error || !result.data) {
-          setError('Route not found');
-        } else {
-          setRoute(normalizeRouteGrades(result.data as Route));
-          const { data: nextCount, error: viewError } = await supabase.rpc('increment_route_view', { target_route_id: result.data.id });
-          if (viewError || typeof nextCount !== 'number') {
-            console.warn('Unable to increment route view count');
+        const sharedRoute = await resourceAPI.request<Route>(`/api/share/${encodeURIComponent(token)}`, {
+          signal: controller.signal,
+        });
+        if (controller.signal.aborted) return;
+        setRoute(normalizeRouteGrades(sharedRoute));
+        setIsLoading(false);
+        try {
+          const result = await resourceAPI.request<{ view_count: number }>(
+            `/api/routes/${encodeURIComponent(sharedRoute.id)}/views`,
+            { method: 'POST', signal: controller.signal },
+          );
+          if (!controller.signal.aborted) {
+            setRoute((current) => current?.id === sharedRoute.id ? { ...current, view_count: result.view_count } : current);
           }
+        } catch {
+          if (!controller.signal.aborted) console.warn('Unable to increment route view count');
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load route');
+        if (!controller.signal.aborted) {
+          setError(err instanceof Error ? err.message : 'Failed to load route');
+        }
       } finally {
-        setIsLoading(false);
+        if (!controller.signal.aborted) setIsLoading(false);
       }
     };
 
-    load();
+    void load();
+    return () => controller.abort();
   }, [token]);
 
   return (
@@ -87,9 +84,9 @@ export default function SharePage() {
           <div className="h-full flex items-center justify-center text-muted-foreground">{error}</div>
         ) : route ? (
           <RouteViewer
-            wallImageUrl={route.wall_image_url || DEFAULT_WALL.image_url}
-            wallImageWidth={route.wall_image_width || DEFAULT_WALL.image_width}
-            wallImageHeight={route.wall_image_height || DEFAULT_WALL.image_height}
+            wallImageUrl={route.wall_image_url || route.wall?.image_url || DEFAULT_WALL.image_url}
+            wallImageWidth={route.wall_image_width || route.wall?.image_width || DEFAULT_WALL.image_width}
+            wallImageHeight={route.wall_image_height || route.wall?.image_height || DEFAULT_WALL.image_height}
             holds={route.holds}
             routeName={route.name}
             grade={calculateDisplayGrade(route.grade_v, route.ascents)}

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useHolds } from '@/lib/hooks/useHolds';
-import { HoldType, Route, V_GRADES, HOLD_COLORS, HOLD_BORDER_WIDTH, Hold } from '@boarded/shared/types';
+import { HoldType, Route, Wall, V_GRADES, HOLD_COLORS, HOLD_BORDER_WIDTH, Hold } from '@boarded/shared/types';
 import { getNextHoldType, getNextHoldSize, pixelToPercentage } from '@boarded/shared/utils/holds';
 import { HoldMarker } from '@/components/original-board/wall/HoldMarker';
 import { nanoid } from 'nanoid';
@@ -23,6 +23,17 @@ import { useUserStore } from '@/lib/stores/user-store';
 export default function EditorPage() {
   const [editRouteId, setEditRouteId] = useState<string | null>(null);
   const [paramsReady, setParamsReady] = useState(false);
+  const currentUserId = useUserStore((state) => state.user?.id);
+  const userLoading = useUserStore((state) => state.isLoading);
+  const selectedWall = useWallsStore((state) => state.selectedWall);
+  const privateWall = Boolean(selectedWall && !selectedWall.is_public &&
+    selectedWall.user_id !== 'local' && selectedWall.user_id !== 'local-user');
+  const wall = !selectedWall || selectedWall.id === 'all-walls' ||
+    (privateWall && (userLoading || selectedWall.user_id !== currentUserId))
+    ? DEFAULT_WALL : selectedWall;
+  const draftStorageKey = editRouteId ? null : privateWall && wall === selectedWall
+    ? `boarded-draft:${JSON.stringify([currentUserId, 'new', wall.id])}`
+    : 'boarded-draft';
 
   useEffect(() => {
     let active = true;
@@ -43,7 +54,7 @@ export default function EditorPage() {
     };
   }, []);
 
-  if (!paramsReady) {
+  if (!paramsReady || (userLoading && (editRouteId || privateWall))) {
     return (
       <div className="h-dvh bg-background flex items-center justify-center">
         <div className="text-muted-foreground font-medium">Loading editor...</div>
@@ -51,7 +62,12 @@ export default function EditorPage() {
     );
   }
 
-  return <EditorContent editRouteId={editRouteId} />;
+  return <EditorContent
+    key={JSON.stringify([currentUserId ?? null, editRouteId, draftStorageKey])}
+    editRouteId={editRouteId}
+    wall={wall}
+    draftStorageKey={draftStorageKey}
+  />;
 }
 
 interface FullBleedCanvasProps {
@@ -212,6 +228,7 @@ function FullBleedCanvas({
         onTouchEnd={handleTouchEnd}
       >
         <Image
+          unoptimized
           src={wallImageUrl}
           alt="Climbing wall"
           width={imageWidth}
@@ -242,7 +259,11 @@ function FullBleedCanvas({
   );
 }
 
-function EditorContent({ editRouteId }: { editRouteId: string | null }) {
+function EditorContent({ editRouteId, wall, draftStorageKey }: {
+  editRouteId: string | null;
+  wall: Wall;
+  draftStorageKey: string | null;
+}) {
   const router = useRouter();
 
   const {
@@ -257,15 +278,14 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
     handleTap,
     clearHolds,
     clearDraft,
-    setAllHolds,
+    loadDraft,
     undo,
     redo,
     canUndo,
     canRedo,
     toggleSequenceVisibility,
-  } = useHolds();
+  } = useHolds(draftStorageKey);
 
-  const { selectedWall } = useWallsStore();
   const {
     routes,
     addRoute,
@@ -278,8 +298,23 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
     isLoading: userLoading,
   } = useUserStore();
   const currentUserId = user?.id;
+  const accountRevision = useRef(0);
+  useEffect(() => {
+    const unsubscribe = useUserStore.subscribe((state, previous) => {
+      if (state.user?.id !== previous.user?.id) {
+        accountRevision.current += 1;
+        setIsSaving(false);
+        setEditingRoute(null);
+        editFetchRef.current = null;
+        loadedEditRef.current = null;
+      }
+    });
+    return () => {
+      accountRevision.current += 1;
+      unsubscribe();
+    };
+  }, []);
   const currentUserDisplayName = user?.displayName || 'Guest';
-  const wall = selectedWall?.id === 'all-walls' ? DEFAULT_WALL : (selectedWall || DEFAULT_WALL);
 
   const [editingRoute, setEditingRoute] = useState<Route | null>(null);
   const [editResolution, setEditResolution] = useState<'loading' | 'ready' | 'error'>(
@@ -302,6 +337,7 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
   }, [isModerator, currentUserId]);
 
   useEffect(() => {
+    const revision = accountRevision.current;
     if (!editRouteId) {
       editFetchRef.current = null;
       loadedEditRef.current = null;
@@ -324,9 +360,11 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
         return;
       }
       setEditingRoute(route);
-      setAllHolds(route.holds);
+      const draftOwner = route.user_id === 'local-user' ? 'local-user' : currentUserId;
+      if (draftOwner) {
+        loadDraft(`boarded-draft:${JSON.stringify([draftOwner, route.id])}`, route.holds);
+      }
       setEditResolution('ready');
-      localStorage.removeItem('boarded-draft');
       loadedEditRef.current = editRouteId;
     };
 
@@ -341,7 +379,7 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
     setEditResolution('loading');
     let active = true;
     void fetchRouteById(editRouteId).then((resolvedRoute) => {
-      if (!active) return;
+      if (!active || accountRevision.current !== revision) return;
       if (resolvedRoute) {
         loadRoute(resolvedRoute);
         return;
@@ -350,7 +388,7 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
       toast.error('Route not found');
       router.push('/');
     }).catch(() => {
-      if (!active) return;
+      if (!active || accountRevision.current !== revision) return;
       setEditResolution('error');
       toast.error('Unable to load this route');
       router.push('/');
@@ -359,7 +397,7 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
     return () => {
       active = false;
     };
-  }, [editRouteId, userLoading, routes, router, setAllHolds, canEditRoute, fetchRouteById]);
+  }, [editRouteId, userLoading, routes, router, loadDraft, canEditRoute, fetchRouteById, currentUserId]);
 
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [routeName, setRouteName] = useState('');
@@ -375,6 +413,10 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
   }, [editingRoute]);
 
   const handleSave = async () => {
+    const revision = accountRevision.current;
+    const isCurrentAccount = () =>
+      accountRevision.current === revision && useUserStore.getState().user?.id === currentUserId;
+    if (!isCurrentAccount()) return;
     if (isEditMode && (editResolution !== 'ready' || !editingRoute)) {
       setSaveError('This route is still loading. Please try again.');
       return;
@@ -394,8 +436,12 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
           grade_v: routeGrade && routeGrade !== 'ungraded' ? routeGrade : undefined,
           holds,
         });
+        if (!isCurrentAccount()) return;
         if (!updated) throw new Error('Unable to update this route. Check your permissions and try again.');
-        toast.success('Route updated!');
+        const savedRoute = useRoutesStore.getState().routes.find((candidate) => candidate.id === editingRoute.id);
+        const isLocal = !savedRoute || savedRoute.user_id === 'local-user' ||
+          Boolean((savedRoute as (Route & { _createSyncPending?: boolean }) | undefined)?._createSyncPending);
+        toast.success(isLocal ? 'Route updated on this device.' : 'Route updated!');
         router.push('/');
       } else {
         const route: Route = {
@@ -417,8 +463,14 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
         };
 
         const saved = await addRoute(route);
-        if (!saved) throw new Error('Route was saved locally but could not be synced to the server.');
-        toast.success('Route saved!');
+        if (!isCurrentAccount()) return;
+        if (!saved) throw new Error('Unable to save this route.');
+        const savedRoute = useRoutesStore.getState().routes.find((candidate) => candidate.id === route.id);
+        const pending = Boolean((savedRoute as (Route & { _createSyncPending?: boolean }) | undefined)?._createSyncPending);
+        const confirmed = savedRoute && savedRoute.user_id !== 'local-user' && !pending;
+        toast.success(confirmed ? 'Route saved!' : currentUserId
+          ? 'Route saved on this device. Server sync is pending.'
+          : 'Route saved on this device.');
       }
 
       clearDraft();
@@ -426,9 +478,10 @@ function EditorContent({ editRouteId }: { editRouteId: string | null }) {
       setRouteName('');
       setRouteGrade('');
     } catch (error) {
+      if (!isCurrentAccount()) return;
       setSaveError(error instanceof Error ? error.message : 'An error occurred');
     } finally {
-      setIsSaving(false);
+      if (isCurrentAccount()) setIsSaving(false);
     }
   };
 

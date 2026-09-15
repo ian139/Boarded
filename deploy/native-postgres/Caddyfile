@@ -1,0 +1,17 @@
+# Merge this site block into the existing configuration; never replace other sites.
+# Replace the example hostname with the exact canonical APP_ORIGIN hostname.
+boarded.example.com {
+    request_body {
+        max_size 12MB
+    }
+    reverse_proxy 127.0.0.1:3000 {
+        header_up X-Real-IP {remote_host}
+    }
+    header {
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+        -Server
+    }
+    # No file_server: authenticated application handlers authorize uploaded bytes.
+    # Access logging is intentionally not enabled: auth URLs may contain tokens.
+}

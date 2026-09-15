@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/original-board/ui/dialog';
 import { Button } from '@/components/original-board/ui/button';
@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { useWallsStore, DEFAULT_WALL } from '@/lib/stores/walls-store';
 import { useRoutesStore } from '@/lib/stores/routes-store';
 import { useUserStore } from '@/lib/stores/user-store';
-import { createClient } from '@/lib/supabase/client';
+import { resourceAPI } from '@/lib/api/client';
 import { compressImageWithDimensions } from '@/lib/utils/image';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -44,6 +44,37 @@ export function WallPickerDialog({ open, onOpenChange }: WallPickerDialogProps) 
   // Delete wall state
   const [wallToDelete, setWallToDelete] = useState<Wall | null>(null);
 
+  const accountRevision = useRef(0);
+  useEffect(() => {
+    const unsubscribe = useUserStore.subscribe((state, previous) => {
+      if (state.user?.id === previous.user?.id) return;
+      accountRevision.current += 1;
+      setShowAddWall(false);
+      setWallName('');
+      setWallImage(null);
+      setWallImageFile(null);
+      setIsAdding(false);
+      setWallToUpdatePhoto(null);
+      setNewWallImage(null);
+      setNewWallImageFile(null);
+      setIsUpdatingPhoto(false);
+      setWallToDelete(null);
+    });
+    return () => {
+      accountRevision.current += 1;
+      unsubscribe();
+    };
+  }, []);
+  useEffect(() => () => {
+    if (wallImage) URL.revokeObjectURL(wallImage);
+  }, [wallImage]);
+  useEffect(() => () => {
+    if (newWallImage) URL.revokeObjectURL(newWallImage);
+  }, [newWallImage]);
+
+  const isCurrentAccount = (revision: number) =>
+    accountRevision.current === revision && useUserStore.getState().user?.id === currentUserId;
+
   const allWallsSelected = selectedWall?.id === 'all-walls';
 
   const createPreviewUrl = (file: File) => URL.createObjectURL(file);
@@ -57,8 +88,7 @@ export function WallPickerDialog({ open, onOpenChange }: WallPickerDialogProps) 
     reader.readAsDataURL(file);
   });
 
-  const uploadWallImage = async (file: File, wallId: string) => {
-    const supabase = createClient();
+  const uploadWallImage = async (file: File, wallId: string, local: boolean, revision: number) => {
     const compressed = await compressImageWithDimensions(file, {
       maxWidth: 1920,
       maxHeight: 1920,
@@ -66,7 +96,8 @@ export function WallPickerDialog({ open, onOpenChange }: WallPickerDialogProps) 
       mimeType: 'image/jpeg',
     });
 
-    if (!currentUserId) {
+    if (!isCurrentAccount(revision)) throw new Error('Account changed');
+    if (local) {
       return {
         imageUrl: await fileToDataUrl(compressed.blob),
         width: compressed.width,
@@ -74,20 +105,12 @@ export function WallPickerDialog({ open, onOpenChange }: WallPickerDialogProps) 
       };
     }
 
-    const filePath = `${currentUserId}/${wallId}/${Date.now()}.jpg`;
-    const { error } = await supabase.storage
-      .from('walls')
-      .upload(filePath, compressed.blob, { contentType: 'image/jpeg' });
-
-    if (error) {
-      throw new Error(error.message);
-    }
-
-    const { data } = supabase.storage.from('walls').getPublicUrl(filePath);
+    const uploaded = await resourceAPI.upload(compressed.blob, 'wall', { wall_id: wallId });
+    if (!isCurrentAccount(revision)) throw new Error('Account changed');
     return {
-      imageUrl: data.publicUrl,
-      width: compressed.width,
-      height: compressed.height,
+      imageUrl: uploaded.url,
+      width: uploaded.width,
+      height: uploaded.height,
     };
   };
 
@@ -102,12 +125,15 @@ export function WallPickerDialog({ open, onOpenChange }: WallPickerDialogProps) 
 
   const handleAddWall = async () => {
     if (!wallName.trim() || !wallImageFile) return;
+    const revision = accountRevision.current;
+    if (!isCurrentAccount(revision)) return;
 
     setIsAdding(true);
 
     try {
       const wallId = crypto.randomUUID();
-      const uploadedWallImage = await uploadWallImage(wallImageFile, wallId);
+      const uploadedWallImage = await uploadWallImage(wallImageFile, wallId, !currentUserId, revision);
+      if (!isCurrentAccount(revision)) return;
 
       const newWall: Wall = {
         id: wallId,
@@ -122,6 +148,7 @@ export function WallPickerDialog({ open, onOpenChange }: WallPickerDialogProps) 
       };
 
       const addSucceeded = await addWall(newWall);
+      if (!isCurrentAccount(revision)) return;
       if (!addSucceeded) {
         throw new Error('Unable to save wall');
       }
@@ -136,6 +163,7 @@ export function WallPickerDialog({ open, onOpenChange }: WallPickerDialogProps) 
       setIsAdding(false);
       toast.success('Wall added!');
     } catch (error) {
+      if (!isCurrentAccount(revision)) return;
       setIsAdding(false);
       toast.error(error instanceof Error ? error.message : 'Failed to upload wall image');
     }
@@ -152,21 +180,26 @@ export function WallPickerDialog({ open, onOpenChange }: WallPickerDialogProps) 
 
   const handleUpdateWallPhoto = async () => {
     if (!wallToUpdatePhoto || !newWallImageFile) return;
+    const revision = accountRevision.current;
+    if (!isCurrentAccount(revision)) return;
 
     setIsUpdatingPhoto(true);
 
     try {
-      const uploadedWallImage = await uploadWallImage(newWallImageFile, wallToUpdatePhoto.id);
+      const local = !currentUserId || wallToUpdatePhoto.user_id === 'local-user' || wallToUpdatePhoto.user_id === 'local' || wallToUpdatePhoto.id === DEFAULT_WALL.id;
+      const uploadedWallImage = await uploadWallImage(newWallImageFile, wallToUpdatePhoto.id, local, revision);
+      if (!isCurrentAccount(revision)) return;
       const updateSucceeded = await updateWall(wallToUpdatePhoto.id, {
         image_url: uploadedWallImage.imageUrl,
         image_width: uploadedWallImage.width,
         image_height: uploadedWallImage.height,
       });
+      if (!isCurrentAccount(revision)) return;
       if (!updateSucceeded) {
         throw new Error('Unable to save wall photo');
       }
 
-      if (selectedWall?.id === wallToUpdatePhoto.id) {
+      if (useWallsStore.getState().selectedWall?.id === wallToUpdatePhoto.id) {
         setSelectedWall({
           ...wallToUpdatePhoto,
           image_url: uploadedWallImage.imageUrl,
@@ -182,6 +215,7 @@ export function WallPickerDialog({ open, onOpenChange }: WallPickerDialogProps) 
       setIsUpdatingPhoto(false);
       toast.success('Wall photo updated! Existing routes will keep their original photo.');
     } catch (error) {
+      if (!isCurrentAccount(revision)) return;
       setIsUpdatingPhoto(false);
       toast.error(error instanceof Error ? error.message : 'Failed to update wall photo');
     }
@@ -273,6 +307,7 @@ export function WallPickerDialog({ open, onOpenChange }: WallPickerDialogProps) 
                   >
                     <div className="relative size-14 rounded-lg bg-muted overflow-hidden shrink-0">
                       <Image
+                        unoptimized
                         src={wall.image_url}
                         alt={wall.name}
                         fill
@@ -448,7 +483,10 @@ export function WallPickerDialog({ open, onOpenChange }: WallPickerDialogProps) 
               variant="destructive"
               onClick={async () => {
                 if (!wallToDelete) return;
+                const revision = accountRevision.current;
+                if (!isCurrentAccount(revision)) return;
                 const deleteSucceeded = await deleteWall(wallToDelete.id);
+                if (!isCurrentAccount(revision)) return;
                 if (!deleteSucceeded) {
                   toast.error('Unable to delete wall');
                   return;
@@ -493,6 +531,7 @@ export function WallPickerDialog({ open, onOpenChange }: WallPickerDialogProps) 
               <div className="relative aspect-video rounded-lg overflow-hidden bg-muted">
                 {wallToUpdatePhoto && (
                   <Image
+                    unoptimized
                     src={wallToUpdatePhoto.image_url}
                     alt="Current wall"
                     fill

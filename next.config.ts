@@ -7,16 +7,9 @@ const buildVersion = process.env.VERCEL_GIT_COMMIT_SHA ||
   process.env.NEXT_PUBLIC_BUILD_ID ||
   pkg.version;
 const nextConfig: NextConfig = {
+  output: 'standalone',
+  images: { unoptimized: true },
   transpilePackages: ['@boarded/shared'],
-  images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "*.supabase.co",
-        pathname: "/storage/v1/object/public/**",
-      },
-    ],
-  },
   env: {
     NEXT_PUBLIC_APP_VERSION: buildVersion,
   },

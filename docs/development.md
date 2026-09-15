@@ -1,148 +1,97 @@
 # Boarded development guide
 
-Boarded is the standalone legacy climbing route-setting web app. The Next.js app lives at the repository root; no native app, journal shell, or 3D landing runtime is shipped here.
+Boarded is the standalone Next.js route-setting web app. The native PostgreSQL target uses same-origin server APIs, Better Auth sessions, and local filesystem uploads; it has no browser database credentials and no hosted/self-hosted Supabase setup path.
 
-## Prerequisites
+## Prerequisites and local setup
 
-- Node.js 22.18 or newer and npm. Next.js 16 requires 20.9+, but the utility test command also needs Node's built-in TypeScript support.
-- The pinned web versions are Next.js `16.1.1` and React `19.1.0`.
-- A hosted Supabase project or the independent self-hosted backend for cloud-backed features.
-- Python 3 and Docker only for the optional disposable local RLS harness below; deployment prerequisites are documented separately.
+Use Node.js 22.18+ and npm, with PostgreSQL 18 in a separate disposable local cluster. The migration runner requires database `boarded`, its owner/login `boarded_migrator`, and the existing non-owner runtime role `boarded_app`; never point it at production. Give neither login superuser, create-role, create-database or bypass-RLS privileges, and do not make the runtime role a member of the migration role. Set separate passwords privately through the local administrator's `psql` `\password` command, not shell arguments. Then install dependencies and create a local-only environment file:
 
-The npm workspace contains the route setter and `packages/shared`.
-
-<a id="web"></a>
-## Web setup
-
-```bash
-npm install
+```sh
+npm ci
 cp .env.local.example .env.local
+chmod 600 .env.local
 ```
 
-Set the two public browser variables in `.env.local`, then run `npm run dev` and open <http://localhost:3000>.
+Set server-only values in `.env.local` (example values are for a disposable local database only):
 
-| Variable | Meaning | Handling |
-| --- | --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | Hosted Supabase project URL or self-hosted API gateway URL | Must address the intended backend and be reachable from the browser. |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | That backend's public anonymous/publishable key | Used with normal user sessions and RLS; never substitute a service-role key. |
+```dotenv
+DATABASE_URL=postgresql://boarded_app:REPLACE_LOCAL_APP_PASSWORD@127.0.0.1:5432/boarded
+APP_ORIGIN=http://localhost:3000
+BETTER_AUTH_SECRET=REPLACE_WITH_A_LOCAL_RANDOM_SECRET
+UPLOAD_DIR=/absolute/path/to/boarded-dev-uploads
+SMTP_HOST=REPLACE_TLS_CAPTURE_HOST
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=REPLACE_CAPTURE_USER
+SMTP_PASSWORD=REPLACE_CAPTURE_PASSWORD
+SMTP_FROM=REPLACE_CAPTURE_SENDER
+```
 
-Keep `.env.local` local. Never put privileged credentials in tracked files, browser configuration, screenshots, or logs. Restart the development server after changing configuration; rebuild production when changing `NEXT_PUBLIC_*` values.
+Create a separate private `.env.migration.local` containing only `DATABASE_MIGRATION_URL=postgresql://boarded_migrator:REPLACE_LOCAL_MIGRATOR_PASSWORD@127.0.0.1:5432/boarded` and set mode `0600`. Remove that migration variable from `.env.local` if the example includes it; the web process must not receive the schema-owner credential. Create the configured upload directory with mode `0700`, owned by the development account, outside `public` and the source checkout. Replace every example value with the actual disposable configuration.
 
-### Public routes
+Do not commit `.env.local`, put secrets in `NEXT_PUBLIC_*`, log credentials/cookies/tokens, or use a browser-provided owner/moderator value. For local signup, use a separately reviewed authenticated TLS mail-capture relay with nonempty credentials; never disable confirmation in order to make a flow appear to work.
 
-- `/` — walls and routes
-- `/editor` — route editor
-- `/profile` — identity, route statistics, and climb history
-- `/settings` — preferences and local data controls
-- `/login` and `/signup` — account access
-- `/share/[token]` — shared route viewer
+Run the reviewed schema migrations with the separate migration identity, then start the app. The migration runner reads `process.env`; Node 22's env-file flag makes the local source explicit:
 
-The route setter is mounted at the origin root, not under `/board`. There is no `/app` journal application.
-
-## Exact npm commands
-
-```bash
-npm install
+```sh
+node --env-file=.env.migration.local scripts/migrate.mjs
 npm run dev
-npm run build
-npm start
-npm run lint
-npm test
 ```
 
-`npm start` serves an existing production build; run `npm run build` first. `npm test` runs the shared utility and legacy web utility tests, not a journal test suite.
+If using the npm wrapper, export only `DATABASE_MIGRATION_URL` before `npm run db:migrate`; do not assume npm loads an environment file. Never print the connection value or leave it exported in the web server's environment.
 
-<a id="supabase"></a>
-## Supabase setup and migrations
+The canonical migration script is `npm run db:migrate` (or the explicit Node invocation above). It must use `DATABASE_MIGRATION_URL`, an ordered migration ledger, and plain PostgreSQL migrations. Do not apply `supabase/migrations/001_initial_schema.sql` through `013_mobile_social.sql` to plain PostgreSQL; those files are retained historical requirements and reference Supabase-only Auth, Storage, roles, policies, and functions.
 
-### Hosted Supabase
+Production-shaped verification uses a separate HTTPS staging origin and the authenticated TLS capture relay, not the development HTTP origin. Follow [native operations](backend-self-hosting.md) to build/install and start `.next/standalone/server.js` with copied `public`/`.next/static`, bounded cache writes, private runtime configuration and the `/api/health` readiness check. The standalone production runtime enforces production configuration; do not use `NODE_ENV` tricks to bypass HTTPS or mail security.
 
-1. Create or select the intended hosted project. Use its URL and public anonymous/publishable key for the browser variables above.
-2. On a new backend, apply every checked-in migration from `supabase/migrations/001_initial_schema.sql` through `013_mobile_social.sql` **once, in numeric order**, using the Dashboard SQL Editor or a separately maintained linked CLI workflow. For an existing backend, inspect its applied history and apply only missing migrations in order.
-3. Configure Auth's site URL and permitted redirects for the actual web origin, including the localhost origin when developing. Configure email delivery and confirmation for signup rather than disabling confirmation to work around missing mail.
-4. Keep the same project for existing users, route records, Storage objects, and share tokens unless undertaking a separate, deliberate backend migration.
+## Browser routes and persistence
 
-The whole 001–013 chain is retained byte-for-byte. Although this client no longer includes the journal/native experience, the legacy profile upsert writes `home_area`, which migration 013 adds. Trimming the chain breaks the profile contract; historical schema is not evidence that the removed clients still ship.
+The main routes are `/`, `/editor`, `/profile`, `/settings`, `/login`, `/signup`, `/forgot-password`, `/reset-password`, and `/share/[token]`. Sharing remains `/share/[token]`; the server must enforce public visibility and atomically count eligible views.
 
-There is no `supabase/config.toml` in this repository. This checkout alone does not configure `supabase start`; a separately linked CLI workflow must maintain its own configuration and credentials outside tracked source.
+On `/profile`, **Change profile** opens the avatar and username editor. Selecting a JPEG, PNG or WebP photo saves it immediately; **Save username** persists the handle separately. Successful changes appear on the page and after reopening or reloading. Username is a unique handle, not the authentication display name; renaming it does not change that display name.
 
-### Self-hosted backend
+New profiles receive compact generated handles of at most 21 characters (a sanitized prefix of up to 12 characters, a hyphen, and eight UUID hex characters). Existing handles, including long defaults and custom names, remain unchanged unless the user deliberately edits them. Usernames accept 1–80 ASCII letters, numbers, underscores or hyphens; a taken name leaves the typed draft available to correct.
 
-The independent `deploy/self-hosted` tools retain the Boarded deployment identity. They operate PostgreSQL, Auth, PostgREST, Storage, and an allowlisted loopback gateway. Follow [self-hosted backend operations](backend-self-hosting.md) for secret generation, bootstrap, email setup, health, backups, and destructive restore procedures. Point the web client at the browser-reachable gateway and its public `ANON_KEY`, never `SERVICE_ROLE_KEY`.
+Preserve these browser persistence names and semantics:
 
-This repository split performs **no data migration**: it does not provision a backend, apply SQL, move users or objects, restore a backup, change a deployment, or transfer browser state.
-
-## Persistence and origins
-
-The existing browser persistence names remain unchanged:
-
-| Key | State |
+| Key | Purpose |
 | --- | --- |
-| `boarded-routes` | Persisted route cache and local/pending routes |
-| `boarded-walls` | Persisted walls and selected wall |
-| `boarded-user` | Cached profile only, not authentication or moderator status |
-| `boarded-draft` | Local editor hold draft |
-| `boarded-storage-history` | Local storage usage history |
-| `boarded-board-theme` | Route-setter theme preference |
-| `climbset-install-dismissed` | Install-prompt dismissal in session storage |
+| `boarded-routes` | Cached and pending routes |
+| `boarded-walls` | Walls and selected wall |
+| `boarded-user` | Cached profile only, never auth or moderator authority |
+| `boarded-draft` | Local editor draft |
+| `boarded-storage-history` | Storage usage history |
+| `boarded-board-theme` | Theme preference |
+| `climbset-install-dismissed` | Install-prompt session state |
 
-Browser-local storage is scoped to the origin (scheme, hostname, and port), browser profile, and device, not the URL pathname. Moving from `/board` to `/` on the same origin leaves those keys accessible; changing origin does not transfer them. Session storage also follows the tab/session lifetime. Settings' Clear Data removes `boarded-routes`, `boarded-walls`, and `boarded-draft`; it is not an account deletion or sign-out operation.
+Storage is scoped to origin, browser profile, device, and (for session storage) tab lifetime. A path change on the same origin retains local state; a hostname/scheme/port change does not. Settings data clearing removes route/wall/draft cache, not account deletion. Same-origin HttpOnly auth cookies replace old Supabase sessions; `boarded-user` is only a cache. Logout/account switching must clear user-specific remote state without deleting local drafts.
 
-The Supabase browser client retains the `boarded-auth` storage key with session persistence, automatic token refresh, and URL session detection enabled. Auth storage is managed by `@supabase/ssr`; it is not the cached `boarded-user` profile. Authentication comes from the backend session. Retaining the origin, backend, and configuration avoids intentionally changing that storage contract, but does not guarantee an expired or revoked session remains signed in.
+Keep local-first behavior: signed-out drafts, local/default walls, route snapshots, `_createSyncPending`, and `_socialSyncPending` survive network failures. A retry is successful only after a committed server response; never display a local-only route as publicly shared. Preserve duplicate-ID ownership checks, optimistic rollback, serialized sync, and late-response guards across account changes.
 
-Signing in can synchronize eligible local routes and retry pending creation for the matching owner. Ordinary cached remote routes are not a backend-migration export, and local-only walls are not automatically uploaded. Changing backend requires deliberate handling of Auth users, routes, profile records, Storage objects and URLs, and reauthentication; changing the browser variables alone does not migrate any of them.
+## Server contract during development
 
-Sharing uses `${window.location.origin}/share/[token]`. A route must be synchronized to the backend and public before others can load it; a token present only in local state is insufficient. The shared viewer queries the backend's public route/token record, not the sender's browser cache. Existing links retain their original hostname: preserve that origin or separately arrange its routing, and preserve the backend records and wall images. A new origin/backend does not repair old links automatically.
+All reads/writes/uploads use same-origin server handlers and derive identity from the validated session. The server validates ownership, parent visibility, moderator permissions, file content, and request fields; client local state and request `user_id` are not authority. Auth cookies require secure production settings, expiry/revocation, rotation on authentication, CSRF/origin protection, and rate limits. SMTP verification and recovery tokens are expiring and single-use; do not log them.
 
-The web app manifest launches at `/`. Its explicit `id: "/app"` preserves the previously implicit installed-PWA identity; this is an identifier, not a live route or redirect. Existing theme and authentication storage keys are unchanged. The standalone service-worker cache namespace replaces the former mixed-product shell and uses `/` as the offline navigation fallback.
+The data model preserves profiles (including `home_area`), walls, routes, holds/grades/snapshots, ascents, comments, likes, visibility, share tokens, and file metadata. Migration-013 records—`climbing_sessions`, `climb_attempts`, `session_posts`, timeline snapshots, likes/comments, meetups/attendees/comments, and social-media files—must remain in an approved schema/archive even though the standalone UI does not consume their social APIs.
 
-## Optional local RLS ownership harness
+Existing source data is not imported automatically. An approved conversion must export identity metadata, all rows, privileged assignments, migration history, and every referenced file byte; stage-import while preserving IDs, timestamps, ownership, relationships, visibility, share tokens, and checksums; map old image URLs to new file IDs; and verify password-hash compatibility. Otherwise require secure recovery/re-enrollment. Existing Supabase sessions cannot be reused. Keep the old origin available for browser-draft recovery and old share links during cutover.
 
-The retained security harness requires a separately started disposable local Supabase stack:
+## Checks and troubleshooting
 
-```bash
-python3 supabase/tests/rls_ownership_harness.py
-```
+Run only checks appropriate to the change; these commands are not deployment evidence:
 
-Its defaults are `http://127.0.0.1:54321` and Docker container `supabase_db_boarded-supabase`. Optional overrides are:
-
-```bash
-BOARDED_LOCAL_SUPABASE_URL=http://127.0.0.1:54321 \
-BOARDED_LOCAL_DB_CONTAINER=supabase_db_boarded-supabase \
-python3 supabase/tests/rls_ownership_harness.py
-```
-
-The harness refuses non-loopback URLs and container names without the `supabase_db_` prefix. It uses normal local Auth JWTs and Docker Postgres fixture setup/cleanup, not a service-role key. It intentionally refuses the independent self-hosted deployment's `boarded-supabase-db-1` container. Never point it at production or rename containers to bypass its guards.
-
-## Validation
-
-Run checks relevant to the change:
-
-```bash
+```sh
 npm run lint
 npm test
 npm run build
 ```
 
-Exercise the affected browser routes and interactions as well. The Python harness above is conditional on a disposable local stack; a missing local stack is not permission to target a remote project.
+For runtime acceptance, exercise `/api/health`, signup confirmation through the reviewed TLS mail-capture relay, login/reload/logout, profile and home-area updates, wall/file upload, route CRUD and sharing, social interactions, account switching, offline drafts/retries, and authorization/privacy boundaries. Also rehearse backup and isolated restore with the exact source release before inviting users. A green build or test command does not prove deployment, migration, mail delivery, or recovery.
 
-<a id="repository-map"></a>
-## Repository map
+Common failures:
 
-- `app/` — Next.js root routes, layouts, and global styles.
-- `components/` — route-setting UI and shared components.
-- `lib/` — Supabase client, stores, hooks, utilities, and tests.
-- `packages/shared/` — shared route-setting TypeScript types and utilities.
-- `public/` — static assets, default wall photo, and installable web app assets.
-- `supabase/migrations/` — immutable ordered schema, policy, RPC, and Storage history (001–013).
-- `supabase/tests/` — local-only security harness.
-- `deploy/self-hosted/` — independent backend operations tooling.
-- `.env.local.example` — public variable-name template; `.env.local` stays local.
-
-## Troubleshooting
-
-- **Data or Auth fails:** check the intended URL and public key, backend reachability, and migration history. Restart development or rebuild production after changing browser configuration.
-- **Signup succeeds but confirmation never arrives:** inspect the backend mail configuration; self-hosted Auth needs a real SMTP relay before signup is offered.
-- **`npm start` fails:** build first; `next start` only serves a generated production build.
-- **RLS harness refuses to run:** use a disposable loopback stack and supported container name; keep its guards intact.
-- **Migration fails:** stop at the first failure, inspect the backend state, and restore the required order before continuing. Do not blindly rerun later migrations.
+- **Database connection:** verify local PostgreSQL, database name, role grants, and `DATABASE_URL`; do not switch to a Supabase URL or grant public access.
+- **Migration failure:** stop at the first failed version, inspect the ledger/database, and fix deliberately; never apply later versions or historical Supabase SQL.
+- **Auth/mail failure:** inspect the local sink and SMTP configuration; do not disable confirmation or print tokens.
+- **Health failure:** inspect bounded server logs and `/api/health`; a running process is not readiness.
+- **Old drafts/share links missing:** check origin continuity and retained source records/files; changing environment variables alone does not migrate data or browser state.

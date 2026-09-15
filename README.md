@@ -30,32 +30,38 @@ Boarded is the standalone legacy climbing route setter: a Next.js web app for pl
 
 ## Local development
 
-Use Node.js 22.18 or newer and npm; the utility tests use Node's built-in TypeScript support. Cloud-backed features require a Supabase-compatible backend.
+Use Node.js 22.18 or newer, npm, and a disposable local PostgreSQL 18 cluster. Server-backed features use the same-origin Boarded API, Better Auth sessions, and persistent uploaded files—not Supabase.
 
 ```bash
-npm install
+npm ci
 cp .env.local.example .env.local
+```
+
+Configure the server-only runtime values in `.env.local` and separate migration credentials in `.env.migration.local` as described in the [development guide](docs/development.md#prerequisites-and-local-setup). Never commit these files or expose database/auth/SMTP secrets through browser configuration. Once the disposable database, uploads directory, and TLS mail-capture configuration are ready:
+
+```bash
+node --env-file=.env.migration.local scripts/migrate.mjs
 npm run dev
 ```
 
-Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in your local copy, then open <http://localhost:3000>. Only use a public anonymous/publishable key in the browser; never commit `.env.local` or expose a service-role key.
+Open <http://localhost:3000>.
 
 ## Backend and data continuity
 
-Use a hosted Supabase project or the independent deployment tools in `deploy/self-hosted`. Follow the [development guide](docs/development.md#supabase) for the hosted setup and the [self-hosted backend guide](docs/backend-self-hosting.md) for operations.
+Deploy with native PostgreSQL, persistent local uploads, systemd, and Caddy using `deploy/native-postgres`. Follow the [hosting setup](docs/hosting-setup.md) and [native backend operations](docs/backend-self-hosting.md) for the exact administrator, configuration, release, migration, backup, and isolated-restore procedures. The target is a fresh database; deployment remains unverified until the documented runtime acceptance is completed.
 
-The complete SQL history, migrations 001–013, is retained unchanged. The legacy profile upsert writes `home_area`, introduced in migration 013; removing the later migrations would break that contract. Apply the whole chain once in numeric order on a new backend. This repository split performs no data migration and does not change the default Boarded deployment identity.
+The deployment migration runner applies the new plain-PostgreSQL `db/migrations` chain with a checksummed ledger. Historical `supabase/migrations/001`–`013` remain a requirements/data-preservation reference, **not SQL to apply to plain PostgreSQL**. Fresh installation performs no old-platform import; existing identities, records, uploads, or retained historical data require separately approved conversion or a restorable archive rather than silent deletion.
 
-Browser-local data and sessions do not automatically move to a different origin or backend. Keep the existing origin and backend for continuity; see [persistence and origins](docs/development.md#persistence-and-origins) before changing either. Shared links also depend on their original hostname and backend records.
+Browser-local drafts do not automatically move to a different origin or backend, and former platform sessions are not transferable to the new authentication system. Preserve the origin for draft recovery and arrange old share-hostname/record/file continuity deliberately; see [browser routes and persistence](docs/development.md#browser-routes-and-persistence) before changing the origin.
 
 ## Documentation
 
-- [Web setup and commands](docs/development.md#web)
-- [Supabase migrations](docs/development.md#supabase)
-- [Persistence and origins](docs/development.md#persistence-and-origins)
-- [Validation](docs/development.md#validation)
-- [Repository map](docs/development.md#repository-map)
-- [Self-hosted backend operations](docs/backend-self-hosting.md)
+- [Web setup and commands](docs/development.md#prerequisites-and-local-setup)
+- [Database setup and inexpensive hosting](docs/hosting-setup.md)
+- [Database migrations and deployment](docs/backend-self-hosting.md#install-units-migrate-activate-publish)
+- [Browser routes and persistence](docs/development.md#browser-routes-and-persistence)
+- [Checks and troubleshooting](docs/development.md#checks-and-troubleshooting)
+- [Native backend operations](docs/backend-self-hosting.md)
 
 ## Releases
 

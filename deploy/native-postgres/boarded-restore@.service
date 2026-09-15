@@ -1,0 +1,43 @@
+[Unit]
+Description=Boarded isolated restore drill %i (loopback only)
+After=network-online.target postgresql.service
+ConditionPathExists=!/var/lib/boarded/restore/%i/INCOMPLETE
+ConditionPathExists=/var/lib/boarded/restore/%i/release/.installed
+
+[Service]
+Type=exec
+User=boarded-restore
+Group=boarded-restore
+WorkingDirectory=/var/lib/boarded/restore/%i/release
+EnvironmentFile=/var/lib/boarded/restore/%i/runtime.env
+Environment=NODE_ENV=production
+Environment=HOSTNAME=127.0.0.1
+Environment=PORT=3100
+Environment=NEXT_TELEMETRY_DISABLED=1
+ExecStart=/usr/bin/node .next/standalone/server.js
+Restart=no
+TimeoutStopSec=60
+KillMode=control-group
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+CacheDirectory=boarded-restore/%i
+CacheDirectoryMode=0700
+BindPaths=/var/cache/boarded-restore/%i:/var/cache/boarded
+ReadWritePaths=/var/lib/boarded/restore/%i/uploads /var/cache/boarded
+InaccessiblePaths=/etc/boarded /var/lib/boarded/uploads
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictRealtime=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallArchitectures=native
+LimitNOFILE=8192

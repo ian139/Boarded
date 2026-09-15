@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useEffect, useRef, useState } from 'react';
+import { useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useUserStore } from '@/lib/stores/user-store';
@@ -8,14 +8,12 @@ import { useRoutesStore } from '@/lib/stores/routes-store';
 import { cn } from '@/lib/utils';
 import { useIsClient } from '@/lib/hooks/useIsClient';
 import { gradeToNumber, calculateDisplayGrade } from '@boarded/shared/utils/grades';
-import { toast } from 'sonner';
+import { ChangeProfileDialog } from '@/components/original-board/account/ChangeProfileDialog';
 
 export default function ProfilePage() {
-  const { user, isAuthenticated, profile, syncProfile, uploadAvatar } = useUserStore();
+  const { user, isAuthenticated, profile, syncProfile } = useUserStore();
   const currentUserId = user?.id || 'local-user';
   const currentUserDisplayName = user?.displayName || 'Guest';
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const { routes, fetchRoutes } = useRoutesStore();
   const isClient = useIsClient();
 
@@ -28,27 +26,6 @@ export default function ProfilePage() {
       syncProfile();
     }
   }, [isAuthenticated, syncProfile]);
-
-  const handleAvatarSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const input = event.currentTarget;
-    const file = input.files?.[0];
-    if (!file || isUploadingAvatar) return;
-
-    setIsUploadingAvatar(true);
-    try {
-      const avatarUrl = await uploadAvatar(file);
-      if (avatarUrl) {
-        toast.success('Avatar updated');
-      } else {
-        toast.error('Unable to update avatar. Please try again.');
-      }
-    } catch {
-      toast.error('Unable to update avatar. Please try again.');
-    } finally {
-      input.value = '';
-      setIsUploadingAvatar(false);
-    }
-  };
 
   const stats = useMemo(() => {
     const userRoutes = routes.filter(r => r.user_id === currentUserId);
@@ -176,6 +153,7 @@ export default function ProfilePage() {
           <div className="size-16 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden border border-border/40 shrink-0">
             {profile?.avatar_url ? (
               <Image
+                unoptimized
                 src={profile.avatar_url}
                 alt={currentUserDisplayName}
                 width={64}
@@ -195,7 +173,7 @@ export default function ProfilePage() {
               {isAuthenticated ? user?.email : 'Guest climber'}
             </p>
             {profile?.username && (
-              <p className="text-xs text-muted-foreground mt-0.5">@{profile.username}</p>
+              <p className="text-xs text-muted-foreground mt-0.5 [overflow-wrap:anywhere]">@{profile.username}</p>
             )}
             {user?.createdAt && (
               <p className="text-xs text-muted-foreground mt-0.5">
@@ -208,25 +186,9 @@ export default function ProfilePage() {
             {profile?.bio && (
               <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{profile.bio}</p>
             )}
-            {isAuthenticated && (
+            {isAuthenticated && user && (
               <div className="mt-2">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleAvatarSelect}
-                  disabled={isUploadingAvatar}
-                />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploadingAvatar}
-                  aria-busy={isUploadingAvatar}
-                  className="text-xs font-semibold text-primary hover:underline disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isUploadingAvatar ? 'Uploading...' : 'Change avatar'}
-                </button>
+                <ChangeProfileDialog key={user.id} />
               </div>
             )}
           </div>

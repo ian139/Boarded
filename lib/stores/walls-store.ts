@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { createClient } from '@/lib/supabase/client';
+import { resourceAPI } from '@/lib/api/client';
 import type { Wall } from '@boarded/shared/types';
 
 // Default wall
@@ -20,6 +20,7 @@ export const DEFAULT_WALL: Wall = {
 
 let wallFetchGeneration = 0;
 let wallAuthGeneration = 0;
+let verifiedWallOwner: string | undefined;
 type LocalWall = Wall & { _derivedFromRoute?: boolean };
 
 function isDerivedWall(wall: Wall) {
@@ -45,7 +46,7 @@ interface WallsState {
   updateWall: (id: string, updates: Partial<Wall>) => Promise<boolean>;
   deleteWall: (id: string) => Promise<boolean>;
   getWallById: (id: string) => Wall | undefined;
-  clearRemoteWalls: () => void;
+  clearRemoteWalls: (currentUserId?: string) => void;
   // Sync actions
   fetchWalls: () => Promise<void>;
 }
@@ -58,25 +59,16 @@ export const useWallsStore = create<WallsState>()(
 
       setSelectedWall: (wall) => set({ selectedWall: wall }),
 
-      // Fetch walls allowed by Supabase RLS (public plus the signed-in user's private walls).
+      // The server returns public walls and the verified owner's private walls.
       fetchWalls: async () => {
         const fetchGeneration = ++wallFetchGeneration;
 
         try {
-          const supabase = createClient();
-          const { data: { user } } = await supabase.auth.getUser();
+          const { user } = await resourceAPI.session();
+          if (fetchGeneration !== wallFetchGeneration || user?.id !== verifiedWallOwner) return;
           const currentUserId = user?.id || 'local-user';
-          const { data: remoteWalls, error } = await supabase
-            .from('walls')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-          if (error) {
-            console.error('Error fetching walls:', error);
-            return;
-          }
-
-          const { data: { user: latestUser } } = await supabase.auth.getUser();
+          const remoteWalls = await resourceAPI.request<Wall[]>('/api/walls');
+          const { user: latestUser } = await resourceAPI.session();
           if (
             fetchGeneration !== wallFetchGeneration ||
             (latestUser?.id || 'local-user') !== currentUserId
@@ -97,9 +89,10 @@ export const useWallsStore = create<WallsState>()(
         }
       },
 
-      clearRemoteWalls: () => {
+      clearRemoteWalls: (currentUserId) => {
         wallFetchGeneration += 1;
         wallAuthGeneration += 1;
+        verifiedWallOwner = currentUserId;
         set((state) => {
           const selected = state.selectedWall;
           const selectedIsLocal = selected ? isLocalWall(selected) : false;
@@ -111,37 +104,37 @@ export const useWallsStore = create<WallsState>()(
       },
 
       addWall: async (wall) => {
+        const authGeneration = wallAuthGeneration;
         // Add to local state immediately and remove it again if persistence fails.
         set((state) => ({
           walls: [...state.walls, wall],
         }));
 
-        // Local-only walls are intentionally not sent to Supabase.
+        // Local-only walls are intentionally not sent to the server.
         if (wall.user_id === 'local-user' || wall.user_id === 'local') return true;
 
         try {
-          const supabase = createClient();
-          const { data: { user }, error: authError } = await supabase.auth.getUser();
-          if (authError) throw authError;
-          if (!user) throw new Error('Unable to authenticate wall owner');
-
-          const { error } = await supabase
-            .from('walls')
-            .insert({
+          const { user } = await resourceAPI.session();
+          if (authGeneration !== wallAuthGeneration) return false;
+          if (!user || user.id !== wall.user_id) throw new Error('Unable to authenticate wall owner');
+          const saved = await resourceAPI.request<Wall>('/api/walls', {
+            method: 'POST',
+            body: JSON.stringify({
               id: wall.id,
-              user_id: user.id,
               name: wall.name,
               description: wall.description,
               image_url: wall.image_url,
               image_width: wall.image_width,
               image_height: wall.image_height,
               is_public: wall.is_public,
-            });
-
-          if (error) throw error;
+            }),
+          });
+          if (authGeneration !== wallAuthGeneration) return false;
+          set((state) => ({ walls: state.walls.map((candidate) => candidate.id === wall.id ? saved : candidate) }));
           return true;
         } catch (error) {
           console.error('Error saving wall:', error);
+          if (authGeneration !== wallAuthGeneration) return false;
           set((state) => ({ walls: state.walls.filter((candidate) => candidate.id !== wall.id) }));
           return false;
         }
@@ -164,15 +157,16 @@ export const useWallsStore = create<WallsState>()(
         }
 
         try {
-          const supabase = createClient();
-          const { data, error } = await supabase
-            .from('walls')
-            .update({ ...updates, updated_at: next.updated_at })
-            .eq('id', id)
-            .select('id')
-            .maybeSingle();
-          if (error) throw error;
-          if (!data) throw new Error('Wall update was not authorized');
+          const { name, description, image_url, image_width, image_height, is_public } = updates;
+          const saved = await resourceAPI.request<Wall>(`/api/walls/${encodeURIComponent(id)}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ name, description, image_url, image_width, image_height, is_public }),
+          });
+          if (authGeneration !== wallAuthGeneration) return false;
+          set((state) => ({
+            walls: state.walls.map((wall) => wall.id === id ? saved : wall),
+            selectedWall: state.selectedWall?.id === id ? saved : state.selectedWall,
+          }));
           return true;
         } catch (error) {
           console.error('Error updating wall:', error);
@@ -201,16 +195,8 @@ export const useWallsStore = create<WallsState>()(
         if (wall.user_id === 'local-user' || wall.user_id === 'local') return true;
 
         try {
-          const supabase = createClient();
-          const { data, error } = await supabase
-            .from('walls')
-            .delete()
-            .eq('id', id)
-            .select('id')
-            .maybeSingle();
-          if (error) throw error;
-          if (!data) throw new Error('Wall deletion was not authorized');
-          return true;
+          await resourceAPI.request(`/api/walls/${encodeURIComponent(id)}`, { method: 'DELETE' });
+          return authGeneration === wallAuthGeneration;
         } catch (error) {
           console.error('Error deleting wall:', error);
           if (authGeneration !== wallAuthGeneration) return false;
@@ -234,6 +220,15 @@ export const useWallsStore = create<WallsState>()(
         walls: state.walls,
         selectedWall: state.selectedWall,
       }),
+      merge: (persisted, current) => {
+        const cached = persisted as Partial<WallsState> | null;
+        const walls = Array.isArray(cached?.walls) ? cached.walls.filter(isLocalWall) : current.walls;
+        return {
+          ...current,
+          walls,
+          selectedWall: cached?.selectedWall && isLocalWall(cached.selectedWall) ? cached.selectedWall : DEFAULT_WALL,
+        };
+      },
     }
   )
 );

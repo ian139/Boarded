@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useBoardTheme, type BoardTheme } from '@/components/original-board/theme';
@@ -20,32 +20,19 @@ import { Button } from '@/components/original-board/ui/button';
 import { Input } from '@/components/original-board/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { createClient } from '@/lib/supabase/client';
-import type { SupabaseClient } from '@supabase/supabase-js';
-import { getWallStoragePathFromUrl, intersectStoragePaths } from '@/lib/utils/storage';
+import { resourceAPI, ResourceError } from '@/lib/api/client';
 
-interface StorageFolderSize {
+interface StorageUsage {
   totalBytes: number;
-  latestTs: string | null;
+  breakdown: Array<{ wallId: string; bytes: number; latestTs: string | null }>;
 }
 
-const listWallStorageFolder = async (supabase: SupabaseClient, prefix: string) => {
-  const items = [];
-  let offset = 0;
-  const limit = 100;
-
-  while (true) {
-    const { data, error } = await supabase.storage
-      .from('walls')
-      .list(prefix, { limit, offset, sortBy: { column: 'name', order: 'asc' } });
-    if (error) throw error;
-    if (!data) throw new Error(`Incomplete storage list for prefix "${prefix}"`);
-    items.push(...data);
-    if (data.length < limit) break;
-    offset += limit;
-  }
-  return items;
-};
+interface CleanupFile {
+  id: string;
+  label: string;
+  bytes: number;
+  updated_at: string;
+}
 
 export default function BoardSettingsPage() {
   const router = useRouter();
@@ -54,6 +41,9 @@ export default function BoardSettingsPage() {
   const walls = useWallsStore((state) => state.walls);
   const { user, isAuthenticated, logout, isModerator, login } = useUserStore();
   const currentUserDisplayName = user?.displayName || 'Guest';
+  const canManageStorage = isAuthenticated && !!user && isModerator;
+  const requestGeneration = useRef(0);
+  const [storageRevision, setStorageRevision] = useState(0);
   const [storageBytes, setStorageBytes] = useState<number | null>(null);
   const [storageLoading, setStorageLoading] = useState(false);
   const [storageError, setStorageError] = useState<string | null>(null);
@@ -63,139 +53,166 @@ export default function BoardSettingsPage() {
   const [storageHistory, setStorageHistory] = useState<Array<{ ts: string; bytes: number }>>([]);
   const [showCleanup, setShowCleanup] = useState(false);
   const [isCleaning, setIsCleaning] = useState(false);
-  const [cleanupPreview, setCleanupPreview] = useState<string[]>([]);
+  const [cleanupPreview, setCleanupPreview] = useState<CleanupFile[]>([]);
+  const [cleanupError, setCleanupError] = useState<string | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [showClearData, setShowClearData] = useState(false);
+  const [isClearingData, setIsClearingData] = useState(false);
   const [showModLogin, setShowModLogin] = useState(false);
   const [modEmail, setModEmail] = useState('');
   const [modPassword, setModPassword] = useState('');
   const [modLoading, setModLoading] = useState(false);
   const [modError, setModError] = useState('');
 
+  const isCurrentModeratorRequest = useCallback((generation: number) => {
+    const current = useUserStore.getState();
+    return generation === requestGeneration.current &&
+      current.isAuthenticated && !!current.user && current.isModerator;
+  }, []);
+
   const handleLogout = async () => {
-    await logout();
-    toast.success('Logged out');
-    router.push('/');
+    try {
+      await logout();
+      toast.success('Logged out');
+      router.push('/');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to log out');
+    }
   };
 
   const handleModLogin = async () => {
     setModLoading(true);
     setModError('');
-
-    const result = await login(modEmail, modPassword);
-
-    if (result.success) {
+    try {
+      const result = await login(modEmail, modPassword);
+      if (!result.success) {
+        setModError(result.error || 'Login failed');
+        return;
+      }
+      const current = useUserStore.getState();
+      setModPassword('');
+      if (!current.isAuthenticated || !current.user || !current.isModerator) {
+        setModError('Signed in, but this account does not have moderator access.');
+        return;
+      }
       toast.success('Logged in as moderator');
       setShowModLogin(false);
       setModEmail('');
-      setModPassword('');
-    } else {
-      setModError(result.error || 'Login failed');
+    } catch (error) {
+      setModError(error instanceof Error ? error.message : 'Login failed');
+    } finally {
+      setModLoading(false);
     }
-
-    setModLoading(false);
   };
 
-  const handleClearData = () => {
-    localStorage.removeItem('boarded-routes');
-    localStorage.removeItem('boarded-walls');
-    localStorage.removeItem('boarded-draft');
-    window.location.reload();
+  const handleClearData = async () => {
+    setIsClearingData(true);
+    requestGeneration.current += 1;
+    setStorageBytes(null);
+    setStorageByWall([]);
+    setStorageHistory([]);
+    setStorageLoading(false);
+    setStorageError(null);
+    setCleanupPreview([]);
+    setCleanupError(null);
+    setShowCleanup(false);
+    setIsCleaning(false);
+    setIsPreviewLoading(false);
+    try {
+      await resourceAPI.clearPrivateCaches();
+      const draftKeys = Object.keys(localStorage).filter((key) => key.startsWith('boarded-draft:'));
+      for (const key of [
+        'boarded-routes',
+        'boarded-walls',
+        'boarded-draft',
+        'boarded-user',
+        'boarded-storage-history',
+        ...draftKeys,
+      ]) {
+        localStorage.removeItem(key);
+      }
+      window.location.reload();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to clear local data');
+      setIsClearingData(false);
+    }
   };
 
   useEffect(() => {
-    const listFolderSize = async (
-      supabase: SupabaseClient,
-      folder: string
-    ): Promise<StorageFolderSize> => {
-      let totalBytes = 0;
-      let latestTs: string | null = null;
-      const items = await listWallStorageFolder(supabase, folder);
-
-      for (const item of items) {
-        if (!item.metadata) {
-          const child = await listFolderSize(supabase, `${folder}/${item.name}`);
-          totalBytes += child.totalBytes;
-          if (
-            child.latestTs &&
-            (!latestTs || new Date(child.latestTs).getTime() > new Date(latestTs).getTime())
-          ) {
-            latestTs = child.latestTs;
-          }
-          continue;
-        }
-
-        const size = item.metadata.size;
-        if (typeof size === 'number') totalBytes += size;
-        const updatedAt = item.updated_at || item.created_at;
-        if (
-          updatedAt &&
-          (!latestTs || new Date(updatedAt).getTime() > new Date(latestTs).getTime())
-        ) {
-          latestTs = updatedAt;
-        }
-      }
-
-      return { totalBytes, latestTs };
-    };
-
-    const loadStorageUsage = async () => {
-      setStorageLoading(true);
-      setStorageError(null);
-
+    const loadStorageUsage = async (generation: number) => {
       try {
-        const supabase = createClient();
-        if (storageHistory.length === 0) {
-          const historyKey = 'boarded-storage-history';
-          const rawHistory = localStorage.getItem(historyKey);
-          if (rawHistory) {
-            try {
-              setStorageHistory(JSON.parse(rawHistory));
-            } catch {
-              // ignore parse errors
-            }
-          }
-        }
-        const folders = (await listWallStorageFolder(supabase, ''))
-          .filter((item) => !item.metadata)
-          .map((item) => item.name);
-
-        const breakdown: Array<{ wallId: string; bytes: number; latestTs: string | null }> = [];
-        let totalBytes = 0;
-
-        for (const folder of folders) {
-          const { totalBytes: bytes, latestTs } = await listFolderSize(supabase, folder);
-          breakdown.push({ wallId: folder, bytes, latestTs });
-          totalBytes += bytes;
-        }
-
-        breakdown.sort((a, b) => b.bytes - a.bytes);
-        setStorageByWall(breakdown);
+        const { totalBytes, breakdown } = await resourceAPI.request<StorageUsage>('/api/admin/storage');
+        if (!isCurrentModeratorRequest(generation)) return;
+        setStorageByWall([...breakdown].sort((a, b) => b.bytes - a.bytes));
         setStorageBytes(totalBytes);
 
         const historyKey = 'boarded-storage-history';
+        let history: Array<{ ts: string; bytes: number }> = [];
+        try {
+          const saved: unknown = JSON.parse(localStorage.getItem(historyKey) || '[]');
+          if (Array.isArray(saved)) {
+            history = saved.filter((entry): entry is { ts: string; bytes: number } =>
+              !!entry && typeof entry.ts === 'string' &&
+              Number.isFinite(Date.parse(entry.ts)) &&
+              typeof entry.bytes === 'number' && Number.isFinite(entry.bytes)
+            );
+          }
+        } catch {
+          // A missing or invalid local history must not hide server usage.
+        }
         const now = new Date();
-        const nowIso = now.toISOString();
-        const rawHistory = localStorage.getItem(historyKey);
-        const history = rawHistory ? (JSON.parse(rawHistory) as Array<{ ts: string; bytes: number }>) : [];
         const last = history[history.length - 1];
-        const lastTs = last ? new Date(last.ts).getTime() : 0;
-        const twelveHours = 12 * 60 * 60 * 1000;
-        const nextHistory =
-          now.getTime() - lastTs > twelveHours
-            ? [...history, { ts: nowIso, bytes: totalBytes }].slice(-30)
-            : history;
-        localStorage.setItem(historyKey, JSON.stringify(nextHistory));
+        const nextHistory = !last || now.getTime() - Date.parse(last.ts) > 12 * 60 * 60 * 1000
+          ? [...history, { ts: now.toISOString(), bytes: totalBytes }].slice(-30)
+          : history;
         setStorageHistory(nextHistory);
+        try {
+          localStorage.setItem(historyKey, JSON.stringify(nextHistory));
+        } catch {
+          // Storage usage remains available when local persistence is disabled.
+        }
       } catch (error) {
-        setStorageError(error instanceof Error ? error.message : 'Unable to load storage usage');
+        if (isCurrentModeratorRequest(generation)) {
+          setStorageError(error instanceof Error ? error.message : 'Unable to load storage usage');
+        }
       } finally {
-        setStorageLoading(false);
+        if (isCurrentModeratorRequest(generation)) setStorageLoading(false);
       }
     };
 
-    loadStorageUsage();
-  }, [storageHistory.length]);
+    const resetStorageScope = () => {
+      const generation = ++requestGeneration.current;
+      setStorageBytes(null);
+      setStorageByWall([]);
+      setStorageHistory([]);
+      setStorageError(null);
+      setStorageLoading(false);
+      setCleanupPreview([]);
+      setCleanupError(null);
+      setShowCleanup(false);
+      setIsCleaning(false);
+      setIsPreviewLoading(false);
+      if (isCurrentModeratorRequest(generation)) {
+        setStorageLoading(true);
+        void loadStorageUsage(generation);
+      }
+    };
+
+    const unsubscribe = useUserStore.subscribe((current, previous) => {
+      if (
+        current.user?.id !== previous.user?.id ||
+        current.isAuthenticated !== previous.isAuthenticated ||
+        current.isModerator !== previous.isModerator
+      ) {
+        resetStorageScope();
+      }
+    });
+    resetStorageScope();
+    return () => {
+      unsubscribe();
+      requestGeneration.current += 1;
+    };
+  }, [isCurrentModeratorRequest, storageRevision]);
 
   const formatBytes = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
@@ -207,119 +224,72 @@ export default function BoardSettingsPage() {
     return `${gb.toFixed(2)} GB`;
   };
 
-  const getCleanupCandidates = async () => {
-    const supabase = createClient();
-    const DB_PAGE_LIMIT = 1000;
-    const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
-
-    const fetchReferencedWallPaths = async () => {
-      const referenced = new Set<string>();
-      let offset = 0;
-      while (true) {
-        const { data, error } = await supabase
-          .from('walls')
-          .select('id,image_url')
-          .order('id', { ascending: true })
-          .range(offset, offset + DB_PAGE_LIMIT - 1);
-        if (error) throw error;
-        if (!data) throw new Error('Incomplete walls.image_url query');
-        for (const row of data) {
-          const path = row.image_url ? getWallStoragePathFromUrl(row.image_url) : null;
-          if (path) referenced.add(path);
-        }
-        if (data.length < DB_PAGE_LIMIT) break;
-        offset += DB_PAGE_LIMIT;
-      }
-      offset = 0;
-      while (true) {
-        const { data, error } = await supabase
-          .from('routes')
-          .select('id,wall_image_url')
-          .order('id', { ascending: true })
-          .range(offset, offset + DB_PAGE_LIMIT - 1);
-        if (error) throw error;
-        if (!data) throw new Error('Incomplete routes.wall_image_url query');
-        for (const row of data) {
-          const path = row.wall_image_url ? getWallStoragePathFromUrl(row.wall_image_url) : null;
-          if (path) referenced.add(path);
-        }
-        if (data.length < DB_PAGE_LIMIT) break;
-        offset += DB_PAGE_LIMIT;
-      }
-      return referenced;
-    };
-
-    const isOldEnough = (item: { updated_at?: string; created_at?: string }) => {
-      const ts = item.updated_at || item.created_at;
-      if (!ts) return false;
-      return Date.now() - new Date(ts).getTime() > SEVEN_DAYS;
-    };
-
-    const collectStorageCandidates = async () => {
-      const candidates: string[] = [];
-      const rootFolders = (await listWallStorageFolder(supabase, '')).filter(
-        (item) => !item.metadata
-      );
-      for (const rootFolder of rootFolders) {
-        const rootPrefix = rootFolder.name;
-        const wallFolders = (await listWallStorageFolder(supabase, rootPrefix)).filter(
-          (item) => !item.metadata
-        );
-        for (const wallFolder of wallFolders) {
-          const wallPrefix = `${rootPrefix}/${wallFolder.name}`;
-          const wallItems = await listWallStorageFolder(supabase, wallPrefix);
-          for (const item of wallItems) {
-            if (!item.metadata || !isOldEnough(item)) continue;
-            candidates.push(`${wallPrefix}/${item.name}`);
-          }
-        }
-      }
-      return candidates;
-    };
-
-    const [referenced, candidates] = await Promise.all([
-      fetchReferencedWallPaths(),
-      collectStorageCandidates(),
-    ]);
-    return candidates.filter((path) => !referenced.has(path));
-  };
-
   const loadCleanupPreview = async () => {
+    const generation = requestGeneration.current;
+    if (!isCurrentModeratorRequest(generation)) return;
+    setCleanupPreview([]);
+    setCleanupError(null);
     setIsPreviewLoading(true);
     try {
-      const deletions = await getCleanupCandidates();
-      setCleanupPreview(deletions);
+      const { files } = await resourceAPI.request<{ files: CleanupFile[] }>(
+        '/api/admin/storage/cleanup-preview',
+        { method: 'POST' }
+      );
+      if (isCurrentModeratorRequest(generation)) setCleanupPreview(files);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to load cleanup preview');
-      setCleanupPreview([]);
+      if (isCurrentModeratorRequest(generation)) {
+        setCleanupError(error instanceof Error ? error.message : 'Failed to load cleanup preview');
+      }
     } finally {
-      setIsPreviewLoading(false);
+      if (isCurrentModeratorRequest(generation)) setIsPreviewLoading(false);
     }
   };
 
   const runStorageCleanup = async () => {
+    const generation = requestGeneration.current;
+    if (!isCurrentModeratorRequest(generation) || isCleaning || isPreviewLoading || !cleanupPreview.length) return;
     setIsCleaning(true);
+    setCleanupError(null);
+    const deletedFileIds = new Set<string>();
     try {
-      const freshCandidates = await getCleanupCandidates();
-      const deletions = intersectStoragePaths(freshCandidates, cleanupPreview);
-
-      if (deletions.length > 0) {
-        const supabase = createClient();
-        const { error } = await supabase.storage.from('walls').remove(deletions);
-        if (error) throw error;
+      for (let offset = 0; offset < cleanupPreview.length; offset += 1000) {
+        if (!isCurrentModeratorRequest(generation)) return;
+        const { deletedIds } = await resourceAPI.request<{ deletedIds: string[] }>(
+          '/api/admin/storage/cleanup',
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              fileIds: cleanupPreview.slice(offset, offset + 1000).map((file) => file.id),
+            }),
+          }
+        );
+        if (!isCurrentModeratorRequest(generation)) return;
+        for (const id of deletedIds) deletedFileIds.add(id);
       }
-
       toast.success(
-        deletions.length > 0
-          ? `Deleted ${deletions.length} unused images`
-          : 'No unused images found'
+        deletedFileIds.size > 0
+          ? `Deleted ${deletedFileIds.size} unused images`
+          : 'No previewed images are eligible for deletion'
       );
       setCleanupPreview([]);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to clean up storage');
-    } finally {
-      setIsCleaning(false);
       setShowCleanup(false);
+      setStorageRevision((revision) => revision + 1);
+    } catch (error) {
+      if (isCurrentModeratorRequest(generation)) {
+        if (error instanceof ResourceError && error.payload && typeof error.payload === 'object' &&
+          'deletedIds' in error.payload && Array.isArray(error.payload.deletedIds)) {
+          for (const id of error.payload.deletedIds) {
+            if (typeof id === 'string') deletedFileIds.add(id);
+          }
+        }
+        const message = error instanceof Error ? error.message : 'Unable to complete cleanup';
+        setCleanupPreview(cleanupPreview.filter((file) => !deletedFileIds.has(file.id)));
+        setCleanupError(
+          `Cleanup incomplete. ${deletedFileIds.size} images confirmed deleted. ${message}. Retry the remaining previewed images.`
+        );
+      }
+    } finally {
+      if (isCurrentModeratorRequest(generation)) setIsCleaning(false);
     }
   };
 
@@ -472,7 +442,9 @@ export default function BoardSettingsPage() {
             </p>
             <div className="text-sm text-muted-foreground">
               <span className="font-medium text-foreground">Storage usage:</span>{' '}
-              {storageLoading
+              {!canManageStorage
+                ? 'Moderator access required'
+                : storageLoading
                 ? 'Loading...'
                 : storageError
                   ? 'Unavailable'
@@ -480,7 +452,10 @@ export default function BoardSettingsPage() {
                     ? formatBytes(storageBytes)
                     : '—'}
             </div>
-            {!storageLoading && !storageError && storageByWall.length > 0 && (
+            {canManageStorage && storageError && (
+              <p className="text-sm text-destructive">{storageError}</p>
+            )}
+            {canManageStorage && !storageLoading && !storageError && storageByWall.length > 0 && (
               <div className="rounded-xl border border-border/50 p-3 space-y-2">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Storage By Wall (size • last upload)
@@ -503,7 +478,7 @@ export default function BoardSettingsPage() {
                 })}
               </div>
             )}
-            {storageHistory.length > 1 && (
+            {canManageStorage && storageHistory.length > 1 && (
               <div className="rounded-xl border border-border/50 p-3 space-y-2">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Storage Trend
@@ -518,7 +493,7 @@ export default function BoardSettingsPage() {
                 ))}
               </div>
             )}
-            {isModerator && (
+            {canManageStorage && (
               <button
                 onClick={() => {
                   setShowCleanup(true);
@@ -542,12 +517,12 @@ export default function BoardSettingsPage() {
         </section>
 
         {/* Moderator */}
-        {(isModerator || !isAuthenticated) && (
+        {(canManageStorage || !isAuthenticated) && (
           <section>
             <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">
               Admin
             </h2>
-            {isModerator ? (
+            {canManageStorage ? (
               <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
@@ -590,15 +565,16 @@ export default function BoardSettingsPage() {
           <DialogHeader>
             <DialogTitle>Clear All Data</DialogTitle>
             <DialogDescription>
-              This will permanently delete all your routes and walls. This action cannot be undone.
+              This will remove locally saved routes, walls, drafts, and account caches from this device.
+              Data already saved to your account will not be deleted.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowClearData(false)}>
+            <Button variant="outline" onClick={() => setShowClearData(false)} disabled={isClearingData}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleClearData}>
-              Clear All Data
+            <Button variant="destructive" onClick={handleClearData} disabled={isClearingData}>
+              {isClearingData ? 'Clearing...' : 'Clear All Data'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -664,12 +640,13 @@ export default function BoardSettingsPage() {
       </Dialog>
 
       {/* Storage Cleanup Dialog */}
-      <Dialog open={showCleanup} onOpenChange={setShowCleanup}>
+      <Dialog open={canManageStorage && showCleanup} onOpenChange={setShowCleanup}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Clean Up Storage</DialogTitle>
             <DialogDescription>
-              This will delete wall images that are no longer referenced by any wall. This cannot be undone.
+              Only previewed images that the server confirms are still unused will be deleted.
+              This cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
@@ -680,15 +657,16 @@ export default function BoardSettingsPage() {
               {isPreviewLoading ? (
                 <p>Loading preview...</p>
               ) : cleanupPreview.length > 0 ? (
-                cleanupPreview.map((path) => (
-                  <div key={path} className="truncate">
-                    {path}
+                cleanupPreview.map((file) => (
+                  <div key={file.id} className="truncate">
+                    {file.label} · {formatBytes(file.bytes)}
                   </div>
                 ))
               ) : (
-                <p>No unused images older than 7 days.</p>
+                !cleanupError && <p>No unused images older than 7 days.</p>
               )}
             </div>
+            {cleanupError && <p className="text-sm text-destructive">{cleanupError}</p>}
           </div>
           <DialogFooter>
             <Button
@@ -701,9 +679,9 @@ export default function BoardSettingsPage() {
             <Button
               variant="destructive"
               onClick={runStorageCleanup}
-              disabled={isCleaning || isPreviewLoading || cleanupPreview.length === 0}
+              disabled={!canManageStorage || isCleaning || isPreviewLoading || cleanupPreview.length === 0}
             >
-              {isCleaning ? 'Cleaning...' : 'Delete Unused Images'}
+              {isCleaning ? 'Cleaning...' : cleanupError ? 'Retry Cleanup' : 'Delete Unused Images'}
             </Button>
           </DialogFooter>
         </DialogContent>

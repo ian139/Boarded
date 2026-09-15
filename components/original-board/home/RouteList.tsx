@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { nanoid } from 'nanoid';
 import { motion, AnimatePresence } from 'motion/react';
 import { useRoutesStore } from '@/lib/stores/routes-store';
@@ -27,6 +27,16 @@ const hasPendingCreate = (route: Route) =>
 export function RouteList({ routes, onViewRoute, onLogClimb, onDeleteRoute, onEditRoute }: RouteListProps) {
   const { user, isModerator } = useUserStore();
   const currentUserId = user?.id;
+  const accountRevision = useRef(0);
+  useEffect(() => {
+    const unsubscribe = useUserStore.subscribe((state, previous) => {
+      if (state.user?.id !== previous.user?.id) accountRevision.current += 1;
+    });
+    return () => {
+      accountRevision.current += 1;
+      unsubscribe();
+    };
+  }, []);
   const { toggleLike, isLikedByUser, getLikeCount, hasUserClimbed, updateRoute, syncLocalRoutes, fetchRouteById } = useRoutesStore();
   const { getWallById } = useWallsStore();
 
@@ -65,6 +75,10 @@ export function RouteList({ routes, onViewRoute, onLogClimb, onDeleteRoute, onEd
 
   const handleShareRoute = async (route: Route, e: React.MouseEvent) => {
     e.stopPropagation();
+    const revision = accountRevision.current;
+    const isCurrentAccount = () =>
+      accountRevision.current === revision && useUserStore.getState().user?.id === currentUserId;
+    if (!isCurrentAccount()) return;
     let shareRoute = route;
     if (shareRoute.user_id === 'local-user' || hasPendingCreate(shareRoute)) {
       if (!currentUserId) {
@@ -72,12 +86,14 @@ export function RouteList({ routes, onViewRoute, onLogClimb, onDeleteRoute, onEd
         return;
       }
       await syncLocalRoutes();
+      if (!isCurrentAccount()) return;
       const syncedRoute = useRoutesStore.getState().routes.find((candidate) => candidate.id === shareRoute.id);
       if (!syncedRoute || syncedRoute.user_id === 'local-user' || hasPendingCreate(syncedRoute)) {
         toast.error('Unable to sync this route before sharing');
         return;
       }
       const verifiedRoute = await fetchRouteById(shareRoute.id);
+      if (!isCurrentAccount()) return;
       if (!verifiedRoute || verifiedRoute.user_id !== currentUserId || hasPendingCreate(verifiedRoute)) {
         toast.error('Unable to verify this route before sharing');
         return;
@@ -97,6 +113,7 @@ export function RouteList({ routes, onViewRoute, onLogClimb, onDeleteRoute, onEd
     const token = shareRoute.share_token || nanoid(10);
     if (canManageSharing && (!shareRoute.is_public || shareRoute.share_token !== token)) {
       const persisted = await updateRoute(shareRoute.id, { share_token: token, is_public: true });
+      if (!isCurrentAccount()) return;
       if (!persisted) {
         toast.error('Unable to persist a share link right now');
         return;
@@ -106,8 +123,10 @@ export function RouteList({ routes, onViewRoute, onLogClimb, onDeleteRoute, onEd
     const url = getShareUrl(token);
     try {
       await navigator.clipboard.writeText(url);
+      if (!isCurrentAccount()) return;
       toast.success(`Share link copied: ${url}`);
     } catch {
+      if (!isCurrentAccount()) return;
       toast.error('Unable to copy link');
     }
   };
@@ -155,6 +174,7 @@ export function RouteList({ routes, onViewRoute, onLogClimb, onDeleteRoute, onEd
 
               <div className="relative size-12 shrink-0 overflow-hidden rounded-xl border border-border/60 bg-muted/40 md:border-border">
                 <Image
+                  unoptimized
                   src={wallImage}
                   alt={wallName}
                   fill

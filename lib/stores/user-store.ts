@@ -1,388 +1,184 @@
 'use client';
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { createClient } from '@/lib/supabase/client';
+import { authClient } from '@/lib/api/auth';
+import { resourceAPI, ResourceError, type SessionUser } from '@/lib/api/client';
 import { useRoutesStore } from '@/lib/stores/routes-store';
 import { useWallsStore } from '@/lib/stores/walls-store';
 import type { Profile } from '@boarded/shared/types';
-import type { User as SupabaseUser } from '@supabase/supabase-js';
+import { boardRedirect } from '@/lib/utils';
 
-
-interface User {
-  id: string;
-  email: string;
-  displayName: string;
-  createdAt: string;
-  isModerator: boolean;
-}
-
+interface AuthResult { success: boolean; requiresConfirmation?: boolean; error?: string }
+type ProfileUpdateResult = { ok: true } | { ok: false; error: 'conflict' | 'invalid' | 'failed' | 'stale' };
 interface UserState {
-  // Current user state
-  user: User | null;
+  user: SessionUser | null;
   profile: Profile | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   isModerator: boolean;
-
-  signup: (email: string, password: string, displayName?: string) => Promise<{ success: boolean; requiresConfirmation?: boolean; error?: string }>;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signup: (email: string, password: string, displayName?: string, callbackURL?: string) => Promise<AuthResult>;
+  login: (email: string, password: string) => Promise<AuthResult>;
   logout: () => Promise<void>;
   initializeAuth: () => Promise<void>;
   syncProfile: () => Promise<void>;
-  updateProfile: (updates: Partial<Profile>) => Promise<boolean>;
+  updateProfile: (updates: Partial<Profile>) => Promise<ProfileUpdateResult>;
   uploadAvatar: (file: File) => Promise<string | null>;
 }
 
-function mapSupabaseUser(supabaseUser: SupabaseUser): User {
-  const email = supabaseUser.email || '';
-  const displayName = supabaseUser.user_metadata?.display_name || email.split('@')[0] || 'User';
-
-  const appMetadata = supabaseUser.app_metadata as { role?: string; is_moderator?: boolean } | undefined;
-  const isModerator = appMetadata?.role === 'moderator' || appMetadata?.is_moderator === true;
-
-  return {
-    id: supabaseUser.id,
-    email,
-    displayName,
-    createdAt: supabaseUser.created_at,
-    isModerator,
-  };
-}
-
-function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)+/g, '');
-}
-
-function buildUsername(displayName: string, email: string, id: string) {
-  const base = slugify(displayName || email.split('@')[0] || 'climber') || 'climber';
-  return `${base}-${id.slice(0, 4)}`;
-}
-
-let removeAuthListener: (() => void) | null = null;
+let authGeneration = 0;
+let sessionRequest = 0;
+let profileMutationRevision = 0;
+let initialized = false;
 let routeReconciliation = Promise.resolve();
 
-function authenticatedState(user: User) {
-  return {
-    user,
-    profile: null,
-    isAuthenticated: true,
-    isModerator: user.isModerator,
-  };
-}
-
-function signedOutState() {
-  return {
-    user: null,
-    profile: null,
-    isAuthenticated: false,
-    isModerator: false,
-  };
-}
-
 function reconcileDataForAuthChange(currentUserId?: string): Promise<void> {
-  const routesStore = useRoutesStore.getState();
-  const wallsStore = useWallsStore.getState();
-  routesStore.clearRemoteRoutes(currentUserId);
-  wallsStore.clearRemoteWalls();
+  const generation = authGeneration;
+  useRoutesStore.getState().clearRemoteRoutes(currentUserId);
+  useWallsStore.getState().clearRemoteWalls(currentUserId);
   const run = async () => {
-    const supabase = createClient();
+    if (generation !== authGeneration) return;
     try {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (error) throw error;
-      if ((user?.id || undefined) !== currentUserId) return;
+      const { user } = await resourceAPI.session();
+      if (generation !== authGeneration || user?.id !== currentUserId) return;
+      await useRoutesStore.getState().syncLocalRoutes();
+      if (generation !== authGeneration) return;
+      await Promise.all([useRoutesStore.getState().fetchRoutes(), useWallsStore.getState().fetchWalls()]);
     } catch {
-      // Local reconciliation still works when Auth cannot verify the session.
+      // Keep local routes available; never sync using an unverified identity.
     }
-
-    try {
-      await routesStore.syncLocalRoutes();
-    } catch {
-      // Fetch still reconciles the visible remote routes after a sync failure.
-    }
-    await Promise.all([routesStore.fetchRoutes(), wallsStore.fetchWalls()]);
   };
-
-  routeReconciliation = routeReconciliation
-    .catch(() => undefined)
-    .then(run);
+  routeReconciliation = routeReconciliation.catch(() => undefined).then(run);
   return routeReconciliation;
 }
 
-export const useUserStore = create<UserState>()(
-  persist(
-    (set, get) => ({
-      user: null,
-      profile: null,
-      isAuthenticated: false,
-      isLoading: true,
-      isModerator: false,
-      initializeAuth: async () => {
-        const supabase = createClient();
 
-        if (!removeAuthListener) {
-          const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
-            if (event === 'INITIAL_SESSION') return;
+export const useUserStore = create<UserState>()((set, get) => ({
+  user: null,
+  profile: null,
+  isAuthenticated: false,
+  isLoading: true,
+  isModerator: false,
 
-            if (nextSession?.user) {
-              const user = mapSupabaseUser(nextSession.user);
-              set(authenticatedState(user));
-              void get().syncProfile();
-              void reconcileDataForAuthChange(user.id);
-            } else {
-              set(signedOutState());
-              void reconcileDataForAuthChange();
-            }
-          });
-          removeAuthListener = () => subscription.unsubscribe();
-        }
-
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-
-          if (session?.user) {
-            const user = mapSupabaseUser(session.user);
-            set({ ...authenticatedState(user), isLoading: false });
-            await get().syncProfile();
-            await reconcileDataForAuthChange(user.id);
-          } else {
-            set({ ...signedOutState(), isLoading: false });
-            await reconcileDataForAuthChange();
-          }
-        } catch (error) {
-          console.error('Auth initialization error:', error);
-          set({ isLoading: false });
-          await reconcileDataForAuthChange(get().user?.id);
-        }
-      },
-
-      signup: async (email: string, password: string, displayName?: string) => {
-        const supabase = createClient();
-
-        // Validate email format
-        if (!email.includes('@') || !email.includes('.')) {
-          return { success: false, error: 'Invalid email format' };
-        }
-
-        // Validate password length
-        if (password.length < 6) {
-          return { success: false, error: 'Password must be at least 6 characters' };
-        }
-
-        try {
-          const { data, error } = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-              data: {
-                display_name: displayName || email.split('@')[0],
-              },
-            },
-          });
-
-          if (error) {
-            return { success: false, error: error.message };
-          }
-
-          if (data.user && data.session) {
-            const user = mapSupabaseUser(data.user);
-            set(authenticatedState(user));
-            await get().syncProfile();
-            await reconcileDataForAuthChange(user.id);
-            return { success: true };
-          }
-
-          if (data.user && !data.session) {
-            // With email confirmation enabled Supabase returns a user but no
-            // session. Do not treat that response as an authenticated login.
-            set(signedOutState());
-            return { success: true, requiresConfirmation: true };
-          }
-
-          return { success: false, error: 'Signup failed' };
-        } catch {
-          return { success: false, error: 'An unexpected error occurred' };
-        }
-      },
-
-      login: async (email: string, password: string) => {
-        const supabase = createClient();
-
-        try {
-          const { data, error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
-
-          if (error) {
-            return { success: false, error: error.message };
-          }
-
-          if (data.user) {
-            const user = mapSupabaseUser(data.user);
-            set(authenticatedState(user));
-            await get().syncProfile();
-            await reconcileDataForAuthChange(user.id);
-            return { success: true };
-          }
-
-          return { success: false, error: 'Login failed' };
-        } catch {
-          return { success: false, error: 'An unexpected error occurred' };
-        }
-      },
-
-      logout: async () => {
-        useRoutesStore.getState().clearRemoteRoutes();
-        useWallsStore.getState().clearRemoteWalls();
-        const supabase = createClient();
-
-        try {
-          await supabase.auth.signOut();
-        } catch (error) {
-          console.error('Logout error:', error);
-        }
-
-        set({
-          user: null,
-          profile: null,
-          isAuthenticated: false,
-          isModerator: false,
-        });
-        await reconcileDataForAuthChange();
-      },
-
-
-      syncProfile: async () => {
-        const supabase = createClient();
-
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session?.user) {
-            set(signedOutState());
-            return;
-          }
-
-          let currentUser = get().user;
-          if (!currentUser || currentUser.id !== session.user.id) {
-            const authenticatedUser = mapSupabaseUser(session.user);
-            set(authenticatedState(authenticatedUser));
-            currentUser = authenticatedUser;
-          }
-          const profileUserId = currentUser.id;
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', profileUserId)
-            .single();
-
-          if (error && error.code !== 'PGRST116') {
-            console.error('Failed to fetch profile:', error);
-            return;
-          }
-
-          if (get().user?.id !== profileUserId) return;
-          if (data) {
-            set({ profile: data as Profile });
-            return;
-          }
-
-          const username = buildUsername(currentUser.displayName, currentUser.email, currentUser.id);
-          const { data: created, error: createError } = await supabase
-            .from('profiles')
-            .upsert({
-              id: currentUser.id,
-              username,
-              full_name: currentUser.displayName,
-              avatar_url: null,
-              bio: null,
-              home_area: null,
-            })
-            .select('*')
-            .single();
-
-          if (createError) {
-            console.error('Failed to create profile:', createError);
-            return;
-          }
-
-          if (get().user?.id !== profileUserId) return;
-          set({ profile: created as Profile });
-        } catch (error) {
-          console.error('Profile sync error:', error);
-        }
-      },
-
-      updateProfile: async (updates) => {
-        const state = get();
-        if (!state.user) return false;
-        const supabase = createClient();
-
-        try {
-          const { data, error } = await supabase
-            .from('profiles')
-            .update(updates)
-            .eq('id', state.user.id)
-            .select('*')
-            .single();
-
-          if (error) {
-            console.error('Failed to update profile:', error);
-            return false;
-          }
-
-          if (get().user?.id !== state.user.id) return false;
-          set({ profile: data as Profile });
-          return true;
-        } catch (error) {
-          console.error('Failed to update profile:', error);
-          return false;
-        }
-      },
-
-      uploadAvatar: async (file: File) => {
-        const state = get();
-        if (!state.user) return null;
-        const supabase = createClient();
-        const ext = file.name.split('.').pop() || 'png';
-        const path = `${state.user.id}/avatar-${Date.now()}.${ext}`;
-
-        try {
-          const { error } = await supabase.storage
-            .from('avatars')
-            .upload(path, file, { upsert: true });
-
-          if (error) {
-            console.error('Avatar upload failed:', error);
-            return null;
-          }
-
-          if (get().user?.id !== state.user.id) return null;
-          const { data } = supabase.storage.from('avatars').getPublicUrl(path);
-          const publicUrl = data.publicUrl;
-          const updated = await get().updateProfile({ avatar_url: publicUrl });
-          return updated ? publicUrl : null;
-        } catch (error) {
-          console.error('Avatar upload failed:', error);
-          return null;
-        }
-      },
-    }),
-    {
-      name: 'boarded-user',
-      partialize: (state) => ({
-        profile: state.profile,
-      }),
-      merge: (persistedState, currentState) => {
-        const persistedProfile = (persistedState as Partial<UserState> | null)?.profile;
-        return {
-          ...currentState,
-          profile: persistedProfile ?? currentState.profile,
-        };
-      },
+  initializeAuth: async () => {
+    const request = ++sessionRequest;
+    try {
+      const { user } = await resourceAPI.session();
+      if (request !== sessionRequest) return;
+      const changed = !initialized || get().user?.id !== user?.id;
+      initialized = true;
+      if (changed) {
+        authGeneration += 1;
+        // Remove cached account data before publishing the next identity.
+        // Keep an anonymous draft during the first session discovery.
+        const privacy = authGeneration > 1 ? resourceAPI.clearPrivateCaches() : Promise.resolve();
+        localStorage.removeItem('boarded-user');
+        localStorage.removeItem('boarded-auth');
+        const reconciliation = reconcileDataForAuthChange(user?.id);
+        set({ user, profile: null, isAuthenticated: Boolean(user), isModerator: user?.isModerator ?? false, isLoading: false });
+        await Promise.all([privacy, reconciliation]);
+      } else {
+        set({ user, isAuthenticated: Boolean(user), isModerator: user?.isModerator ?? false, isLoading: false });
+      }
+      if (request === sessionRequest && user) await get().syncProfile();
+    } catch {
+      if (request !== sessionRequest) return;
+      authGeneration += 1;
+      initialized = false;
+      // An unknown resource session must not keep the last account visible.
+      // The stores quarantine pending account work rather than deleting it.
+      useRoutesStore.getState().clearRemoteRoutes();
+      useWallsStore.getState().clearRemoteWalls();
+      set({ user: null, profile: null, isAuthenticated: false, isModerator: false, isLoading: false });
     }
-  )
-);
+  },
+
+  signup: async (email, password, displayName, callbackURL) => {
+    if (password.length < 8) return { success: false, error: 'Password must be at least 8 characters' };
+    try {
+      const destination = boardRedirect(
+        callbackURL?.startsWith('/login?')
+          ? new URLSearchParams(callbackURL.slice('/login?'.length)).get('redirect')
+          : null,
+        '',
+      );
+      const loginCallback = destination ? `/login?redirect=${encodeURIComponent(destination)}` : '/login';
+      const { error } = await authClient.signUp.email({ email, password, name: displayName?.trim() || email.split('@')[0], callbackURL: loginCallback });
+      if (error) return { success: false, error: error.message || 'Unable to create account' };
+      await get().initializeAuth();
+      return { success: true, requiresConfirmation: !get().isAuthenticated };
+    } catch (error) { return { success: false, error: error instanceof Error ? error.message : 'Unable to reach the server. Please try again.' }; }
+  },
+
+  login: async (email, password) => {
+    try {
+      const { error } = await authClient.signIn.email({ email, password });
+      if (error) return { success: false, error: error.message || 'Unable to log in' };
+      await get().initializeAuth();
+      if (!get().isAuthenticated) return { success: false, error: 'Unable to verify your session. Please try again.' };
+      return { success: true };
+    } catch (error) { return { success: false, error: error instanceof Error ? error.message : 'Unable to reach the server. Please try again.' }; }
+  },
+
+  logout: async () => {
+    // Revocation must succeed before claiming that this browser is signed out.
+    const { error } = await authClient.signOut();
+    if (error) throw new Error(error.message || 'Unable to log out. Please try again.');
+    sessionRequest += 1;
+    authGeneration += 1;
+    set({ user: null, profile: null, isAuthenticated: false, isModerator: false, isLoading: false });
+    const reconciliation = reconcileDataForAuthChange();
+    await resourceAPI.clearPrivateCaches();
+    await reconciliation;
+  },
+
+  syncProfile: async () => {
+    const userId = get().user?.id;
+    const generation = authGeneration;
+    const mutationRevision = profileMutationRevision;
+    if (!userId) return;
+    try {
+      const profile = await resourceAPI.request<Profile>('/api/profile');
+      // A refresh started before a saved edit must not put the old profile back.
+      if (generation === authGeneration && get().user?.id === userId && mutationRevision === profileMutationRevision) set({ profile });
+    } catch { /* Keep the last profile for this verified account. */ }
+  },
+
+  updateProfile: async (updates) => {
+    const userId = get().user?.id;
+    const generation = authGeneration;
+    if (!userId) return { ok: false, error: 'stale' };
+    try {
+      const { username, full_name, avatar_url, bio, home_area } = updates;
+      const profile = await resourceAPI.request<Profile>('/api/profile', {
+        method: 'PATCH',
+        body: JSON.stringify({ username, full_name, avatar_url, bio, home_area }),
+      });
+      if (generation !== authGeneration || get().user?.id !== userId) return { ok: false, error: 'stale' };
+      profileMutationRevision += 1;
+      set({ profile });
+      return { ok: true };
+    } catch (error) {
+      if (generation !== authGeneration || get().user?.id !== userId) return { ok: false, error: 'stale' };
+      if (error instanceof ResourceError) {
+        if (error.status === 409) return { ok: false, error: 'conflict' };
+        if (error.status === 422) return { ok: false, error: 'invalid' };
+      }
+      return { ok: false, error: 'failed' };
+    }
+  },
+
+  uploadAvatar: async (file) => {
+    const userId = get().user?.id;
+    const generation = authGeneration;
+    if (!userId) return null;
+    try {
+      const form = new FormData();
+      form.set('file', file);
+      const result = await resourceAPI.request<{ profile: Profile; avatar_url: string }>('/api/profile/avatar', { method: 'POST', body: form });
+      if (generation !== authGeneration || get().user?.id !== userId) return null;
+      profileMutationRevision += 1;
+      set({ profile: result.profile });
+      return result.avatar_url;
+    } catch { return null; }
+  },
+}));

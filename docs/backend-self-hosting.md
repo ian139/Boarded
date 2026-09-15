@@ -1,74 +1,147 @@
-# Self-hosted backend operations
+# Boarded native PostgreSQL operations
 
-This deployment remains independently operable for the standalone legacy Boarded route setter. The Boarded deployment identity and all SQL, security, backup, restore, and deployment implementation files are unchanged by the repository split. No database, Auth user, session, Storage object, or browser-local data migration has been performed.
+**Deployment NOT YET verified.** These are implemented operations for Ubuntu 26.04, native PostgreSQL 18, Node 22.18+, Caddy, and the standalone Next.js server. This packet did not execute a deployment, migration, backup, or restore. There is no hosted or self-hosted Supabase setup path.
 
-Retain the complete ordered migration chain, `001_initial_schema.sql` through `013_mobile_social.sql`, even though the journal and native clients are not shipped here. The legacy profile upsert writes `home_area`, which migration 013 adds. Do not trim or rewrite the historical chain, and do not apply already-recorded migrations again.
+## Prerequisites and administrator boundary
 
-## Setup and client configuration
+Use the existing PostgreSQL/Node installation; do not reinstall unrelated services or touch Docker monitoring. PostgreSQL stays on loopback/socket, port 5432. The helper's administrative `psql`, `pg_dump`, and `pg_restore` connections use the local `postgres` OS account and peer authentication. Runtime connections use SCRAM over loopback. Review HBA ordering for the intended database/roles; never enable `trust` or public database access. Restore databases/roles need separately scoped loopback HBA access as well.
 
-Run the relative `bin/...` commands in this guide from `deploy/self-hosted`. Docker with Compose, Python 3, OpenSSL, and a supported SHA-256 utility are prerequisites. For a **new, empty backend**:
+The supplied server inventory reports PostgreSQL 18 listening on loopback and existing Node 22. General sudo currently needs interactive administrator authentication; approved package/service wrappers do **not** authorize creating accounts/directories, changing database roles, or installing this helper. Obtain a reviewed administrator session or narrowly approved, root-owned operations helper before these steps. Do not bypass sudo policy. Verify `/usr/bin/node`, `/usr/bin/npm`, Python 3, Git, PostgreSQL 18 clients, systemd, `useradd`, and `runuser` are installed at the helper/unit paths.
 
-```sh
-cd deploy/self-hosted
-bin/generate-secrets .env
-```
-
-Edit that generated private file for the intended API, web origin, and SMTP relay before running:
+From the reviewed repository root, the administrator installs the helper outside the as-yet nonexistent application directory. Inspect an existing destination before replacing it; never overwrite an unrelated program:
 
 ```sh
-bin/preflight
-bin/bootstrap empty
-bin/health
+sudo install -o root -g root -m 0755 \
+  deploy/native-postgres/boarded-ops /usr/local/sbin/boarded-ops
 ```
 
-Secret generation refuses to overwrite an existing file. The helpers normally use `deploy/self-hosted/.env`; an explicit relative output such as `.env` is relative to the caller's working directory. Do not copy another deployment's secrets or use empty bootstrap as a data-transfer procedure.
+All privileged invocations below use that installed, root-owned helper, not a deploy-user-writable script under sudo. Parameters shown as examples must be chosen for this host. Secrets must never be placed in arguments, Git, screenshots, or logs.
 
-`SITE_URL` is the frontend origin. `API_EXTERNAL_URL` is the Auth service URL and must end in `/auth/v1`; the generated local defaults are `http://localhost:3000` and `http://localhost:8000/auth/v1`, respectively. The web client's `NEXT_PUBLIC_SUPABASE_URL` instead uses the API **base origin**, such as `http://localhost:8000`, without `/auth/v1`. Its `NEXT_PUBLIC_SUPABASE_ANON_KEY` is this deployment's public `ANON_KEY`. Never expose `SERVICE_ROLE_KEY` to the browser. For public use, configure the browser-reachable HTTPS API and frontend origins, publish the gateway through the intended reverse proxy/tunnel, configure mail, and rebuild the web client with the matching public values.
-
-A hosted Supabase project is an alternative; see the [hosted setup](development.md#supabase). The `bootstrap managed` command below consumes this tooling's authenticated backup format, not an arbitrary hosted-project export. Restore can rewrite backend Storage URLs in profile avatars, route wall images, and walls, but does not move browser-local state or rewrite previously copied frontend share links. See [persistence and origins](development.md#persistence-and-origins) before a cutover.
-
-## Operations and security
-
-The deployment under `deploy/self-hosted` runs five services: private PostgreSQL, Auth, PostgREST, Storage, and the loopback-only nginx gateway. Images are pinned by tag and digest. The gateway exposes only Auth, REST, Storage, and `/health`; it has no PostgreSQL metadata or administrative route. The gateway resolves the Auth, REST, and Storage service names through Docker's embedded DNS and re-resolves them dynamically, so recreated service containers are picked up without a gateway restart while the `/auth/v1/`, `/rest/v1/`, and `/storage/v1/` prefix stripping and the 404 allowlist are unchanged.
-
-The architecture is the five-service self-hosted Supabase data plane on PostgreSQL, not SQLite: the legacy route-setting web client depends on GoTrue, PostgREST, Storage, and PostgreSQL RLS, grants, and `SECURITY DEFINER` contracts. Adopting SQLite would require replacing those server contracts and the client integration. The initial target is one 2-vCPU, 4-GB RAM, 40-GB home PC or low-cost Hetzner node. Only loopback nginx is exposed, optionally published through Cloudflare Tunnel or a reverse proxy; PostgreSQL remains private. When load warrants, move Storage objects to S3-compatible storage first, then add backup/standby capacity and stateless API replicas.
-
-Python 3 and OpenSSL are host prerequisites. Run `bin/generate-secrets .env` to create a mode-0600 environment file without printing secrets or exposing the JWT secret through process arguments or environment, then use `bin/preflight`. The environment file must be a non-symlink regular file owned by the current effective user with exact mode 0600, and every ancestor of its canonical path must be owned by the current effective user or root and not group- or world-writable; shared or foreign-owned locations are rejected before the file is read. Before the file is read, preflight clears every project-managed variable (`POSTGRES_PASSWORD`, `JWT_SECRET`, `ANON_KEY`, `SERVICE_ROLE_KEY`, `API_PORT`, `API_EXTERNAL_URL`, `SITE_URL`, and the other Compose-managed names) from the environment, so an ambient JWT, password, URL, or port value can never satisfy a missing key or override a file value. Preflight loads the environment file with a strict dotenv parser that accepts only `NAME=value` assignments whose names are shell-safe identifiers and whose values contain no shell metacharacters, command substitution, quoting, or redirection; any other line is rejected before it is sourced or evaluated. `require_env` then loads those exact validated file values into the invoking shell, so Compose interpolation uses only the validated environment file and never ambient overrides; unrelated environment such as `DOCKER_HOST` is preserved. Clean cutovers require freshly generated, independent URL-safe passwords for PostgreSQL and each of `authenticator`, `supabase_auth_admin`, `supabase_storage_admin`, `supabase_functions_admin`, and `pgbouncer`; preflight rejects missing, short, non-URL-safe, or duplicate values. Auth, PostgREST, and Storage receive only their own role credentials, never the PostgreSQL superuser password or another service's password. Both nginx and Storage enforce one fixed upload limit of 50 MiB; this limit is intentionally not configurable.
-
-Backup, restore, and migration use whichever standard SHA-256 utility is installed (`sha256sum` or `shasum`); `bin/preflight` reports an actionable prerequisite error when neither is available.
-
-Use `bin/bootstrap empty` for a new database; `bin/bootstrap empty --dry-run` previews the stack start and migration invocation without reading database state. On a clean PostgreSQL volume, the pinned upstream `roles.sql` and `jwt.sql` run in the image's `init-scripts` phase, a local later script replaces the upstream shared role passwords with the generated per-role passwords, and pinned `_supabase.sql` and `data.sql` run at their upstream migration destinations. The database container receives `JWT_SECRET` and `JWT_EXP` for that initialization. Existing volumes are not retrofitted: rotate through a clean cutover when adopting these credentials.
-
-Use `bin/bootstrap managed BACKUP --old-origin URL --new-origin URL` for a managed restore. Managed bootstrap validates every argument, both origins, backup authentication and hashes, and archive paths before starting the stack. Restore copies all payloads, the manifest, and the validated public key into a private staging directory and authenticates only with those staged key bytes. After locking and quiescing writers, it connects through `template1`, terminates connections only to `postgres`, force-drops and recreates that database, then reapplies the database-scoped `app.settings.jwt_secret` and `app.settings.jwt_exp` from the db container's own `JWT_SECRET`/`JWT_EXP` environment via the pinned upstream `jwt.sql` before restoring schema, data, and the migration ledger. Cluster roles survive while objects newer than the backup cannot survive. Service restart-on-failure uses a bounded 120-second readiness wait.
-
-Backups require a non-symlink RSA private key outside the backup directory. The private key must be owned by the current effective user with exact mode 0600 and be a structurally valid RSA key of at least 3072 bits. Every ancestor of the key file, the canonical parent of a new backup directory, the restore public key, and the public key's canonical parent must be owned by the current effective user or root and must not be group- or world-writable; the key file, backup source directory, and output directory themselves must be current-user-owned. Shared or foreign-owned locations, including sticky directories such as `/tmp`, are intentionally rejected before mutation because another principal could swap an input or destination. The backup directory is created with mode 0700. Generate a mode-0600 private key and its separate public verification key with commands supported by OpenSSL 3 and the OpenSSL shipped with common Darwin package installations:
+## Initialize an empty target
 
 ```sh
-umask 077
-openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -out /secure/boarded-backup-private.pem
-chmod 600 /secure/boarded-backup-private.pem
-openssl pkey -in /secure/boarded-backup-private.pem -pubout -out /secure/boarded-backup-public.pem
-BACKUP_SIGNING_KEY_FILE=/secure/boarded-backup-private.pem bin/backup /backups/boarded-YYYYMMDD
+sudo /usr/local/sbin/boarded-ops initialize \
+  --origin https://boarded.example.com \
+  --confirm initialize-empty-boarded
 ```
 
-Backup briefly stops the API gateway, Auth, PostgREST, and Storage so no upload or database writer can run while PostgreSQL and the Storage volume are captured and signed as one coherent backup. The command restarts those services with a bounded readiness wait and checks final health before reporting success.
+Replace the example origin first. Initialization refuses existing Boarded database/roles, accounts, configuration, state, cache, and release directories. It is not a migration/import command. Partial failures preserve what was created: inspect and reconcile as administrator, never delete data to force a retry.
 
-Custody checks cover every sensitive file and every trusted ancestor, not only numeric mode bits. On Darwin the scripts inspect the native extended ACL listing and reject any grant to a principal other than the file owner or root; on Linux they inspect POSIX ACLs with `getfacl` when available and fail closed if an ACL marker is present but the ACL cannot be inspected. An ACL inherited by a generated secret, backup artifact, or restore staging path is cleared with the platform ACL tool (`chmod -N` on Darwin or `setfacl -b` on Linux) and the artifact is revalidated before it is used or published. Remove any `chmod +a`/named-user or named-group grant from a sensitive path rather than relying on mode 0600/0700.
+| Location/identity | Purpose |
+| --- | --- |
+| `boarded` OS account | Non-login application user, no sudo |
+| `boarded-migrate` OS account | Separate non-login migration process identity |
+| `boarded-restore` OS account | Isolated restore runtime, cannot read production uploads |
+| PostgreSQL `boarded_migrator` | Owns database `boarded` and schema migrations; no superuser/create-role/create-db rights |
+| PostgreSQL `boarded_app` | Explicit runtime grants, no object ownership or migration-role membership |
+| `/srv/boarded/releases/<full-git-sha>` | Root-owned immutable code, build output, dependencies and migration runner |
+| `/srv/boarded/current` | Atomically replaced active-release symlink |
+| `/var/lib/boarded/uploads` | Durable `boarded`-owned mode-0700 uploads, outside the web root |
+| `/var/cache/boarded` | Disposable bounded writable Next cache |
+| `/etc/boarded/runtime.env` | Root-owned mode-0600 application environment |
+| `/etc/boarded/migration.env` | Root-owned mode-0600 migration environment, never loaded by the web service |
 
-Restore cleanup records the destructive database-mutation boundary. A failure before the drop attempts to restart the quiesced public services; once the drop starts, cleanup stops those services, leaves them stopped, and prints recovery instructions to rerun from a known-good backup before `bin/stack up` and `bin/health`. Backup cleanup removes an incomplete destination, but after all payloads are captured, checksummed, signed, ACL-normalized, and mode-finalized, it preserves that authenticated destination even if service restart or health recovery fails and reports the required `bin/stack up`/`bin/health` recovery.
+The runtime environment contains `DATABASE_URL`, `APP_ORIGIN`, `BETTER_AUTH_SECRET`, `UPLOAD_DIR`, and `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`. Replace generated SMTP placeholders through a private administrator editor. `SMTP_PORT` accepts any integer from 1 through 65535, including high-port relays. `SMTP_SECURE` is explicitly `true` for implicit TLS or `false` for required STARTTLS; authenticated, certificate-validated TLS remains mandatory in both cases. Ports 465/587 are examples, not an allowlist. Production `APP_ORIGIN` must be the canonical HTTPS origin. Never bypass email verification to compensate for missing mail.
 
-Backup, migration, and restore share the atomic `deploy/self-hosted/.operation-lock` directory and cannot overlap. If an interrupted operation leaves that lock behind, inspect its `owner` file and confirm that no backup, migration, or restore process is still running before removing the lock directory; never remove it merely because an operation is taking longer than expected.
+The migration file contains only `DATABASE_MIGRATION_URL`. The helper accepts simple `NAME=value` or shell-quoted single-line values, with no expansion; generated values are double-quoted. Keep private files root-owned 0600 and every ancestor root-controlled, non-symlink and non-group/world-writable. Do not put private values in `NEXT_PUBLIC_*`.
 
-Restore needs only the public key, kept separately from backup payloads. The public key must be a structurally valid RSA key of at least 3072 bits. Its validated bytes are copied into the private staging directory and re-validated there before signature verification, so later changes to the configured key path cannot change the trust anchor used by that restore:
+## Build and install a release
+
+Initialization must precede the first `install-release`. Build as an unprivileged deploy account, on Linux for the target architecture; do not copy macOS dependencies. The parent of the new build directory must already exist and be deploy-user writable:
 
 ```sh
-BACKUP_VERIFY_KEY_FILE=/secure/boarded-backup-public.pem bin/restore /backups/boarded-YYYYMMDD --old-origin https://old.example.com --new-origin https://new.example.com
+SOURCE="$PWD"
+RELEASE=$(git rev-parse HEAD)
+BUILD="$HOME/boarded-build-$RELEASE"
+/usr/local/sbin/boarded-ops build-release "$SOURCE" "$BUILD"
+sudo /usr/local/sbin/boarded-ops install-release "$BUILD" \
+  --confirm "install-$RELEASE"
 ```
 
-The backup contains `SHA256SUMS.sig`, never either key. `bin/health` requires the externally reachable API gateway as well as PostgreSQL, Auth, PostgREST, and Storage to be healthy. Standalone `bin/migrate --dry-run` reads migration and ledger state but never creates the ledger schema or table or applies SQL.
+Build uses committed Git state only, `npm ci`, `npm run build`, and `NEXT_PUBLIC_BUILD_ID` equal to the commit SHA. No production credentials are supplied. It requires `.next/standalone/server.js`, copies `public` and `.next/static` into standalone output, and connects only its disposable `.next/cache` to the fixed cache directory. Full source/dependencies remain available for the explicit migration runner.
 
-Email signup requires confirmation: `ENABLE_EMAIL_AUTOCONFIRM` defaults to `false`, and it must never be set to `true` to work around a missing mail sender, because that silently confirms unverified email addresses. The Compose file passes the supported GoTrue SMTP variables through the managed `SMTP_ADMIN_EMAIL`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, and `SMTP_SENDER_NAME` names; `SMTP_ADMIN_EMAIL` and `SMTP_SENDER_NAME` form the From address, and `SMTP_PORT` defaults to 587. Preflight validates `SMTP_PORT` as a numeric port in the 1–65535 range unconditionally — Compose interpolates `GOTRUE_SMTP_PORT` even when `SMTP_HOST` is empty, and GoTrue rejects a non-integer port at startup — and requires `SMTP_ADMIN_EMAIL` whenever `SMTP_HOST` is set. While `SMTP_HOST` is empty, GoTrue runs its no-op mail client: signups return success but every outgoing email is silently discarded and unconfirmed users can never sign in, so a real SMTP relay must be configured before email signup is offered to anyone. Email action links are built from `API_EXTERNAL_URL` plus the gateway-prefixed `/auth/v1/verify` path that the Compose file pins for confirmation, recovery, invite, and email-change links (the GoTrue default `/verify` would resolve outside the `/auth/v1/` prefix and 404 at the gateway), so verification completes through the loopback gateway and the redirect lands on `SITE_URL`. The `SMTP_*` names are managed exactly like every other Compose name: ambient values are cleared, values load only from the mode-0600 environment file, and the strict dotenv parser applies unchanged, except that the two SMTP address values may contain `@`, which an email address cannot be written without. All other SMTP values, including `SMTP_PASS`, keep the existing strict value set (letters, digits, and `_.:,/-`); preflight rejects a password containing any other character rather than quoting or relaxing the parser. Provider credentials needing a wider character set are an exact, reported limitation pending a security-reviewed parser change, not a silently supported configuration; operate within the supported set — for example by relaying through a mail service whose credentials conform — and do not modify provider-issued secrets to fit the parser.
+Installation checks Linux/architecture/Node-major compatibility, copies into private root staging under the operation lock, normalizes ownership/modes, and rejects dependencies linked outside the immutable tree except the exact bounded cache link. Only complete releases are published. Existing release IDs are never overwritten; failed private staging directories are retained for inspection.
 
-The moderator authorization added by migration 009 derives from the signed JWT `app_metadata` claim (`role` equal to `moderator`, or `is_moderator` equal to `true`), which clients cannot change by editing their own metadata. There is intentionally no grant script and no CLI scaffold: a moderator is granted or revoked with the Auth admin API exposed through the loopback gateway — `PUT http://127.0.0.1:$API_PORT/auth/v1/admin/users/<user-id>` with `Authorization: Bearer $SERVICE_ROLE_KEY` and body `{"app_metadata": {"role": "moderator"}}`. `SERVICE_ROLE_KEY` is the server secret from the same mode-0600 environment file, is never shipped inside a client, and is the only credential the gateway path needs; no direct writes to `auth.users` are supported. Because the claim is baked into signed JWTs, existing access tokens keep the old claim until they expire (`JWT_EXPIRY`, default 3600 seconds), and the new claim reaches the user at the next token refresh or fresh sign-in; revocation follows the same admin call with the claim values set to `null`, which deletes those `app_metadata` keys.
+## Install units, migrate, activate, publish
 
-The optional RLS ownership harness (`supabase/tests/rls_ownership_harness.py`) is configured with exactly two environment variables: `BOARDED_LOCAL_SUPABASE_URL` (default `http://127.0.0.1:54321`, must be loopback) and `BOARDED_LOCAL_DB_CONTAINER` (default `supabase_db_boarded-supabase`, must start with `supabase_db_`). Those guards are deliberate: the harness provisions disposable fixtures through Docker Postgres inside a disposable `supabase_db_*` container and never reads or sends `SERVICE_ROLE_KEY`. The self-hosted stack's database container is `boarded-supabase-db-1`, so the harness refuses it by design; do not point the harness at the self-hosted deployment and do not rename containers to evade the guard. There is no CLI scaffold for this: administrator actions on the self-hosted stack use the Auth admin API above, and the harness remains a test for a separately started disposable local stack.
+Review `deploy/native-postgres/boarded.service`, `boarded-restore@.service`, and `Caddyfile`. Confirm destination units are absent or the explicitly approved Boarded units before these administrator installation commands:
+
+```sh
+sudo install -o root -g root -m 0644 deploy/native-postgres/boarded.service \
+  /etc/systemd/system/boarded.service
+sudo install -o root -g root -m 0644 deploy/native-postgres/boarded-restore@.service \
+  /etc/systemd/system/boarded-restore@.service
+sudo systemctl daemon-reload
+```
+
+For an initial empty database there is no active release to back up. **Before an upgrade**, take the coherent backup below and coordinate a write freeze. The migration helper explicitly stops the service, including pending automatic restarts, and leaves it stopped; migrations never run from the web service startup:
+
+```sh
+sudo /usr/local/sbin/boarded-ops migrate "$RELEASE" --confirm "migrate-$RELEASE"
+sudo /usr/local/sbin/boarded-ops activate "$RELEASE" --confirm "activate-$RELEASE"
+sudo /usr/local/sbin/boarded-ops health
+```
+
+`migrate` runs `npm run db:migrate` as `boarded-migrate` with the migration-only environment. It applies the plain-Postgres `db/migrations` ledger, not historical `supabase/migrations/001`–`013`. Never apply that historical platform-dependent SQL to plain PostgreSQL.
+
+The production service loads private configuration through systemd, runs `/usr/bin/node .next/standalone/server.js` as `boarded`, binds `127.0.0.1:3000`, and permits writes only to uploads/cache and private temporary storage. It cannot read the migration file or isolated restore state. Activation changes `current`, restarts the unit and waits for `/api/health` HTTP 200. A failed readiness check does not roll back SQL or silently switch code; inspect bounded `journalctl -u boarded.service` output and recover deliberately.
+
+Merge the reviewed Caddy site into the existing configuration, replacing only its example hostname. Do not replace other sites. Validate the merged configuration before reload:
+
+```sh
+sudo caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+sudo systemctl reload caddy
+sudo systemctl enable boarded.service
+```
+
+Caddy must route UI, API, and authorized file reads to the same application origin; never use `file_server` on uploads. The template limits request bodies and does not enable access logs containing auth URL tokens. Confirm DNS, certificates, firewall and external HTTPS/mail independently. Keep ports 3000/5432 and Caddy administration private. A successful local health check is not external deployment acceptance.
+
+Keep `header_up X-Real-IP {remote_host}` inside every Boarded `reverse_proxy` block, including a staging proxy. Better Auth trusts only `x-real-ip`; Caddy must overwrite a supplied header with its actual peer address, otherwise clients can spoof rate-limit identities or all requests without the header share one bucket. Do not publish Next.js directly. An additional CDN/tunnel/proxy requires a separately reviewed trusted-proxy configuration; never forward arbitrary client IP headers as authority.
+
+## Coherent backups
+
+Create a root-controlled backup parent first, on storage with enough free space. The backup destination itself must be new. Example:
+
+```sh
+sudo install -d -o root -g root -m 0700 /srv/boarded-backups
+BACKUP="/srv/boarded-backups/boarded-$(date -u +%Y%m%dT%H%M%SZ)"
+sudo /usr/local/sbin/boarded-ops backup "$BACKUP" \
+  --confirm pause-boarded-and-backup
+```
+
+Backup, install, migrate, activate and restore share a kernel `flock` on `/etc/boarded/operation.lock`. Freeze out-of-band administrative/import writers too: the helper can quiesce its application, not arbitrary privileged writers. A transitional/automatically restarting unit is rejected; wait for a stable state or explicitly stop it first.
+
+Backup stops the application, sets `boarded_app NOLOGIN`, terminates its database sessions, captures a custom-format database dump and matching upload tree, and records file/database SHA-256 checksums, release identity, configuration checksum and exact runtime object grants. It then restores login and restarts the service only if it was previously active, with a readiness wait. It does not copy a running PostgreSQL data directory.
+
+Incomplete and completed destinations are retained even on failure. Never restore a set containing `INCOMPLETE`. If killed while the runtime role is `NOLOGIN`, an administrator must confirm no operation/writer remains, inspect the preserved set/service/process state, and only then restore `ALTER ROLE boarded_app LOGIN;` through local `psql` and decide whether to restart. The kernel releases the lock on process exit; deleting its file is not a recovery procedure.
+
+Hashes detect corruption, **not authenticity**. Restore only trusted, root-controlled backups transported/stored with separate authentication and encryption. Never run an untrusted SQL dump even if its accompanying hashes match. Keep encrypted off-host copies, retention/freshness alerts, and protected escrow of runtime/migration secrets, systemd/Caddy configuration, exact release/lockfile/Node version and recovery records. Secrets and cluster-wide role definitions are not in the payload; isolated restore explicitly recreates least-privilege roles. A local copy on the same disk is not disaster recovery.
+
+## Isolated restore drill
+
+Install the backup's exact release SHA first; restore refuses a missing/incomplete release. Prepare `/etc/boarded/restore-drill.env` privately, root-owned 0600. It must contain `APP_ORIGIN` for a separate HTTPS staging origin, and `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` for an independently reviewed **authenticated TLS mail-capture relay that does not deliver to real recipients**. Both origin and SMTP hostname must differ from production. Ports 1–65535 are supported; explicit `SMTP_SECURE=false` requires STARTTLS (for example, an authenticated capture relay on 1587), while `true` requires implicit TLS. Certificate validation and credentials remain mandatory; there is no insecure sink or `NODE_ENV` bypass.
+
+```sh
+RESTORE=boarded_restore_drill01
+sudo /usr/local/sbin/boarded-ops restore-isolated "$BACKUP" "$RESTORE" \
+  --runtime-env /etc/boarded/restore-drill.env \
+  --confirm "create-isolated-$RESTORE"
+```
+
+Names must be `boarded_restore_` plus 1–24 lowercase letters, digits or underscores. The command verifies trusted custody, hashes/inventory, release and configuration before creating a new database, owner/runtime roles, and upload subtree. It restores original runtime privileges without broadening ledger/moderator/retained-schema access, revokes default public function execution, generates a fresh auth secret and writes private isolated environment files. It creates `/var/lib/boarded/restore/$RESTORE/release` itself, pointing at the exact installed release. Existing database/roles/path are never overwritten; partial results remain marked `INCOMPLETE`.
+
+No service is started and no production DNS/current symlink is changed. After reviewing scoped HBA access, private HTTPS staging routing/access controls and actual mail capture, start one drill at a time:
+
+```sh
+sudo systemctl start "boarded-restore@$RESTORE.service"
+```
+
+The separate `boarded-restore` account binds loopback 3100, uses isolated uploads/cache, cannot read production uploads/configuration, and does not auto-restart. Validate staging `/api/health`, login/verification/recovery, profiles, route/wall/file persistence, public/private sharing, exact row/reference/checksum counts and retained data. Fresh secrets mean old sessions must not be assumed reusable. Stop the drill when complete; no automatic database/files deletion is provided. Do not run the production-name migration runner against a restore database.
+
+## Existing-data conversion and rollback
+
+These tools restore their own native backup format, not a Supabase export or browser state. Existing source data requires explicitly approved, purpose-built conversion: export identity metadata, every application and migration-013 table, privileged assignments, schema history, and every referenced uploaded byte; stage-import with IDs/FKs, timestamps, ownership, privacy, grades/holds, comments/ascents/likes and share tokens preserved; reconcile counts and checksums; record old-URL to new-file mappings. Verify password-hash compatibility through the maintained auth library or require secure recovery. Existing platform sessions are not transferable; signup with an existing email is not ownership proof.
+
+Preserve the old origin for browser-draft recovery and route old share hostnames/paths deliberately. Retain migration-013 sessions, attempts, posts/timeline snapshots, likes/comments, meetups/attendees/comments and social-media files in conversion or an explicitly approved restorable archive; do not silently drop or expose private timelines.
+
+At cutover freeze all source writes/uploads, take a final coherent export, reconcile it and obtain operator acceptance. Retain prior database/files/settings/release for the acceptance window. After new writes, rollback requires reviewed reverse conversion or an explicitly approved recovery point; never blindly down-migrate, run the old Supabase binary on plain PostgreSQL, overwrite production during a drill, or leave two writable backends.
